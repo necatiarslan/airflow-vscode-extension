@@ -1,5 +1,5 @@
 {
-  "name": "airflow-vs-code-extension",
+  "name": "airflow-vscode-extension",
 	"displayName": "Airflow Vs Code Extension",
 	"description": "An extention for VsCode to be able to manage Apache Airflow, run and troubleshot DAGs",
 	"version": "0.0.1",
@@ -10,13 +10,13 @@
 		"Other"
 	],
 	"activationEvents": [
-        "onCommand:airflow-vs-code-extension.helloWorld"
+        "onCommand:airflow-vscode-extension.helloWorld"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "airflow-vs-code-extension.helloWorld",
+				"command": "airflow-vscode-extension.helloWorld",
 				"title": "Hello World"
 			}
 		]
