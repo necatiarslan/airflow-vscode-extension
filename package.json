@@ -1,8 +1,13 @@
 {
-  "name": "airflow-vscode-extension",
+	"name": "airflow-vscode-extension",
 	"displayName": "Airflow Vs Code Extension",
 	"description": "An extention for VsCode to be able to manage Apache Airflow, run and troubleshot DAGs",
 	"version": "0.0.1",
+	"publisher": "Necati ARSLAN",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/necatiarslan/airflow-vscode-extension"
+	},
 	"engines": {
 		"vscode": "^1.69.0"
 	},
@@ -10,16 +15,79 @@
 		"Other"
 	],
 	"activationEvents": [
-        "onCommand:airflow-vscode-extension.helloWorld"
+        "onCommand:airflow-vscode-extension.helloWorld",
+		"onView:airflowView"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "airflow-vscode-extension.helloWorld",
-				"title": "Hello World"
+				"command": "airflowView.refreshServer",
+				"title": "Refresh",
+				"icon": {
+				  "light": "media/light/refresh.svg",
+				  "dark": "media/dark/refresh.svg"
+				}
+			},
+			{
+				"command": "airflowView.addServer",
+				"title": "Add",
+				"icon": {
+					"light": "media/light/add.svg",
+					"dark": "media/dark/add.svg"
+				  }
+			},
+			{
+				"command": "airflowView.viewDagView",
+				"title": "View"
 			}
-		]
+		],
+		"menus": {
+			"view/title": [
+			  {
+				"command": "airflowView.refreshServer",
+				"when": "view == airflowView",
+				"group": "navigation"
+			  },
+			  {
+				"command": "airflowView.addServer",
+				"when": "view == airflowView",
+				"group": "navigation"
+			  }
+			],
+			"view/item/context": [
+			  {
+				"command": "airflowView.viewDagView",
+				"when": "view == airflowView",
+				"group": "inline"
+			  }
+			]
+		  },
+		"viewsContainers": {
+			"activitybar": [
+			  {
+				"id": "airflow-explorer",
+				"title": "Airflow",
+				"icon": "media/airflow.svg"
+			  }
+			]
+		  },
+		"views": {
+			"airflow-explorer": [
+				{
+					"id": "airflowView",
+					"name": "Airflow",
+					"icon": "media/airflow.svg"
+				}
+			]
+		},
+		"viewsWelcome": [
+			{
+			  "view": "airflowView",
+			  "contents": "No node dependencies found.\n\n[Add Airflow Server](command:airflowView.addServer)\n\n[learn more](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md)"
+			}
+		  ]
+
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run package",

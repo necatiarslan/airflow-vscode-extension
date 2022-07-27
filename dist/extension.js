@@ -7,6 +7,92 @@
 
 module.exports = require("vscode");
 
+/***/ }),
+/* 2 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AirflowView = void 0;
+const vscode = __webpack_require__(1);
+class AirflowView {
+    constructor(context) {
+        const view = vscode.window.createTreeView('airflowView', { treeDataProvider: aNodeWithIdTreeDataProvider(), showCollapseAll: true });
+        context.subscriptions.push(view);
+    }
+}
+exports.AirflowView = AirflowView;
+// http://localhost:8080/api/v1/dags 
+const dagTree = {
+    'example_bash_operator': {},
+    'example_branch_datetime_operator_2': {},
+    'example_branch_dop_operator_v3': {},
+    'example_branch_labels': {},
+    'example_branch_python_operator_decorator': {},
+    'example_complex': {},
+    'example_dag_decorator': {},
+    'example_external_task_marker_child': {},
+};
+const nodes = {};
+function aNodeWithIdTreeDataProvider() {
+    return {
+        getChildren: (element) => {
+            return getChildren(element ? element.key : undefined).map(key => getNode(key));
+        },
+        getTreeItem: (element) => {
+            const treeItem = getTreeItem(element.key);
+            treeItem.id = element.key;
+            return treeItem;
+        },
+        getParent: ({ key }) => {
+            const parentKey = key.substring(0, key.length - 1);
+            return parentKey ? new Key(parentKey) : void 0;
+        }
+    };
+}
+function getChildren(key) {
+    if (!key) {
+        return Object.keys(dagTree);
+    }
+    const treeElement = getTreeElement(key);
+    if (treeElement) {
+        return Object.keys(treeElement);
+    }
+    return [];
+}
+function getTreeItem(key) {
+    const treeElement = getTreeElement(key);
+    // An example of how to use codicons in a MarkdownString in a tree item tooltip.
+    const tooltip = new vscode.MarkdownString(`$(zap) Tooltip for ${key}`, true);
+    return {
+        label: /**vscode.TreeItemLabel**/ { label: key, highlights: key.length > 1 ? [[key.length - 2, key.length - 1]] : void 0 },
+        tooltip,
+        collapsibleState: treeElement && Object.keys(treeElement).length ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None
+    };
+}
+function getTreeElement(element) {
+    let parent = dagTree;
+    for (let i = 0; i < element.length; i++) {
+        parent = parent[element.substring(0, i + 1)];
+        if (!parent) {
+            return null;
+        }
+    }
+    return parent;
+}
+function getNode(key) {
+    if (!nodes[key]) {
+        nodes[key] = new Key(key);
+    }
+    return nodes[key];
+}
+class Key {
+    constructor(key) {
+        this.key = key;
+    }
+}
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -45,25 +131,27 @@ exports.deactivate = exports.activate = void 0;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
+const airflowView_1 = __webpack_require__(2);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
-    // Use the console to output diagnostic information (console.log) and errors (console.error)
-    // This line of code will only be executed once when your extension is activated
-    console.log('Congratulations, your extension "airflow-vscode-extension" is now active!');
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with registerCommand
-    // The commandId parameter must match the command field in package.json
-    let disposable = vscode.commands.registerCommand('airflow-vscode-extension.helloWorld', () => {
-        // The code you place here will be executed every time your command is executed
-        // Display a message box to the user
-        vscode.window.showInformationMessage('Hello World from Airflow Vs Code Extension!');
+    console.log('Extension "airflow-vscode-extension" is now active!');
+    vscode.commands.registerCommand('airflowView.refreshServer', () => {
+        vscode.window.showInformationMessage('airflowView.refreshServer clicked!');
     });
-    context.subscriptions.push(disposable);
+    vscode.commands.registerCommand('airflowView.addServer', () => {
+        vscode.window.showInformationMessage('airflowView.addServer clicked!');
+    });
+    vscode.commands.registerCommand('airflowView.viewDagView', () => {
+        vscode.window.showInformationMessage('airflowView.viewDagView clicked!');
+    });
+    new airflowView_1.AirflowView(context);
 }
 exports.activate = activate;
 // this method is called when your extension is deactivated
-function deactivate() { }
+function deactivate() {
+    console.log('Extension "airflow-vscode-extension" is now deactive!');
+}
 exports.deactivate = deactivate;
 
 })();
