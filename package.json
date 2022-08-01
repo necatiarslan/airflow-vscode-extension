@@ -15,7 +15,7 @@
 		"Other"
 	],
 	"activationEvents": [
-        "onCommand:airflow-vscode-extension.helloWorld",
+		"onCommand:airflow-vscode-extension.helloWorld",
 		"onView:airflowView"
 	],
 	"main": "./dist/extension.js",
@@ -25,8 +25,8 @@
 				"command": "airflowView.refreshServer",
 				"title": "Refresh",
 				"icon": {
-				  "light": "media/light/refresh.svg",
-				  "dark": "media/dark/refresh.svg"
+					"light": "media/light/refresh.svg",
+					"dark": "media/dark/refresh.svg"
 				}
 			},
 			{
@@ -35,7 +35,7 @@
 				"icon": {
 					"light": "media/light/add.svg",
 					"dark": "media/dark/add.svg"
-				  }
+				}
 			},
 			{
 				"command": "airflowView.viewDagView",
@@ -44,34 +44,34 @@
 		],
 		"menus": {
 			"view/title": [
-			  {
-				"command": "airflowView.refreshServer",
-				"when": "view == airflowView",
-				"group": "navigation"
-			  },
-			  {
-				"command": "airflowView.addServer",
-				"when": "view == airflowView",
-				"group": "navigation"
-			  }
+				{
+					"command": "airflowView.refreshServer",
+					"when": "view == airflowView",
+					"group": "navigation"
+				},
+				{
+					"command": "airflowView.addServer",
+					"when": "view == airflowView",
+					"group": "navigation"
+				}
 			],
 			"view/item/context": [
-			  {
-				"command": "airflowView.viewDagView",
-				"when": "view == airflowView",
-				"group": "inline"
-			  }
+				{
+					"command": "airflowView.viewDagView",
+					"when": "view == airflowView",
+					"group": "inline"
+				}
 			]
-		  },
+		},
 		"viewsContainers": {
 			"activitybar": [
-			  {
-				"id": "airflow-explorer",
-				"title": "Airflow",
-				"icon": "media/airflow.svg"
-			  }
+				{
+					"id": "airflow-explorer",
+					"title": "Airflow",
+					"icon": "media/airflow.svg"
+				}
 			]
-		  },
+		},
 		"views": {
 			"airflow-explorer": [
 				{
@@ -83,11 +83,10 @@
 		},
 		"viewsWelcome": [
 			{
-			  "view": "airflowView",
-			  "contents": "No node dependencies found.\n\n[Add Airflow Server](command:airflowView.addServer)\n\n[learn more](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md)"
+				"view": "airflowView",
+				"contents": "[Add Airflow Server](command:airflowView.addServer)\n\n\n\n\n\n[learn more](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md)"
 			}
-		  ]
-
+		]
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run package",
@@ -101,19 +100,24 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
-		"@types/vscode": "^1.69.0",
+		"@types/base-64": "^1.0.0",
 		"@types/glob": "^7.2.0",
 		"@types/mocha": "^9.1.1",
 		"@types/node": "16.x",
+		"@types/vscode": "^1.69.0",
 		"@typescript-eslint/eslint-plugin": "^5.30.0",
 		"@typescript-eslint/parser": "^5.30.0",
+		"@vscode/test-electron": "^2.1.5",
 		"eslint": "^8.18.0",
 		"glob": "^8.0.3",
 		"mocha": "^10.0.0",
-		"typescript": "^4.7.4",
 		"ts-loader": "^9.3.1",
+		"typescript": "^4.7.4",
 		"webpack": "^5.73.0",
-		"webpack-cli": "^4.10.0",
-		"@vscode/test-electron": "^2.1.5"
+		"webpack-cli": "^4.10.0"
+	},
+	"dependencies": {
+		"base-64": "^1.0.0",
+		"node-fetch": "^3.2.9"
 	}
 }
