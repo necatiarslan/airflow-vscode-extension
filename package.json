@@ -38,6 +38,14 @@
 				}
 			},
 			{
+				"command": "airflowView.filter",
+				"title": "Filter",
+				"icon": {
+					"light": "media/light/folder.svg",
+					"dark": "media/dark/folder.svg"
+				}
+			},
+			{
 				"command": "airflowView.viewDagView",
 				"title": "View"
 			}
@@ -51,6 +59,11 @@
 				},
 				{
 					"command": "airflowView.addServer",
+					"when": "view == airflowView",
+					"group": "navigation"
+				},
+				{
+					"command": "airflowView.filter",
 					"when": "view == airflowView",
 					"group": "navigation"
 				}

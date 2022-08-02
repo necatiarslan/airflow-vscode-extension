@@ -11,6 +11,7 @@ export class AirflowViewManager {
 	apiUserName: string = 'airflow';
 	apiPassword: string = 'airflow';
 	context: vscode.ExtensionContext;
+	filterString: string = '';
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context;
@@ -31,6 +32,22 @@ export class AirflowViewManager {
 
 	showErrorMessage(message: string): void {
 		vscode.window.showErrorMessage(message);
+	}
+
+	async filter() {
+		let filterStringTemp = await vscode.window.showInputBox({ placeHolder: 'Enter your filters seperated by comma' });
+		if (filterStringTemp) {
+			this.filterString = filterStringTemp;
+			this.view.message = 'Filter : ' + this.filterString;
+			this.treeDataProvider.filterString = this.filterString;
+		}
+		else {
+			this.filterString = '';
+			this.view.message = '';
+			this.treeDataProvider.filterString = this.filterString;
+		}
+		this.saveState();
+		this.treeDataProvider.refresh();
 	}
 
 	async addServer() {
@@ -88,8 +105,9 @@ export class AirflowViewManager {
 			this.context.globalState.update('apiUrl', this.apiUrl);
 			this.context.globalState.update('apiUserName', this.apiUserName);
 			this.context.globalState.update('apiPassword', this.apiPassword);
+			this.context.globalState.update('filterString', this.filterString);
 		} catch (error) {
-			
+
 		}
 	}
 
@@ -97,14 +115,21 @@ export class AirflowViewManager {
 		try {
 			let apiUrlTemp: string = this.context.globalState.get('apiUrl');
 			if (apiUrlTemp) { this.apiUrl = apiUrlTemp; }
-	
+
 			let apiUserNameTemp: string = this.context.globalState.get('apiUserName');
 			if (apiUserNameTemp) { this.apiUserName = apiUserNameTemp; }
-	
+
 			let apiPasswordTemp: string = this.context.globalState.get('apiPassword');
-			if (apiPasswordTemp) { this.apiPassword = apiPasswordTemp; }	
+			if (apiPasswordTemp) { this.apiPassword = apiPasswordTemp; }
+
+			let filterStringTemp: string = this.context.globalState.get('filterString');
+			if (filterStringTemp) {
+				this.filterString = filterStringTemp;
+				this.view.message = 'Filter : ' + this.filterString;
+				this.treeDataProvider.filterString = this.filterString;
+			}
 		} catch (error) {
-			
+
 		}
 	}
 }
@@ -114,6 +139,7 @@ export class AirflowTreeDataProvider implements vscode.TreeDataProvider<vscode.T
 	private _onDidChangeTreeData: vscode.EventEmitter<vscode.TreeItem | undefined | void> = new vscode.EventEmitter<vscode.TreeItem | undefined | void>();
 	readonly onDidChangeTreeData: vscode.Event<vscode.TreeItem | undefined | void> = this._onDidChangeTreeData.event;
 	daglistResponse: Promise<ResponseData>;
+	filterString: string = '';
 
 	refresh(): void {
 		this._onDidChangeTreeData.fire();
@@ -126,12 +152,21 @@ export class AirflowTreeDataProvider implements vscode.TreeDataProvider<vscode.T
 			if (this.daglistResponse) {
 				for (var dag of this.daglistResponse["dags"]) {
 					if (dag) {
-						let treeItem = new vscode.TreeItem(dag["dag_id"]);
-						treeItem.iconPath = {
-							light: '../media/light/python-3.svg',
-							dark: '../media/dark/python-3.svg'
-						};
-						dagList.push(treeItem);
+
+						let dagId: string = dag["dag_id"];
+						let isActive: boolean = dag["is_active"];
+						let isPaused: boolean = dag["is_paused"];
+						let owners: string[] = dag["owners"];
+						let tags: string[] = dag["tags"];
+
+						if (!this.filterString || (this.filterString && this.doesFilterMatch(dagId, isActive, isPaused, owners, tags))) {
+							let treeItem = new vscode.TreeItem(dagId);
+							treeItem.iconPath = {
+								light: './media/light/python-3.svg',
+								dark: './media/dark/python-3.svg'
+							};
+							dagList.push(treeItem);
+						}
 					}
 				}
 			}
@@ -141,42 +176,29 @@ export class AirflowTreeDataProvider implements vscode.TreeDataProvider<vscode.T
 		return Promise.resolve([]);
 	}
 
+	doesFilterMatch(dagId: string, isActive: boolean, isPaused: boolean, owners: string[], tags: string[]): boolean {
+		if (this.filterString.includes('active') && !isPaused) { return true; }
+		if (this.filterString.includes('paused') && isPaused) { return true; }
+
+		let words: string[] = this.filterString.split(',');
+		for (var word of words) {
+			if (dagId.includes(word)) { return true; }
+			if (owners.includes(word)) { return true; }
+			//TODO
+			//if(tags.forEach(function(e){ e.normalize.includes(word); })) { return true; }
+		}
+
+		return false;
+	}
+
 	getTreeItem(element: vscode.TreeItem): vscode.TreeItem {
 		return element;
 	}
 }
 
-
-async function activate(context) {
-	const state = stateManager(context)
-
-	const {
-		lastPaletteTitleApplied
-	} = state.read()
-
-	await state.write({
-		lastPaletteTitleApplied: 'foo bar'
-	})
-
-}
-
-
-function stateManager(context) {
-	return {
-		read,
-		write
-	}
-
-	function read() {
-		return {
-			lastPaletteTitleApplied: context.globalState.get('lastPaletteApplied')
-		}
-	}
-
-	async function write(newState) {
-		await context.globalState.update('lastPaletteApplied', newState.lastPaletteTitleApplied)
-	}
-}
+interface ITag { 
+	name:string 
+ } 
 
 interface ResponseData {
 	"dags": [

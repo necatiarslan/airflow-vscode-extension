@@ -18,6 +18,10 @@ export function activate(context: vscode.ExtensionContext) {
 		airflowView.addServer();
 	});
 
+	vscode.commands.registerCommand('airflowView.filter', () => {
+		airflowView.filter();
+	});
+
 	vscode.commands.registerCommand('airflowView.viewDagView', () => {
 		vscode.window.showInformationMessage('airflowView.viewDagView clicked!');
 	});
