@@ -23,7 +23,11 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	vscode.commands.registerCommand('airflowView.viewDagView', () => {
-		vscode.window.showInformationMessage('airflowView.viewDagView clicked!');
+		airflowView.viewDagView();
+	});
+
+	vscode.commands.registerCommand('airflowView.triggerDag', () => {
+		airflowView.triggerDag();
 	});
 
 

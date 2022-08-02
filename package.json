@@ -41,13 +41,25 @@
 				"command": "airflowView.filter",
 				"title": "Filter",
 				"icon": {
-					"light": "media/light/folder.svg",
-					"dark": "media/dark/folder.svg"
+					"light": "media/light/string.svg",
+					"dark": "media/dark/string.svg"
 				}
 			},
 			{
 				"command": "airflowView.viewDagView",
-				"title": "View"
+				"title": "View",
+				"icon": {
+					"light": "media/light/preview.svg",
+					"dark": "media/dark/preview.svg"
+				}
+			},
+			{
+				"command": "airflowView.triggerDag",
+				"title": "Trigger",
+				"icon": {
+					"light": "media/light/play.svg",
+					"dark": "media/dark/play.svg"
+				}
 			}
 		],
 		"menus": {
@@ -71,6 +83,11 @@
 			"view/item/context": [
 				{
 					"command": "airflowView.viewDagView",
+					"when": "view == airflowView",
+					"group": "inline"
+				},
+				{
+					"command": "airflowView.triggerDag",
 					"when": "view == airflowView",
 					"group": "inline"
 				}

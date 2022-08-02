@@ -26,6 +26,17 @@ export class AirflowViewManager {
 		this.loadDags();
 	}
 
+	viewDagView():void {
+		this.showInfoMessage("Development In Progress ...");
+	}
+
+	async triggerDag() {
+		let triggerDagConfig = await vscode.window.showInputBox({ placeHolder: 'Enter Configuration JSON (Optional, must be a dict object)' });
+		if (triggerDagConfig !== undefined) {
+			this.showInfoMessage("Development In Progress ...");
+		}
+	}
+
 	showInfoMessage(message: string): void {
 		vscode.window.showInformationMessage(message);
 	}
@@ -69,11 +80,7 @@ export class AirflowViewManager {
 		this.refresh();
 	}
 
-	async loadDags() {
-		if (!this.apiUrl) { return; }
-		if (!this.apiUserName) { return; }
-		if (!this.apiPassword) { return; }
-
+	getApiAuthParam(){
 		let params = {
 			method: 'GET',
 			headers: {
@@ -82,11 +89,19 @@ export class AirflowViewManager {
 			}
 		};
 
+		return params;
+	}
+
+	async loadDags() {
+		if (!this.apiUrl) { return; }
+		if (!this.apiUserName) { return; }
+		if (!this.apiPassword) { return; }
+
 		this.daglistResponse = undefined;
 		this.treeDataProvider.daglistResponse = this.daglistResponse;
 
 		try {
-			let response = await fetch(this.apiUrl + '/dags', params);
+			let response = await fetch(this.apiUrl + '/dags', this.getApiAuthParam());
 
 			this.daglistResponse = await response.json() as Promise<ResponseData>;
 			this.treeDataProvider.daglistResponse = this.daglistResponse;
