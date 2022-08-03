@@ -176,10 +176,7 @@ export class AirflowTreeDataProvider implements vscode.TreeDataProvider<vscode.T
 
 						if (!this.filterString || (this.filterString && this.doesFilterMatch(dagId, isActive, isPaused, owners, tags))) {
 							let treeItem = new vscode.TreeItem(dagId);
-							treeItem.iconPath = {
-								light: './media/light/python-3.svg',
-								dark: './media/dark/python-3.svg'
-							};
+							treeItem.iconPath = new vscode.ThemeIcon('gear');
 							dagList.push(treeItem);
 						}
 					}

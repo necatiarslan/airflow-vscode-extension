@@ -24,42 +24,27 @@
 			{
 				"command": "airflowView.refreshServer",
 				"title": "Refresh",
-				"icon": {
-					"light": "media/light/refresh.svg",
-					"dark": "media/dark/refresh.svg"
-				}
+				"icon": "$(refresh)"
 			},
 			{
 				"command": "airflowView.addServer",
 				"title": "Add",
-				"icon": {
-					"light": "media/light/add.svg",
-					"dark": "media/dark/add.svg"
-				}
+				"icon": "$(add)"
 			},
 			{
 				"command": "airflowView.filter",
 				"title": "Filter",
-				"icon": {
-					"light": "media/light/string.svg",
-					"dark": "media/dark/string.svg"
-				}
+				"icon": "$(filter)"
 			},
 			{
 				"command": "airflowView.viewDagView",
 				"title": "View",
-				"icon": {
-					"light": "media/light/preview.svg",
-					"dark": "media/dark/preview.svg"
-				}
+				"icon": "$(preview)"
 			},
 			{
 				"command": "airflowView.triggerDag",
 				"title": "Trigger",
-				"icon": {
-					"light": "media/light/play.svg",
-					"dark": "media/dark/play.svg"
-				}
+				"icon": "$(run)"
 			}
 		],
 		"menus": {

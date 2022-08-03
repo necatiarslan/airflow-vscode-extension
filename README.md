@@ -8,7 +8,7 @@
 
 ## Introduction
 
-This is a VSCode extension for Apache Airflow.
+This is a VSCode extension for Apache Airflow 2.0 and up.
 You can trigger your DAGs, view execution logs using this extension and do much more.
 
 ## Getting started
@@ -38,6 +38,9 @@ Please start issue with "fix:" and new feature with "feat:" in the title.
 - Execution History / Report / Analysis
 - Favorites
 - Dag Coloring
+- All Authentication Methods Support
+- Code Snipets
+- Dag Code Checks 
 
 Thanks,
 Necati ARSLAN
