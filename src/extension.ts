@@ -26,8 +26,8 @@ export function activate(context: vscode.ExtensionContext) {
 		airflowView.viewDagView();
 	});
 
-	vscode.commands.registerCommand('airflowView.triggerDag', () => {
-		airflowView.triggerDag();
+	vscode.commands.registerCommand('airflowView.triggerDag', (node: vscode.TreeItem) => {
+		airflowView.triggerDag(node);
 	});
 
 

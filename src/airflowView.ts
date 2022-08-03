@@ -26,14 +26,36 @@ export class AirflowViewManager {
 		this.loadDags();
 	}
 
-	viewDagView():void {
+	viewDagView(): void {
 		this.showInfoMessage("Development In Progress ...");
 	}
 
-	async triggerDag() {
+	async triggerDag(node: vscode.TreeItem) {
 		let triggerDagConfig = await vscode.window.showInputBox({ placeHolder: 'Enter Configuration JSON (Optional, must be a dict object)' });
+		
 		if (triggerDagConfig !== undefined) {
-			this.showInfoMessage("Development In Progress ...");
+			try {
+				let params = {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': 'Basic ' + encode(this.apiUserName + ":" + this.apiPassword)
+					},
+					body: {
+						"dag_run_id": null,
+						"logical_date": null,
+						"state": "queued",
+						"conf": {}
+					}
+				};
+
+				let response = await fetch(this.apiUrl + '/dags/' + node.label + '/dagRuns', params);
+
+				this.showInfoMessage(node.label + " Dag Triggered.");
+			} catch (error) {
+				this.showErrorMessage(node.label + 'Dag Trigger Error !!!\n\n' + error.message);
+			}
+
 		}
 	}
 
@@ -80,18 +102,6 @@ export class AirflowViewManager {
 		this.refresh();
 	}
 
-	getApiAuthParam(){
-		let params = {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': 'Basic ' + encode(this.apiUserName + ":" + this.apiPassword)
-			}
-		};
-
-		return params;
-	}
-
 	async loadDags() {
 		if (!this.apiUrl) { return; }
 		if (!this.apiUserName) { return; }
@@ -101,7 +111,15 @@ export class AirflowViewManager {
 		this.treeDataProvider.daglistResponse = this.daglistResponse;
 
 		try {
-			let response = await fetch(this.apiUrl + '/dags', this.getApiAuthParam());
+			let params = {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Basic ' + encode(this.apiUserName + ":" + this.apiPassword)
+				}
+			};
+
+			let response = await fetch(this.apiUrl + '/dags', params);
 
 			this.daglistResponse = await response.json() as Promise<ResponseData>;
 			this.treeDataProvider.daglistResponse = this.daglistResponse;
@@ -208,9 +226,9 @@ export class AirflowTreeDataProvider implements vscode.TreeDataProvider<vscode.T
 	}
 }
 
-interface ITag { 
-	name:string 
- } 
+interface ITag {
+	name: string
+}
 
 interface ResponseData {
 	"dags": [
