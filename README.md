@@ -18,6 +18,13 @@ Extension will be published to VsCode Extension Marketplace in a very short time
 
 https://github.com/necatiarslan/airflow-vscode-extension/blob/main/airflow-vscode-extension-1.0.1.vsix
 
+## Enable Airflow Rest Api
+
+To be able to connect a Airflow Server, you should enable Airflow Rest Api.
+You can take a look the libk below how to do it.
+
+https://airflow.apache.org/docs/apache-airflow/stable/security/api.html
+
 ## Bug Report
 
 If you have an issue or new feature request, please click link below to add a new issue.

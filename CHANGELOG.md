@@ -1,9 +1,15 @@
 # Change Log
 
-All notable changes to the "airflow-vscode-extension" extension will be documented in this file.
+- v.1.0.1
+    1. Connect to an Airflow Server
+    2. List Dags
+    3. Trigger a Dag
+    4. Filter Dags
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+## Bug Report
 
-## [Unreleased]
+If you have an issue or new feature request, please click link below to add a new issue.
 
-- Initial release
+https://github.com/necatiarslan/airflow-vscode-extension/issues/new
+
+Please start issue with "fix:" and new feature with "feat:" in the title.
