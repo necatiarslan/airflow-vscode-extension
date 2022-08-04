@@ -115,8 +115,11 @@ class AirflowViewManager {
         vscode.window.showErrorMessage(message);
     }
     async filter() {
-        let filterStringTemp = await vscode.window.showInputBox({ placeHolder: 'Enter your filters seperated by comma' });
-        if (filterStringTemp) {
+        let filterStringTemp = await vscode.window.showInputBox({ value: this.filterString, placeHolder: 'Enter your filters seperated by comma' });
+        if (filterStringTemp === undefined) {
+            return;
+        }
+        if (filterStringTemp !== '') {
             this.filterString = filterStringTemp;
             this.view.message = 'Filter : ' + this.filterString;
             this.treeDataProvider.filterString = this.filterString;
