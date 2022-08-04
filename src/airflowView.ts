@@ -31,8 +31,43 @@ export class AirflowViewManager {
 	}
 
 	async triggerDag(node: vscode.TreeItem) {
-		let triggerDagConfig = await vscode.window.showInputBox({ placeHolder: 'Enter Configuration JSON (Optional, must be a dict object)' });
-		
+		try {
+			let params = {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Basic ' + encode(this.apiUserName + ":" + this.apiPassword)
+				},
+				body: JSON.stringify(
+					{
+						"conf": {}
+					}),
+			};
+
+			let response = await fetch(this.apiUrl + '/dags/' + node.label + '/dagRuns', params);
+
+			if (response.status === 200) {
+				this.showInfoMessage(node.label + " Dag Triggered.");
+			}
+			else {
+				this.showErrorMessage(node.label + ' Dag Trigger Error !!!\n\n' + response.statusText);
+			}
+		} catch (error) {
+			this.showErrorMessage(node.label + ' Dag Trigger Error !!!\n\n' + error.message);
+		}
+	}
+
+	async triggerDagWConfig(node: vscode.TreeItem) {
+		let triggerDagConfig = await vscode.window.showInputBox({ placeHolder: 'Enter Configuration JSON (Optional, must be a dict object) or Press Enter' });
+
+		this.showInfoMessage("Development is in progress. Please wait for next versions.");
+		return;
+
+		// if(!triggerDagConfig)
+		// {
+		// 	triggerDagConfig = {};
+		// }
+
 		if (triggerDagConfig !== undefined) {
 			try {
 				let params = {
@@ -41,22 +76,45 @@ export class AirflowViewManager {
 						'Content-Type': 'application/json',
 						'Authorization': 'Basic ' + encode(this.apiUserName + ":" + this.apiPassword)
 					},
-					body: {
-						"dag_run_id": null,
-						"logical_date": null,
-						"state": "queued",
-						"conf": {}
-					}
+					body: JSON.stringify(
+						{
+							"conf": {}
+						}),
 				};
 
 				let response = await fetch(this.apiUrl + '/dags/' + node.label + '/dagRuns', params);
 
-				this.showInfoMessage(node.label + " Dag Triggered.");
+				if (response.status === 200) {
+					this.showInfoMessage(node.label + " Dag Triggered.");
+				}
+				else {
+					this.showErrorMessage(node.label + ' Dag Trigger Error !!!\n\n' + response.statusText);
+				}
 			} catch (error) {
-				this.showErrorMessage(node.label + 'Dag Trigger Error !!!\n\n' + error.message);
+				this.showErrorMessage(node.label + ' Dag Trigger Error !!!\n\n' + error.message);
 			}
 
 		}
+	}
+
+	async pauseDAG(node: vscode.TreeItem) {
+		let userAnswer = await vscode.window.showInputBox({ placeHolder: node.label + ' DAG will be PAUSED. Yes/No ?' });
+
+		this.showInfoMessage("Development is in progress. Please wait for next versions.");
+	}
+
+	async unPauseDAG(node: vscode.TreeItem) {
+		let userAnswer = await vscode.window.showInputBox({ placeHolder: node.label + ' DAG will be UNPAUSED/ACTIVATED. Yes/No ?' });
+
+		this.showInfoMessage("Development is in progress. Please wait for next versions.");
+	}
+
+	async lastDAGRunLog(node: vscode.TreeItem) {
+		this.showInfoMessage("Development is in progress. Please wait for next versions.");
+	}
+
+	async dagSourceCode(node: vscode.TreeItem) {
+		this.showInfoMessage("Development is in progress. Please wait for next versions.");
 	}
 
 	showInfoMessage(message: string): void {
@@ -194,7 +252,13 @@ export class AirflowTreeDataProvider implements vscode.TreeDataProvider<vscode.T
 
 						if (!this.filterString || (this.filterString && this.doesFilterMatch(dagId, isActive, isPaused, owners, tags))) {
 							let treeItem = new vscode.TreeItem(dagId);
-							treeItem.iconPath = new vscode.ThemeIcon('gear');
+							if (isPaused) {
+								treeItem.iconPath = new vscode.ThemeIcon('debug-breakpoint-unverified');
+							}
+							else {
+								treeItem.iconPath = new vscode.ThemeIcon('debug-breakpoint');
+							}
+
 							dagList.push(treeItem);
 						}
 					}

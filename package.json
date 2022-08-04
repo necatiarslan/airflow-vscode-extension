@@ -1,8 +1,8 @@
 {
 	"name": "airflow-vscode-extension",
-	"displayName": "Airflow Vs Code Extension",
-	"description": "An extention for VsCode to be able to manage Apache Airflow, run and troubleshot DAGs",
-	"version": "0.0.1",
+	"displayName": "Airflow",
+	"description": "An extention for VsCode to be able to manage Apache Airflow 2+, run and troubleshot DAGs",
+	"version": "1.0.1",
 	"publisher": "Necati ARSLAN",
 	"repository": {
 		"type": "git",
@@ -45,6 +45,31 @@
 				"command": "airflowView.triggerDag",
 				"title": "Trigger",
 				"icon": "$(run)"
+			},
+			{
+				"command": "airflowView.triggerDagWithConfig",
+				"title": "Trigger DAG w/Config",
+				"icon": "$(run-all)"
+			},
+			{
+				"command": "airflowView.pauseDAG",
+				"title": "Pause DAG",
+				"icon": "$(circle-outline)"
+			},
+			{
+				"command": "airflowView.unPauseDAG",
+				"title": "UnPause DAG",
+				"icon": "$(circle-filled)"
+			},
+			{
+				"command": "airflowView.lastDAGRunLog",
+				"title": "Run Log",
+				"icon": "$(output)"
+			},
+			{
+				"command": "airflowView.dagSourceCode",
+				"title": "Source Code",
+				"icon": "$(code)"
 			}
 		],
 		"menus": {
@@ -75,6 +100,31 @@
 					"command": "airflowView.triggerDag",
 					"when": "view == airflowView",
 					"group": "inline"
+				},
+				{
+					"command": "airflowView.lastDAGRunLog",
+					"when": "view == airflowView",
+					"group": "inline"
+				},
+				{
+					"command": "airflowView.triggerDagWithConfig",
+					"when": "view == airflowView",
+					"group": "trigger"
+				},
+				{
+					"command": "airflowView.pauseDAG",
+					"when": "view == airflowView",
+					"group": "pause"
+				},
+				{
+					"command": "airflowView.unPauseDAG",
+					"when": "view == airflowView",
+					"group": "pause"
+				},
+				{
+					"command": "airflowView.dagSourceCode",
+					"when": "view == airflowView",
+					"group": "other"
 				}
 			]
 		},

@@ -14,7 +14,9 @@ You can trigger your DAGs, view execution logs using this extension and do much 
 ## Getting started
 
 You can manually install beta versions using vsix package file below.
-https://github.com/necatiarslan/airflow-vscode-extension/blob/main/airflow-vscode-extension-0.0.1.vsix
+Extension will be published to VsCode Extension Marketplace in a very short time.
+
+https://github.com/necatiarslan/airflow-vscode-extension/blob/main/airflow-vscode-extension-1.0.1.vsix
 
 ## Bug Report
 

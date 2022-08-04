@@ -30,6 +30,25 @@ export function activate(context: vscode.ExtensionContext) {
 		airflowView.triggerDag(node);
 	});
 
+	vscode.commands.registerCommand('airflowView.triggerDagWithConfig', (node: vscode.TreeItem) => {
+		airflowView.triggerDagWConfig(node);
+	});
+
+	vscode.commands.registerCommand('airflowView.pauseDAG', (node: vscode.TreeItem) => {
+		airflowView.pauseDAG(node);
+	});
+
+	vscode.commands.registerCommand('airflowView.unPauseDAG', (node: vscode.TreeItem) => {
+		airflowView.unPauseDAG(node);
+	});
+
+	vscode.commands.registerCommand('airflowView.lastDAGRunLog', (node: vscode.TreeItem) => {
+		airflowView.lastDAGRunLog(node);
+	});
+
+	vscode.commands.registerCommand('airflowView.dagSourceCode', (node: vscode.TreeItem) => {
+		airflowView.dagSourceCode(node);
+	});
 
 }
 
