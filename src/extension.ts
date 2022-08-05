@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { AirflowViewManager } from './airflowView';
+import { AirflowViewManager, DagTreeItem } from './airflowView';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -26,27 +26,27 @@ export function activate(context: vscode.ExtensionContext) {
 		airflowView.viewDagView();
 	});
 
-	vscode.commands.registerCommand('airflowView.triggerDag', (node: vscode.TreeItem) => {
+	vscode.commands.registerCommand('airflowView.triggerDag', (node: DagTreeItem) => {
 		airflowView.triggerDag(node);
 	});
 
-	vscode.commands.registerCommand('airflowView.triggerDagWithConfig', (node: vscode.TreeItem) => {
+	vscode.commands.registerCommand('airflowView.triggerDagWithConfig', (node: DagTreeItem) => {
 		airflowView.triggerDagWConfig(node);
 	});
 
-	vscode.commands.registerCommand('airflowView.pauseDAG', (node: vscode.TreeItem) => {
+	vscode.commands.registerCommand('airflowView.pauseDAG', (node: DagTreeItem) => {
 		airflowView.pauseDAG(node);
 	});
 
-	vscode.commands.registerCommand('airflowView.unPauseDAG', (node: vscode.TreeItem) => {
+	vscode.commands.registerCommand('airflowView.unPauseDAG', (node: DagTreeItem) => {
 		airflowView.unPauseDAG(node);
 	});
 
-	vscode.commands.registerCommand('airflowView.lastDAGRunLog', (node: vscode.TreeItem) => {
+	vscode.commands.registerCommand('airflowView.lastDAGRunLog', (node: DagTreeItem) => {
 		airflowView.lastDAGRunLog(node);
 	});
 
-	vscode.commands.registerCommand('airflowView.dagSourceCode', (node: vscode.TreeItem) => {
+	vscode.commands.registerCommand('airflowView.dagSourceCode', (node: DagTreeItem) => {
 		airflowView.dagSourceCode(node);
 	});
 
