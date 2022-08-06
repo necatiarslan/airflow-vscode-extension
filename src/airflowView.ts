@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import fetch from 'node-fetch';
 import { encode } from 'base-64';
+import { debug, trace } from 'console';
 
 export class AirflowViewManager {
 
@@ -197,7 +198,12 @@ export class AirflowViewManager {
 
 			if (response.status === 200) {
 				let sourceCode = await response.text();
-				console.log(sourceCode);
+
+				let outputAirflow = vscode.window.createOutputChannel("Airflow");
+				outputAirflow.clear();
+				outputAirflow.append(sourceCode);
+				outputAirflow.show();
+				
 				this.showInfoMessage('Source Code printed to output.');
 			}
 			else {

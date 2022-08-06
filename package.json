@@ -150,7 +150,7 @@
 		"viewsWelcome": [
 			{
 				"view": "airflowView",
-				"contents": "[Add Airflow Server](command:airflowView.addServer)\n\n\n\n\n\n[learn more](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md)"
+				"contents": "To connect to Airflow Click Below \n [Connect to Airflow](command:airflowView.addServer)\n\n You should enable REST Api in the Airflow to connect.\n For now, only basic authentication (username/password) supported.\n [learn more](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md)"
 			}
 		]
 	},
