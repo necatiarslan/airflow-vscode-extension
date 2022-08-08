@@ -3,7 +3,7 @@
 	"displayName": "Airflow",
 	"description": "An extention for VsCode to be able to manage Apache Airflow 2+, run and troubleshot DAGs",
 	"version": "1.0.1",
-	"publisher": "Necati ARSLAN",
+	"publisher": "NecatiARSLAN",
 	"icon": "media/airflow-extension-logo.png",
 	"repository": {
 		"type": "git",
