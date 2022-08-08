@@ -7,10 +7,10 @@ export class AirflowViewManager {
 
 	view: vscode.TreeView<DagTreeItem>;
 	treeDataProvider: AirflowTreeDataProvider;
-	daglistResponse: Promise<ListDagsResponse>;
-	apiUrl: string = "http://localhost:8080/api/v1";
-	apiUserName: string = 'airflow';
-	apiPassword: string = 'airflow';
+	daglistResponse: any;
+	apiUrl: string = '';
+	apiUserName: string = '';
+	apiPassword: string = '';
 	context: vscode.ExtensionContext;
 	filterString: string = '';
 
@@ -25,6 +25,21 @@ export class AirflowViewManager {
 
 	refresh(): void {
 		this.loadDags();
+	}
+
+	resetView(): void {
+		this.apiUrl = '';
+		this.apiUserName = '';
+		this.apiPassword = '';
+		this.filterString = '';
+
+		this.daglistResponse = undefined;
+		this.treeDataProvider.daglistResponse = this.daglistResponse;
+		this.treeDataProvider.refresh();
+		this.view.title = this.apiUrl;
+
+		this.saveState();
+		this.refresh();
 	}
 
 	viewDagView(): void {
@@ -177,7 +192,55 @@ export class AirflowViewManager {
 	}
 
 	async lastDAGRunLog(node: DagTreeItem) {
-		this.showInfoMessage("Development is in progress. Please wait for next versions.");
+		if (!this.apiUrl) { return; }
+		if (!this.apiUserName) { return; }
+		if (!this.apiPassword) { return; }
+
+		try {
+			let params = {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Basic ' + encode(this.apiUserName + ":" + this.apiPassword)
+				}
+			};
+
+			this.showInfoMessage('Fecthing Latest DAG Run Logs, wait please ...');
+
+			let response = await fetch(this.apiUrl + '/dags/' + node.dagId + '/dagRuns?order_by=-start_date&limit=1', params);
+
+			if (response.status === 200) {
+				let dagRunResponse = await response.json();
+				let dagRunId = dagRunResponse['dag_runs'][0]['dag_run_id'];
+				let responseTaskInstances = await (await fetch(this.apiUrl + '/dags/' + node.dagId + '/dagRuns/' + dagRunId + '/taskInstances', params));
+				let responseTaskInstancesJson = await responseTaskInstances.json();
+
+				let outputAirflow = vscode.window.createOutputChannel("Airflow");
+				outputAirflow.clear();
+
+				for(var taskInstance of responseTaskInstancesJson['task_instances'])
+				{
+					let responseLogs = await fetch(this.apiUrl + '/dags/' + node.dagId + '/dagRuns/' + dagRunId+ '/taskInstances/' + taskInstance['task_id'] + '/logs/' + taskInstance['try_number'], params);
+					let responseLogsText = await responseLogs.text();
+					outputAirflow.append('##########\n');
+					outputAirflow.append('Dag=' + node.dagId + '\n');
+					outputAirflow.append('DagRun=' + dagRunId + '\n');
+					outputAirflow.append('TaskId=' + taskInstance['task_id'] + '\n');
+					outputAirflow.append('Try=' + taskInstance['try_number'] + '\n');
+					outputAirflow.append('##########\n\n');
+					outputAirflow.append(responseLogsText);
+				}
+				outputAirflow.append('### END OF DAG RUN ###');
+				outputAirflow.show();
+				this.showInfoMessage('Latest DAG Run Logs are printed to output.');
+			}
+			else {
+				this.showErrorMessage('Error !!!\n\n' + response.statusText);
+			}
+			
+		} catch (error) {
+			this.showErrorMessage('Error !!!\n\n' + error.message);
+		}
 	}
 
 	async dagSourceCode(node: DagTreeItem) {
@@ -244,7 +307,18 @@ export class AirflowViewManager {
 
 	async addServer() {
 		let apiUrlTemp = await vscode.window.showInputBox({ placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
-		if (!apiUrlTemp) { return; }
+		
+		if (apiUrlTemp === undefined) { return; }
+
+		if (apiUrlTemp === '' && this.apiUrl) {
+			let deleteApiConfig = await vscode.window.showInputBox({ placeHolder: 'Delete Current Airflow Connection Coniguration ? (Yes/No)'});
+			if(deleteApiConfig === 'Yes')
+			{
+				this.resetView();
+				return;
+			}
+			return;
+		}
 
 		let userNameTemp = await vscode.window.showInputBox({ placeHolder: 'User Name' });
 		if (!userNameTemp) { return; }
@@ -281,7 +355,7 @@ export class AirflowViewManager {
 			let response = await fetch(this.apiUrl + '/dags', params);
 
 			if (response.status === 200) {
-				this.daglistResponse = await response.json() as Promise<ListDagsResponse>;
+				this.daglistResponse = await response.json();
 				this.treeDataProvider.daglistResponse = this.daglistResponse;
 			}
 			else {
@@ -335,7 +409,7 @@ export class AirflowTreeDataProvider implements vscode.TreeDataProvider<DagTreeI
 {
 	private _onDidChangeTreeData: vscode.EventEmitter<DagTreeItem | undefined | void> = new vscode.EventEmitter<DagTreeItem | undefined | void>();
 	readonly onDidChangeTreeData: vscode.Event<DagTreeItem | undefined | void> = this._onDidChangeTreeData.event;
-	daglistResponse: Promise<ListDagsResponse>;
+	daglistResponse: any;
 	filterString: string = '';
 
 	refresh(): void {
@@ -398,7 +472,7 @@ export class DagTreeItem extends vscode.TreeItem {
 			this.apiResponse["is_paused"] = true;
 		}
 		else {
-			this.iconPath = new vscode.ThemeIcon('debug-breakpoint');
+			this.iconPath = new vscode.ThemeIcon('pass');
 			this.apiResponse["is_paused"] = false;
 		}
 	  }
@@ -417,49 +491,4 @@ export class DagTreeItem extends vscode.TreeItem {
 
 		return false;
 	}
-}
-
-interface ListDagsResponse {
-	"dags": [
-		{
-			"dag_id": "string",
-			"root_dag_id": "string",
-			"is_paused": true,
-			"is_active": true,
-			"is_subdag": true,
-			"last_parsed_time": "2019-08-24T14:15:22Z",
-			"last_pickled": "2019-08-24T14:15:22Z",
-			"last_expired": "2019-08-24T14:15:22Z",
-			"scheduler_lock": true,
-			"pickle_id": "string",
-			"default_view": "string",
-			"fileloc": "string",
-			"file_token": "string",
-			"owners": [
-				"string"
-			],
-			"description": "string",
-			"schedule_interval": {
-				"__type": "string",
-				"days": 0,
-				"seconds": 0,
-				"microseconds": 0
-			},
-			"timetable_description": "string",
-			"tags": [
-				{
-					"name": "string"
-				}
-			],
-			"max_active_tasks": 0,
-			"max_active_runs": 0,
-			"has_task_concurrency_limits": true,
-			"has_import_errors": true,
-			"next_dagrun": "2019-08-24T14:15:22Z",
-			"next_dagrun_data_interval_start": "2019-08-24T14:15:22Z",
-			"next_dagrun_data_interval_end": "2019-08-24T14:15:22Z",
-			"next_dagrun_create_after": "2019-08-24T14:15:22Z"
-		}
-	],
-	"total_entries": 0
 }
