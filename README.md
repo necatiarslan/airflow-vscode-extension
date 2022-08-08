@@ -9,19 +9,13 @@
 ## Introduction
 
 This is a VSCode extension for Apache Airflow 2.0 and up.
-You can trigger your DAGs, view execution logs using this extension and do much more.
-
-## Getting started
-
-You can manually install beta versions using vsix package file below.
-Extension will be published to VsCode Extension Marketplace in a very short time.
-
-https://github.com/necatiarslan/airflow-vscode-extension/blob/main/airflow-vscode-extension-1.0.1.vsix
+You can trigger your DAGs, pause/unpause DAGs, view execution logs, explore source code and do much more.
+The motivation of this extension is having the same functionality like Airflow Web UI and make Airflow development easier for vcode developers.
 
 ## Enable Airflow Rest Api
 
 To be able to connect a Airflow Server, you should enable Airflow Rest Api.
-You can take a look the libk below how to do it.
+You can take a look the link below on how to do it.
 
 https://airflow.apache.org/docs/apache-airflow/stable/security/api.html
 
@@ -33,7 +27,13 @@ https://github.com/necatiarslan/airflow-vscode-extension/issues/new
 
 Please start issue with "fix:" and new feature with "feat:" in the title.
 
+## Install Airflow In Your Local
+Click link below on how to run Airflow in your local machine in 5 mins.
+
+https://www.youtube.com/watch?v=aTaytcxy2Ck
+
 ## Todo List
+I am working on these features now, so they will be available is a very short time.
 
 - Multiple server support
 - Dag Details View
@@ -41,15 +41,21 @@ Please start issue with "fix:" and new feature with "feat:" in the title.
 		2. Dag Execution Logs
 		3. Execution Status
 		4. Execution History
-- Trigger Function
+- Trigger /w config Function
 - Server Health Check/Status
 - Logging
 - Execution History / Report / Analysis
 - Favorites
-- Dag Coloring
-- All Authentication Methods Support
+- Dag Coloring/Tagging
+- Support All Authentication Methods
 - Code Snipets
 - Dag Code Checks 
+
+## Beta Program
+
+You can manually install beta versions before being public using vsix package file below.
+
+https://github.com/necatiarslan/airflow-vscode-extension/blob/main/airflow-vscode-extension-1.0.1.vsix
 
 Thanks,
 Necati ARSLAN

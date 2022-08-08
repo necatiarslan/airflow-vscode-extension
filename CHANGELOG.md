@@ -1,10 +1,13 @@
 # Change Log
 
-- v.1.0.1
+- v.1.0.1 (2022-08-07)
     1. Connect to an Airflow Server
     2. List Dags
     3. Trigger a Dag
     4. Filter Dags
+    5. View Source Code
+    6. View Last Run Logs
+    7. Pause/Unpause Dags
 
 ## Bug Report
 
