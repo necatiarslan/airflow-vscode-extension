@@ -76,13 +76,10 @@ export class AirflowViewManager {
 	async triggerDagWConfig(node: DagTreeItem) {
 		let triggerDagConfig = await vscode.window.showInputBox({ placeHolder: 'Enter Configuration JSON (Optional, must be a dict object) or Press Enter' });
 
-		this.showInfoMessage("Development is in progress. Please wait for next versions.");
-		return;
-
-		// if(!triggerDagConfig)
-		// {
-		// 	triggerDagConfig = {};
-		// }
+		if(!triggerDagConfig)
+		{
+			triggerDagConfig = "{}";
+		}
 
 		if (triggerDagConfig !== undefined) {
 			try {
@@ -92,10 +89,7 @@ export class AirflowViewManager {
 						'Content-Type': 'application/json',
 						'Authorization': 'Basic ' + encode(this.apiUserName + ":" + this.apiPassword)
 					},
-					body: JSON.stringify(
-						{
-							"conf": {}
-						}),
+					body: '{"conf": ' + triggerDagConfig + '}',
 				};
 
 				let response = await fetch(this.apiUrl + '/dags/' + node.label + '/dagRuns', params);
@@ -222,15 +216,15 @@ export class AirflowViewManager {
 				{
 					let responseLogs = await fetch(this.apiUrl + '/dags/' + node.dagId + '/dagRuns/' + dagRunId+ '/taskInstances/' + taskInstance['task_id'] + '/logs/' + taskInstance['try_number'], params);
 					let responseLogsText = await responseLogs.text();
-					outputAirflow.append('##########\n');
+					outputAirflow.append('############################################################\n');
 					outputAirflow.append('Dag=' + node.dagId + '\n');
 					outputAirflow.append('DagRun=' + dagRunId + '\n');
 					outputAirflow.append('TaskId=' + taskInstance['task_id'] + '\n');
 					outputAirflow.append('Try=' + taskInstance['try_number'] + '\n');
-					outputAirflow.append('##########\n\n');
+					outputAirflow.append('############################################################\n\n');
 					outputAirflow.append(responseLogsText);
 				}
-				outputAirflow.append('### END OF DAG RUN ###');
+				outputAirflow.append('###################### END OF DAG RUN ######################');
 				outputAirflow.show();
 				this.showInfoMessage('Latest DAG Run Logs are printed to output.');
 			}
@@ -478,17 +472,21 @@ export class DagTreeItem extends vscode.TreeItem {
 	  }
 
 	  public doesFilterMatch(filterString: string): boolean {
-		if (filterString.includes('active') && !this.isPaused) { return true; }
-		if (filterString.includes('paused') && this.isPaused) { return true; }
-
 		let words: string[] = filterString.split(',');
+		let matchingWords: string[] = [];
 		for (var word of words) {
-			if (this.dagId.includes(word)) { return true; }
-			if (this.owners.includes(word)) { return true; }
+			if (word==='active' && !this.isPaused) { matchingWords.push(word); continue; }
+			if (word==='paused' && this.isPaused) { matchingWords.push(word); continue; }
+			if (this.dagId.includes(word)) { matchingWords.push(word); continue; }
+			if (this.owners.includes(word)) { matchingWords.push(word); continue; }
+			
 			//TODO
-			//if(tags.forEach(function(e){ e.normalize.includes(word); })) { return true; }
+			// for(var t of this.tags)
+			// {
+			// 	if (t.includes(word)) { matchingWords.push(word); continue; }
+			// }
 		}
 
-		return false;
+		return words.length === matchingWords.length;
 	}
 }

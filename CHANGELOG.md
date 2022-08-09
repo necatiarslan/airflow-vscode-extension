@@ -1,13 +1,18 @@
 # Change Log
 
+- v.1.1.1 (2022-08-08)
+    - Trigger /w Config
+    - Improved Dag Filter, You can filter with multiple words seperated by comma. Filter searchs dag_is, owners and active/paused statuses. You can use "active,branch" filter to get active dags and has "branch" in its name. 
+
+
 - v.1.0.1 (2022-08-07)
-    1. Connect to an Airflow Server
-    2. List Dags
-    3. Trigger a Dag
-    4. Filter Dags
-    5. View Source Code
-    6. View Last Run Logs
-    7. Pause/Unpause Dags
+    - Connect to an Airflow Server
+    - List Dags
+    - Trigger a Dag
+    - Filter Dags
+    - View Source Code
+    - View Last Run Logs
+    - Pause/Unpause Dags
 
 ## Bug Report
 

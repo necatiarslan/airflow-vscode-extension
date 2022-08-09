@@ -1,8 +1,8 @@
 {
 	"name": "airflow-vscode-extension",
 	"displayName": "Airflow",
-	"description": "An extention for VsCode to be able to manage Apache Airflow 2+, run and troubleshot DAGs",
-	"version": "1.0.1",
+	"description": "Apache Airflow UI Extension to List/Trigger DAGs, View Logs and much more",
+	"version": "1.1.1",
 	"publisher": "NecatiARSLAN",
 	"icon": "media/airflow-extension-logo.png",
 	"repository": {

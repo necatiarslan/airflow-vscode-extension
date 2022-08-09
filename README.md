@@ -10,11 +10,11 @@
 
 This is a VSCode extension for Apache Airflow 2.0 and up.
 You can trigger your DAGs, pause/unpause DAGs, view execution logs, explore source code and do much more.
-The motivation of this extension is having the same functionality like Airflow Web UI and make Airflow development easier for vcode developers.
+The motivation of this extension is having the same functionality like Airflow Web UI and make Airflow development easier for vscode developers.
 
-## Enable Airflow Rest Api
+## Requirements - Airflow REST Api
 
-To be able to connect a Airflow Server, you should enable Airflow Rest Api.
+To be able to connect an Airflow Server, you should enable Airflow Rest Api.
 You can take a look the link below on how to do it.
 
 https://airflow.apache.org/docs/apache-airflow/stable/security/api.html
@@ -28,12 +28,12 @@ https://github.com/necatiarslan/airflow-vscode-extension/issues/new
 Please start issue with "fix:" and new feature with "feat:" in the title.
 
 ## Install Airflow In Your Local
-Click link below on how to run Airflow in your local machine in 5 mins.
+If you want to test Airflow on your machine in a docker container, click link below on how to run Airflow in your local machine in 5 mins.
 
 https://www.youtube.com/watch?v=aTaytcxy2Ck
 
 ## Todo List
-I am working on these features now, so they will be available is a very short time.
+I am working on these features now, so they will be available in a couple of weeks.
 
 - Multiple server support
 - Dag Details View
@@ -41,7 +41,6 @@ I am working on these features now, so they will be available is a very short ti
 		2. Dag Execution Logs
 		3. Execution Status
 		4. Execution History
-- Trigger /w config Function
 - Server Health Check/Status
 - Logging
 - Execution History / Report / Analysis
@@ -49,13 +48,9 @@ I am working on these features now, so they will be available is a very short ti
 - Dag Coloring/Tagging
 - Support All Authentication Methods
 - Code Snipets
-- Dag Code Checks 
+- Dag Code Checks
+- Dag Execution Status Indigator on dag list
 
-## Beta Program
-
-You can manually install beta versions before being public using vsix package file below.
-
-https://github.com/necatiarslan/airflow-vscode-extension/blob/main/airflow-vscode-extension-1.0.1.vsix
 
 Thanks,
 Necati ARSLAN
