@@ -16,7 +16,6 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:airflow-vscode-extension.helloWorld",
 		"onView:airflowView"
 	],
 	"main": "./dist/extension.js",
