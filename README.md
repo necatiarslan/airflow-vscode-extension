@@ -35,12 +35,12 @@ https://www.youtube.com/watch?v=aTaytcxy2Ck
 ## Todo List
 I am working on these features now, so they will be available in a couple of weeks.
 
-- Multiple server support
 - Dag Details View
 		1. Trigger Dag
 		2. Dag Execution Logs
 		3. Execution Status
 		4. Execution History
+- Multiple server support
 - Server Health Check/Status
 - Logging
 - Execution History / Report / Analysis
@@ -49,7 +49,6 @@ I am working on these features now, so they will be available in a couple of wee
 - Support All Authentication Methods
 - Code Snipets
 - Dag Code Checks
-- Dag Execution Status Indigator on dag list
 
 
 Thanks,

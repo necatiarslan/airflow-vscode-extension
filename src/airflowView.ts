@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import fetch from 'node-fetch';
 import { encode } from 'base-64';
@@ -13,6 +14,7 @@ export class AirflowViewManager {
 	apiPassword: string = '';
 	context: vscode.ExtensionContext;
 	filterString: string = '';
+	dagStatusInterval: NodeJS.Timer;
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context;
@@ -47,6 +49,17 @@ export class AirflowViewManager {
 	}
 
 	async triggerDag(node: DagTreeItem) {
+
+		if(node.isPaused){
+			this.showWarningMessage('Dag is PAUSED !!!');
+			return;
+		}
+
+		if(node.isDagRunning()){
+			this.showWarningMessage('Dag is ALREADY RUNNING !!!');
+			return;
+		}
+
 		try {
 			let params = {
 				method: 'POST',
@@ -63,6 +76,20 @@ export class AirflowViewManager {
 			let response = await fetch(this.apiUrl + '/dags/' + node.dagId + '/dagRuns', params);
 
 			if (response.status === 200) {
+				var responseTrigger = await response.json();
+				node.latestDagRunId = responseTrigger['dag_run_id'];
+				node.latestDagState = responseTrigger['state'];
+				node.refreshUI();
+				this.treeDataProvider.refresh();
+				if(this.dagStatusInterval)
+				{
+					this.dagStatusInterval.refresh();
+				}
+				else
+				{
+					this.dagStatusInterval = setInterval(this.refreshRunningDagState, 10*1000, this);
+				}
+				
 				this.showInfoMessage(node.dagId + " Dag Triggered.");
 			}
 			else {
@@ -70,6 +97,48 @@ export class AirflowViewManager {
 			}
 		} catch (error) {
 			this.showErrorMessage(node.dagId + ' Dag Trigger Error !!!\n\n' + error.message);
+		}
+	}
+
+	async refreshRunningDagState(airflowViewManager:AirflowViewManager) {
+		let noDagIsRunning:boolean = true;
+		for(var node of airflowViewManager.treeDataProvider.visibleDagList)
+		{
+			//"queued" "running" "success" "failed"
+			if(node.isDagRunning())
+			{
+				noDagIsRunning = false;
+				try {
+					let params = {
+						method: 'GET',
+						headers: {
+							'Content-Type': 'application/json',
+							'Authorization': 'Basic ' + encode(airflowViewManager.apiUserName + ":" + airflowViewManager.apiPassword)
+						}
+					};
+					
+					//https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}
+					let response = await fetch(airflowViewManager.apiUrl + '/dags/' + node.dagId + '/dagRuns/' + node.latestDagRunId, params);
+		
+					if (response.status === 200) {
+						var responseDagRun = await response.json();
+						node.latestDagState = responseDagRun['state'];
+						node.refreshUI();
+					}
+					else {
+						node.latestDagRunId = '';
+						node.latestDagState = '';
+						airflowViewManager.showErrorMessage(node.dagId + ' Error while fetching DAG status !!!\n\n' + response.statusText);
+					}
+				} catch (error) {
+					airflowViewManager.showErrorMessage(node.dagId + ' Dag Trigger Error !!!\n\n' + error.message);
+				}
+			}
+			airflowViewManager.treeDataProvider.refresh();
+		}
+		if(noDagIsRunning && airflowViewManager.dagStatusInterval)
+		{
+			clearInterval(airflowViewManager.dagStatusInterval);
 		}
 	}
 
@@ -95,6 +164,19 @@ export class AirflowViewManager {
 				let response = await fetch(this.apiUrl + '/dags/' + node.label + '/dagRuns', params);
 
 				if (response.status === 200) {
+					var responseTrigger = await response.json();
+					node.latestDagRunId = responseTrigger['dag_run_id'];
+					node.latestDagState = responseTrigger['state'];
+					node.refreshUI();
+					this.treeDataProvider.refresh();
+					if(this.dagStatusInterval)
+					{
+						this.dagStatusInterval.refresh();
+					}
+					else
+					{
+						this.dagStatusInterval = setInterval(this.refreshRunningDagState, 10*1000, this);
+					}
 					this.showInfoMessage(node.label + " Dag Triggered.");
 				}
 				else {
@@ -107,11 +189,66 @@ export class AirflowViewManager {
 		}
 	}
 
+	async checkAllDagsRunState() {
+		if(!this.treeDataProvider){ return; }
+		for(var node of this.treeDataProvider.visibleDagList)
+		{
+			if(!node.isPaused)
+			{
+				this.checkDagRunState(node);
+			}
+		}
+	}
+
+	async checkDagRunState(node: DagTreeItem) {
+		if(!node){ return; }
+		if(!this.treeDataProvider){ return; }
+		if (node.isPaused) { this.showWarningMessage(node.dagId + 'Dag is PAUSED'); return; }
+
+		try {
+			let params = {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Basic ' + encode(this.apiUserName + ":" + this.apiPassword)
+				}
+			};
+
+			let response = await fetch(this.apiUrl + '/dags/' + node.dagId + '/dagRuns?order_by=-start_date&limit=1', params);
+
+			if (response.status === 200) {
+				let dagRunResponse = await response.json();
+				node.latestDagRunId = dagRunResponse['dag_runs'][0]['dag_run_id'];
+				node.latestDagState = dagRunResponse['dag_runs'][0]['state'];
+				node.refreshUI();
+				this.treeDataProvider.refresh();
+
+				if(node.isDagRunning)
+				{
+					if(this.dagStatusInterval)
+					{
+						this.dagStatusInterval.refresh();
+					}
+					else
+					{
+						this.dagStatusInterval = setInterval(this.refreshRunningDagState, 10*1000, this);
+					}
+				}
+			}
+			else {
+				this.showErrorMessage('Error !!!\n\n' + response.statusText);
+			}
+			
+		} catch (error) {
+			this.showErrorMessage('Error !!!\n\n' + error.message);
+		}
+	}
+
 	async pauseDAG(node: DagTreeItem) {
 		if (!this.apiUrl) { return; }
 		if (!this.apiUserName) { return; }
 		if (!this.apiPassword) { return; }
-		if (node.isPaused) { this.showInfoMessage(node.dagId + 'Dag is already PAUSED'); return; }
+		if (node.isPaused) { this.showWarningMessage(node.dagId + 'Dag is already PAUSED'); return; }
 
 		let userAnswer = await vscode.window.showInputBox({ placeHolder: node.dagId + ' DAG will be PAUSED. Yes/No ?' });
 		if (userAnswer !== 'Yes') { return; }
@@ -276,6 +413,10 @@ export class AirflowViewManager {
 		vscode.window.showInformationMessage(message);
 	}
 
+	showWarningMessage(message: string): void {
+		vscode.window.showWarningMessage(message);
+	}
+
 	showErrorMessage(message: string): void {
 		vscode.window.showErrorMessage(message);
 	}
@@ -351,6 +492,7 @@ export class AirflowViewManager {
 			if (response.status === 200) {
 				this.daglistResponse = await response.json();
 				this.treeDataProvider.daglistResponse = this.daglistResponse;
+				this.treeDataProvider.loadDagTreeItemsFromApiResponse();
 			}
 			else {
 				this.showErrorMessage(' Dag Load Error !!!\n\n' + response.statusText);
@@ -405,27 +547,35 @@ export class AirflowTreeDataProvider implements vscode.TreeDataProvider<DagTreeI
 	readonly onDidChangeTreeData: vscode.Event<DagTreeItem | undefined | void> = this._onDidChangeTreeData.event;
 	daglistResponse: any;
 	filterString: string = '';
+	dagList: DagTreeItem[] = [];
+	visibleDagList: DagTreeItem[] = [];
 
 	refresh(): void {
 		this._onDidChangeTreeData.fire();
 	}
 
-	getChildren(element: DagTreeItem): Thenable<DagTreeItem[]> {
-		if (!element) {
-			let dagList: DagTreeItem[] = [];
-
-			if (this.daglistResponse) {
-				for (var dag of this.daglistResponse["dags"]) {
-					if (dag) {
-						let treeItem = new DagTreeItem(dag);
-						if (!this.filterString || (this.filterString && treeItem.doesFilterMatch(this.filterString))) {
-							dagList.push(treeItem);
-						}
-					}
+	loadDagTreeItemsFromApiResponse(){
+		this.dagList = [];
+		if (this.daglistResponse) {
+			for (var dag of this.daglistResponse["dags"]) {
+				if (dag) {
+					let treeItem = new DagTreeItem(dag);
+					this.dagList.push(treeItem);
 				}
 			}
+		}
+	}
 
-			return Promise.resolve(dagList);
+	getChildren(element: DagTreeItem): Thenable<DagTreeItem[]> {
+		if (!element) {
+			this.visibleDagList = [];
+			for (var node of this.dagList)
+			{
+				if (!this.filterString || (this.filterString && node.doesFilterMatch(this.filterString))) {
+					this.visibleDagList.push(node);
+				}
+			}
+			return Promise.resolve(this.visibleDagList);
 		}
 		return Promise.resolve([]);
 	}
@@ -443,6 +593,8 @@ export class DagTreeItem extends vscode.TreeItem {
 	public tags: string[];
 	public apiResponse: any;
 	public fileToken: string;
+	public latestDagRunId: string;
+	public latestDagState: string;
 
 	constructor(apiResponse: any) {
 		super(apiResponse["dag_id"]);
@@ -460,13 +612,36 @@ export class DagTreeItem extends vscode.TreeItem {
 		this.fileToken = apiResponse["file_token"];
 	  }
 
+	  public isDagRunning():boolean{
+		return (this.latestDagState === 'queued' || this.latestDagState === 'running');
+	  }
+
 	  public refreshUI() {
 		if (this.isPaused) {
-			this.iconPath = new vscode.ThemeIcon('debug-breakpoint-unverified');
+			this.iconPath = new vscode.ThemeIcon('circle-outline');
 			this.apiResponse["is_paused"] = true;
 		}
 		else {
-			this.iconPath = new vscode.ThemeIcon('pass');
+			//"queued" "running" "success" "failed"
+			if (this.latestDagState === 'queued')
+			{
+				this.iconPath = new vscode.ThemeIcon('loading~spin');
+			}
+			else if (this.latestDagState === 'running')
+			{
+				this.iconPath = new vscode.ThemeIcon('loading~spin');
+			}
+			else if (this.latestDagState === 'success')
+			{
+				this.iconPath = new vscode.ThemeIcon('check');
+			}
+			else if (this.latestDagState === 'failed')
+			{
+				this.iconPath = new vscode.ThemeIcon('error');
+			}
+			else{
+				this.iconPath = new vscode.ThemeIcon('circle-filled');
+			}
 			this.apiResponse["is_paused"] = false;
 		}
 	  }

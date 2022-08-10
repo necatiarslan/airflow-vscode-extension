@@ -1,5 +1,8 @@
 # Change Log
 
+- v.1.2.1 (2022-08-09)
+    - Dag run indicator
+
 - v.1.1.1 (2022-08-08)
     - Trigger /w Config
     - Improved Dag Filter, You can filter with multiple words seperated by comma. Filter searchs dag_is, owners and active/paused statuses. You can use "active,branch" filter to get active dags and has "branch" in its name. 

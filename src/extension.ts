@@ -34,6 +34,14 @@ export function activate(context: vscode.ExtensionContext) {
 		airflowView.triggerDagWConfig(node);
 	});
 
+	vscode.commands.registerCommand('airflowView.checkDagRunState', (node: DagTreeItem) => {
+		airflowView.checkDagRunState(node);
+	});
+
+	vscode.commands.registerCommand('airflowView.checkAllDagsRunState', (node: DagTreeItem) => {
+		airflowView.checkAllDagsRunState();
+	});
+
 	vscode.commands.registerCommand('airflowView.pauseDAG', (node: DagTreeItem) => {
 		airflowView.pauseDAG(node);
 	});

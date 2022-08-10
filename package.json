@@ -2,7 +2,7 @@
 	"name": "airflow-vscode-extension",
 	"displayName": "Airflow",
 	"description": "Apache Airflow UI Extension to List/Trigger DAGs, View Logs and much more",
-	"version": "1.1.1",
+	"version": "1.2.1",
 	"publisher": "NecatiARSLAN",
 	"icon": "media/airflow-extension-logo.png",
 	"repository": {
@@ -48,18 +48,23 @@
 			},
 			{
 				"command": "airflowView.triggerDagWithConfig",
-				"title": "Trigger DAG w/Config",
-				"icon": "$(run-all)"
+				"title": "Trigger DAG w/Config"
+			},
+			{
+				"command": "airflowView.checkDagRunState",
+				"title": "Check Run State"
+			},
+			{
+				"command": "airflowView.checkAllDagsRunState",
+				"title": "Check All Run State"
 			},
 			{
 				"command": "airflowView.pauseDAG",
-				"title": "Pause DAG",
-				"icon": "$(circle-outline)"
+				"title": "Pause DAG"
 			},
 			{
 				"command": "airflowView.unPauseDAG",
-				"title": "UnPause DAG",
-				"icon": "$(circle-filled)"
+				"title": "UnPause DAG"
 			},
 			{
 				"command": "airflowView.lastDAGRunLog",
@@ -108,6 +113,16 @@
 				},
 				{
 					"command": "airflowView.triggerDagWithConfig",
+					"when": "view == airflowView",
+					"group": "trigger"
+				},
+				{
+					"command": "airflowView.checkDagRunState",
+					"when": "view == airflowView",
+					"group": "trigger"
+				},
+				{
+					"command": "airflowView.checkAllDagsRunState",
 					"when": "view == airflowView",
 					"group": "trigger"
 				},
@@ -182,6 +197,7 @@
 		"webpack-cli": "^4.10.0"
 	},
 	"dependencies": {
+		"@vscode/webview-ui-toolkit": "^1.0.0",
 		"base-64": "^1.0.0",
 		"node-fetch": "^3.2.9"
 	}
