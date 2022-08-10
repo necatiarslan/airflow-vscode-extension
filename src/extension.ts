@@ -58,6 +58,14 @@ export function activate(context: vscode.ExtensionContext) {
 		airflowView.dagSourceCode(node);
 	});
 
+	vscode.commands.registerCommand('airflowView.addToFavDAG', (node: DagTreeItem) => {
+		airflowView.addToFavDAG(node);
+	});
+
+	vscode.commands.registerCommand('airflowView.deleteFromFavDAG', (node: DagTreeItem) => {
+		airflowView.deleteFromFavDAG(node);
+	});
+
 }
 
 // this method is called when your extension is deactivated

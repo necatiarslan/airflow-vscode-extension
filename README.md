@@ -3,6 +3,8 @@
 [![NPM Version](https://img.shields.io/npm/v/@vscode/webview-ui-toolkit?color=blue)](https://www.npmjs.com/package/@vscode/webview-ui-toolkit)
 [![License: MIT](https://img.shields.io/badge/license-MIT-brightgreen)](./LICENSE)
 ![Deploy Docs Status](https://github.com/microsoft/vscode-webview-ui-toolkit/actions/workflows/docs-cd.yml/badge.svg)
+[![GitHub](https://flat.badgen.net/github/release/necatiarslan/airflow-vscode-extension/)](https://github.com/necatiarslan/airflow-vscode-extension/releases)
+[![Visual Studio Marketplace](https://vsmarketplacebadge.apphb.com/installs-short/necatiarslan.airflow-vscode-extension.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=necatiarslan.airflow-vscode-extension)
 
 ![screenshoot](./docs/ScreenShot1.png)
 
@@ -44,11 +46,11 @@ I am working on these features now, so they will be available in a couple of wee
 - Server Health Check/Status
 - Logging
 - Execution History / Report / Analysis
-- Favorites
 - Dag Coloring/Tagging
 - Support All Authentication Methods
 - Code Snipets
 - Dag Code Checks
+- Connections, Variables, XComs
 
 
 Thanks,

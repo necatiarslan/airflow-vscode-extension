@@ -48,6 +48,14 @@ export class AirflowViewManager {
 		this.showInfoMessage("Development In Progress ...");
 	}
 
+	async addToFavDAG(node: DagTreeItem) {
+		node.isFav = true;
+	}
+
+	async deleteFromFavDAG(node: DagTreeItem) {
+		node.isFav = false;
+	}
+
 	async triggerDag(node: DagTreeItem) {
 
 		if(node.isPaused){
@@ -595,6 +603,7 @@ export class DagTreeItem extends vscode.TreeItem {
 	public fileToken: string;
 	public latestDagRunId: string;
 	public latestDagState: string;
+	public isFav: boolean = false;
 
 	constructor(apiResponse: any) {
 		super(apiResponse["dag_id"]);
@@ -654,6 +663,7 @@ export class DagTreeItem extends vscode.TreeItem {
 			if (word==='paused' && this.isPaused) { matchingWords.push(word); continue; }
 			if (this.dagId.includes(word)) { matchingWords.push(word); continue; }
 			if (this.owners.includes(word)) { matchingWords.push(word); continue; }
+			if (word==='fav' && this.isFav) { matchingWords.push(word); continue; }
 			
 			//TODO
 			// for(var t of this.tags)
