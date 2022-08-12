@@ -51,6 +51,10 @@ I am working on these features now, so they will be available in a couple of wee
 - Code Snipets
 - Dag Code Checks
 - Connections, Variables, XComs
+- Notify user when a dag run completes
+- Highligt TODO:, FIXME: keywords
+- Highligt DAG and Operator Keywords
+
 
 
 Thanks,

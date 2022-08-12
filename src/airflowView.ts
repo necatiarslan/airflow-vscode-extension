@@ -354,24 +354,25 @@ export class AirflowViewManager {
 				let responseTaskInstances = await (await fetch(this.apiUrl + '/dags/' + node.dagId + '/dagRuns/' + dagRunId + '/taskInstances', params));
 				let responseTaskInstancesJson = await responseTaskInstances.json();
 
-				let outputAirflow = vscode.window.createOutputChannel("Airflow");
-				outputAirflow.clear();
+				const tmp = require('tmp');
+				var fs = require('fs');
+				const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.dagId, postfix: '.log' });
 
+				fs.appendFileSync(tmpFile.name, '###################### BEGINING OF DAG RUN ######################\n\n');
 				for(var taskInstance of responseTaskInstancesJson['task_instances'])
 				{
 					let responseLogs = await fetch(this.apiUrl + '/dags/' + node.dagId + '/dagRuns/' + dagRunId+ '/taskInstances/' + taskInstance['task_id'] + '/logs/' + taskInstance['try_number'], params);
 					let responseLogsText = await responseLogs.text();
-					outputAirflow.append('############################################################\n');
-					outputAirflow.append('Dag=' + node.dagId + '\n');
-					outputAirflow.append('DagRun=' + dagRunId + '\n');
-					outputAirflow.append('TaskId=' + taskInstance['task_id'] + '\n');
-					outputAirflow.append('Try=' + taskInstance['try_number'] + '\n');
-					outputAirflow.append('############################################################\n\n');
-					outputAirflow.append(responseLogsText);
+					fs.appendFileSync(tmpFile.name, '############################################################\n');
+					fs.appendFileSync(tmpFile.name, 'Dag=' + node.dagId + '\n');
+					fs.appendFileSync(tmpFile.name, 'DagRun=' + dagRunId + '\n');
+					fs.appendFileSync(tmpFile.name, 'TaskId=' + taskInstance['task_id'] + '\n');
+					fs.appendFileSync(tmpFile.name, 'Try=' + taskInstance['try_number'] + '\n');
+					fs.appendFileSync(tmpFile.name, '############################################################\n\n');
+					fs.appendFileSync(tmpFile.name, responseLogsText);
 				}
-				outputAirflow.append('###################### END OF DAG RUN ######################');
-				outputAirflow.show();
-				this.showInfoMessage('Latest DAG Run Logs are printed to output.');
+				fs.appendFileSync(tmpFile.name, '###################### END OF DAG RUN ######################\n\n');
+				this.showFile(tmpFile.name);
 			}
 			else {
 				this.showErrorMessage('Error !!!\n\n' + response.statusText);
@@ -380,6 +381,10 @@ export class AirflowViewManager {
 		} catch (error) {
 			this.showErrorMessage('Error !!!\n\n' + error.message);
 		}
+	}
+
+	async showFile(file: string) {
+		vscode.commands.executeCommand('vscode.open', vscode.Uri.file(file));
 	}
 
 	async dagSourceCode(node: DagTreeItem) {
@@ -401,12 +406,20 @@ export class AirflowViewManager {
 			if (response.status === 200) {
 				let sourceCode = await response.text();
 
-				let outputAirflow = vscode.window.createOutputChannel("Airflow");
-				outputAirflow.clear();
-				outputAirflow.append(sourceCode);
-				outputAirflow.show();
+				const tmp = require('tmp');
+				var fs = require('fs');
+
+				const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.dagId, postfix: '.py' });
+				fs.appendFileSync(tmpFile.name, sourceCode);
+				this.showFile(tmpFile.name);
+
+				//TODO: Option to print to output
+				// let outputAirflow = vscode.window.createOutputChannel("Airflow");
+				// outputAirflow.clear();
+				// outputAirflow.append(sourceCode);
+				// outputAirflow.show();
 				
-				this.showInfoMessage('Source Code printed to output.');
+				// this.showInfoMessage('Source Code printed to output.');
 			}
 			else {
 				this.showErrorMessage('Error !!!\n\n' + response.statusText);
