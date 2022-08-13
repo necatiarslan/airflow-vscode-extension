@@ -1,7 +1,9 @@
 # Change Log
 
-- v.1.3.1 (2022-08-10)
+- v.1.3.1 (2022-08-12)
     - Favorite Dags and filter these by fav keyword
+    - Show Source Code in an editor
+    - Show Dag Run Logs in an editor
 
 - v.1.2.1 (2022-08-09)
     - Dag run indicator

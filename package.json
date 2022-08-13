@@ -217,6 +217,7 @@
 	"dependencies": {
 		"@vscode/webview-ui-toolkit": "^1.0.0",
 		"base-64": "^1.0.0",
-		"node-fetch": "^3.2.9"
+		"node-fetch": "^3.2.9",
+		"tmp": "^0.2.1"
 	}
 }
