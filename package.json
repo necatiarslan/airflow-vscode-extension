@@ -16,71 +16,71 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onView:airflowView"
+		"onView:dagTreeView"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "airflowView.refreshServer",
+				"command": "dagTreeView.refreshServer",
 				"title": "Refresh",
 				"icon": "$(refresh)"
 			},
 			{
-				"command": "airflowView.addServer",
+				"command": "dagTreeView.addServer",
 				"title": "Add",
 				"icon": "$(add)"
 			},
 			{
-				"command": "airflowView.filter",
+				"command": "dagTreeView.filter",
 				"title": "Filter",
 				"icon": "$(filter)"
 			},
 			{
-				"command": "airflowView.viewDagView",
+				"command": "dagTreeView.viewDagView",
 				"title": "View",
 				"icon": "$(preview)"
 			},
 			{
-				"command": "airflowView.triggerDag",
+				"command": "dagTreeView.triggerDag",
 				"title": "Trigger",
 				"icon": "$(run)"
 			},
 			{
-				"command": "airflowView.triggerDagWithConfig",
+				"command": "dagTreeView.triggerDagWithConfig",
 				"title": "Trigger DAG w/Config"
 			},
 			{
-				"command": "airflowView.checkDagRunState",
+				"command": "dagTreeView.checkDagRunState",
 				"title": "Check Run State"
 			},
 			{
-				"command": "airflowView.checkAllDagsRunState",
+				"command": "dagTreeView.checkAllDagsRunState",
 				"title": "Check All Run State"
 			},
 			{
-				"command": "airflowView.pauseDAG",
+				"command": "dagTreeView.pauseDAG",
 				"title": "Pause DAG"
 			},
 			{
-				"command": "airflowView.unPauseDAG",
+				"command": "dagTreeView.unPauseDAG",
 				"title": "UnPause DAG"
 			},
 			{
-				"command": "airflowView.addToFavDAG",
+				"command": "dagTreeView.addToFavDAG",
 				"title": "Fav DAG"
 			},
 			{
-				"command": "airflowView.deleteFromFavDAG",
+				"command": "dagTreeView.deleteFromFavDAG",
 				"title": "UnFav DAG"
 			},
 			{
-				"command": "airflowView.lastDAGRunLog",
+				"command": "dagTreeView.lastDAGRunLog",
 				"title": "Run Log",
 				"icon": "$(output)"
 			},
 			{
-				"command": "airflowView.dagSourceCode",
+				"command": "dagTreeView.dagSourceCode",
 				"title": "Source Code",
 				"icon": "$(code)"
 			}
@@ -88,75 +88,75 @@
 		"menus": {
 			"view/title": [
 				{
-					"command": "airflowView.refreshServer",
-					"when": "view == airflowView",
+					"command": "dagTreeView.refreshServer",
+					"when": "view == dagTreeView",
 					"group": "navigation"
 				},
 				{
-					"command": "airflowView.addServer",
-					"when": "view == airflowView",
+					"command": "dagTreeView.addServer",
+					"when": "view == dagTreeView",
 					"group": "navigation"
 				},
 				{
-					"command": "airflowView.filter",
-					"when": "view == airflowView",
+					"command": "dagTreeView.filter",
+					"when": "view == dagTreeView",
 					"group": "navigation"
 				}
 			],
 			"view/item/context": [
 				{
-					"command": "airflowView.viewDagView",
-					"when": "view == airflowView",
+					"command": "dagTreeView.viewDagView",
+					"when": "view == dagTreeView",
 					"group": "inline"
 				},
 				{
-					"command": "airflowView.triggerDag",
-					"when": "view == airflowView",
+					"command": "dagTreeView.triggerDag",
+					"when": "view == dagTreeView",
 					"group": "inline"
 				},
 				{
-					"command": "airflowView.lastDAGRunLog",
-					"when": "view == airflowView",
+					"command": "dagTreeView.lastDAGRunLog",
+					"when": "view == dagTreeView",
 					"group": "inline"
 				},
 				{
-					"command": "airflowView.triggerDagWithConfig",
-					"when": "view == airflowView",
+					"command": "dagTreeView.triggerDagWithConfig",
+					"when": "view == dagTreeView",
 					"group": "trigger"
 				},
 				{
-					"command": "airflowView.checkDagRunState",
-					"when": "view == airflowView",
+					"command": "dagTreeView.checkDagRunState",
+					"when": "view == dagTreeView",
 					"group": "trigger"
 				},
 				{
-					"command": "airflowView.checkAllDagsRunState",
-					"when": "view == airflowView",
+					"command": "dagTreeView.checkAllDagsRunState",
+					"when": "view == dagTreeView",
 					"group": "trigger"
 				},
 				{
-					"command": "airflowView.pauseDAG",
-					"when": "view == airflowView",
+					"command": "dagTreeView.pauseDAG",
+					"when": "view == dagTreeView",
 					"group": "pause"
 				},
 				{
-					"command": "airflowView.unPauseDAG",
-					"when": "view == airflowView",
+					"command": "dagTreeView.unPauseDAG",
+					"when": "view == dagTreeView",
 					"group": "pause"
 				},
 				{
-					"command": "airflowView.addToFavDAG",
-					"when": "view == airflowView",
+					"command": "dagTreeView.addToFavDAG",
+					"when": "view == dagTreeView",
 					"group": "fav"
 				},
 				{
-					"command": "airflowView.deleteFromFavDAG",
-					"when": "view == airflowView",
+					"command": "dagTreeView.deleteFromFavDAG",
+					"when": "view == dagTreeView",
 					"group": "fav"
 				},
 				{
-					"command": "airflowView.dagSourceCode",
-					"when": "view == airflowView",
+					"command": "dagTreeView.dagSourceCode",
+					"when": "view == dagTreeView",
 					"group": "other"
 				}
 			]
@@ -173,7 +173,7 @@
 		"views": {
 			"airflow-explorer": [
 				{
-					"id": "airflowView",
+					"id": "dagTreeView",
 					"name": "Airflow",
 					"icon": "media/airflow-extension-logo.png"
 				}
@@ -181,8 +181,8 @@
 		},
 		"viewsWelcome": [
 			{
-				"view": "airflowView",
-				"contents": "To connect to Airflow Click Below \n [Connect to Airflow](command:airflowView.addServer)\n\n You should enable REST Api in the Airflow to connect.\n For now, only basic authentication (username/password) supported.\n [learn more](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md) \n\n Click [here](https://www.youtube.com/watch?v=aTaytcxy2Ck) on how to run Airflow in your local machine in 5 mins."
+				"view": "dagTreeView",
+				"contents": "To connect to Airflow Click Below \n [Connect to Airflow](command:dagTreeView.addServer)\n\n You should enable REST Api in the Airflow to connect.\n For now, only basic authentication (username/password) supported.\n [learn more](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md) \n\n Click [here](https://www.youtube.com/watch?v=aTaytcxy2Ck) on how to run Airflow in your local machine in 5 mins."
 			}
 		]
 	},
