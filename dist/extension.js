@@ -17,10 +17,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DagTreeView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const dagView_1 = __webpack_require__(38);
-const dagTreeDataProvider_1 = __webpack_require__(45);
-const ui_1 = __webpack_require__(40);
-const api_1 = __webpack_require__(43);
+const dagView_1 = __webpack_require__(3);
+const dagTreeDataProvider_1 = __webpack_require__(67);
+const ui_1 = __webpack_require__(5);
+const api_1 = __webpack_require__(8);
 class DagTreeView {
     constructor(context) {
         this.filterString = '';
@@ -216,8 +216,8 @@ class DagTreeView {
         }
         let result = await api_1.Api.getLastDagRunLog(node.dagId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(47);
-            var fs = __webpack_require__(41);
+            const tmp = __webpack_require__(45);
+            var fs = __webpack_require__(6);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.dagId, postfix: '.log' });
             fs.appendFileSync(result.result);
             (0, ui_1.showFile)(tmpFile.name);
@@ -229,8 +229,8 @@ class DagTreeView {
         }
         let result = await api_1.Api.getSourceCode(node.dagId, node.fileToken);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(47);
-            var fs = __webpack_require__(41);
+            const tmp = __webpack_require__(45);
+            var fs = __webpack_require__(6);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.dagId, postfix: '.py' });
             fs.appendFileSync(tmpFile.name, result.result);
             (0, ui_1.showFile)(tmpFile.name);
@@ -345,6 +345,810 @@ exports.DagTreeView = DagTreeView;
 
 /***/ }),
 /* 3 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const getUri_1 = __webpack_require__(4);
+const ui_1 = __webpack_require__(5);
+const api_1 = __webpack_require__(8);
+class DagView {
+    constructor(panel, extensionUri, dagId) {
+        this._disposables = [];
+        this.dagId = dagId;
+        this.extensionUri = extensionUri;
+        this._panel = panel;
+        this._panel.onDidDispose(this.dispose, null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.getDagInfo();
+        this.getLastRun();
+    }
+    renderHmtl() {
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+    }
+    async getLastRun() {
+        if (!api_1.Api.isApiParamsSet()) {
+            return;
+        }
+        let result = await api_1.Api.getLastDagRun(this.dagId);
+        if (result.isSuccessful) {
+            this.dagLastRunJson = result.result;
+            this.renderHmtl();
+        }
+    }
+    async getDagInfo() {
+        if (!api_1.Api.isApiParamsSet()) {
+            return;
+        }
+        let result = await api_1.Api.getDagInfo(this.dagId);
+        if (result.isSuccessful) {
+            this.dagJson = result.result;
+            this.renderHmtl();
+        }
+    }
+    static render(extensionUri, dagId) {
+        if (DagView.currentPanel) {
+            this.currentPanel.dagId = dagId;
+            DagView.currentPanel._panel.reveal(vscode.ViewColumn.One);
+            DagView.currentPanel.renderHmtl();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
+                enableScripts: true,
+            });
+            DagView.currentPanel = new DagView(panel, extensionUri, dagId);
+        }
+    }
+    dispose() {
+        DagView.currentPanel = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        // Tip: Install the es6-string-html VS Code extension to enable code highlighting below
+        const toolkitUri = (0, getUri_1.getUri)(webview, extensionUri, [
+            "node_modules",
+            "@vscode",
+            "webview-ui-toolkit",
+            "dist",
+            "toolkit.js", // A toolkit.min.js file is also available
+        ]);
+        const mainUri = (0, getUri_1.getUri)(webview, extensionUri, ["src", "main.js"]);
+        const styleUri = (0, getUri_1.getUri)(webview, extensionUri, ["src", "style.css"]);
+        let dagId = this.dagId;
+        let state = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["state"] : "";
+        let logical_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["logical_date"] : "";
+        let start_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["start_date"] : "";
+        let owners = (this.dagJson) ? this.dagJson["owners"][0] : "";
+        let tags = (this.dagJson) ? this.dagJson["tags"][0].name : "";
+        let schedule_interval = (this.dagJson) ? this.dagJson["schedule_interval"].value : "";
+        let next_dagrun = (this.dagJson) ? this.dagJson["next_dagrun"] : "";
+        return /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <title>DAG</title>
+      </head>
+      <body>
+        <h3>${dagId}</h3>
+
+        <vscode-panels activeid="tab-4">
+            <vscode-panel-tab id="tab-1">RUN</vscode-panel-tab>
+            <vscode-panel-tab id="tab-2">TRACE</vscode-panel-tab>
+            <vscode-panel-tab id="tab-3">INFO</vscode-panel-tab>
+            <vscode-panel-view id="view-1">
+                
+            <section>
+
+            <table>
+            <tr>
+                <th>Last Run</th>
+            </tr>
+            <tr>
+                <td>State: ${state}</td>
+            </tr>
+            <tr>
+                <td>Date: ${logical_date}</td>
+             </tr>
+            <tr>
+                <td>StartDate: ${start_date}</td>
+            </tr>
+            <tr>
+            <td text-align:right><vscode-button appearance="primary" id="view_log">View Log</vscode-button></td>
+            </tr>
+            </table>
+    
+            <br>
+    
+            <table>
+            <tr>
+                <th>Trigger</th>
+            </tr>
+            <tr>
+                <td><vscode-text-area cols="50" placeholder="config here"></vscode-text-area></td>
+            </tr>
+            <tr>
+                <td text-align:right><vscode-button appearance="primary" id="trigger_dag">Run</vscode-button></td>
+             </tr>
+            </table>
+
+            </section>
+
+            </vscode-panel-view>
+            <vscode-panel-view id="view-2">
+
+            <section>
+                TRACE CONTENT
+
+            </section>
+            </vscode-panel-view>
+            <vscode-panel-view id="view-3">
+                
+            <section>
+
+            <table>
+            <tr>
+                <th>Other</th>
+            </tr>
+            <tr>
+                <td>Owners: ${owners}</td>
+            </tr>
+            <tr>
+                <td>Tags: ${tags}</td>
+            </tr>
+            <tr>
+                <td>Schedule: ${schedule_interval}</td>
+            </tr>
+            <tr>
+                <td>Next Run: ${next_dagrun}</td>
+            </tr>
+            </table>
+
+            </section>
+
+            </vscode-panel-view>
+        </vscode-panels>
+
+      </body>
+    </html>
+    `;
+    }
+    _setWebviewMessageListener(webview) {
+        webview.onDidReceiveMessage((message) => {
+            const command = message.command;
+            const text = message.text;
+            switch (command) {
+                case "trigger_dag":
+                    this.triggerDagWConfig();
+                    return;
+                case "view_log":
+                    this.lastDAGRunLog();
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+    async lastDAGRunLog() {
+        if (!api_1.Api.isApiParamsSet()) {
+            return;
+        }
+        let result = await api_1.Api.getLastDagRunLog(this.dagId);
+        if (result.isSuccessful) {
+            const tmp = __webpack_require__(45);
+            var fs = __webpack_require__(6);
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.log' });
+            fs.appendFileSync(tmpFile.name, result.result);
+            (0, ui_1.showFile)(tmpFile.name);
+        }
+    }
+    async triggerDagWConfig() {
+        if (!api_1.Api.isApiParamsSet()) {
+            return;
+        }
+        let triggerDagConfig = "";
+        if (!triggerDagConfig) {
+            triggerDagConfig = "{}";
+        }
+        if (triggerDagConfig !== undefined) {
+            let result = await api_1.Api.triggerDag(this.dagId, triggerDagConfig);
+            if (result.isSuccessful) {
+                (0, ui_1.showInfoMessage)("Dag Triggered");
+                // var responseTrigger = result.result;
+                // if (this.dagStatusInterval) {
+                //     this.dagStatusInterval.refresh();
+                // }
+                // else {
+                //     this.dagStatusInterval = setInterval(this.refreshRunningDagState, 10 * 1000);
+                // }
+            }
+            else {
+                (0, ui_1.showErrorMessage)("Dag Trigger Error !!!", result.error);
+            }
+        }
+    }
+    async refreshRunningDagState() {
+        if (!api_1.Api.isApiParamsSet()) {
+            return;
+        }
+        let state = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["state"] : "";
+        let latestDagRunId = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["dag_run_id"] : "";
+        //"queued" "running" "success" "failed"
+        if (state === "queued" || state === "running") {
+            let result = await api_1.Api.getDagRun(this.dagId, latestDagRunId);
+            if (result.isSuccessful) {
+                this.dagLastRunJson = result.result;
+                this.renderHmtl();
+            }
+            else {
+                this.dagLastRunJson = undefined;
+            }
+        }
+        this.renderHmtl();
+        if (!(state === "queued" || state === "running") && this.dagStatusInterval) {
+            clearInterval(this.dagStatusInterval);
+        }
+    }
+}
+exports.DagView = DagView;
+
+
+/***/ }),
+/* 4 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getUri = void 0;
+const vscode_1 = __webpack_require__(1);
+function getUri(webview, extensionUri, pathList) {
+    return webview.asWebviewUri(vscode_1.Uri.joinPath(extensionUri, ...pathList));
+}
+exports.getUri = getUri;
+
+
+/***/ }),
+/* 5 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.showFile = exports.getExtensionVersion = exports.showErrorMessage = exports.showWarningMessage = exports.showInfoMessage = void 0;
+const vscode = __webpack_require__(1);
+const fs_1 = __webpack_require__(6);
+const path_1 = __webpack_require__(7);
+function showInfoMessage(message) {
+    vscode.window.showInformationMessage(message);
+}
+exports.showInfoMessage = showInfoMessage;
+function showWarningMessage(message) {
+    vscode.window.showWarningMessage(message);
+}
+exports.showWarningMessage = showWarningMessage;
+function showErrorMessage(message, error = undefined) {
+    if (error) {
+        vscode.window.showErrorMessage(message + "\n\n" + error);
+    }
+    else {
+        vscode.window.showErrorMessage(message);
+    }
+}
+exports.showErrorMessage = showErrorMessage;
+function getExtensionVersion() {
+    const { version: extVersion } = JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(__dirname, '..', 'package.json'), { encoding: 'utf8' }));
+    return extVersion;
+}
+exports.getExtensionVersion = getExtensionVersion;
+function showFile(file) {
+    vscode.commands.executeCommand('vscode.open', vscode.Uri.file(file));
+}
+exports.showFile = showFile;
+
+
+/***/ }),
+/* 6 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("fs");
+
+/***/ }),
+/* 7 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("path");
+
+/***/ }),
+/* 8 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Api = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const base_64_1 = __webpack_require__(9);
+const ui_1 = __webpack_require__(5);
+const methodResult_1 = __webpack_require__(10);
+const node_fetch_1 = __webpack_require__(11);
+class Api {
+    static getHeaders() {
+        let result = {
+            'Content-Type': 'application/json',
+            'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
+        };
+        return result;
+    }
+    static isApiParamsSet() {
+        if (!this.apiUrl || !this.apiUserName || !this.apiPassword) {
+            (0, ui_1.showWarningMessage)("Please set Api URL, UserName and PassWord");
+            return false;
+        }
+        return true;
+    }
+    static async triggerDag(dagId, config = undefined) {
+        if (!Api.isApiParamsSet()) {
+            return;
+        }
+        let result = new methodResult_1.MethodResult();
+        if (!config) {
+            config = "{}";
+        }
+        try {
+            let params = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
+                },
+                body: '{"conf": ' + config + '}',
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns', params);
+            if (response.status === 200) {
+                var responseTrigger = await response.json();
+                (0, ui_1.showInfoMessage)(dagId + " Dag Triggered.");
+                result.result = responseTrigger;
+                result.isSuccessful = true;
+                return result;
+            }
+            else {
+                (0, ui_1.showErrorMessage)(dagId + ' Dag Trigger Error !!!\n\n' + response.statusText);
+                result.isSuccessful = false;
+                return result;
+            }
+        }
+        catch (error) {
+            (0, ui_1.showErrorMessage)(dagId + ' Dag Trigger Error !!!\n\n' + error.message);
+            result.isSuccessful = false;
+            result.error = error;
+            return result;
+        }
+    }
+    static async getDagRun(dagId, dagRunId) {
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
+                }
+            };
+            //https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId, params);
+            if (response.status === 200) {
+                var responseDagRun = await response.json();
+                result.result = responseDagRun;
+                result.isSuccessful = true;
+                return result;
+            }
+            else {
+                (0, ui_1.showErrorMessage)(dagId + ' Error while fetching DAG status !!!\n\n' + response.statusText);
+                result.isSuccessful = false;
+                return result;
+            }
+        }
+        catch (error) {
+            (0, ui_1.showErrorMessage)(dagId + ' Dag Trigger Error !!!\n\n' + error.message);
+            result.isSuccessful = false;
+            result.error = error;
+            return result;
+        }
+    }
+    static async pauseDag(dagId, is_paused = true) {
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
+                },
+                body: JSON.stringify({
+                    "is_paused": is_paused
+                }),
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId, params);
+            if (response.status === 200) {
+                (0, ui_1.showInfoMessage)(dagId + ' Dag PAUSED');
+                result.result = response.json();
+                result.isSuccessful = true;
+                return result;
+            }
+            else {
+                (0, ui_1.showErrorMessage)('Error !!!\n\n' + response.statusText);
+                result.isSuccessful = false;
+                return result;
+            }
+        }
+        catch (error) {
+            (0, ui_1.showErrorMessage)('Error !!!', error);
+            result.isSuccessful = false;
+            result.error = error;
+            return result;
+        }
+    }
+    static async getSourceCode(dagId, fileToken) {
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
+                }
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dagSources/' + fileToken, params);
+            if (response.status === 200) {
+                let sourceCode = await response.text();
+                result.result = sourceCode;
+                result.isSuccessful = true;
+                return result;
+            }
+            else {
+                (0, ui_1.showErrorMessage)('Error !!!\n\n' + response.statusText);
+                result.isSuccessful = false;
+                return result;
+            }
+        }
+        catch (error) {
+            (0, ui_1.showErrorMessage)('Error !!!\n\n', error);
+            result.isSuccessful = false;
+            result.error = error;
+            return result;
+        }
+    }
+    static async getDagInfo(dagId) {
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
+                }
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/details', params);
+            if (response.status === 200) {
+                result.result = await response.json();
+                result.isSuccessful = true;
+                return result;
+            }
+            else {
+                (0, ui_1.showErrorMessage)(' Dag Load Error !!!\n\n' + response.statusText);
+                result.isSuccessful = false;
+                return result;
+            }
+        }
+        catch (error) {
+            (0, ui_1.showErrorMessage)('Can not connect to Airflow. Please check Url, UserName and Password.\n\n' + error.message);
+            result.isSuccessful = false;
+            result.error = error;
+            return result;
+        }
+    }
+    static async getLastDagRun(dagId) {
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
+                }
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns?order_by=-start_date&limit=1', params);
+            if (response.status === 200) {
+                result.result = await response.json();
+                result.isSuccessful = true;
+                return result;
+            }
+            else {
+                (0, ui_1.showErrorMessage)('Error !!!\n\n' + response.statusText);
+                result.isSuccessful = false;
+                return result;
+            }
+        }
+        catch (error) {
+            (0, ui_1.showErrorMessage)('Error !!!\n\n' + error.message);
+            result.isSuccessful = false;
+            result.error = error;
+            return result;
+        }
+    }
+    static async getLastDagRunLog(dagId) {
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
+                }
+            };
+            (0, ui_1.showInfoMessage)('Fecthing Latest DAG Run Logs, wait please ...');
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns?order_by=-start_date&limit=1', params);
+            if (response.status === 200) {
+                let dagRunResponse = await response.json();
+                let dagRunId = dagRunResponse['dag_runs'][0]['dag_run_id'];
+                let responseTaskInstances = await (await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId + '/taskInstances', params));
+                let responseTaskInstancesJson = await responseTaskInstances.json();
+                result.result += '###################### BEGINING OF DAG RUN ######################\n\n';
+                for (var taskInstance of responseTaskInstancesJson['task_instances']) {
+                    let responseLogs = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId + '/taskInstances/' + taskInstance['task_id'] + '/logs/' + taskInstance['try_number'], params);
+                    let responseLogsText = await responseLogs.text();
+                    result.result += '############################################################\n';
+                    result.result += 'Dag=' + dagId + '\n';
+                    result.result += 'DagRun=' + dagRunId + '\n';
+                    result.result += 'TaskId=' + taskInstance['task_id'] + '\n';
+                    result.result += 'Try=' + taskInstance['try_number'] + '\n';
+                    result.result += '############################################################\n\n';
+                    result.result += responseLogsText;
+                }
+                result.result += '###################### END OF DAG RUN ######################\n\n';
+                result.isSuccessful = true;
+                return result;
+            }
+            else {
+                (0, ui_1.showErrorMessage)('Error !!!\n\n' + response.statusText);
+                result.isSuccessful = false;
+                return result;
+            }
+        }
+        catch (error) {
+            (0, ui_1.showErrorMessage)('Error !!!\n\n' + error.message);
+            result.isSuccessful = false;
+            result.error = error;
+            return result;
+        }
+    }
+    static async getDagList() {
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
+                }
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags', params);
+            if (response.status === 200) {
+                result.result = await response.json();
+                result.isSuccessful = true;
+                return result;
+            }
+            else {
+                (0, ui_1.showErrorMessage)('Dag Load Error !!!\n\n' + response.statusText);
+                result.isSuccessful = false;
+                return result;
+            }
+        }
+        catch (error) {
+            (0, ui_1.showErrorMessage)('Can not connect to Airflow. Please check Url, UserName and Password.', error);
+            result.isSuccessful = false;
+            result.error = error;
+            return result;
+        }
+    }
+}
+exports.Api = Api;
+Api.apiUrl = '';
+Api.apiUserName = '';
+Api.apiPassword = '';
+
+
+/***/ }),
+/* 9 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* module decorator */ module = __webpack_require__.nmd(module);
+var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/base64 v1.0.0 by @mathias | MIT license */
+;(function(root) {
+
+	// Detect free variables `exports`.
+	var freeExports =  true && exports;
+
+	// Detect free variable `module`.
+	var freeModule =  true && module &&
+		module.exports == freeExports && module;
+
+	// Detect free variable `global`, from Node.js or Browserified code, and use
+	// it as `root`.
+	var freeGlobal = typeof global == 'object' && global;
+	if (freeGlobal.global === freeGlobal || freeGlobal.window === freeGlobal) {
+		root = freeGlobal;
+	}
+
+	/*--------------------------------------------------------------------------*/
+
+	var InvalidCharacterError = function(message) {
+		this.message = message;
+	};
+	InvalidCharacterError.prototype = new Error;
+	InvalidCharacterError.prototype.name = 'InvalidCharacterError';
+
+	var error = function(message) {
+		// Note: the error messages used throughout this file match those used by
+		// the native `atob`/`btoa` implementation in Chromium.
+		throw new InvalidCharacterError(message);
+	};
+
+	var TABLE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+	// http://whatwg.org/html/common-microsyntaxes.html#space-character
+	var REGEX_SPACE_CHARACTERS = /[\t\n\f\r ]/g;
+
+	// `decode` is designed to be fully compatible with `atob` as described in the
+	// HTML Standard. http://whatwg.org/html/webappapis.html#dom-windowbase64-atob
+	// The optimized base64-decoding algorithm used is based on @atk’s excellent
+	// implementation. https://gist.github.com/atk/1020396
+	var decode = function(input) {
+		input = String(input)
+			.replace(REGEX_SPACE_CHARACTERS, '');
+		var length = input.length;
+		if (length % 4 == 0) {
+			input = input.replace(/==?$/, '');
+			length = input.length;
+		}
+		if (
+			length % 4 == 1 ||
+			// http://whatwg.org/C#alphanumeric-ascii-characters
+			/[^+a-zA-Z0-9/]/.test(input)
+		) {
+			error(
+				'Invalid character: the string to be decoded is not correctly encoded.'
+			);
+		}
+		var bitCounter = 0;
+		var bitStorage;
+		var buffer;
+		var output = '';
+		var position = -1;
+		while (++position < length) {
+			buffer = TABLE.indexOf(input.charAt(position));
+			bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
+			// Unless this is the first of a group of 4 characters…
+			if (bitCounter++ % 4) {
+				// …convert the first 8 bits to a single ASCII character.
+				output += String.fromCharCode(
+					0xFF & bitStorage >> (-2 * bitCounter & 6)
+				);
+			}
+		}
+		return output;
+	};
+
+	// `encode` is designed to be fully compatible with `btoa` as described in the
+	// HTML Standard: http://whatwg.org/html/webappapis.html#dom-windowbase64-btoa
+	var encode = function(input) {
+		input = String(input);
+		if (/[^\0-\xFF]/.test(input)) {
+			// Note: no need to special-case astral symbols here, as surrogates are
+			// matched, and the input is supposed to only contain ASCII anyway.
+			error(
+				'The string to be encoded contains characters outside of the ' +
+				'Latin1 range.'
+			);
+		}
+		var padding = input.length % 3;
+		var output = '';
+		var position = -1;
+		var a;
+		var b;
+		var c;
+		var buffer;
+		// Make sure any padding is handled outside of the loop.
+		var length = input.length - padding;
+
+		while (++position < length) {
+			// Read three bytes, i.e. 24 bits.
+			a = input.charCodeAt(position) << 16;
+			b = input.charCodeAt(++position) << 8;
+			c = input.charCodeAt(++position);
+			buffer = a + b + c;
+			// Turn the 24 bits into four chunks of 6 bits each, and append the
+			// matching character for each of them to the output.
+			output += (
+				TABLE.charAt(buffer >> 18 & 0x3F) +
+				TABLE.charAt(buffer >> 12 & 0x3F) +
+				TABLE.charAt(buffer >> 6 & 0x3F) +
+				TABLE.charAt(buffer & 0x3F)
+			);
+		}
+
+		if (padding == 2) {
+			a = input.charCodeAt(position) << 8;
+			b = input.charCodeAt(++position);
+			buffer = a + b;
+			output += (
+				TABLE.charAt(buffer >> 10) +
+				TABLE.charAt((buffer >> 4) & 0x3F) +
+				TABLE.charAt((buffer << 2) & 0x3F) +
+				'='
+			);
+		} else if (padding == 1) {
+			buffer = input.charCodeAt(position);
+			output += (
+				TABLE.charAt(buffer >> 2) +
+				TABLE.charAt((buffer << 4) & 0x3F) +
+				'=='
+			);
+		}
+
+		return output;
+	};
+
+	var base64 = {
+		'encode': encode,
+		'decode': decode,
+		'version': '1.0.0'
+	};
+
+	// Some AMD build optimizers, like r.js, check for specific condition patterns
+	// like the following:
+	if (
+		true
+	) {
+		!(__WEBPACK_AMD_DEFINE_RESULT__ = (function() {
+			return base64;
+		}).call(exports, __webpack_require__, exports, module),
+		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	}	else { var key; }
+
+}(this));
+
+
+/***/ }),
+/* 10 */
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+/* eslint-disable @typescript-eslint/naming-convention */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.MethodResult = void 0;
+class MethodResult {
+}
+exports.MethodResult = MethodResult;
+
+
+/***/ }),
+/* 11 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -365,23 +1169,23 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "fileFromSync": () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_7__.fileFromSync),
 /* harmony export */   "isRedirect": () => (/* reexport safe */ _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_13__.isRedirect)
 /* harmony export */ });
-/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(4);
-/* harmony import */ var node_https__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5);
-/* harmony import */ var node_zlib__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6);
-/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(7);
-/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(8);
-/* harmony import */ var data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(9);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(27);
-/* harmony import */ var _response_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(34);
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(23);
-/* harmony import */ var _request_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(25);
-/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(30);
-/* harmony import */ var _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(36);
-/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(35);
-/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(10);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(28);
-/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(31);
-/* harmony import */ var fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(18);
+/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(12);
+/* harmony import */ var node_https__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(13);
+/* harmony import */ var node_zlib__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(14);
+/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(15);
+/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(16);
+/* harmony import */ var data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(17);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(35);
+/* harmony import */ var _response_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(42);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(31);
+/* harmony import */ var _request_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(33);
+/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(38);
+/* harmony import */ var _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(44);
+/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(43);
+/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(18);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(36);
+/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(39);
+/* harmony import */ var fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(26);
 /**
  * Index.js
  *
@@ -795,42 +1599,42 @@ function fixResponseChunkedTransferBadEnding(request, errorCallback) {
 
 
 /***/ }),
-/* 4 */
+/* 12 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:http");
 
 /***/ }),
-/* 5 */
+/* 13 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:https");
 
 /***/ }),
-/* 6 */
+/* 14 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:zlib");
 
 /***/ }),
-/* 7 */
+/* 15 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:stream");
 
 /***/ }),
-/* 8 */
+/* 16 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:buffer");
 
 /***/ }),
-/* 9 */
+/* 17 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -894,7 +1698,7 @@ function dataUriToBuffer(uri) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 10 */
+/* 18 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -904,8 +1708,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "FormData": () => (/* binding */ FormData),
 /* harmony export */   "formDataToBlob": () => (/* binding */ formDataToBlob)
 /* harmony export */ });
-/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(11);
-/* harmony import */ var fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(17);
+/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(19);
+/* harmony import */ var fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(25);
 /*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 
@@ -949,7 +1753,7 @@ return new B(c,{type:"multipart/form-data; boundary="+b})}
 
 
 /***/ }),
-/* 11 */
+/* 19 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -958,7 +1762,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "Blob": () => (/* binding */ Blob),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _streams_cjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(12);
+/* harmony import */ var _streams_cjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(20);
 /*! fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 // TODO (jimmywarting): in the feature use conditional loading with top level await (requires 14.x)
@@ -1212,7 +2016,7 @@ const Blob = _Blob
 
 
 /***/ }),
-/* 12 */
+/* 20 */
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
 
 /* c8 ignore start */
@@ -1224,11 +2028,11 @@ if (!globalThis.ReadableStream) {
   // and it's preferred over the polyfilled version. So we also
   // suppress the warning that gets emitted by NodeJS for using it.
   try {
-    const process = __webpack_require__(13)
+    const process = __webpack_require__(21)
     const { emitWarning } = process
     try {
       process.emitWarning = () => {}
-      Object.assign(globalThis, __webpack_require__(14))
+      Object.assign(globalThis, __webpack_require__(22))
       process.emitWarning = emitWarning
     } catch (error) {
       process.emitWarning = emitWarning
@@ -1236,14 +2040,14 @@ if (!globalThis.ReadableStream) {
     }
   } catch (error) {
     // fallback to polyfill implementation
-    Object.assign(globalThis, __webpack_require__(15))
+    Object.assign(globalThis, __webpack_require__(23))
   }
 }
 
 try {
   // Don't use node: prefix for this, require+node: is not supported until node v14.14
   // Only `import()` can use prefix in 12.20 and later
-  const { Blob } = __webpack_require__(16)
+  const { Blob } = __webpack_require__(24)
   if (Blob && !Blob.prototype.stream) {
     Blob.prototype.stream = function name (params) {
       let position = 0
@@ -1269,21 +2073,21 @@ try {
 
 
 /***/ }),
-/* 13 */
+/* 21 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:process");
 
 /***/ }),
-/* 14 */
+/* 22 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:stream/web");
 
 /***/ }),
-/* 15 */
+/* 23 */
 /***/ (function(__unused_webpack_module, exports) {
 
 /**
@@ -5501,14 +6305,14 @@ module.exports = require("node:stream/web");
 
 
 /***/ }),
-/* 16 */
+/* 24 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("buffer");
 
 /***/ }),
-/* 17 */
+/* 25 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5517,7 +6321,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "File": () => (/* binding */ File),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(11);
+/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(19);
 
 
 const _File = class File extends _index_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
@@ -5570,7 +6374,7 @@ const File = _File
 
 
 /***/ }),
-/* 18 */
+/* 26 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5584,11 +6388,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "fileFrom": () => (/* binding */ fileFrom),
 /* harmony export */   "fileFromSync": () => (/* binding */ fileFromSync)
 /* harmony export */ });
-/* harmony import */ var node_fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(19);
-/* harmony import */ var node_path__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(20);
-/* harmony import */ var node_domexception__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(21);
-/* harmony import */ var _file_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(17);
-/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(11);
+/* harmony import */ var node_fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(27);
+/* harmony import */ var node_path__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(28);
+/* harmony import */ var node_domexception__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(29);
+/* harmony import */ var _file_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(25);
+/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(19);
 
 
 
@@ -5692,28 +6496,28 @@ class BlobDataItem {
 
 
 /***/ }),
-/* 19 */
+/* 27 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:fs");
 
 /***/ }),
-/* 20 */
+/* 28 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:path");
 
 /***/ }),
-/* 21 */
+/* 29 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /*! node-domexception. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 if (!globalThis.DOMException) {
   try {
-    const { MessageChannel } = __webpack_require__(22),
+    const { MessageChannel } = __webpack_require__(30),
     port = new MessageChannel().port1,
     ab = new ArrayBuffer()
     port.postMessage(ab, [ab, ab])
@@ -5728,14 +6532,14 @@ module.exports = globalThis.DOMException
 
 
 /***/ }),
-/* 22 */
+/* 30 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("worker_threads");
 
 /***/ }),
-/* 23 */
+/* 31 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5744,8 +6548,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (/* binding */ Headers),
 /* harmony export */   "fromRawHeaders": () => (/* binding */ fromRawHeaders)
 /* harmony export */ });
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(24);
-/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(4);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(32);
+/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(12);
 /**
  * Headers.js
  *
@@ -6016,14 +6820,14 @@ function fromRawHeaders(headers = []) {
 
 
 /***/ }),
-/* 24 */
+/* 32 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:util");
 
 /***/ }),
-/* 25 */
+/* 33 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6032,13 +6836,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (/* binding */ Request),
 /* harmony export */   "getNodeRequestOptions": () => (/* binding */ getNodeRequestOptions)
 /* harmony export */ });
-/* harmony import */ var node_url__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(26);
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(24);
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(23);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(27);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(28);
-/* harmony import */ var _utils_get_search_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(33);
-/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(31);
+/* harmony import */ var node_url__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(34);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(32);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(31);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(35);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(36);
+/* harmony import */ var _utils_get_search_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(41);
+/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(39);
 /**
  * Request.js
  *
@@ -6357,14 +7161,14 @@ const getNodeRequestOptions = request => {
 
 
 /***/ }),
-/* 26 */
+/* 34 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:url");
 
 /***/ }),
-/* 27 */
+/* 35 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6376,14 +7180,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "getTotalBytes": () => (/* binding */ getTotalBytes),
 /* harmony export */   "writeToStream": () => (/* binding */ writeToStream)
 /* harmony export */ });
-/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(7);
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(24);
-/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(8);
-/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(11);
-/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(10);
-/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(30);
-/* harmony import */ var _errors_base_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(29);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(28);
+/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(15);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(32);
+/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(16);
+/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(19);
+/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(18);
+/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(38);
+/* harmony import */ var _errors_base_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(37);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(36);
 
 /**
  * Body.js
@@ -6784,7 +7588,7 @@ const writeToStream = async (dest, {body}) => {
 
 
 /***/ }),
-/* 28 */
+/* 36 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6886,7 +7690,7 @@ const isSameProtocol = (destination, original) => {
 
 
 /***/ }),
-/* 29 */
+/* 37 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6914,7 +7718,7 @@ class FetchBaseError extends Error {
 
 
 /***/ }),
-/* 30 */
+/* 38 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6922,7 +7726,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "FetchError": () => (/* binding */ FetchError)
 /* harmony export */ });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(29);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(37);
 
 
 
@@ -6952,7 +7756,7 @@ class FetchError extends _base_js__WEBPACK_IMPORTED_MODULE_0__.FetchBaseError {
 
 
 /***/ }),
-/* 31 */
+/* 39 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -6967,7 +7771,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "stripURLForUseAsAReferrer": () => (/* binding */ stripURLForUseAsAReferrer),
 /* harmony export */   "validateReferrerPolicy": () => (/* binding */ validateReferrerPolicy)
 /* harmony export */ });
-/* harmony import */ var node_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(32);
+/* harmony import */ var node_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(40);
 
 
 /**
@@ -7311,14 +8115,14 @@ function parseReferrerPolicyFromHeader(headers) {
 
 
 /***/ }),
-/* 32 */
+/* 40 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:net");
 
 /***/ }),
-/* 33 */
+/* 41 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -7338,7 +8142,7 @@ const getSearch = parsedURL => {
 
 
 /***/ }),
-/* 34 */
+/* 42 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -7346,9 +8150,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (/* binding */ Response)
 /* harmony export */ });
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(23);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(27);
-/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(35);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(31);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(35);
+/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(43);
 /**
  * Response.js
  *
@@ -7493,7 +8297,7 @@ Object.defineProperties(Response.prototype, {
 
 
 /***/ }),
-/* 35 */
+/* 43 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -7515,7 +8319,7 @@ const isRedirect = code => {
 
 
 /***/ }),
-/* 36 */
+/* 44 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -7523,7 +8327,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "AbortError": () => (/* binding */ AbortError)
 /* harmony export */ });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(29);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(37);
 
 
 /**
@@ -7537,835 +8341,7 @@ class AbortError extends _base_js__WEBPACK_IMPORTED_MODULE_0__.FetchBaseError {
 
 
 /***/ }),
-/* 37 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* module decorator */ module = __webpack_require__.nmd(module);
-var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/base64 v1.0.0 by @mathias | MIT license */
-;(function(root) {
-
-	// Detect free variables `exports`.
-	var freeExports =  true && exports;
-
-	// Detect free variable `module`.
-	var freeModule =  true && module &&
-		module.exports == freeExports && module;
-
-	// Detect free variable `global`, from Node.js or Browserified code, and use
-	// it as `root`.
-	var freeGlobal = typeof global == 'object' && global;
-	if (freeGlobal.global === freeGlobal || freeGlobal.window === freeGlobal) {
-		root = freeGlobal;
-	}
-
-	/*--------------------------------------------------------------------------*/
-
-	var InvalidCharacterError = function(message) {
-		this.message = message;
-	};
-	InvalidCharacterError.prototype = new Error;
-	InvalidCharacterError.prototype.name = 'InvalidCharacterError';
-
-	var error = function(message) {
-		// Note: the error messages used throughout this file match those used by
-		// the native `atob`/`btoa` implementation in Chromium.
-		throw new InvalidCharacterError(message);
-	};
-
-	var TABLE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-	// http://whatwg.org/html/common-microsyntaxes.html#space-character
-	var REGEX_SPACE_CHARACTERS = /[\t\n\f\r ]/g;
-
-	// `decode` is designed to be fully compatible with `atob` as described in the
-	// HTML Standard. http://whatwg.org/html/webappapis.html#dom-windowbase64-atob
-	// The optimized base64-decoding algorithm used is based on @atk’s excellent
-	// implementation. https://gist.github.com/atk/1020396
-	var decode = function(input) {
-		input = String(input)
-			.replace(REGEX_SPACE_CHARACTERS, '');
-		var length = input.length;
-		if (length % 4 == 0) {
-			input = input.replace(/==?$/, '');
-			length = input.length;
-		}
-		if (
-			length % 4 == 1 ||
-			// http://whatwg.org/C#alphanumeric-ascii-characters
-			/[^+a-zA-Z0-9/]/.test(input)
-		) {
-			error(
-				'Invalid character: the string to be decoded is not correctly encoded.'
-			);
-		}
-		var bitCounter = 0;
-		var bitStorage;
-		var buffer;
-		var output = '';
-		var position = -1;
-		while (++position < length) {
-			buffer = TABLE.indexOf(input.charAt(position));
-			bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
-			// Unless this is the first of a group of 4 characters…
-			if (bitCounter++ % 4) {
-				// …convert the first 8 bits to a single ASCII character.
-				output += String.fromCharCode(
-					0xFF & bitStorage >> (-2 * bitCounter & 6)
-				);
-			}
-		}
-		return output;
-	};
-
-	// `encode` is designed to be fully compatible with `btoa` as described in the
-	// HTML Standard: http://whatwg.org/html/webappapis.html#dom-windowbase64-btoa
-	var encode = function(input) {
-		input = String(input);
-		if (/[^\0-\xFF]/.test(input)) {
-			// Note: no need to special-case astral symbols here, as surrogates are
-			// matched, and the input is supposed to only contain ASCII anyway.
-			error(
-				'The string to be encoded contains characters outside of the ' +
-				'Latin1 range.'
-			);
-		}
-		var padding = input.length % 3;
-		var output = '';
-		var position = -1;
-		var a;
-		var b;
-		var c;
-		var buffer;
-		// Make sure any padding is handled outside of the loop.
-		var length = input.length - padding;
-
-		while (++position < length) {
-			// Read three bytes, i.e. 24 bits.
-			a = input.charCodeAt(position) << 16;
-			b = input.charCodeAt(++position) << 8;
-			c = input.charCodeAt(++position);
-			buffer = a + b + c;
-			// Turn the 24 bits into four chunks of 6 bits each, and append the
-			// matching character for each of them to the output.
-			output += (
-				TABLE.charAt(buffer >> 18 & 0x3F) +
-				TABLE.charAt(buffer >> 12 & 0x3F) +
-				TABLE.charAt(buffer >> 6 & 0x3F) +
-				TABLE.charAt(buffer & 0x3F)
-			);
-		}
-
-		if (padding == 2) {
-			a = input.charCodeAt(position) << 8;
-			b = input.charCodeAt(++position);
-			buffer = a + b;
-			output += (
-				TABLE.charAt(buffer >> 10) +
-				TABLE.charAt((buffer >> 4) & 0x3F) +
-				TABLE.charAt((buffer << 2) & 0x3F) +
-				'='
-			);
-		} else if (padding == 1) {
-			buffer = input.charCodeAt(position);
-			output += (
-				TABLE.charAt(buffer >> 2) +
-				TABLE.charAt((buffer << 4) & 0x3F) +
-				'=='
-			);
-		}
-
-		return output;
-	};
-
-	var base64 = {
-		'encode': encode,
-		'decode': decode,
-		'version': '1.0.0'
-	};
-
-	// Some AMD build optimizers, like r.js, check for specific condition patterns
-	// like the following:
-	if (
-		true
-	) {
-		!(__WEBPACK_AMD_DEFINE_RESULT__ = (function() {
-			return base64;
-		}).call(exports, __webpack_require__, exports, module),
-		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-	}	else { var key; }
-
-}(this));
-
-
-/***/ }),
-/* 38 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagView = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-const getUri_1 = __webpack_require__(39);
-const api_1 = __webpack_require__(43);
-class DagView {
-    constructor(panel, extensionUri, dagId) {
-        this._disposables = [];
-        this.dagId = dagId;
-        this.extensionUri = extensionUri;
-        this._panel = panel;
-        this._panel.onDidDispose(this.dispose, null, this._disposables);
-        this._setWebviewMessageListener(this._panel.webview);
-        this.getDagInfo();
-    }
-    renderHmtl() {
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
-    }
-    async getDagInfo() {
-        if (!api_1.Api.isApiParamsSet()) {
-            return;
-        }
-        let result = await api_1.Api.getDagInfo(this.dagId);
-        if (result.isSuccessful) {
-            this.dagJson = result.result;
-            this.renderHmtl();
-        }
-    }
-    static render(extensionUri, dagId) {
-        if (DagView.currentPanel) {
-            this.currentPanel.dagId = dagId;
-            DagView.currentPanel._panel.reveal(vscode.ViewColumn.One);
-            DagView.currentPanel.renderHmtl();
-        }
-        else {
-            const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
-                enableScripts: true,
-            });
-            DagView.currentPanel = new DagView(panel, extensionUri, dagId);
-        }
-    }
-    dispose() {
-        DagView.currentPanel = undefined;
-        this._panel.dispose();
-        while (this._disposables.length) {
-            const disposable = this._disposables.pop();
-            if (disposable) {
-                disposable.dispose();
-            }
-        }
-    }
-    _getWebviewContent(webview, extensionUri) {
-        // Tip: Install the es6-string-html VS Code extension to enable code highlighting below
-        const toolkitUri = (0, getUri_1.getUri)(webview, extensionUri, [
-            "node_modules",
-            "@vscode",
-            "webview-ui-toolkit",
-            "dist",
-            "toolkit.js", // A toolkit.min.js file is also available
-        ]);
-        const mainUri = (0, getUri_1.getUri)(webview, extensionUri, ["src", "main.js"]);
-        const styleUri = (0, getUri_1.getUri)(webview, extensionUri, ["src", "style.css"]);
-        return /*html*/ `
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1.0">
-        <script type="module" src="${toolkitUri}"></script>
-        <script type="module" src="${mainUri}"></script>
-        <link rel="stylesheet" href="${styleUri}">
-        <title>DAG</title>
-      </head>
-      <body>
-        <h3>${this.dagId}</h3>
-
-        <section class="dag-detail">
-        <h4>Last Run</h4>
-        <vscode-divider role="separator"></vscode-divider>
-        <p>Failed !!!</p>
-        </section>
-
-        <section class="dag-detail">
-        <h4>Trigger</h4>
-        <vscode-divider role="separator"></vscode-divider>
-        <vscode-text-area placeholder="config here"></vscode-text-area>
-        <vscode-button appearance="primary">Run</vscode-button>
-        </section>
-
-        <section class="dag-detail">
-        <h4>Other</h4>
-        <vscode-divider role="separator"></vscode-divider>
-        <p>Owners:${this.dagJson["tags"][0].name}</p>
-        <p>Tags:</p>
-        <p>Schedule:${this.dagJson["schedule_interval"].value}</p>
-        <p>Next Run:TODO</p>
-        </section>
-      </body>
-    </html>
-    `;
-    }
-    /*
-    
-    "is_paused": true,
-    "dag_id": "string",
-    "owners": ["string"],
-
-    "schedule_interval": {
-    "__type": "string",
-    "days": 0,
-    "seconds": 0,
-    "microseconds": 0
-    },
-    "timetable_description": "string",
-    "tags": [
-    {
-    "name": "string"
-    }
-    ],
-    "next_dagrun": "2019-08-24T14:15:22Z",
-
-    */
-    _setWebviewMessageListener(webview) {
-        webview.onDidReceiveMessage((message) => {
-            const command = message.command;
-            const text = message.text;
-            switch (command) {
-                case "hello":
-                    vscode.window.showInformationMessage(text);
-                    return;
-            }
-        }, undefined, this._disposables);
-    }
-}
-exports.DagView = DagView;
-
-
-/***/ }),
-/* 39 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getUri = void 0;
-const vscode_1 = __webpack_require__(1);
-function getUri(webview, extensionUri, pathList) {
-    return webview.asWebviewUri(vscode_1.Uri.joinPath(extensionUri, ...pathList));
-}
-exports.getUri = getUri;
-
-
-/***/ }),
-/* 40 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.showFile = exports.getExtensionVersion = exports.showErrorMessage = exports.showWarningMessage = exports.showInfoMessage = void 0;
-const vscode = __webpack_require__(1);
-const fs_1 = __webpack_require__(41);
-const path_1 = __webpack_require__(42);
-function showInfoMessage(message) {
-    vscode.window.showInformationMessage(message);
-}
-exports.showInfoMessage = showInfoMessage;
-function showWarningMessage(message) {
-    vscode.window.showWarningMessage(message);
-}
-exports.showWarningMessage = showWarningMessage;
-function showErrorMessage(message, error = undefined) {
-    if (error) {
-        vscode.window.showErrorMessage(message + "\n\n" + error);
-    }
-    else {
-        vscode.window.showErrorMessage(message);
-    }
-}
-exports.showErrorMessage = showErrorMessage;
-function getExtensionVersion() {
-    const { version: extVersion } = JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(__dirname, '..', 'package.json'), { encoding: 'utf8' }));
-    return extVersion;
-}
-exports.getExtensionVersion = getExtensionVersion;
-function showFile(file) {
-    vscode.commands.executeCommand('vscode.open', vscode.Uri.file(file));
-}
-exports.showFile = showFile;
-
-
-/***/ }),
-/* 41 */
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("fs");
-
-/***/ }),
-/* 42 */
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("path");
-
-/***/ }),
-/* 43 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.Api = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const base_64_1 = __webpack_require__(37);
-const ui_1 = __webpack_require__(40);
-const methodResult_1 = __webpack_require__(44);
-const node_fetch_1 = __webpack_require__(3);
-class Api {
-    static getHeaders() {
-        let result = {
-            'Content-Type': 'application/json',
-            'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
-        };
-        return result;
-    }
-    static isApiParamsSet() {
-        if (!this.apiUrl || !this.apiUserName || !this.apiPassword) {
-            (0, ui_1.showWarningMessage)("Please set Api URL, UserName and PassWord");
-            return false;
-        }
-        return true;
-    }
-    static async triggerDag(dagId, config = undefined) {
-        if (!Api.isApiParamsSet()) {
-            return;
-        }
-        let result = new methodResult_1.MethodResult();
-        if (!config) {
-            config = "{}";
-        }
-        try {
-            let params = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
-                },
-                body: '{"conf": ' + config + '}',
-            };
-            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns', params);
-            if (response.status === 200) {
-                var responseTrigger = await response.json();
-                (0, ui_1.showInfoMessage)(dagId + " Dag Triggered.");
-                result.result = responseTrigger;
-                result.isSuccessful = true;
-                return result;
-            }
-            else {
-                (0, ui_1.showErrorMessage)(dagId + ' Dag Trigger Error !!!\n\n' + response.statusText);
-                result.isSuccessful = false;
-                return result;
-            }
-        }
-        catch (error) {
-            (0, ui_1.showErrorMessage)(dagId + ' Dag Trigger Error !!!\n\n' + error.message);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
-        }
-    }
-    static async getDagRun(dagId, dagRunId) {
-        let result = new methodResult_1.MethodResult();
-        try {
-            let params = {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
-                }
-            };
-            //https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}
-            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId, params);
-            if (response.status === 200) {
-                var responseDagRun = await response.json();
-                result.result = responseDagRun;
-                result.isSuccessful = true;
-                return result;
-            }
-            else {
-                (0, ui_1.showErrorMessage)(dagId + ' Error while fetching DAG status !!!\n\n' + response.statusText);
-                result.isSuccessful = false;
-                return result;
-            }
-        }
-        catch (error) {
-            (0, ui_1.showErrorMessage)(dagId + ' Dag Trigger Error !!!\n\n' + error.message);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
-        }
-    }
-    static async pauseDag(dagId, is_paused = true) {
-        let result = new methodResult_1.MethodResult();
-        try {
-            let params = {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
-                },
-                body: JSON.stringify({
-                    "is_paused": is_paused
-                }),
-            };
-            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId, params);
-            if (response.status === 200) {
-                (0, ui_1.showInfoMessage)(dagId + ' Dag PAUSED');
-                result.result = response.json();
-                result.isSuccessful = true;
-                return result;
-            }
-            else {
-                (0, ui_1.showErrorMessage)('Error !!!\n\n' + response.statusText);
-                result.isSuccessful = false;
-                return result;
-            }
-        }
-        catch (error) {
-            (0, ui_1.showErrorMessage)('Error !!!', error);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
-        }
-    }
-    static async getSourceCode(dagId, fileToken) {
-        let result = new methodResult_1.MethodResult();
-        try {
-            let params = {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
-                }
-            };
-            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dagSources/' + fileToken, params);
-            if (response.status === 200) {
-                let sourceCode = await response.text();
-                result.result = sourceCode;
-                result.isSuccessful = true;
-                return result;
-            }
-            else {
-                (0, ui_1.showErrorMessage)('Error !!!\n\n' + response.statusText);
-                result.isSuccessful = false;
-                return result;
-            }
-        }
-        catch (error) {
-            (0, ui_1.showErrorMessage)('Error !!!\n\n', error);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
-        }
-    }
-    static async getDagInfo(dagId) {
-        let result = new methodResult_1.MethodResult();
-        try {
-            let params = {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
-                }
-            };
-            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/details', params);
-            if (response.status === 200) {
-                result.result = await response.json();
-                result.isSuccessful = true;
-                return result;
-            }
-            else {
-                (0, ui_1.showErrorMessage)(' Dag Load Error !!!\n\n' + response.statusText);
-                result.isSuccessful = false;
-                return result;
-            }
-        }
-        catch (error) {
-            (0, ui_1.showErrorMessage)('Can not connect to Airflow. Please check Url, UserName and Password.\n\n' + error.message);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
-        }
-    }
-    static async getLastDagRun(dagId) {
-        let result = new methodResult_1.MethodResult();
-        try {
-            let params = {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
-                }
-            };
-            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns?order_by=-start_date&limit=1', params);
-            if (response.status === 200) {
-                result.result = await response.json();
-                result.isSuccessful = true;
-                return result;
-            }
-            else {
-                (0, ui_1.showErrorMessage)('Error !!!\n\n' + response.statusText);
-                result.isSuccessful = false;
-                return result;
-            }
-        }
-        catch (error) {
-            (0, ui_1.showErrorMessage)('Error !!!\n\n' + error.message);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
-        }
-    }
-    static async getLastDagRunLog(dagId) {
-        let result = new methodResult_1.MethodResult();
-        try {
-            let params = {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
-                }
-            };
-            (0, ui_1.showInfoMessage)('Fecthing Latest DAG Run Logs, wait please ...');
-            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns?order_by=-start_date&limit=1', params);
-            if (response.status === 200) {
-                let dagRunResponse = await response.json();
-                let dagRunId = dagRunResponse['dag_runs'][0]['dag_run_id'];
-                let responseTaskInstances = await (await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId + '/taskInstances', params));
-                let responseTaskInstancesJson = await responseTaskInstances.json();
-                result.result += '###################### BEGINING OF DAG RUN ######################\n\n';
-                for (var taskInstance of responseTaskInstancesJson['task_instances']) {
-                    let responseLogs = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId + '/taskInstances/' + taskInstance['task_id'] + '/logs/' + taskInstance['try_number'], params);
-                    let responseLogsText = await responseLogs.text();
-                    result.result += '############################################################\n';
-                    result.result += 'Dag=' + dagId + '\n';
-                    result.result += 'DagRun=' + dagRunId + '\n';
-                    result.result += 'TaskId=' + taskInstance['task_id'] + '\n';
-                    result.result += 'Try=' + taskInstance['try_number'] + '\n';
-                    result.result += '############################################################\n\n';
-                    result.result += responseLogsText;
-                }
-                result.result += '###################### END OF DAG RUN ######################\n\n';
-                result.isSuccessful = true;
-                return result;
-            }
-            else {
-                (0, ui_1.showErrorMessage)('Error !!!\n\n' + response.statusText);
-                result.isSuccessful = false;
-                return result;
-            }
-        }
-        catch (error) {
-            (0, ui_1.showErrorMessage)('Error !!!\n\n' + error.message);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
-        }
-    }
-    static async getDagList() {
-        let result = new methodResult_1.MethodResult();
-        try {
-            let params = {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
-                }
-            };
-            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags', params);
-            if (response.status === 200) {
-                result.result = await response.json();
-                result.isSuccessful = true;
-                return result;
-            }
-            else {
-                (0, ui_1.showErrorMessage)('Dag Load Error !!!\n\n' + response.statusText);
-                result.isSuccessful = false;
-                return result;
-            }
-        }
-        catch (error) {
-            (0, ui_1.showErrorMessage)('Can not connect to Airflow. Please check Url, UserName and Password.', error);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
-        }
-    }
-}
-exports.Api = Api;
-Api.apiUrl = '';
-Api.apiUserName = '';
-Api.apiPassword = '';
-
-
-/***/ }),
-/* 44 */
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-/* eslint-disable @typescript-eslint/naming-convention */
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.MethodResult = void 0;
-class MethodResult {
-}
-exports.MethodResult = MethodResult;
-
-
-/***/ }),
 /* 45 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagTreeDataProvider = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-const dagTreeItem_1 = __webpack_require__(46);
-class DagTreeDataProvider {
-    constructor() {
-        this._onDidChangeTreeData = new vscode.EventEmitter();
-        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-        this.filterString = '';
-        this.dagList = [];
-        this.visibleDagList = [];
-    }
-    refresh() {
-        this._onDidChangeTreeData.fire();
-    }
-    loadDagTreeItemsFromApiResponse() {
-        this.dagList = [];
-        if (this.daglistResponse) {
-            for (var dag of this.daglistResponse["dags"]) {
-                if (dag) {
-                    let treeItem = new dagTreeItem_1.DagTreeItem(dag);
-                    this.dagList.push(treeItem);
-                }
-            }
-        }
-    }
-    getChildren(element) {
-        if (!element) {
-            this.visibleDagList = [];
-            for (var node of this.dagList) {
-                if (!this.filterString || (this.filterString && node.doesFilterMatch(this.filterString))) {
-                    this.visibleDagList.push(node);
-                }
-            }
-            return Promise.resolve(this.visibleDagList);
-        }
-        return Promise.resolve([]);
-    }
-    getTreeItem(element) {
-        return element;
-    }
-}
-exports.DagTreeDataProvider = DagTreeDataProvider;
-
-
-/***/ }),
-/* 46 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagTreeItem = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-class DagTreeItem extends vscode.TreeItem {
-    constructor(apiResponse) {
-        super(apiResponse["dag_id"]);
-        this.isFav = false;
-        this.setApiResponse(apiResponse);
-        this.refreshUI();
-    }
-    setApiResponse(apiResponse) {
-        this.apiResponse = apiResponse;
-        this.dagId = apiResponse["dag_id"];
-        this.isActive = apiResponse["is_active"];
-        this.isPaused = apiResponse["is_paused"];
-        this.owners = apiResponse["owners"];
-        this.tags = apiResponse["tags"];
-        this.fileToken = apiResponse["file_token"];
-    }
-    isDagRunning() {
-        return (this.latestDagState === 'queued' || this.latestDagState === 'running');
-    }
-    refreshUI() {
-        if (this.isPaused) {
-            this.iconPath = new vscode.ThemeIcon('circle-outline');
-            this.apiResponse["is_paused"] = true;
-        }
-        else {
-            //"queued" "running" "success" "failed"
-            if (this.latestDagState === 'queued') {
-                this.iconPath = new vscode.ThemeIcon('loading~spin');
-            }
-            else if (this.latestDagState === 'running') {
-                this.iconPath = new vscode.ThemeIcon('loading~spin');
-            }
-            else if (this.latestDagState === 'success') {
-                this.iconPath = new vscode.ThemeIcon('check');
-            }
-            else if (this.latestDagState === 'failed') {
-                this.iconPath = new vscode.ThemeIcon('error');
-            }
-            else {
-                this.iconPath = new vscode.ThemeIcon('circle-filled');
-            }
-            this.apiResponse["is_paused"] = false;
-        }
-    }
-    doesFilterMatch(filterString) {
-        let words = filterString.split(',');
-        let matchingWords = [];
-        for (var word of words) {
-            if (word === 'active' && !this.isPaused) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (word === 'paused' && this.isPaused) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (this.dagId.includes(word)) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (this.owners.includes(word)) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (word === 'fav' && this.isFav) {
-                matchingWords.push(word);
-                continue;
-            }
-            //TODO
-            // for(var t of this.tags)
-            // {
-            // 	if (t.includes(word)) { matchingWords.push(word); continue; }
-            // }
-        }
-        return words.length === matchingWords.length;
-    }
-}
-exports.DagTreeItem = DagTreeItem;
-
-
-/***/ }),
-/* 47 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /*!
@@ -8379,12 +8355,12 @@ exports.DagTreeItem = DagTreeItem;
 /*
  * Module dependencies.
  */
-const fs = __webpack_require__(41);
-const os = __webpack_require__(48);
-const path = __webpack_require__(42);
-const crypto = __webpack_require__(49);
+const fs = __webpack_require__(6);
+const os = __webpack_require__(46);
+const path = __webpack_require__(7);
+const crypto = __webpack_require__(47);
 const _c = { fs: fs.constants, os: os.constants };
-const rimraf = __webpack_require__(50);
+const rimraf = __webpack_require__(48);
 
 /*
  * The working inner variables.
@@ -9151,29 +9127,29 @@ module.exports.setGracefulCleanup = setGracefulCleanup;
 
 
 /***/ }),
-/* 48 */
+/* 46 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("os");
 
 /***/ }),
-/* 49 */
+/* 47 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("crypto");
 
 /***/ }),
-/* 50 */
+/* 48 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-const assert = __webpack_require__(51)
-const path = __webpack_require__(42)
-const fs = __webpack_require__(41)
+const assert = __webpack_require__(49)
+const path = __webpack_require__(7)
+const fs = __webpack_require__(6)
 let glob = undefined
 try {
-  glob = __webpack_require__(52)
+  glob = __webpack_require__(50)
 } catch (_err) {
   // treat glob as optional.
 }
@@ -9531,14 +9507,14 @@ rimraf.sync = rimrafSync
 
 
 /***/ }),
-/* 51 */
+/* 49 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("assert");
 
 /***/ }),
-/* 52 */
+/* 50 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 // Approach:
@@ -9583,24 +9559,24 @@ module.exports = require("assert");
 
 module.exports = glob
 
-var rp = __webpack_require__(53)
-var minimatch = __webpack_require__(55)
+var rp = __webpack_require__(51)
+var minimatch = __webpack_require__(53)
 var Minimatch = minimatch.Minimatch
-var inherits = __webpack_require__(59)
-var EE = (__webpack_require__(62).EventEmitter)
-var path = __webpack_require__(42)
-var assert = __webpack_require__(51)
-var isAbsolute = __webpack_require__(63)
-var globSync = __webpack_require__(64)
-var common = __webpack_require__(65)
+var inherits = __webpack_require__(57)
+var EE = (__webpack_require__(60).EventEmitter)
+var path = __webpack_require__(7)
+var assert = __webpack_require__(49)
+var isAbsolute = __webpack_require__(61)
+var globSync = __webpack_require__(62)
+var common = __webpack_require__(63)
 var setopts = common.setopts
 var ownProp = common.ownProp
-var inflight = __webpack_require__(66)
-var util = __webpack_require__(60)
+var inflight = __webpack_require__(64)
+var util = __webpack_require__(58)
 var childrenIgnored = common.childrenIgnored
 var isIgnored = common.isIgnored
 
-var once = __webpack_require__(68)
+var once = __webpack_require__(66)
 
 function glob (pattern, options, cb) {
   if (typeof options === 'function') cb = options, options = {}
@@ -10334,7 +10310,7 @@ Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
 
 
 /***/ }),
-/* 53 */
+/* 51 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 module.exports = realpath
@@ -10344,13 +10320,13 @@ realpath.realpathSync = realpathSync
 realpath.monkeypatch = monkeypatch
 realpath.unmonkeypatch = unmonkeypatch
 
-var fs = __webpack_require__(41)
+var fs = __webpack_require__(6)
 var origRealpath = fs.realpath
 var origRealpathSync = fs.realpathSync
 
 var version = process.version
 var ok = /^v[0-5]\./.test(version)
-var old = __webpack_require__(54)
+var old = __webpack_require__(52)
 
 function newError (er) {
   return er && er.syscall === 'realpath' && (
@@ -10406,7 +10382,7 @@ function unmonkeypatch () {
 
 
 /***/ }),
-/* 54 */
+/* 52 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 // Copyright Joyent, Inc. and other Node contributors.
@@ -10430,9 +10406,9 @@ function unmonkeypatch () {
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-var pathModule = __webpack_require__(42);
+var pathModule = __webpack_require__(7);
 var isWindows = process.platform === 'win32';
-var fs = __webpack_require__(41);
+var fs = __webpack_require__(6);
 
 // JavaScript implementation of realpath, ported from node pre-v6
 
@@ -10715,19 +10691,19 @@ exports.realpath = function realpath(p, cache, cb) {
 
 
 /***/ }),
-/* 55 */
+/* 53 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 module.exports = minimatch
 minimatch.Minimatch = Minimatch
 
-var path = (function () { try { return __webpack_require__(42) } catch (e) {}}()) || {
+var path = (function () { try { return __webpack_require__(7) } catch (e) {}}()) || {
   sep: '/'
 }
 minimatch.sep = path.sep
 
 var GLOBSTAR = minimatch.GLOBSTAR = Minimatch.GLOBSTAR = {}
-var expand = __webpack_require__(56)
+var expand = __webpack_require__(54)
 
 var plTypes = {
   '!': { open: '(?:(?!(?:', close: '))[^/]*?)'},
@@ -11668,11 +11644,11 @@ function regExpEscape (s) {
 
 
 /***/ }),
-/* 56 */
+/* 54 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var concatMap = __webpack_require__(57);
-var balanced = __webpack_require__(58);
+var concatMap = __webpack_require__(55);
+var balanced = __webpack_require__(56);
 
 module.exports = expandTop;
 
@@ -11875,7 +11851,7 @@ function expand(str, isTop) {
 
 
 /***/ }),
-/* 57 */
+/* 55 */
 /***/ ((module) => {
 
 module.exports = function (xs, fn) {
@@ -11894,7 +11870,7 @@ var isArray = Array.isArray || function (xs) {
 
 
 /***/ }),
-/* 58 */
+/* 56 */
 /***/ ((module) => {
 
 "use strict";
@@ -11963,29 +11939,29 @@ function range(a, b, str) {
 
 
 /***/ }),
-/* 59 */
+/* 57 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 try {
-  var util = __webpack_require__(60);
+  var util = __webpack_require__(58);
   /* istanbul ignore next */
   if (typeof util.inherits !== 'function') throw '';
   module.exports = util.inherits;
 } catch (e) {
   /* istanbul ignore next */
-  module.exports = __webpack_require__(61);
+  module.exports = __webpack_require__(59);
 }
 
 
 /***/ }),
-/* 60 */
+/* 58 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("util");
 
 /***/ }),
-/* 61 */
+/* 59 */
 /***/ ((module) => {
 
 if (typeof Object.create === 'function') {
@@ -12018,14 +11994,14 @@ if (typeof Object.create === 'function') {
 
 
 /***/ }),
-/* 62 */
+/* 60 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("events");
 
 /***/ }),
-/* 63 */
+/* 61 */
 /***/ ((module) => {
 
 "use strict";
@@ -12052,21 +12028,21 @@ module.exports.win32 = win32;
 
 
 /***/ }),
-/* 64 */
+/* 62 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 module.exports = globSync
 globSync.GlobSync = GlobSync
 
-var rp = __webpack_require__(53)
-var minimatch = __webpack_require__(55)
+var rp = __webpack_require__(51)
+var minimatch = __webpack_require__(53)
 var Minimatch = minimatch.Minimatch
-var Glob = (__webpack_require__(52).Glob)
-var util = __webpack_require__(60)
-var path = __webpack_require__(42)
-var assert = __webpack_require__(51)
-var isAbsolute = __webpack_require__(63)
-var common = __webpack_require__(65)
+var Glob = (__webpack_require__(50).Glob)
+var util = __webpack_require__(58)
+var path = __webpack_require__(7)
+var assert = __webpack_require__(49)
+var isAbsolute = __webpack_require__(61)
+var common = __webpack_require__(63)
 var setopts = common.setopts
 var ownProp = common.ownProp
 var childrenIgnored = common.childrenIgnored
@@ -12544,7 +12520,7 @@ GlobSync.prototype._makeAbs = function (f) {
 
 
 /***/ }),
-/* 65 */
+/* 63 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 exports.setopts = setopts
@@ -12559,10 +12535,10 @@ function ownProp (obj, field) {
   return Object.prototype.hasOwnProperty.call(obj, field)
 }
 
-var fs = __webpack_require__(41)
-var path = __webpack_require__(42)
-var minimatch = __webpack_require__(55)
-var isAbsolute = __webpack_require__(63)
+var fs = __webpack_require__(6)
+var path = __webpack_require__(7)
+var minimatch = __webpack_require__(53)
+var isAbsolute = __webpack_require__(61)
 var Minimatch = minimatch.Minimatch
 
 function alphasort (a, b) {
@@ -12788,12 +12764,12 @@ function childrenIgnored (self, path) {
 
 
 /***/ }),
-/* 66 */
+/* 64 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var wrappy = __webpack_require__(67)
+var wrappy = __webpack_require__(65)
 var reqs = Object.create(null)
-var once = __webpack_require__(68)
+var once = __webpack_require__(66)
 
 module.exports = wrappy(inflight)
 
@@ -12848,7 +12824,7 @@ function slice (args) {
 
 
 /***/ }),
-/* 67 */
+/* 65 */
 /***/ ((module) => {
 
 // Returns a wrapper function that returns a wrapped callback
@@ -12887,10 +12863,10 @@ function wrappy (fn, cb) {
 
 
 /***/ }),
-/* 68 */
+/* 66 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
-var wrappy = __webpack_require__(67)
+var wrappy = __webpack_require__(65)
 module.exports = wrappy(once)
 module.exports.strict = wrappy(onceStrict)
 
@@ -12932,6 +12908,148 @@ function onceStrict (fn) {
   f.called = false
   return f
 }
+
+
+/***/ }),
+/* 67 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTreeDataProvider = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const dagTreeItem_1 = __webpack_require__(68);
+class DagTreeDataProvider {
+    constructor() {
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+        this.filterString = '';
+        this.dagList = [];
+        this.visibleDagList = [];
+    }
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+    loadDagTreeItemsFromApiResponse() {
+        this.dagList = [];
+        if (this.daglistResponse) {
+            for (var dag of this.daglistResponse["dags"]) {
+                if (dag) {
+                    let treeItem = new dagTreeItem_1.DagTreeItem(dag);
+                    this.dagList.push(treeItem);
+                }
+            }
+        }
+    }
+    getChildren(element) {
+        if (!element) {
+            this.visibleDagList = [];
+            for (var node of this.dagList) {
+                if (!this.filterString || (this.filterString && node.doesFilterMatch(this.filterString))) {
+                    this.visibleDagList.push(node);
+                }
+            }
+            return Promise.resolve(this.visibleDagList);
+        }
+        return Promise.resolve([]);
+    }
+    getTreeItem(element) {
+        return element;
+    }
+}
+exports.DagTreeDataProvider = DagTreeDataProvider;
+
+
+/***/ }),
+/* 68 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTreeItem = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+class DagTreeItem extends vscode.TreeItem {
+    constructor(apiResponse) {
+        super(apiResponse["dag_id"]);
+        this.isFav = false;
+        this.setApiResponse(apiResponse);
+        this.refreshUI();
+    }
+    setApiResponse(apiResponse) {
+        this.apiResponse = apiResponse;
+        this.dagId = apiResponse["dag_id"];
+        this.isActive = apiResponse["is_active"];
+        this.isPaused = apiResponse["is_paused"];
+        this.owners = apiResponse["owners"];
+        this.tags = apiResponse["tags"];
+        this.fileToken = apiResponse["file_token"];
+    }
+    isDagRunning() {
+        return (this.latestDagState === 'queued' || this.latestDagState === 'running');
+    }
+    refreshUI() {
+        if (this.isPaused) {
+            this.iconPath = new vscode.ThemeIcon('circle-outline');
+            this.apiResponse["is_paused"] = true;
+        }
+        else {
+            //"queued" "running" "success" "failed"
+            if (this.latestDagState === 'queued') {
+                this.iconPath = new vscode.ThemeIcon('loading~spin');
+            }
+            else if (this.latestDagState === 'running') {
+                this.iconPath = new vscode.ThemeIcon('loading~spin');
+            }
+            else if (this.latestDagState === 'success') {
+                this.iconPath = new vscode.ThemeIcon('check');
+            }
+            else if (this.latestDagState === 'failed') {
+                this.iconPath = new vscode.ThemeIcon('error');
+            }
+            else {
+                this.iconPath = new vscode.ThemeIcon('circle-filled');
+            }
+            this.apiResponse["is_paused"] = false;
+        }
+    }
+    doesFilterMatch(filterString) {
+        let words = filterString.split(',');
+        let matchingWords = [];
+        for (var word of words) {
+            if (word === 'active' && !this.isPaused) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (word === 'paused' && this.isPaused) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (this.dagId.includes(word)) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (this.owners.includes(word)) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (word === 'fav' && this.isFav) {
+                matchingWords.push(word);
+                continue;
+            }
+            //TODO
+            // for(var t of this.tags)
+            // {
+            // 	if (t.includes(word)) { matchingWords.push(word); continue; }
+            // }
+        }
+        return words.length === matchingWords.length;
+    }
+}
+exports.DagTreeItem = DagTreeItem;
 
 
 /***/ })

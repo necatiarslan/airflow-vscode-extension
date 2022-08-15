@@ -1,17 +1,32 @@
 
-  .dag-detail {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    margin: 0.5rem;
-    padding: 0.5rem;
-    border: 2px dashed #434343;
-    border-radius: 2px;
+ 
+  table {
+    width: 100%;
+    border: 0px solid;
+    border-spacing: 0;
+    border-collapse: collapse;
+  }
+
+  th {
+    background-color: #28597a;
+    color: white;
+    padding: 10px;
+  }
+  
+  td {
+    background-color: #2376b9;
+    color: white;
+    padding: 5px;
   }
 
   vscode-panels {
-    border: 2px dashed #434343;
+    border: 0px;
     border-radius: 1px;
+  }
+
+  section {
+    display: flex;
+    flex-direction: column; 
+    width: 100%;
   }
   

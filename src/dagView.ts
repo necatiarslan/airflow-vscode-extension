@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import { getUri } from "./getUri";
-import fetch from 'node-fetch';
-import { encode } from 'base-64';
-import { showInfoMessage, showWarningMessage, showErrorMessage } from './ui';
+import { showInfoMessage, showWarningMessage, showErrorMessage, showFile } from './ui';
 import { Api } from './api';
 
 export class DagView {
@@ -13,36 +11,48 @@ export class DagView {
     private extensionUri: vscode.Uri;
     public dagId: string;
     public dagJson: any;
+    public dagLastRunJson: any;
+    private dagStatusInterval: NodeJS.Timer;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, dagId:string) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, dagId: string) {
         this.dagId = dagId;
         this.extensionUri = extensionUri;
-        
+
         this._panel = panel;
         this._panel.onDidDispose(this.dispose, null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
 
         this.getDagInfo();
+        this.getLastRun();
     }
 
-
-    public renderHmtl(){
+    public renderHmtl() {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
     }
 
-    public async getDagInfo(){
-        if(!Api.isApiParamsSet()) { return; }
+    public async getLastRun() {
+        if (!Api.isApiParamsSet()) { return; }
+
+        let result = await Api.getLastDagRun(this.dagId);
+        if (result.isSuccessful) {
+            this.dagLastRunJson = result.result;
+            this.renderHmtl();
+        }
+
+    }
+
+    public async getDagInfo() {
+        if (!Api.isApiParamsSet()) { return; }
 
         let result = await Api.getDagInfo(this.dagId);
-        if(result.isSuccessful)
-        {
+        if (result.isSuccessful) {
             this.dagJson = result.result;
             this.renderHmtl();
         }
 
     }
 
-    public static render(extensionUri: vscode.Uri, dagId:string) {
+    public static render(extensionUri: vscode.Uri, dagId: string) {
         if (DagView.currentPanel) {
             this.currentPanel.dagId = dagId;
             DagView.currentPanel._panel.reveal(vscode.ViewColumn.One);
@@ -50,7 +60,7 @@ export class DagView {
         } else {
             const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
                 enableScripts: true,
-              });
+            });
 
             DagView.currentPanel = new DagView(panel, extensionUri, dagId);
         }
@@ -82,6 +92,15 @@ export class DagView {
         const mainUri = getUri(webview, extensionUri, ["src", "main.js"]);
         const styleUri = getUri(webview, extensionUri, ["src", "style.css"]);
 
+        let dagId = this.dagId;
+        let state = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["state"] : "";
+        let logical_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["logical_date"] : "";
+        let start_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["start_date"] : "";
+        let owners = (this.dagJson) ? this.dagJson["owners"][0] : "";
+        let tags = (this.dagJson) ? this.dagJson["tags"][0].name : "";
+        let schedule_interval = (this.dagJson) ? this.dagJson["schedule_interval"].value : "";
+        let next_dagrun = (this.dagJson) ? this.dagJson["next_dagrun"] : "";
+
         return /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
@@ -94,57 +113,89 @@ export class DagView {
         <title>DAG</title>
       </head>
       <body>
-        <h3>${this.dagId}</h3>
+        <h3>${dagId}</h3>
 
-        <section class="dag-detail">
-        <h4>Last Run</h4>
-        <vscode-divider role="separator"></vscode-divider>
-        <p>Failed !!!</p>
-        </section>
+        <vscode-panels activeid="tab-4">
+            <vscode-panel-tab id="tab-1">RUN</vscode-panel-tab>
+            <vscode-panel-tab id="tab-2">TRACE</vscode-panel-tab>
+            <vscode-panel-tab id="tab-3">INFO</vscode-panel-tab>
+            <vscode-panel-view id="view-1">
+                
+            <section>
 
-        <section class="dag-detail">
-        <h4>Trigger</h4>
-        <vscode-divider role="separator"></vscode-divider>
-        <vscode-text-area placeholder="config here"></vscode-text-area>
-        <vscode-button appearance="primary">Run</vscode-button>
-        </section>
+            <table>
+            <tr>
+                <th>Last Run</th>
+            </tr>
+            <tr>
+                <td>State: ${state}</td>
+            </tr>
+            <tr>
+                <td>Date: ${logical_date}</td>
+             </tr>
+            <tr>
+                <td>StartDate: ${start_date}</td>
+            </tr>
+            <tr>
+            <td text-align:right><vscode-button appearance="primary" id="view_log">View Log</vscode-button></td>
+            </tr>
+            </table>
+    
+            <br>
+    
+            <table>
+            <tr>
+                <th>Trigger</th>
+            </tr>
+            <tr>
+                <td><vscode-text-area cols="50" placeholder="config here"></vscode-text-area></td>
+            </tr>
+            <tr>
+                <td text-align:right><vscode-button appearance="primary" id="trigger_dag">Run</vscode-button></td>
+             </tr>
+            </table>
 
-        <section class="dag-detail">
-        <h4>Other</h4>
-        <vscode-divider role="separator"></vscode-divider>
-        <p>Owners:${this.dagJson["tags"][0].name}</p>
-        <p>Tags:</p>
-        <p>Schedule:${this.dagJson["schedule_interval"].value}</p>
-        <p>Next Run:TODO</p>
-        </section>
+            </section>
+
+            </vscode-panel-view>
+            <vscode-panel-view id="view-2">
+
+            <section>
+                TRACE CONTENT
+
+            </section>
+            </vscode-panel-view>
+            <vscode-panel-view id="view-3">
+                
+            <section>
+
+            <table>
+            <tr>
+                <th>Other</th>
+            </tr>
+            <tr>
+                <td>Owners: ${owners}</td>
+            </tr>
+            <tr>
+                <td>Tags: ${tags}</td>
+            </tr>
+            <tr>
+                <td>Schedule: ${schedule_interval}</td>
+            </tr>
+            <tr>
+                <td>Next Run: ${next_dagrun}</td>
+            </tr>
+            </table>
+
+            </section>
+
+            </vscode-panel-view>
+        </vscode-panels>
+
       </body>
     </html>
     `;
     }
-
-
-    /*
-    
-    "is_paused": true,
-    "dag_id": "string",
-    "owners": ["string"],
-
-    "schedule_interval": {
-    "__type": "string",
-    "days": 0,
-    "seconds": 0,
-    "microseconds": 0
-    },
-    "timetable_description": "string",
-    "tags": [
-    {
-    "name": "string"
-    }
-    ],
-    "next_dagrun": "2019-08-24T14:15:22Z",
-
-    */ 
-
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
         webview.onDidReceiveMessage(
@@ -153,8 +204,11 @@ export class DagView {
                 const text = message.text;
 
                 switch (command) {
-                    case "hello":
-                        vscode.window.showInformationMessage(text);
+                    case "trigger_dag":
+                        this.triggerDagWConfig();
+                        return;
+                    case "view_log":
+                        this.lastDAGRunLog();
                         return;
                 }
             },
@@ -162,4 +216,76 @@ export class DagView {
             this._disposables
         );
     }
+
+    async lastDAGRunLog() {
+        if (!Api.isApiParamsSet()) { return; }
+
+        let result = await Api.getLastDagRunLog(this.dagId);
+        if (result.isSuccessful) {
+            const tmp = require('tmp');
+            var fs = require('fs');
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.log' });
+            fs.appendFileSync(tmpFile.name, result.result);
+            showFile(tmpFile.name);
+        }
+    }
+
+    async triggerDagWConfig() {
+        if (!Api.isApiParamsSet()) { return; }
+
+        let triggerDagConfig = "";
+
+        if (!triggerDagConfig) {
+            triggerDagConfig = "{}";
+        }
+
+        if (triggerDagConfig !== undefined) {
+
+            let result = await Api.triggerDag(this.dagId, triggerDagConfig);
+
+            if (result.isSuccessful) {
+                showInfoMessage("Dag Triggered");
+                // var responseTrigger = result.result;
+                // if (this.dagStatusInterval) {
+                //     this.dagStatusInterval.refresh();
+                // }
+                // else {
+                //     this.dagStatusInterval = setInterval(this.refreshRunningDagState, 10 * 1000);
+                // }
+            }
+            else
+            {
+                showErrorMessage("Dag Trigger Error !!!", result.error);
+            }
+
+        }
+    }
+
+    async refreshRunningDagState() {
+        if (!Api.isApiParamsSet()) { return; }
+
+        let state = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["state"] : "";
+        let latestDagRunId = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["dag_run_id"] : "";
+
+        //"queued" "running" "success" "failed"
+        if (state === "queued" || state === "running") {
+
+            let result = await Api.getDagRun(this.dagId, latestDagRunId);
+
+            if (result.isSuccessful) {
+                this.dagLastRunJson = result.result;
+                this.renderHmtl();
+            }
+            else {
+                this.dagLastRunJson = undefined;
+            }
+
+        }
+        this.renderHmtl();
+
+        if (!(state === "queued" || state === "running") && this.dagStatusInterval) {
+            clearInterval(this.dagStatusInterval);
+        }
+    }
+
 }
