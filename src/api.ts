@@ -204,6 +204,38 @@ export class Api {
 
     }
 
+    public static async getDagTasks(dagId:string): Promise<MethodResult<any>>{
+        let result:MethodResult<any> = new MethodResult<any>(); 
+        try {
+			let params = {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
+				}
+			};
+
+			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/tasks', params);
+
+			result.result= await response.json();
+			if (response.status === 200) {
+                result.isSuccessful = true;
+                return result;
+			}
+			else {
+				showApiErrorMessage('Error !!!', result.result);
+                result.isSuccessful = false;
+                return result;
+			}
+		} catch (error) {
+			showErrorMessage('Error !!!\n\n', error);
+            result.isSuccessful = false;
+            result.error = error;
+            return result;
+		}
+
+    }
+
     public static async getLastDagRun(dagId:string): Promise<MethodResult<any>>{
 
         let result:MethodResult<any> = new MethodResult<any>(); 

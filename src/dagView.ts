@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import { getUri } from "./getUri";
-import { showInfoMessage, showWarningMessage, showErrorMessage, showFile } from './ui';
+import { showInfoMessage, showWarningMessage, showErrorMessage, showFile, getDuration } from './ui';
 import { Api } from './api';
 
 export class DagView {
@@ -13,6 +13,7 @@ export class DagView {
     public dagJson: any;
     public dagLastRunJson: any;
     private dagStatusInterval: NodeJS.Timer;
+    public dagTasksJson: any;
 
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, dagId: string) {
         this.dagId = dagId;
@@ -24,6 +25,7 @@ export class DagView {
 
         this.getDagInfo();
         this.getLastRun();
+        this.getDagTasks()
     }
 
     public renderHmtl() {
@@ -49,7 +51,16 @@ export class DagView {
             this.dagJson = result.result;
             this.renderHmtl();
         }
+    }
 
+    public async getDagTasks() {
+        if (!Api.isApiParamsSet()) { return; }
+
+        let result = await Api.getDagTasks(this.dagId);
+        if (result.isSuccessful) {
+            this.dagTasksJson = result.result;
+            this.renderHmtl();
+        }
     }
 
     public static render(extensionUri: vscode.Uri, dagId: string) {
@@ -96,6 +107,7 @@ export class DagView {
         let state = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["state"] : "";
         let logical_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["logical_date"] : "";
         let start_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["start_date"] : "";
+        let end_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["end_date"] : "";
         let owners = (this.dagJson) ? this.dagJson["owners"].join(", ") : "";
         let tags:string = "";
         this.dagJson["tags"].forEach(item => {tags += item.name + ", ";});
@@ -104,8 +116,19 @@ export class DagView {
         let next_dagrun = '';//(this.dagJson) ? this.dagJson["next_dagrun"] : "";
 
         let logical_date_string = new Date(logical_date).toLocaleDateString();
-        let start_date_string = new Date(start_date).toLocaleDateString();
+        let start_date_string = new Date(start_date).toLocaleString();
+        let duration = getDuration(new Date(start_date), new Date(end_date));
 
+        let taskRows: string = "";
+        for(var t of this.dagTasksJson["tasks"]){
+            taskRows += `
+            <tr>
+                <td>${t.task_id}</td>
+                <td>${t.class_ref.class_name}</td>
+                <td></td>
+            </tr>
+            `;
+        }
 
         return /*html*/ `
     <!DOCTYPE html>
@@ -148,6 +171,11 @@ export class DagView {
                 <td>:</td>
                 <td>${start_date_string}</td>
             </tr>
+            <tr>
+            <td>Duration</td>
+            <td>:</td>
+            <td>${duration}</td>
+        </tr>
             <tr>
                 <td></td>
                 <td></td>
@@ -219,6 +247,15 @@ export class DagView {
                 <td>:</td>
                 <td>${next_dagrun}</td>
             </tr>
+            </table>
+
+            <table>
+            <tr>
+                <th colspan=3>Tasks</th>
+            </tr>
+
+            ${taskRows}
+
             </table>
 
             </section>

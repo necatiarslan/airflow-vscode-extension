@@ -366,6 +366,7 @@ class DagView {
         this._setWebviewMessageListener(this._panel.webview);
         this.getDagInfo();
         this.getLastRun();
+        this.getDagTasks();
     }
     renderHmtl() {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
@@ -387,6 +388,16 @@ class DagView {
         let result = await api_1.Api.getDagInfo(this.dagId);
         if (result.isSuccessful) {
             this.dagJson = result.result;
+            this.renderHmtl();
+        }
+    }
+    async getDagTasks() {
+        if (!api_1.Api.isApiParamsSet()) {
+            return;
+        }
+        let result = await api_1.Api.getDagTasks(this.dagId);
+        if (result.isSuccessful) {
+            this.dagTasksJson = result.result;
             this.renderHmtl();
         }
     }
@@ -428,6 +439,7 @@ class DagView {
         let state = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["state"] : "";
         let logical_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["logical_date"] : "";
         let start_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["start_date"] : "";
+        let end_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["end_date"] : "";
         let owners = (this.dagJson) ? this.dagJson["owners"].join(", ") : "";
         let tags = "";
         this.dagJson["tags"].forEach(item => { tags += item.name + ", "; });
@@ -435,7 +447,18 @@ class DagView {
         let schedule_interval = (this.dagJson) ? this.dagJson["schedule_interval"].value : "";
         let next_dagrun = ''; //(this.dagJson) ? this.dagJson["next_dagrun"] : "";
         let logical_date_string = new Date(logical_date).toLocaleDateString();
-        let start_date_string = new Date(start_date).toLocaleDateString();
+        let start_date_string = new Date(start_date).toLocaleString();
+        let duration = (0, ui_1.getDuration)(new Date(start_date), new Date(end_date));
+        let taskRows = "";
+        for (var t of this.dagTasksJson["tasks"]) {
+            taskRows += `
+            <tr>
+                <td>${t.task_id}</td>
+                <td>${t.class_ref.class_name}</td>
+                <td></td>
+            </tr>
+            `;
+        }
         return /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
@@ -477,6 +500,11 @@ class DagView {
                 <td>:</td>
                 <td>${start_date_string}</td>
             </tr>
+            <tr>
+            <td>Duration</td>
+            <td>:</td>
+            <td>${duration}</td>
+        </tr>
             <tr>
                 <td></td>
                 <td></td>
@@ -548,6 +576,15 @@ class DagView {
                 <td>:</td>
                 <td>${next_dagrun}</td>
             </tr>
+            </table>
+
+            <table>
+            <tr>
+                <th colspan=3>Tasks</th>
+            </tr>
+
+            ${taskRows}
+
             </table>
 
             </section>
@@ -659,7 +696,7 @@ exports.getUri = getUri;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.showFile = exports.getExtensionVersion = exports.showApiErrorMessage = exports.showErrorMessage = exports.showWarningMessage = exports.showInfoMessage = void 0;
+exports.convertMsToTime = exports.getDuration = exports.showFile = exports.getExtensionVersion = exports.showApiErrorMessage = exports.showErrorMessage = exports.showWarningMessage = exports.showInfoMessage = void 0;
 const vscode = __webpack_require__(1);
 const fs_1 = __webpack_require__(6);
 const path_1 = __webpack_require__(7);
@@ -712,6 +749,29 @@ function showFile(file) {
     vscode.commands.executeCommand('vscode.open', vscode.Uri.file(file));
 }
 exports.showFile = showFile;
+function padTo2Digits(num) {
+    return num.toString().padStart(2, '0');
+}
+function getDuration(startDate, endDate) {
+    var duration = endDate.valueOf() - startDate.valueOf();
+    return (convertMsToTime(duration));
+}
+exports.getDuration = getDuration;
+function convertMsToTime(milliseconds) {
+    let seconds = Math.floor(milliseconds / 1000);
+    let minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    seconds = seconds % 60;
+    minutes = minutes % 60;
+    // 👇️ If you want to roll hours over, e.g. 00 to 24
+    // 👇️ uncomment the line below
+    // uncommenting next line gets you `00:00:00` instead of `24:00:00`
+    // or `12:15:31` instead of `36:15:31`, etc.
+    // 👇️ (roll hours over)
+    // hours = hours % 24;
+    return `${padTo2Digits(hours)}:${padTo2Digits(minutes)}:${padTo2Digits(seconds)}`;
+}
+exports.convertMsToTime = convertMsToTime;
 
 
 /***/ }),
@@ -910,6 +970,35 @@ class Api {
         }
         catch (error) {
             (0, ui_1.showErrorMessage)('Can not connect to Airflow. Please check Url, UserName and Password.\n\n' + error.message);
+            result.isSuccessful = false;
+            result.error = error;
+            return result;
+        }
+    }
+    static async getDagTasks(dagId) {
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Basic ' + (0, base_64_1.encode)(Api.apiUserName + ":" + Api.apiPassword)
+                }
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/tasks', params);
+            result.result = await response.json();
+            if (response.status === 200) {
+                result.isSuccessful = true;
+                return result;
+            }
+            else {
+                (0, ui_1.showApiErrorMessage)('Error !!!', result.result);
+                result.isSuccessful = false;
+                return result;
+            }
+        }
+        catch (error) {
+            (0, ui_1.showErrorMessage)('Error !!!\n\n', error);
             result.isSuccessful = false;
             result.error = error;
             return result;
