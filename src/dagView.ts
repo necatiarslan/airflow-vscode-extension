@@ -96,10 +96,16 @@ export class DagView {
         let state = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["state"] : "";
         let logical_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["logical_date"] : "";
         let start_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["start_date"] : "";
-        let owners = (this.dagJson) ? this.dagJson["owners"][0] : "";
-        let tags = (this.dagJson) ? this.dagJson["tags"][0].name : "";
+        let owners = (this.dagJson) ? this.dagJson["owners"].join(", ") : "";
+        let tags:string = "";
+        this.dagJson["tags"].forEach(item => {tags += item.name + ", ";});
+        tags = tags.slice(0, -3);
         let schedule_interval = (this.dagJson) ? this.dagJson["schedule_interval"].value : "";
-        let next_dagrun = (this.dagJson) ? this.dagJson["next_dagrun"] : "";
+        let next_dagrun = '';//(this.dagJson) ? this.dagJson["next_dagrun"] : "";
+
+        let logical_date_string = new Date(logical_date).toLocaleDateString();
+        let start_date_string = new Date(start_date).toLocaleDateString();
+
 
         return /*html*/ `
     <!DOCTYPE html>
@@ -125,19 +131,27 @@ export class DagView {
 
             <table>
             <tr>
-                <th>Last Run</th>
+                <th colspan=3>Last Run</th>
             </tr>
             <tr>
-                <td>State: ${state}</td>
+                <td>State</td>
+                <td>:</td>
+                <td>${state}</td>
             </tr>
             <tr>
-                <td>Date: ${logical_date}</td>
+                <td>Date</td>
+                <td>:</td>
+                <td>${logical_date_string}</td>
              </tr>
             <tr>
-                <td>StartDate: ${start_date}</td>
+                <td>StartDate</td>
+                <td>:</td>
+                <td>${start_date_string}</td>
             </tr>
             <tr>
-            <td text-align:right><vscode-button appearance="primary" id="view_log">View Log</vscode-button></td>
+                <td></td>
+                <td></td>
+                <td text-align:right><vscode-button appearance="primary" id="view_log">View Log</vscode-button></td>
             </tr>
             </table>
     
@@ -145,13 +159,24 @@ export class DagView {
     
             <table>
             <tr>
-                <th>Trigger</th>
+                <th colspan=3>Trigger</th>
             </tr>
             <tr>
-                <td><vscode-text-area cols="50" placeholder="config here"></vscode-text-area></td>
+                <td>Config</td>
+                <td>:</td>
+                <td><vscode-text-area id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-text-area></td>
             </tr>
             <tr>
-                <td text-align:right><vscode-button appearance="primary" id="trigger_dag">Run</vscode-button></td>
+                <td>Date</td>
+                <td>:</td>
+                <td><vscode-text-field id="run_date" placeholder="YYYY-MM-DD" maxlength="10"></vscode-text-field></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>            
+                <td><vscode-button appearance="primary" id="trigger_dag">
+                Run
+                </vscode-button></td>
              </tr>
             </table>
 
@@ -161,6 +186,7 @@ export class DagView {
             <vscode-panel-view id="view-2">
 
             <section>
+
                 TRACE CONTENT
 
             </section>
@@ -171,19 +197,27 @@ export class DagView {
 
             <table>
             <tr>
-                <th>Other</th>
+                <th colspan=3>Other</th>
             </tr>
             <tr>
-                <td>Owners: ${owners}</td>
+                <td>Owners</td>
+                <td>:</td>
+                <td>${owners}</td>
             </tr>
             <tr>
-                <td>Tags: ${tags}</td>
+                <td>Tags</td>
+                <td>:</td>
+                <td>${tags}</td>
             </tr>
             <tr>
-                <td>Schedule: ${schedule_interval}</td>
+                <td>Schedule</td>
+                <td>:</td>
+                <td>${schedule_interval}</td>
             </tr>
             <tr>
-                <td>Next Run: ${next_dagrun}</td>
+                <td>Next Run</td>
+                <td>:</td>
+                <td>${next_dagrun}</td>
             </tr>
             </table>
 

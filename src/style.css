@@ -8,20 +8,35 @@
   }
 
   th {
-    background-color: #28597a;
+    background-color: #2a2d2e;
     color: white;
-    padding: 10px;
+    padding: 5px;
+    font-size: 15px;
+    font: bold;
   }
   
   td {
-    background-color: #2376b9;
+    background-color: #3c3c3c;
     color: white;
     padding: 5px;
+    font-size: 12px;
   }
 
   vscode-panels {
     border: 0px;
     border-radius: 1px;
+  }
+
+  vscode-text-field {
+    border: 1px;
+    border-color: #2a2d2e;
+    font-size: 12px;
+  }
+
+  vscode-text-area {
+    border: 1px;
+    border-color: #2a2d2e;
+    font-size: 12px;
   }
 
   section {

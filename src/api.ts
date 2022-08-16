@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { encode } from 'base-64';
-import { showInfoMessage, showWarningMessage, showErrorMessage } from './ui';
+import { showInfoMessage, showWarningMessage, showErrorMessage, showApiErrorMessage } from './ui';
 import { MethodResult } from './methodResult';
 import fetch from 'node-fetch';
 
@@ -48,23 +48,20 @@ export class Api {
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns', params);
 
+			result.result = await response.json();
 			if (response.status === 200) {
-				var responseTrigger = await response.json();
-				
 				showInfoMessage(dagId + " Dag Triggered.");
-
-                result.result = responseTrigger;
                 result.isSuccessful = true;
                 return result;
 			}
 			else {
-				showErrorMessage(dagId + ' Dag Trigger Error !!!\n\n' + response.statusText);
+				showApiErrorMessage('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
 			}
 		} catch (error) {
 			showErrorMessage(dagId + ' Dag Trigger Error !!!\n\n' + error.message);
-            result.isSuccessful = false;
+            result.isSuccessful = false;	
             result.error = error;
             return result;
 		}
@@ -84,15 +81,16 @@ export class Api {
 
             //https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}
             let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId, params);
-
+			
+			var responseDagRun = await response.json();
             if (response.status === 200) {
-                var responseDagRun = await response.json();
+                
                 result.result = responseDagRun;
                 result.isSuccessful = true;
                 return result;
             }
             else {
-                showErrorMessage(dagId + ' Error while fetching DAG status !!!\n\n' + response.statusText);
+                showApiErrorMessage('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
             }
@@ -121,14 +119,14 @@ export class Api {
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId, params);
 
+			result.result = response.json();
 			if (response.status === 200) {
 				showInfoMessage(dagId + ' Dag PAUSED');
-                result.result = response.json();
                 result.isSuccessful = true;
                 return result;
 			}
 			else {
-				showErrorMessage('Error !!!\n\n' + response.statusText);
+				showApiErrorMessage('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
 			}
@@ -154,16 +152,14 @@ export class Api {
 
 			let response = await fetch(Api.apiUrl + '/dagSources/' + fileToken, params);
 
+			result.result = await response.text();
 			if (response.status === 200) {
-				let sourceCode = await response.text();
-
-                result.result = sourceCode;
                 result.isSuccessful = true;
                 return result;
 
 			}
 			else {
-				showErrorMessage('Error !!!\n\n' + response.statusText);
+				showApiErrorMessage('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
 			}
@@ -189,13 +185,13 @@ export class Api {
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/details', params);
 
+			result.result= await response.json();
 			if (response.status === 200) {
-				result.result= await response.json();
                 result.isSuccessful = true;
                 return result;
 			}
 			else {
-				showErrorMessage(' Dag Load Error !!!\n\n' + response.statusText);
+				showApiErrorMessage('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
 			}
@@ -222,19 +218,19 @@ export class Api {
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns?order_by=-start_date&limit=1', params);
 
+			result.result= await response.json();
 			if (response.status === 200) {
-                result.result= await response.json();
                 result.isSuccessful = true;
                 return result;
 			}
 			else {
-				showErrorMessage('Error !!!\n\n' + response.statusText);
+				showApiErrorMessage('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
 			}
 
 		} catch (error) {
-			showErrorMessage('Error !!!\n\n' + error.message);
+			showErrorMessage('Error !!!', error);
             result.isSuccessful = false;
             result.error = error;
             return result;
@@ -287,7 +283,7 @@ export class Api {
 			}
 
 		} catch (error) {
-			showErrorMessage('Error !!!\n\n' + error.message);
+			showErrorMessage('Error !!!', error);
             result.isSuccessful = false;
             result.error = error;
             return result;
@@ -308,13 +304,13 @@ export class Api {
 
 			let response = await fetch(Api.apiUrl + '/dags', params);
 
+			result.result = await response.json();
 			if (response.status === 200) {
-				result.result = await response.json();
                 result.isSuccessful = true;
                 return result;
 			}
 			else {
-				showErrorMessage('Dag Load Error !!!\n\n' + response.statusText);
+				showApiErrorMessage('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
 			}

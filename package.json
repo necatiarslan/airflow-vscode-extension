@@ -215,6 +215,7 @@
 		"webpack-cli": "^4.10.0"
 	},
 	"dependencies": {
+		"@vscode/codicons": "^0.0.32",
 		"@vscode/webview-ui-toolkit": "^1.0.0",
 		"base-64": "^1.0.0",
 		"node-fetch": "^3.2.9",

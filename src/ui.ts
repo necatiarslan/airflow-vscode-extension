@@ -20,6 +20,32 @@ export function showErrorMessage(message: string, error:Error = undefined): void
     }
 }
 
+export function showApiErrorMessage(message: string, jsonResult): void {
+  if(jsonResult)
+  {
+    vscode.window.showErrorMessage(message + "\n\n"
+    + "type:"+jsonResult.type+"\n" 
+    + "title:"+jsonResult.title+"\n" 
+    + "status:"+jsonResult.status+"\n" 
+    + "detail:"+jsonResult.detail+"\n" 
+    + "instance:"+jsonResult.instance+"\n" 
+    );
+  }
+  else{
+    vscode.window.showErrorMessage(message);
+  }
+
+  /*
+  {
+  "type": "string",
+  "title": "string",
+  "status": 0,
+  "detail": "string",
+  "instance": "string"
+  }
+  */
+}
+
 export function getExtensionVersion() {
   const { version: extVersion } = JSON.parse(
     readFileSync(join(__dirname, '..', 'package.json'), { encoding: 'utf8' })

@@ -428,10 +428,14 @@ class DagView {
         let state = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["state"] : "";
         let logical_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["logical_date"] : "";
         let start_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["start_date"] : "";
-        let owners = (this.dagJson) ? this.dagJson["owners"][0] : "";
-        let tags = (this.dagJson) ? this.dagJson["tags"][0].name : "";
+        let owners = (this.dagJson) ? this.dagJson["owners"].join(", ") : "";
+        let tags = "";
+        this.dagJson["tags"].forEach(item => { tags += item.name + ", "; });
+        tags = tags.slice(0, -3);
         let schedule_interval = (this.dagJson) ? this.dagJson["schedule_interval"].value : "";
-        let next_dagrun = (this.dagJson) ? this.dagJson["next_dagrun"] : "";
+        let next_dagrun = ''; //(this.dagJson) ? this.dagJson["next_dagrun"] : "";
+        let logical_date_string = new Date(logical_date).toLocaleDateString();
+        let start_date_string = new Date(start_date).toLocaleDateString();
         return /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
@@ -456,19 +460,27 @@ class DagView {
 
             <table>
             <tr>
-                <th>Last Run</th>
+                <th colspan=3>Last Run</th>
             </tr>
             <tr>
-                <td>State: ${state}</td>
+                <td>State</td>
+                <td>:</td>
+                <td>${state}</td>
             </tr>
             <tr>
-                <td>Date: ${logical_date}</td>
+                <td>Date</td>
+                <td>:</td>
+                <td>${logical_date_string}</td>
              </tr>
             <tr>
-                <td>StartDate: ${start_date}</td>
+                <td>StartDate</td>
+                <td>:</td>
+                <td>${start_date_string}</td>
             </tr>
             <tr>
-            <td text-align:right><vscode-button appearance="primary" id="view_log">View Log</vscode-button></td>
+                <td></td>
+                <td></td>
+                <td text-align:right><vscode-button appearance="primary" id="view_log">View Log</vscode-button></td>
             </tr>
             </table>
     
@@ -476,13 +488,24 @@ class DagView {
     
             <table>
             <tr>
-                <th>Trigger</th>
+                <th colspan=3>Trigger</th>
             </tr>
             <tr>
-                <td><vscode-text-area cols="50" placeholder="config here"></vscode-text-area></td>
+                <td>Config</td>
+                <td>:</td>
+                <td><vscode-text-area id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-text-area></td>
             </tr>
             <tr>
-                <td text-align:right><vscode-button appearance="primary" id="trigger_dag">Run</vscode-button></td>
+                <td>Date</td>
+                <td>:</td>
+                <td><vscode-text-field id="run_date" placeholder="YYYY-MM-DD" maxlength="10"></vscode-text-field></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>            
+                <td><vscode-button appearance="primary" id="trigger_dag">
+                Run
+                </vscode-button></td>
              </tr>
             </table>
 
@@ -492,6 +515,7 @@ class DagView {
             <vscode-panel-view id="view-2">
 
             <section>
+
                 TRACE CONTENT
 
             </section>
@@ -502,19 +526,27 @@ class DagView {
 
             <table>
             <tr>
-                <th>Other</th>
+                <th colspan=3>Other</th>
             </tr>
             <tr>
-                <td>Owners: ${owners}</td>
+                <td>Owners</td>
+                <td>:</td>
+                <td>${owners}</td>
             </tr>
             <tr>
-                <td>Tags: ${tags}</td>
+                <td>Tags</td>
+                <td>:</td>
+                <td>${tags}</td>
             </tr>
             <tr>
-                <td>Schedule: ${schedule_interval}</td>
+                <td>Schedule</td>
+                <td>:</td>
+                <td>${schedule_interval}</td>
             </tr>
             <tr>
-                <td>Next Run: ${next_dagrun}</td>
+                <td>Next Run</td>
+                <td>:</td>
+                <td>${next_dagrun}</td>
             </tr>
             </table>
 
@@ -627,7 +659,7 @@ exports.getUri = getUri;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.showFile = exports.getExtensionVersion = exports.showErrorMessage = exports.showWarningMessage = exports.showInfoMessage = void 0;
+exports.showFile = exports.getExtensionVersion = exports.showApiErrorMessage = exports.showErrorMessage = exports.showWarningMessage = exports.showInfoMessage = void 0;
 const vscode = __webpack_require__(1);
 const fs_1 = __webpack_require__(6);
 const path_1 = __webpack_require__(7);
@@ -648,6 +680,29 @@ function showErrorMessage(message, error = undefined) {
     }
 }
 exports.showErrorMessage = showErrorMessage;
+function showApiErrorMessage(message, jsonResult) {
+    if (jsonResult) {
+        vscode.window.showErrorMessage(message + "\n\n"
+            + "type:" + jsonResult.type + "\n"
+            + "title:" + jsonResult.title + "\n"
+            + "status:" + jsonResult.status + "\n"
+            + "detail:" + jsonResult.detail + "\n"
+            + "instance:" + jsonResult.instance + "\n");
+    }
+    else {
+        vscode.window.showErrorMessage(message);
+    }
+    /*
+    {
+    "type": "string",
+    "title": "string",
+    "status": 0,
+    "detail": "string",
+    "instance": "string"
+    }
+    */
+}
+exports.showApiErrorMessage = showApiErrorMessage;
 function getExtensionVersion() {
     const { version: extVersion } = JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(__dirname, '..', 'package.json'), { encoding: 'utf8' }));
     return extVersion;
@@ -719,15 +774,14 @@ class Api {
                 body: '{"conf": ' + config + '}',
             };
             let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns', params);
+            result.result = await response.json();
             if (response.status === 200) {
-                var responseTrigger = await response.json();
                 (0, ui_1.showInfoMessage)(dagId + " Dag Triggered.");
-                result.result = responseTrigger;
                 result.isSuccessful = true;
                 return result;
             }
             else {
-                (0, ui_1.showErrorMessage)(dagId + ' Dag Trigger Error !!!\n\n' + response.statusText);
+                (0, ui_1.showApiErrorMessage)('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
             }
@@ -751,14 +805,14 @@ class Api {
             };
             //https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}
             let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId, params);
+            var responseDagRun = await response.json();
             if (response.status === 200) {
-                var responseDagRun = await response.json();
                 result.result = responseDagRun;
                 result.isSuccessful = true;
                 return result;
             }
             else {
-                (0, ui_1.showErrorMessage)(dagId + ' Error while fetching DAG status !!!\n\n' + response.statusText);
+                (0, ui_1.showApiErrorMessage)('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
             }
@@ -784,14 +838,14 @@ class Api {
                 }),
             };
             let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId, params);
+            result.result = response.json();
             if (response.status === 200) {
                 (0, ui_1.showInfoMessage)(dagId + ' Dag PAUSED');
-                result.result = response.json();
                 result.isSuccessful = true;
                 return result;
             }
             else {
-                (0, ui_1.showErrorMessage)('Error !!!\n\n' + response.statusText);
+                (0, ui_1.showApiErrorMessage)('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
             }
@@ -814,14 +868,13 @@ class Api {
                 }
             };
             let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dagSources/' + fileToken, params);
+            result.result = await response.text();
             if (response.status === 200) {
-                let sourceCode = await response.text();
-                result.result = sourceCode;
                 result.isSuccessful = true;
                 return result;
             }
             else {
-                (0, ui_1.showErrorMessage)('Error !!!\n\n' + response.statusText);
+                (0, ui_1.showApiErrorMessage)('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
             }
@@ -844,13 +897,13 @@ class Api {
                 }
             };
             let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/details', params);
+            result.result = await response.json();
             if (response.status === 200) {
-                result.result = await response.json();
                 result.isSuccessful = true;
                 return result;
             }
             else {
-                (0, ui_1.showErrorMessage)(' Dag Load Error !!!\n\n' + response.statusText);
+                (0, ui_1.showApiErrorMessage)('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
             }
@@ -873,19 +926,19 @@ class Api {
                 }
             };
             let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags/' + dagId + '/dagRuns?order_by=-start_date&limit=1', params);
+            result.result = await response.json();
             if (response.status === 200) {
-                result.result = await response.json();
                 result.isSuccessful = true;
                 return result;
             }
             else {
-                (0, ui_1.showErrorMessage)('Error !!!\n\n' + response.statusText);
+                (0, ui_1.showApiErrorMessage)('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
             }
         }
         catch (error) {
-            (0, ui_1.showErrorMessage)('Error !!!\n\n' + error.message);
+            (0, ui_1.showErrorMessage)('Error !!!', error);
             result.isSuccessful = false;
             result.error = error;
             return result;
@@ -931,7 +984,7 @@ class Api {
             }
         }
         catch (error) {
-            (0, ui_1.showErrorMessage)('Error !!!\n\n' + error.message);
+            (0, ui_1.showErrorMessage)('Error !!!', error);
             result.isSuccessful = false;
             result.error = error;
             return result;
@@ -948,13 +1001,13 @@ class Api {
                 }
             };
             let response = await (0, node_fetch_1.default)(Api.apiUrl + '/dags', params);
+            result.result = await response.json();
             if (response.status === 200) {
-                result.result = await response.json();
                 result.isSuccessful = true;
                 return result;
             }
             else {
-                (0, ui_1.showErrorMessage)('Dag Load Error !!!\n\n' + response.statusText);
+                (0, ui_1.showApiErrorMessage)('Error !!!', result.result);
                 result.isSuccessful = false;
                 return result;
             }

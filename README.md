@@ -34,6 +34,26 @@ If you want to test Airflow on your machine in a docker container, click link be
 
 https://www.youtube.com/watch?v=aTaytcxy2Ck
 
+## Troubleshooting
+- Can Not Connect to Airflow
+
+Check Api Url, UserName and Password.
+Api URL should be like this below.
+
+http://<SERVER_NAME>:<PORT_NUMBER>/api/v1/dags
+
+- DAG Load Error !!! FORBIDDEN 
+
+Check your API authentication configuration.
+
+Run this command on your airflow server
+
+$ airflow config get-value api auth_backends
+
+Result Should Be
+
+airflow.api.auth.backend.basic_auth
+
 ## Todo List
 I am working on these features now, so they will be available in a couple of weeks.
 
