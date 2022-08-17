@@ -12,6 +12,7 @@ export class DagView {
     public dagId: string;
     public dagJson: any;
     public dagRunJson: any;
+    public dagRunHistoryJson: any;
     public dagTaskInstancesJson: any;
     private dagStatusInterval: NodeJS.Timer;
     public dagTasksJson: any;
@@ -27,6 +28,7 @@ export class DagView {
         this.getDagInfo();
         this.getLastRun();
         this.getDagTasks();
+        this.getRunHistory();
     }
 
     public renderHmtl() {
@@ -40,6 +42,17 @@ export class DagView {
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
             this.getTaskInstances(result.result.dag_runs[0].dag_run_id);
+            this.renderHmtl();
+        }
+
+    }
+
+    public async getRunHistory() {
+        if (!Api.isApiParamsSet()) { return; }
+
+        let result = await Api.getDagRunHistory(this.dagId, 10);
+        if (result.isSuccessful) {
+            this.dagRunHistoryJson = result.result;
             this.renderHmtl();
         }
 
@@ -143,6 +156,17 @@ export class DagView {
             `;
         }
 
+        let runHistoryRows: string = "";
+        for(var t of this.dagRunHistoryJson["dag_runs"]){
+            runHistoryRows += `
+            <tr>
+                <td>${t.state}</td>
+                <td>${new Date(t.start_date).toLocaleString()}</td>
+                <td>${getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
+            </tr>
+            `;
+        }
+
         return /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
@@ -161,6 +185,8 @@ export class DagView {
             <vscode-panel-tab id="tab-1">RUN</vscode-panel-tab>
             <vscode-panel-tab id="tab-2">TRACE</vscode-panel-tab>
             <vscode-panel-tab id="tab-3">INFO</vscode-panel-tab>
+            <vscode-panel-tab id="tab-4">PREV RUNS</vscode-panel-tab>
+            
             <vscode-panel-view id="view-1">
                 
             <section>
@@ -282,8 +308,29 @@ export class DagView {
 
             </section>
             </vscode-panel-view>
-        </vscode-panels>
 
+            <vscode-panel-view id="view-4">
+
+            <section>
+    
+                    <table>
+                        <tr>
+                            <th colspan=3>PREV RUNS</th>
+                        </tr>
+    
+                        ${runHistoryRows}
+
+                        <tr>
+                            <td></td>
+                            <td></td>            
+                            <td></td>
+                        </tr>
+                    </table>
+    
+            </section>
+            </vscode-panel-view>
+
+        </vscode-panels>
       </body>
     </html>
     `;

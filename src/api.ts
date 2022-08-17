@@ -237,6 +237,10 @@ export class Api {
     }
 
     public static async getLastDagRun(dagId:string): Promise<MethodResult<any>>{
+        return this.getDagRunHistory(dagId, 1);
+    }
+
+    public static async getDagRunHistory(dagId:string, limit:number): Promise<MethodResult<any>>{
 
         let result:MethodResult<any> = new MethodResult<any>(); 
         try {
@@ -248,7 +252,7 @@ export class Api {
 				}
 			};
 
-			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns?order_by=-start_date&limit=1', params);
+			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns?order_by=-start_date&limit=' + limit, params);
 
 			result.result= await response.json();
 			if (response.status === 200) {
