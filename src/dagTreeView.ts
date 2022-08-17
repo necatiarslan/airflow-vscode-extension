@@ -1,13 +1,10 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
-import fetch from 'node-fetch';
-import { encode } from 'base-64';
 import { DagView } from './dagView';
 import { DagTreeItem } from './dagTreeItem';
 import { DagTreeDataProvider } from './dagTreeDataProvider';
 import { showInfoMessage, showWarningMessage, showErrorMessage, showFile } from './ui';
 import { Api } from './api';
-import { MethodResult } from './methodResult';
 
 export class DagTreeView {
 
@@ -230,7 +227,7 @@ export class DagTreeView {
 			const tmp = require('tmp');
 			var fs = require('fs');
 			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.dagId, postfix: '.log' });
-			fs.appendFileSync(result.result);
+			fs.appendFileSync(tmpFile.name, result.result);
 			showFile(tmpFile.name);
 		}
 	}

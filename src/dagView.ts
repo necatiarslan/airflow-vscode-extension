@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import { getUri } from "./getUri";
-import { showInfoMessage, showWarningMessage, showErrorMessage, showFile, getDuration } from './ui';
+import { showInfoMessage, showWarningMessage, showErrorMessage, showFile, getDuration, showOutputMessage } from './ui';
 import { Api } from './api';
 
 export class DagView {
@@ -11,7 +11,8 @@ export class DagView {
     private extensionUri: vscode.Uri;
     public dagId: string;
     public dagJson: any;
-    public dagLastRunJson: any;
+    public dagRunJson: any;
+    public dagTaskInstancesJson: any;
     private dagStatusInterval: NodeJS.Timer;
     public dagTasksJson: any;
 
@@ -25,7 +26,7 @@ export class DagView {
 
         this.getDagInfo();
         this.getLastRun();
-        this.getDagTasks()
+        this.getDagTasks();
     }
 
     public renderHmtl() {
@@ -37,7 +38,19 @@ export class DagView {
 
         let result = await Api.getLastDagRun(this.dagId);
         if (result.isSuccessful) {
-            this.dagLastRunJson = result.result;
+            this.dagRunJson = result.result;
+            this.getTaskInstances(result.result.dag_runs[0].dag_run_id);
+            this.renderHmtl();
+        }
+
+    }
+
+    public async getTaskInstances(dagRunId:string) {
+        if (!Api.isApiParamsSet()) { return; }
+
+        let result = await Api.getTaskInstances(this.dagId, dagRunId);
+        if (result.isSuccessful) {
+            this.dagTaskInstancesJson = result.result;
             this.renderHmtl();
         }
 
@@ -104,10 +117,10 @@ export class DagView {
         const styleUri = getUri(webview, extensionUri, ["src", "style.css"]);
 
         let dagId = this.dagId;
-        let state = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["state"] : "";
-        let logical_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["logical_date"] : "";
-        let start_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["start_date"] : "";
-        let end_date = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["end_date"] : "";
+        let state = (this.dagRunJson) ? this.dagRunJson.dag_runs[0]["state"] : "";
+        let logical_date = (this.dagRunJson) ? this.dagRunJson.dag_runs[0]["logical_date"] : "";
+        let start_date = (this.dagRunJson) ? this.dagRunJson.dag_runs[0]["start_date"] : "";
+        let end_date = (this.dagRunJson) ? this.dagRunJson.dag_runs[0]["end_date"] : "";
         let owners = (this.dagJson) ? this.dagJson["owners"].join(", ") : "";
         let tags:string = "";
         this.dagJson["tags"].forEach(item => {tags += item.name + ", ";});
@@ -120,12 +133,12 @@ export class DagView {
         let duration = getDuration(new Date(start_date), new Date(end_date));
 
         let taskRows: string = "";
-        for(var t of this.dagTasksJson["tasks"]){
+        for(var t of this.dagTaskInstancesJson["task_instances"]){
             taskRows += `
             <tr>
-                <td>${t.task_id}</td>
-                <td>${t.class_ref.class_name}</td>
-                <td></td>
+                <td>${t.state}</td>
+                <td>${t.task_id}(${t.try_number})</td>
+                <td>${t.operator}</td>
             </tr>
             `;
         }
@@ -152,114 +165,122 @@ export class DagView {
                 
             <section>
 
-            <table>
-            <tr>
-                <th colspan=3>Last Run</th>
-            </tr>
-            <tr>
-                <td>State</td>
-                <td>:</td>
-                <td>${state}</td>
-            </tr>
-            <tr>
-                <td>Date</td>
-                <td>:</td>
-                <td>${logical_date_string}</td>
-             </tr>
-            <tr>
-                <td>StartDate</td>
-                <td>:</td>
-                <td>${start_date_string}</td>
-            </tr>
-            <tr>
-            <td>Duration</td>
-            <td>:</td>
-            <td>${duration}</td>
-        </tr>
-            <tr>
-                <td></td>
-                <td></td>
-                <td text-align:right><vscode-button appearance="primary" id="view_log">View Log</vscode-button></td>
-            </tr>
-            </table>
-    
-            <br>
-    
-            <table>
-            <tr>
-                <th colspan=3>Trigger</th>
-            </tr>
-            <tr>
-                <td>Config</td>
-                <td>:</td>
-                <td><vscode-text-area id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-text-area></td>
-            </tr>
-            <tr>
-                <td>Date</td>
-                <td>:</td>
-                <td><vscode-text-field id="run_date" placeholder="YYYY-MM-DD" maxlength="10"></vscode-text-field></td>
-            </tr>
-            <tr>
-                <td></td>
-                <td></td>            
-                <td><vscode-button appearance="primary" id="trigger_dag">
-                Run
-                </vscode-button></td>
-             </tr>
-            </table>
+                    <table>
+                        <tr>
+                            <th colspan=3>Last Run</th>
+                        </tr>
+                        <tr>
+                            <td>State</td>
+                            <td>:</td>
+                            <td>${state}</td>
+                        </tr>
+                        <tr>
+                            <td>Date</td>
+                            <td>:</td>
+                            <td>${logical_date_string}</td>
+                        </tr>
+                        <tr>
+                            <td>StartDate</td>
+                            <td>:</td>
+                            <td>${start_date_string}</td>
+                        </tr>
+                        <tr>
+                            <td>Duration</td>
+                            <td>:</td>
+                            <td>${duration}</td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td text-align:right><vscode-button appearance="primary" id="run-view-log">View Log</vscode-button>  <vscode-button appearance="primary" id="run-more-dagrun-detail">More</vscode-button></td>
+                        </tr>
+                    </table>
+            
+                    <br>
+            
+                    <table>
+                        <tr>
+                            <th colspan=3>Trigger</th>
+                        </tr>
+                        <tr>
+                            <td>Config</td>
+                            <td>:</td>
+                            <td><vscode-text-area id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-text-area></td>
+                        </tr>
+                        <tr>
+                            <td>Date</td>
+                            <td>:</td>
+                            <td><vscode-text-field id="run_date" placeholder="YYYY-MM-DD" maxlength="10"></vscode-text-field></td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td></td>            
+                            <td><vscode-button appearance="primary" id="run-trigger-dag">
+                            Run
+                            </vscode-button></td>
+                        </tr>
+                    </table>
 
             </section>
-
             </vscode-panel-view>
+
+
             <vscode-panel-view id="view-2">
 
             <section>
 
-                TRACE CONTENT
+                    <table>
+                        <tr>
+                            <th colspan=3>Tasks</th>
+                        </tr>
+
+                        ${taskRows}
+
+                        <tr>
+                            <td></td>
+                            <td></td>            
+                            <td><vscode-button appearance="primary" id="tasks-more-detail">More</vscode-button></td>
+                        </tr>
+                    </table>
 
             </section>
             </vscode-panel-view>
+            
             <vscode-panel-view id="view-3">
-                
             <section>
 
-            <table>
-            <tr>
-                <th colspan=3>Other</th>
-            </tr>
-            <tr>
-                <td>Owners</td>
-                <td>:</td>
-                <td>${owners}</td>
-            </tr>
-            <tr>
-                <td>Tags</td>
-                <td>:</td>
-                <td>${tags}</td>
-            </tr>
-            <tr>
-                <td>Schedule</td>
-                <td>:</td>
-                <td>${schedule_interval}</td>
-            </tr>
-            <tr>
-                <td>Next Run</td>
-                <td>:</td>
-                <td>${next_dagrun}</td>
-            </tr>
-            </table>
-
-            <table>
-            <tr>
-                <th colspan=3>Tasks</th>
-            </tr>
-
-            ${taskRows}
-
-            </table>
+                    <table>
+                    <tr>
+                        <th colspan=3>Other</th>
+                    </tr>
+                    <tr>
+                        <td>Owners</td>
+                        <td>:</td>
+                        <td>${owners}</td>
+                    </tr>
+                    <tr>
+                        <td>Tags</td>
+                        <td>:</td>
+                        <td>${tags}</td>
+                    </tr>
+                    <tr>
+                        <td>Schedule</td>
+                        <td>:</td>
+                        <td>${schedule_interval}</td>
+                    </tr>
+                    <tr>
+                        <td>Next Run</td>
+                        <td>:</td>
+                        <td>${next_dagrun}</td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>            
+                        <td><vscode-button appearance="primary" id="other-dag-detail">More</vscode-button></td>
+                    </tr>
+                    </table>
 
             </section>
-
             </vscode-panel-view>
         </vscode-panels>
 
@@ -275,11 +296,20 @@ export class DagView {
                 const text = message.text;
 
                 switch (command) {
-                    case "trigger_dag":
+                    case "run-trigger-dag":
                         this.triggerDagWConfig();
                         return;
-                    case "view_log":
+                    case "run-view-log":
                         this.lastDAGRunLog();
+                        return;
+                    case "run-more-dagrun-detail":
+                        showOutputMessage(this.dagRunJson);
+                        return;
+                    case "other-dag-detail":
+                        showOutputMessage(this.dagJson);
+                        return;
+                    case "tasks-more-detail":
+                        showOutputMessage(this.dagTaskInstancesJson);
                         return;
                 }
             },
@@ -335,8 +365,8 @@ export class DagView {
     async refreshRunningDagState() {
         if (!Api.isApiParamsSet()) { return; }
 
-        let state = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["state"] : "";
-        let latestDagRunId = (this.dagLastRunJson) ? this.dagLastRunJson.dag_runs[0]["dag_run_id"] : "";
+        let state = (this.dagRunJson) ? this.dagRunJson.dag_runs[0]["state"] : "";
+        let latestDagRunId = (this.dagRunJson) ? this.dagRunJson.dag_runs[0]["dag_run_id"] : "";
 
         //"queued" "running" "success" "failed"
         if (state === "queued" || state === "running") {
@@ -344,11 +374,11 @@ export class DagView {
             let result = await Api.getDagRun(this.dagId, latestDagRunId);
 
             if (result.isSuccessful) {
-                this.dagLastRunJson = result.result;
+                this.dagRunJson = result.result;
                 this.renderHmtl();
             }
             else {
-                this.dagLastRunJson = undefined;
+                this.dagRunJson = undefined;
             }
 
         }

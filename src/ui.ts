@@ -2,6 +2,29 @@ import * as vscode from 'vscode';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+var outputChannel: vscode.OutputChannel;
+
+export function showOutputMessage(message: any): void {
+
+  if(!outputChannel)
+  {
+    outputChannel = vscode.window.createOutputChannel("Airflow-Extension");
+  }
+  
+  outputChannel.clear();
+
+  if(typeof message === "object")
+  {
+    outputChannel.appendLine(JSON.stringify(message, null, 4));
+  }
+  else
+  {
+    outputChannel.appendLine(message);
+  }
+  outputChannel.show();
+  showInfoMessage("Results are printed to OUTPUT / Airflow-Extension");
+}
+
 export function showInfoMessage(message: string): void {
     vscode.window.showInformationMessage(message);
 }
@@ -75,14 +98,5 @@ export function convertMsToTime(milliseconds: number):string {
   seconds = seconds % 60;
   minutes = minutes % 60;
 
-  // 👇️ If you want to roll hours over, e.g. 00 to 24
-  // 👇️ uncomment the line below
-  // uncommenting next line gets you `00:00:00` instead of `24:00:00`
-  // or `12:15:31` instead of `36:15:31`, etc.
-  // 👇️ (roll hours over)
-  // hours = hours % 24;
-
-  return `${padTo2Digits(hours)}:${padTo2Digits(minutes)}:${padTo2Digits(
-    seconds,
-  )}`;
+  return `${padTo2Digits(hours)} Hr. ${padTo2Digits(minutes)} Min. ${padTo2Digits(seconds,)} Sec.`;
 }

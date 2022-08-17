@@ -270,6 +270,41 @@ export class Api {
 
     }
 
+	public static async getTaskInstances(dagId:string, dagRunId:string): Promise<MethodResult<any>>{
+
+        let result:MethodResult<any> = new MethodResult<any>(); 
+        try {
+			let params = {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
+				}
+			};
+
+			//https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
+			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId + '/taskInstances', params);
+
+			result.result= await response.json();
+			if (response.status === 200) {
+                result.isSuccessful = true;
+                return result;
+			}
+			else {
+				showApiErrorMessage('Error !!!', result.result);
+                result.isSuccessful = false;
+                return result;
+			}
+
+		} catch (error) {
+			showErrorMessage('Error !!!', error);
+            result.isSuccessful = false;
+            result.error = error;
+            return result;
+		}
+
+    }
+
     public static async getLastDagRunLog(dagId:string): Promise<MethodResult<string>> {
         
         let result:MethodResult<string> = new MethodResult<any>(); 

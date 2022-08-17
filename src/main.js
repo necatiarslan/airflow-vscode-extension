@@ -3,23 +3,54 @@ const vscode = acquireVsCodeApi();
 window.addEventListener("load", main);
 
 function main() {
-  const triggerDag = document.getElementById("trigger_dag");
+  const triggerDag = document.getElementById("run-trigger-dag");
   triggerDag.addEventListener("click", triggerDagClick);
 
-  const viewLogDag = document.getElementById("view_log");
+  const viewLogDag = document.getElementById("run-view-log");
   viewLogDag.addEventListener("click", viewLogDagClick);
+
+  const runMoreDagRunDetail = document.getElementById("run-more-dagrun-detail");
+  runMoreDagRunDetail.addEventListener("click", runMoreDagRunDetailClick);
+
+  const otherDagDetail = document.getElementById("other-dag-detail");
+  otherDagDetail.addEventListener("click", otherDagDetailClick);
+
+  const tasksMoreDetail = document.getElementById("tasks-more-detail");
+  tasksMoreDetail.addEventListener("click", tasksMoreDetailClick);
+
 }
 
 function triggerDagClick() {
   vscode.postMessage({
-    command: "trigger_dag",
+    command: "run-trigger-dag",
     text: "Trigger Dag",
   });
 }
 
 function viewLogDagClick() {
   vscode.postMessage({
-    command: "view_log",
+    command: "run-view-log",
     text: "View Log",
+  });
+}
+
+function runMoreDagRunDetailClick() {
+  vscode.postMessage({
+    command: "run-more-dagrun-detail",
+    text: "More",
+  });
+}
+
+function otherDagDetailClick() {
+  vscode.postMessage({
+    command: "other-dag-detail",
+    text: "More",
+  });
+}
+
+function tasksMoreDetailClick() {
+  vscode.postMessage({
+    command: "tasks-more-detail",
+    text: "More",
   });
 }
