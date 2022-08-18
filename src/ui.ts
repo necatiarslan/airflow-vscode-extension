@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 
 var outputChannel: vscode.OutputChannel;
+var logsOutputChannel: vscode.OutputChannel;
 
 export function showOutputMessage(message: any): void {
 
@@ -25,6 +26,30 @@ export function showOutputMessage(message: any): void {
   showInfoMessage("Results are printed to OUTPUT / Airflow-Extension");
 }
 
+export function logToOutput(message: any, error:Error = undefined): void {
+  let now = new Date().toLocaleString();
+
+  if(!logsOutputChannel)
+  {
+    logsOutputChannel = vscode.window.createOutputChannel("Airflow-Log");
+  }
+
+  if(typeof message === "object")
+  {
+    logsOutputChannel.appendLine("[" + now + "] " + JSON.stringify(message, null, 4));
+  }
+  else
+  {
+    logsOutputChannel.appendLine("[" + now + "] " + message);
+  }
+
+  if(error){
+    logsOutputChannel.appendLine(error.name);
+    logsOutputChannel.appendLine(error.message);
+    logsOutputChannel.appendLine(error.stack);
+  }
+}
+
 export function showInfoMessage(message: string): void {
     vscode.window.showInformationMessage(message);
 }
@@ -36,7 +61,7 @@ export function showWarningMessage(message: string): void {
 export function showErrorMessage(message: string, error:Error = undefined): void {
     if(error)
     {
-      vscode.window.showErrorMessage(message + "\n\n" + error);
+      vscode.window.showErrorMessage(message + "\n\n" + error.name + "/n" + error.message);
     }
     else{
       vscode.window.showErrorMessage(message);
@@ -98,5 +123,27 @@ export function convertMsToTime(milliseconds: number):string {
   seconds = seconds % 60;
   minutes = minutes % 60;
 
-  return `${padTo2Digits(hours)} Hr. ${padTo2Digits(minutes)} Min. ${padTo2Digits(seconds,)} Sec.`;
+  return `${padTo2Digits(hours)}:${padTo2Digits(minutes)}:${padTo2Digits(seconds,)}`;
 }
+
+export function isJsonString(jsonString: string): boolean {
+  try {
+    var json = JSON.parse(jsonString);
+    return (typeof json === 'object');
+  } catch (e) {
+    return false;
+  }
+}
+
+export function isValidDate(dateString:string): boolean {
+  var regEx = /^\d{4}-\d{2}-\d{2}$/;
+  if(!dateString.match(regEx)){
+    return false;  // Invalid format
+  } 
+  var d = new Date(dateString);
+  var dNum = d.getTime();
+  if(!dNum && dNum !== 0) {
+    return false; // NaN value, Invalid date
+  } 
+  return d.toISOString().slice(0,10) === dateString;
+  }

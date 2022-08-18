@@ -1,47 +1,115 @@
+table {
+  width: 100%;
+  border: 0px solid;
+  border-spacing: 0;
+  border-collapse: collapse;
+}
 
- 
-  table {
-    width: 100%;
-    border: 0px solid;
-    border-spacing: 0;
-    border-collapse: collapse;
-  }
+th {
+  background-color: #2a2d2e;
+  color: white;
+  padding: 5px;
+  font-size: 15px;
+  font: bold;
+}
 
-  th {
-    background-color: #2a2d2e;
-    color: white;
-    padding: 5px;
-    font-size: 15px;
-    font: bold;
-  }
-  
-  td {
-    background-color: #3c3c3c;
-    color: white;
-    padding: 5px;
-    font-size: 12px;
-  }
+td {
+  background-color: #3c3c3c;
+  color: white;
+  padding: 5px;
+  font-size: 12px;
+}
 
-  vscode-panels {
-    border: 0px;
-    border-radius: 1px;
-  }
+vscode-panels {
+  border: 0px;
+  border-radius: 1px;
+}
 
-  vscode-text-field {
-    border: 1px;
-    border-color: #2a2d2e;
-    font-size: 12px;
-  }
+vscode-text-field {
+  border: 1px;
+  border-color: #2a2d2e;
+  font-size: 12px;
+}
 
-  vscode-text-area {
-    border: 1px;
-    border-color: #2a2d2e;
-    font-size: 12px;
-  }
+vscode-text-area {
+  border: 1px;
+  border-color: #2a2d2e;
+  font-size: 12px;
+}
 
-  section {
-    display: flex;
-    flex-direction: column; 
-    width: 100%;
-  }
-  
+section {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.state-success {
+  width: 10px;
+  height: 10px;
+  background-color: green;
+  border-radius: 2px;
+  border-width: 0px;
+  margin-right: var(--chakra-space-2);
+}
+
+.state-failed {
+  width: 10px;
+  height: 10px;
+  background-color: red;
+  border-radius: 2px;
+  border-width: 0px;
+  margin-right: var(--chakra-space-2);
+}
+
+.state-running {
+  width: 10px;
+  height: 10px;
+  background-color: lime;
+  border-radius: 2px;
+  border-width: 0px;
+  margin-right: var(--chakra-space-2);
+}
+
+.state-queued {
+  width: 10px;
+  height: 10px;
+  background-color: gray;
+  border-radius: 2px;
+  border-width: 0px;
+  margin-right: var(--chakra-space-2);
+}
+
+.dag-header-table {
+  width: 100%;
+  height: min-content;
+  border: 0px solid;
+}
+
+.dag-header-th {
+  background-color: transparent;
+}
+
+.dag-header-td {
+  background-color: transparent;
+}
+
+.dag-paused-true {
+  width: 10px;
+  height: 10px;
+  background: red;
+  border-radius: 50%;
+}
+
+.dag-paused-false {
+  width: 10px;
+  height: 10px;
+  background: green;
+  border-radius: 50%;
+}
+
+.dag-paused-unknown {
+  width: 10px;
+  height: 10px;
+  background: gray;
+  border-radius: 50%;
+}

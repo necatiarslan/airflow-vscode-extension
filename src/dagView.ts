@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import { getUri } from "./getUri";
-import { showInfoMessage, showWarningMessage, showErrorMessage, showFile, getDuration, showOutputMessage } from './ui';
+import * as ui from './ui';
 import { Api } from './api';
 
 export class DagView {
@@ -24,15 +24,35 @@ export class DagView {
         this._panel = panel;
         this._panel.onDidDispose(this.dispose, null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
-
-        this.getDagInfo();
-        this.getLastRun();
-        this.getDagTasks();
-        this.getRunHistory();
+        this.loadDagData();
     }
 
-    public renderHmtl() {
+    public async loadDagData()
+    {
+        await this.getDagInfo();
+        await this.getLastRun();
+        await this.getDagTasks();
+        await this.getRunHistory();
+        await this.renderHmtl();
+    }
+
+    public async renderHmtl() {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        ui.showOutputMessage(this._panel.webview.html);
+    }
+
+    public static render(extensionUri: vscode.Uri, dagId: string) {
+        if (DagView.currentPanel) {
+            this.currentPanel.dagId = dagId;
+            DagView.currentPanel._panel.reveal(vscode.ViewColumn.Two);
+            DagView.currentPanel.loadDagData();
+        } else {
+            const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
+                enableScripts: true,
+            });
+
+            DagView.currentPanel = new DagView(panel, extensionUri, dagId);
+        }
     }
 
     public async getLastRun() {
@@ -42,7 +62,6 @@ export class DagView {
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
             this.getTaskInstances(result.result.dag_runs[0].dag_run_id);
-            this.renderHmtl();
         }
 
     }
@@ -53,7 +72,6 @@ export class DagView {
         let result = await Api.getDagRunHistory(this.dagId, 10);
         if (result.isSuccessful) {
             this.dagRunHistoryJson = result.result;
-            this.renderHmtl();
         }
 
     }
@@ -64,7 +82,6 @@ export class DagView {
         let result = await Api.getTaskInstances(this.dagId, dagRunId);
         if (result.isSuccessful) {
             this.dagTaskInstancesJson = result.result;
-            this.renderHmtl();
         }
 
     }
@@ -75,7 +92,6 @@ export class DagView {
         let result = await Api.getDagInfo(this.dagId);
         if (result.isSuccessful) {
             this.dagJson = result.result;
-            this.renderHmtl();
         }
     }
 
@@ -85,21 +101,6 @@ export class DagView {
         let result = await Api.getDagTasks(this.dagId);
         if (result.isSuccessful) {
             this.dagTasksJson = result.result;
-            this.renderHmtl();
-        }
-    }
-
-    public static render(extensionUri: vscode.Uri, dagId: string) {
-        if (DagView.currentPanel) {
-            this.currentPanel.dagId = dagId;
-            DagView.currentPanel._panel.reveal(vscode.ViewColumn.One);
-            DagView.currentPanel.renderHmtl();
-        } else {
-            const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
-                enableScripts: true,
-            });
-
-            DagView.currentPanel = new DagView(panel, extensionUri, dagId);
         }
     }
 
@@ -139,18 +140,22 @@ export class DagView {
         this.dagJson["tags"].forEach(item => {tags += item.name + ", ";});
         tags = tags.slice(0, -3);
         let schedule_interval = (this.dagJson) ? this.dagJson["schedule_interval"].value : "";
+        let isPaused = (this.dagJson) ? this.dagJson.is_paused ? "true" : "false" : "unknown";
         let next_dagrun = '';//(this.dagJson) ? this.dagJson["next_dagrun"] : "";
 
         let logical_date_string = new Date(logical_date).toLocaleDateString();
         let start_date_string = new Date(start_date).toLocaleString();
-        let duration = getDuration(new Date(start_date), new Date(end_date));
+        let duration = ui.getDuration(new Date(start_date), new Date(end_date));
 
         let taskRows: string = "";
         for(var t of this.dagTaskInstancesJson["task_instances"]){
             taskRows += `
             <tr>
-                <td>${t.state}</td>
-                <td>${t.task_id}(${t.try_number})</td>
+                <td>
+                    <div class="state-${t.state}"></div>
+                    ${t.task_id}(${t.try_number})
+                </td>
+                <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
                 <td>${t.operator}</td>
             </tr>
             `;
@@ -160,9 +165,9 @@ export class DagView {
         for(var t of this.dagRunHistoryJson["dag_runs"]){
             runHistoryRows += `
             <tr>
-                <td>${t.state}</td>
+                <td><div class="state-${t.state}"></div></td>
                 <td>${new Date(t.start_date).toLocaleString()}</td>
-                <td>${getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
+                <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
             </tr>
             `;
         }
@@ -178,10 +183,13 @@ export class DagView {
         <link rel="stylesheet" href="${styleUri}">
         <title>DAG</title>
       </head>
-      <body>
-        <h3>${dagId}</h3>
+      <body>  
 
-        <vscode-panels activeid="tab-4">
+        <div>
+            <div class="dag-paused-${isPaused}"></div><h3>${dagId}</h3>
+        </div>
+
+        <vscode-panels activeid="tab-1">
             <vscode-panel-tab id="tab-1">RUN</vscode-panel-tab>
             <vscode-panel-tab id="tab-2">TRACE</vscode-panel-tab>
             <vscode-panel-tab id="tab-3">INFO</vscode-panel-tab>
@@ -198,7 +206,7 @@ export class DagView {
                         <tr>
                             <td>State</td>
                             <td>:</td>
-                            <td>${state}</td>
+                            <td><div class="state-${state}"></div>${state}</td>
                         </tr>
                         <tr>
                             <td>Date</td>
@@ -259,6 +267,11 @@ export class DagView {
                         <tr>
                             <th colspan=3>Tasks</th>
                         </tr>
+                        <tr>
+                            <td>Task</td>
+                            <td>Duration</td>            
+                            <td>Operator</td>
+                        </tr>
 
                         ${taskRows}
 
@@ -317,7 +330,11 @@ export class DagView {
                         <tr>
                             <th colspan=3>PREV RUNS</th>
                         </tr>
-    
+                        <tr>
+                            <td></td>
+                            <td>Start Time</td>            
+                            <td>Duration</td>
+                        </tr>
                         ${runHistoryRows}
 
                         <tr>
@@ -325,7 +342,7 @@ export class DagView {
                             <td></td>            
                             <td></td>
                         </tr>
-                    </table>
+                    </table>   
     
             </section>
             </vscode-panel-view>
@@ -344,19 +361,19 @@ export class DagView {
 
                 switch (command) {
                     case "run-trigger-dag":
-                        this.triggerDagWConfig();
+                        this.triggerDagWConfig(message.config, message.date);
                         return;
                     case "run-view-log":
                         this.lastDAGRunLog();
                         return;
                     case "run-more-dagrun-detail":
-                        showOutputMessage(this.dagRunJson);
+                        ui.showOutputMessage(this.dagRunJson);
                         return;
                     case "other-dag-detail":
-                        showOutputMessage(this.dagJson);
+                        ui.showOutputMessage(this.dagJson);
                         return;
                     case "tasks-more-detail":
-                        showOutputMessage(this.dagTaskInstancesJson);
+                        ui.showOutputMessage(this.dagTaskInstancesJson);
                         return;
                 }
             },
@@ -374,25 +391,34 @@ export class DagView {
             var fs = require('fs');
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.log' });
             fs.appendFileSync(tmpFile.name, result.result);
-            showFile(tmpFile.name);
+            ui.showFile(tmpFile.name);
         }
     }
 
-    async triggerDagWConfig() {
+    async triggerDagWConfig(config:string="", date:string="") {
         if (!Api.isApiParamsSet()) { return; }
 
-        let triggerDagConfig = "";
-
-        if (!triggerDagConfig) {
-            triggerDagConfig = "{}";
+        if(config && !ui.isJsonString(config)){
+            ui.showWarningMessage("Config is not a valid JSON");
+            return;
         }
 
-        if (triggerDagConfig !== undefined) {
+        if(date && !ui.isValidDate(date)){
+            ui.showWarningMessage("Date is not a valid DATE");
+            return;
+        }
 
-            let result = await Api.triggerDag(this.dagId, triggerDagConfig);
+        if (!config) {
+            config = "{}";
+        }
+    
+
+        if (config !== undefined) {
+
+            let result = await Api.triggerDag(this.dagId, config);
 
             if (result.isSuccessful) {
-                showInfoMessage("Dag Triggered");
+                ui.showInfoMessage("Dag Triggered");
                 // var responseTrigger = result.result;
                 // if (this.dagStatusInterval) {
                 //     this.dagStatusInterval.refresh();
@@ -401,11 +427,6 @@ export class DagView {
                 //     this.dagStatusInterval = setInterval(this.refreshRunningDagState, 10 * 1000);
                 // }
             }
-            else
-            {
-                showErrorMessage("Dag Trigger Error !!!", result.error);
-            }
-
         }
     }
 
@@ -422,14 +443,12 @@ export class DagView {
 
             if (result.isSuccessful) {
                 this.dagRunJson = result.result;
-                this.renderHmtl();
             }
             else {
                 this.dagRunJson = undefined;
             }
 
         }
-        this.renderHmtl();
 
         if (!(state === "queued" || state === "running") && this.dagStatusInterval) {
             clearInterval(this.dagStatusInterval);

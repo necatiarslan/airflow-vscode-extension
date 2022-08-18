@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { DagView } from './dagView';
 import { DagTreeItem } from './dagTreeItem';
 import { DagTreeDataProvider } from './dagTreeDataProvider';
-import { showInfoMessage, showWarningMessage, showErrorMessage, showFile } from './ui';
+import * as ui from './ui';
 import { Api } from './api';
 
 export class DagTreeView {
@@ -59,12 +59,12 @@ export class DagTreeView {
 		if(!Api.isApiParamsSet()) { return; }
 
 		if (node.isPaused) {
-			showWarningMessage('Dag is PAUSED !!!');
+			ui.showWarningMessage('Dag is PAUSED !!!');
 			return;
 		}
 
 		if (node.isDagRunning()) {
-			showWarningMessage('Dag is ALREADY RUNNING !!!');
+			ui.showWarningMessage('Dag is ALREADY RUNNING !!!');
 			return;
 		}
 
@@ -161,7 +161,7 @@ export class DagTreeView {
 
 		if (!node) { return; }
 		if (!this.treeDataProvider) { return; }
-		if (node.isPaused) { showWarningMessage(node.dagId + 'Dag is PAUSED'); return; }
+		if (node.isPaused) { ui.showWarningMessage(node.dagId + 'Dag is PAUSED'); return; }
 
 		let result = await Api.getLastDagRun(node.dagId);
 		if (result.isSuccessful)
@@ -186,7 +186,7 @@ export class DagTreeView {
 	async pauseDAG(node: DagTreeItem) {
 		if(!Api.isApiParamsSet()) { return; }
 
-		if (node.isPaused) { showWarningMessage(node.dagId + 'Dag is already PAUSED'); return; }
+		if (node.isPaused) { ui.showWarningMessage(node.dagId + 'Dag is already PAUSED'); return; }
 
 		let userAnswer = await vscode.window.showInputBox({ placeHolder: node.dagId + ' DAG will be PAUSED. Yes/No ?' });
 		if (userAnswer !== 'Yes') { return; }
@@ -204,7 +204,7 @@ export class DagTreeView {
 	async unPauseDAG(node: DagTreeItem) {
 		if(!Api.isApiParamsSet()) { return; }
 
-		if (!node.isPaused) { showInfoMessage(node.dagId + 'Dag is already UNPAUSED'); return; }
+		if (!node.isPaused) { ui.showInfoMessage(node.dagId + 'Dag is already UNPAUSED'); return; }
 
 		let userAnswer = await vscode.window.showInputBox({ placeHolder: node.dagId + ' DAG will be UNPAUSED. Yes/No ?' });
 		if (userAnswer !== 'Yes') { return; }
@@ -228,7 +228,7 @@ export class DagTreeView {
 			var fs = require('fs');
 			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.dagId, postfix: '.log' });
 			fs.appendFileSync(tmpFile.name, result.result);
-			showFile(tmpFile.name);
+			ui.showFile(tmpFile.name);
 		}
 	}
 
@@ -243,7 +243,7 @@ export class DagTreeView {
 
 			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.dagId, postfix: '.py' });
 			fs.appendFileSync(tmpFile.name, result.result);
-			showFile(tmpFile.name);
+			ui.showFile(tmpFile.name);
 
 			//TODO: Option to print to output
 			// let outputAirflow = vscode.window.createOutputChannel("Airflow");
@@ -332,7 +332,7 @@ export class DagTreeView {
 			this.context.globalState.update('apiPassword', Api.apiPassword);
 			this.context.globalState.update('filterString', this.filterString);
 		} catch (error) {
-
+			ui.logToOutput("dagTreeView.saveState Error !!!", error);
 		}
 	}
 
@@ -354,7 +354,7 @@ export class DagTreeView {
 				this.treeDataProvider.filterString = this.filterString;
 			}
 		} catch (error) {
-			showErrorMessage('Airflow Extension can not load latest state !!!', error);
+			ui.logToOutput("dagTreeView.loadState Error !!!", error);
 		}
 	}
 }

@@ -1,110 +1,124 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { encode } from 'base-64';
-import { showInfoMessage, showWarningMessage, showErrorMessage, showApiErrorMessage } from './ui';
+import * as ui from './ui';
 import { MethodResult } from './methodResult';
 import fetch from 'node-fetch';
 
 export class Api {
 
-    public static apiUrl: string = '';
-    public static apiUserName: string = '';
-    public static apiPassword: string = '';
+	public static apiUrl: string = '';
+	public static apiUserName: string = '';
+	public static apiPassword: string = '';
 
-    public static getHeaders() {
-        let result = {
-                'Content-Type': 'application/json',
-                'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-            };
+	public static getHeaders() {
+		ui.logToOutput("api.getHeaders started");
+		let result = {
+			'Content-Type': 'application/json',
+			'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
+		};
+		ui.logToOutput("api.getHeaders completed");
+		return result;
+	}
 
-        return result;
-    }
+	public static isApiParamsSet() {
+		if (!this.apiUrl || !this.apiUserName || !this.apiPassword) {
+			ui.showWarningMessage("Please set Api URL, UserName and PassWord");
+			return false;
+		}
+		return true;
+	}
 
-    public static isApiParamsSet(){
-        if (!this.apiUrl || !this.apiUserName || !this.apiPassword) {
-            showWarningMessage("Please set Api URL, UserName and PassWord"); 
-            return false; 
-        }
-        return true;
-    }
+	public static async triggerDag(dagId: string, config: string = undefined, date: string = undefined): Promise<MethodResult<any>> {
+		ui.logToOutput("api.triggerDag started");
+		if (!Api.isApiParamsSet()) { return; }
 
-    public static async triggerDag(dagId:string, config:string=undefined): Promise<MethodResult<any>> {
-		if(!Api.isApiParamsSet()) { return; }
+		let result: MethodResult<any> = new MethodResult<any>();
 
-        let result:MethodResult<any> = new MethodResult<any>(); 
-
-        if (!config) {
+		if (!config) {
 			config = "{}";
+		}
+		let logicalDateParam: string = "";
+		if (date) {
+			logicalDateParam = ', "logical_date": "' + date + 'T00:00:00Z",';
 		}
 
 		try {
+
 			let params = {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
 				},
-				body: '{"conf": ' + config + '}',
+				body: '{"conf": ' + config + logicalDateParam + '}',
 			};
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns', params);
 
 			result.result = await response.json();
 			if (response.status === 200) {
-				showInfoMessage(dagId + " Dag Triggered.");
-                result.isSuccessful = true;
-                return result;
+				ui.showInfoMessage(dagId + " Dag Triggered.");
+				result.isSuccessful = true;
+				ui.logToOutput("api.triggerDag completed");
+				return result;
 			}
 			else {
-				showApiErrorMessage('Error !!!', result.result);
-                result.isSuccessful = false;
-                return result;
+				ui.showApiErrorMessage('Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.triggerDag completed");
+				return result;
 			}
 		} catch (error) {
-			showErrorMessage(dagId + ' Dag Trigger Error !!!\n\n' + error.message);
-            result.isSuccessful = false;	
-            result.error = error;
-            return result;
+			ui.showErrorMessage(dagId + ' Dag Trigger Error !!!', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.triggerDag Error !!!", error);
+			return result;
 		}
-    }
+	}
 
-    public static async getDagRun(dagId:string, dagRunId:string): Promise<MethodResult<any>>  {
+	public static async getDagRun(dagId: string, dagRunId: string): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getDagRun started");
+		let result: MethodResult<any> = new MethodResult<any>();
+		try {
+			let params = {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
+				}
+			};
 
-        let result:MethodResult<any> = new MethodResult<any>(); 
-        try {
-            let params = {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-                }
-            };
+			//https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}
+			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId, params);
 
-            //https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}
-            let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId, params);
-			
 			var responseDagRun = await response.json();
-            if (response.status === 200) {
-                
-                result.result = responseDagRun;
-                result.isSuccessful = true;
-                return result;
-            }
-            else {
-                showApiErrorMessage('Error !!!', result.result);
-                result.isSuccessful = false;
-                return result;
-            }
-        } catch (error) {
-            showErrorMessage(dagId + ' Dag Trigger Error !!!\n\n' + error.message);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
-        }
-    }
+			if (response.status === 200) {
 
-    public static async pauseDag(dagId:string, is_paused:boolean=true): Promise<MethodResult<any>>{
-        let result:MethodResult<any> = new MethodResult<any>(); 
-        try {
+				result.result = responseDagRun;
+				result.isSuccessful = true;
+				ui.logToOutput("api.getDagRun completed");
+				return result;
+			}
+			else {
+				ui.showApiErrorMessage('Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getDagRun completed");
+				return result;
+			}
+		} catch (error) {
+			ui.showErrorMessage(dagId + ' Dag Trigger Error !!!\n\n' + error.message);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getDagRun Error !!!", error);
+			return result;
+		}
+	}
+
+	public static async pauseDag(dagId: string, is_paused: boolean = true): Promise<MethodResult<any>> {
+		ui.logToOutput("api.pauseDag started");
+		let result: MethodResult<any> = new MethodResult<any>();
+		try {
 			let params = {
 				method: 'PATCH',
 				headers: {
@@ -121,27 +135,31 @@ export class Api {
 
 			result.result = response.json();
 			if (response.status === 200) {
-				showInfoMessage(dagId + ' Dag PAUSED');
-                result.isSuccessful = true;
-                return result;
+				ui.showInfoMessage(dagId + ' Dag PAUSED');
+				result.isSuccessful = true;
+				ui.logToOutput("api.pauseDag completed");
+				return result;
 			}
 			else {
-				showApiErrorMessage('Error !!!', result.result);
-                result.isSuccessful = false;
-                return result;
+				ui.showApiErrorMessage('Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.pauseDag completed");
+				return result;
 			}
 
 		} catch (error) {
-			showErrorMessage('Error !!!', error);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
+			ui.showErrorMessage('Error !!!', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.pauseDag Error !!!", error);
+			return result;
 		}
-    }
+	}
 
-    public static async getSourceCode(dagId:string, fileToken:string): Promise<MethodResult<any>> {
-        let result:MethodResult<any> = new MethodResult<any>(); 
-        try {
+	public static async getSourceCode(dagId: string, fileToken: string): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getSourceCode started");
+		let result: MethodResult<any> = new MethodResult<any>();
+		try {
 			let params = {
 				method: 'GET',
 				headers: {
@@ -154,27 +172,31 @@ export class Api {
 
 			result.result = await response.text();
 			if (response.status === 200) {
-                result.isSuccessful = true;
-                return result;
+				result.isSuccessful = true;
+				ui.logToOutput("api.getSourceCode completed");
+				return result;
 
 			}
 			else {
-				showApiErrorMessage('Error !!!', result.result);
-                result.isSuccessful = false;
-                return result;
+				ui.showApiErrorMessage('Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getSourceCode completed");
+				return result;
 			}
 
 		} catch (error) {
-			showErrorMessage('Error !!!\n\n', error);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
+			ui.showErrorMessage('Error !!!\n\n', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getSourceCode Error !!!", error);
+			return result;
 		}
-    }
+	}
 
-    public static async getDagInfo(dagId:string): Promise<MethodResult<any>>{
-        let result:MethodResult<any> = new MethodResult<any>(); 
-        try {
+	public static async getDagInfo(dagId: string): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getDagInfo started");
+		let result: MethodResult<any> = new MethodResult<any>();
+		try {
 			let params = {
 				method: 'GET',
 				headers: {
@@ -185,28 +207,32 @@ export class Api {
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/details', params);
 
-			result.result= await response.json();
+			result.result = await response.json();
 			if (response.status === 200) {
-                result.isSuccessful = true;
-                return result;
+				result.isSuccessful = true;
+				ui.logToOutput("api.getDagInfo completed");
+				return result;
 			}
 			else {
-				showApiErrorMessage('Error !!!', result.result);
-                result.isSuccessful = false;
-                return result;
+				ui.showApiErrorMessage('Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getDagInfo completed");
+				return result;
 			}
 		} catch (error) {
-			showErrorMessage('Can not connect to Airflow. Please check Url, UserName and Password.\n\n' + error.message);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
+			ui.showErrorMessage('Can not connect to Airflow. Please check Url, UserName and Password.\n\n' + error.message);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getDagInfo Error !!!", error);
+			return result;
 		}
 
-    }
+	}
 
-    public static async getDagTasks(dagId:string): Promise<MethodResult<any>>{
-        let result:MethodResult<any> = new MethodResult<any>(); 
-        try {
+	public static async getDagTasks(dagId: string): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getDagTasks started");
+		let result: MethodResult<any> = new MethodResult<any>();
+		try {
 			let params = {
 				method: 'GET',
 				headers: {
@@ -217,33 +243,37 @@ export class Api {
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/tasks', params);
 
-			result.result= await response.json();
+			result.result = await response.json();
 			if (response.status === 200) {
-                result.isSuccessful = true;
-                return result;
+				result.isSuccessful = true;
+				ui.logToOutput("api.getDagTasks completed");
+				return result;
 			}
 			else {
-				showApiErrorMessage('Error !!!', result.result);
-                result.isSuccessful = false;
-                return result;
+				ui.showApiErrorMessage('Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getDagTasks completed");
+				return result;
 			}
 		} catch (error) {
-			showErrorMessage('Error !!!\n\n', error);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
+			ui.showErrorMessage('Error !!!\n\n', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getDagTasks Error !!!", error);
+			return result;
 		}
 
-    }
+	}
 
-    public static async getLastDagRun(dagId:string): Promise<MethodResult<any>>{
-        return this.getDagRunHistory(dagId, 1);
-    }
+	public static async getLastDagRun(dagId: string): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getLastDagRun started");
+		return this.getDagRunHistory(dagId, 1);
+	}
 
-    public static async getDagRunHistory(dagId:string, limit:number): Promise<MethodResult<any>>{
-
-        let result:MethodResult<any> = new MethodResult<any>(); 
-        try {
+	public static async getDagRunHistory(dagId: string, limit: number): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getDagRunHistory started");
+		let result: MethodResult<any> = new MethodResult<any>();
+		try {
 			let params = {
 				method: 'GET',
 				headers: {
@@ -254,30 +284,33 @@ export class Api {
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns?order_by=-start_date&limit=' + limit, params);
 
-			result.result= await response.json();
+			result.result = await response.json();
 			if (response.status === 200) {
-                result.isSuccessful = true;
-                return result;
+				result.isSuccessful = true;
+				ui.logToOutput("api.getDagRunHistory completed");
+				return result;
 			}
 			else {
-				showApiErrorMessage('Error !!!', result.result);
-                result.isSuccessful = false;
-                return result;
+				ui.showApiErrorMessage('Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getDagRunHistory completed");
+				return result;
 			}
 
 		} catch (error) {
-			showErrorMessage('Error !!!', error);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
+			ui.showErrorMessage('Error !!!', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getDagRunHistory Error !!!", error);
+			return result;
 		}
 
-    }
+	}
 
-	public static async getTaskInstances(dagId:string, dagRunId:string): Promise<MethodResult<any>>{
-
-        let result:MethodResult<any> = new MethodResult<any>(); 
-        try {
+	public static async getTaskInstances(dagId: string, dagRunId: string): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getTaskInstances started");
+		let result: MethodResult<any> = new MethodResult<any>();
+		try {
 			let params = {
 				method: 'GET',
 				headers: {
@@ -289,30 +322,33 @@ export class Api {
 			//https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId + '/taskInstances', params);
 
-			result.result= await response.json();
+			result.result = await response.json();
 			if (response.status === 200) {
-                result.isSuccessful = true;
-                return result;
+				result.isSuccessful = true;
+				ui.logToOutput("api.getTaskInstances completed");
+				return result;
 			}
 			else {
-				showApiErrorMessage('Error !!!', result.result);
-                result.isSuccessful = false;
-                return result;
+				ui.showApiErrorMessage('Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getTaskInstances completed");
+				return result;
 			}
 
 		} catch (error) {
-			showErrorMessage('Error !!!', error);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
+			ui.showErrorMessage('Error !!!', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getTaskInstances Error !!!", error);
+			return result;
 		}
 
-    }
+	}
 
-    public static async getLastDagRunLog(dagId:string): Promise<MethodResult<string>> {
-        
-        let result:MethodResult<string> = new MethodResult<any>(); 
-        try {
+	public static async getLastDagRunLog(dagId: string): Promise<MethodResult<string>> {
+		ui.logToOutput("api.getLastDagRunLog started");
+		let result: MethodResult<string> = new MethodResult<any>();
+		try {
 			let params = {
 				method: 'GET',
 				headers: {
@@ -321,7 +357,7 @@ export class Api {
 				}
 			};
 
-			showInfoMessage('Fecthing Latest DAG Run Logs, wait please ...');
+			ui.showInfoMessage('Fecthing Latest DAG Run Logs, wait please ...');
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns?order_by=-start_date&limit=1', params);
 
@@ -344,27 +380,31 @@ export class Api {
 					result.result += responseLogsText;
 				}
 				result.result += '###################### END OF DAG RUN ######################\n\n';
-                result.isSuccessful = true;
-                return result;
+				result.isSuccessful = true;
+				ui.logToOutput("api.getLastDagRunLog completed");
+				return result;
 			}
 			else {
-				showErrorMessage('Error !!!\n\n' + response.statusText);
-                result.isSuccessful = false;
-                return result;
+				ui.showErrorMessage('Error !!!\n\n' + response.statusText);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getLastDagRunLog completed");
+				return result;
 			}
 
 		} catch (error) {
-			showErrorMessage('Error !!!', error);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
+			ui.showErrorMessage('Error !!!', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getLastDagRunLog Error !!!", error);
+			return result;
 		}
-    }
+	}
 
-    public static async getDagList(): Promise<MethodResult<any>>{
-        let result:MethodResult<any> = new MethodResult<any>(); 
+	public static async getDagList(): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getDagList started");
+		let result: MethodResult<any> = new MethodResult<any>();
 
-        try {
+		try {
 			let params = {
 				method: 'GET',
 				headers: {
@@ -377,20 +417,23 @@ export class Api {
 
 			result.result = await response.json();
 			if (response.status === 200) {
-                result.isSuccessful = true;
-                return result;
+				result.isSuccessful = true;
+				ui.logToOutput("api.getDagList completed");
+				return result;
 			}
 			else {
-				showApiErrorMessage('Error !!!', result.result);
-                result.isSuccessful = false;
-                return result;
+				ui.showApiErrorMessage('Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getDagList completed");
+				return result;
 			}
 		} catch (error) {
-			showErrorMessage('Can not connect to Airflow. Please check Url, UserName and Password.', error);
-            result.isSuccessful = false;
-            result.error = error;
-            return result;
+			ui.showErrorMessage('Can not connect to Airflow. Please check Url, UserName and Password.', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getDagList Error !!!", error);
+			return result;
 		}
-    }
+	}
 
 }
