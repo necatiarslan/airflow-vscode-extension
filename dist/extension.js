@@ -401,7 +401,7 @@ class DagView {
     }
     async renderHmtl() {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
-        ui.showOutputMessage(this._panel.webview.html);
+        //ui.showOutputMessage(this._panel.webview.html);
     }
     static render(extensionUri, dagId) {
         ui.logToOutput('DagView.render Started');
@@ -694,7 +694,7 @@ class DagView {
                         ${runHistoryRows}
 
                         <tr>
-                            <td></td>
+                            <td><vscode-button appearance="primary" id="rev-runs-refresh">Refresh</vscode-button></td>
                             <td></td>            
                             <td></td>
                         </tr>
@@ -731,8 +731,16 @@ class DagView {
                 case "tasks-more-detail":
                     ui.showOutputMessage(this.dagTaskInstancesJson);
                     return;
+                case "rev-runs-refresh":
+                    this.getRunHistoryAndRenderHtml();
+                    return;
             }
         }, undefined, this._disposables);
+    }
+    async getRunHistoryAndRenderHtml() {
+        ui.logToOutput('DagView.getRunHistoryAndRenderHtml Started');
+        await this.getRunHistory();
+        await this.renderHmtl();
     }
     async lastDAGRunLog() {
         ui.logToOutput('DagView.lastDAGRunLog Started');

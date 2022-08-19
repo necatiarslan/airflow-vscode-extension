@@ -18,6 +18,9 @@ function main() {
   const tasksMoreDetail = document.getElementById("tasks-more-detail");
   tasksMoreDetail.addEventListener("click", tasksMoreDetailClick);
 
+  const revRunsRefresh = document.getElementById("rev-runs-refresh");
+  revRunsRefresh.addEventListener("click", revRunsRefreshClick);
+
 }
 
 function triggerDagClick() {
@@ -53,6 +56,13 @@ function otherDagDetailClick() {
 function tasksMoreDetailClick() {
   vscode.postMessage({
     command: "tasks-more-detail",
+    text: "More",
+  });
+}
+
+function revRunsRefreshClick() {
+  vscode.postMessage({
+    command: "rev-runs-refresh",
     text: "More",
   });
 }
