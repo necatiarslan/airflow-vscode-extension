@@ -68,12 +68,75 @@ section {
   border-radius: 2px;
   border-width: 0px;
   margin-right: var(--chakra-space-2);
+  animation: blinkingColorRunning 1s infinite;
+}
+
+@keyframes blinkingColorRunning{
+  0%		{ background-color: green;}
+  15%		{ background-color: green;}
+  50%		{ background-color: lime;}
+  75%		{ background-color: lime;}
+  100%	{ background-color: lime;}
 }
 
 .state-queued {
   width: 10px;
   height: 10px;
   background-color: gray;
+  border-radius: 2px;
+  border-width: 0px;
+  margin-right: var(--chakra-space-2);
+}
+
+.state-skipped {
+  width: 10px;
+  height: 10px;
+  background-color: hotpink;
+  border-radius: 2px;
+  border-width: 0px;
+  margin-right: var(--chakra-space-2);
+}
+
+.state-deferred {
+  width: 10px;
+  height: 10px;
+  background-color: mediumpurple;
+  border-radius: 2px;
+  border-width: 0px;
+  margin-right: var(--chakra-space-2);
+}
+
+.state-scheduled {
+  width: 10px;
+  height: 10px;
+  background-color: tan;
+  border-radius: 2px;
+  border-width: 0px;
+  margin-right: var(--chakra-space-2);
+}
+
+.state-up_for_reschedule {
+  width: 10px;
+  height: 10px;
+  background-color: turquoise;
+  border-radius: 2px;
+  border-width: 0px;
+  margin-right: var(--chakra-space-2);
+}
+
+.state-up_for_retry {
+  width: 10px;
+  height: 10px;
+  background-color: gold;
+  border-radius: 2px;
+  border-width: 0px;
+  margin-right: var(--chakra-space-2);
+}
+
+.state-upstream_failed {
+  width: 10px;
+  height: 10px;
+  background-color: orange;
   border-radius: 2px;
   border-width: 0px;
   margin-right: var(--chakra-space-2);

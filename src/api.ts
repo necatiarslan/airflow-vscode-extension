@@ -267,7 +267,19 @@ export class Api {
 
 	public static async getLastDagRun(dagId: string): Promise<MethodResult<any>> {
 		ui.logToOutput("api.getLastDagRun started");
-		return this.getDagRunHistory(dagId, 1);
+		let result = await this.getDagRunHistory(dagId, 1);
+		if (result.isSuccessful && Object.keys(result.result.dag_runs).length>0 )
+		{
+			return this.getDagRun(dagId, result.result.dag_runs[0].dag_run_id);
+		}
+		else
+		{
+			result.isSuccessful = false;
+			result.result = undefined;
+			result.error = new Error('No Dag Run Found for ' + dagId);
+			return result;
+		}
+		
 	}
 
 	public static async getDagRunHistory(dagId: string, limit: number): Promise<MethodResult<any>> {

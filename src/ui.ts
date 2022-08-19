@@ -102,6 +102,16 @@ function padTo2Digits(num: number) {
 }
 
 export function getDuration(startDate: Date, endDate: Date): string {
+  if(!startDate)
+  {
+    return "";
+  }
+
+  if(!endDate || endDate < startDate)
+  {
+    endDate = new Date();//now
+  }
+
   var duration = endDate.valueOf() - startDate.valueOf();
   return (convertMsToTime(duration));
 }
