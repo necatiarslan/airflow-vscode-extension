@@ -18,6 +18,7 @@ export class DagView {
     public dagTasksJson: any;
 
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, dagId: string) {
+        ui.logToOutput('DagView.constructor Started');
         this.dagId = dagId;
         this.extensionUri = extensionUri;
 
@@ -25,10 +26,11 @@ export class DagView {
         this._panel.onDidDispose(this.dispose, null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadDagData();
+        ui.logToOutput('DagView.constructor Completed');
     }
 
-    public async loadDagData()
-    {
+    public async loadDagData() {
+        ui.logToOutput('DagView.loadDagData Started');
         await this.getDagInfo();
         await this.getLastRun();
         await this.getDagTasks();
@@ -42,6 +44,7 @@ export class DagView {
     }
 
     public static render(extensionUri: vscode.Uri, dagId: string) {
+        ui.logToOutput('DagView.render Started');
         if (DagView.currentPanel) {
             this.currentPanel.dagId = dagId;
             DagView.currentPanel._panel.reveal(vscode.ViewColumn.Two);
@@ -56,6 +59,7 @@ export class DagView {
     }
 
     public async getLastRun() {
+        ui.logToOutput('DagView.getLastRun Started');
         if (!Api.isApiParamsSet()) { return; }
 
         let result = await Api.getLastDagRun(this.dagId);
@@ -67,6 +71,7 @@ export class DagView {
     }
 
     public async getRunHistory() {
+        ui.logToOutput('DagView.getRunHistory Started');
         if (!Api.isApiParamsSet()) { return; }
 
         let result = await Api.getDagRunHistory(this.dagId, 10);
@@ -76,7 +81,8 @@ export class DagView {
 
     }
 
-    public async getTaskInstances(dagRunId:string) {
+    public async getTaskInstances(dagRunId: string) {
+        ui.logToOutput('DagView.getTaskInstances Started');
         if (!Api.isApiParamsSet()) { return; }
 
         let result = await Api.getTaskInstances(this.dagId, dagRunId);
@@ -87,6 +93,7 @@ export class DagView {
     }
 
     public async getDagInfo() {
+        ui.logToOutput('DagView.getDagInfo Started');
         if (!Api.isApiParamsSet()) { return; }
 
         let result = await Api.getDagInfo(this.dagId);
@@ -96,6 +103,7 @@ export class DagView {
     }
 
     public async getDagTasks() {
+        ui.logToOutput('DagView.getDagTasks Started');
         if (!Api.isApiParamsSet()) { return; }
 
         let result = await Api.getDagTasks(this.dagId);
@@ -105,6 +113,7 @@ export class DagView {
     }
 
     public dispose() {
+        ui.logToOutput('DagView.dispose Started');
         DagView.currentPanel = undefined;
 
         this._panel.dispose();
@@ -118,7 +127,7 @@ export class DagView {
     }
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
-        // Tip: Install the es6-string-html VS Code extension to enable code highlighting below
+        ui.logToOutput('DagView._getWebviewContent Started');
         const toolkitUri = getUri(webview, extensionUri, [
             "node_modules",
             "@vscode",
@@ -136,8 +145,8 @@ export class DagView {
         let start_date = (this.dagRunJson) ? this.dagRunJson.dag_runs[0]["start_date"] : "";
         let end_date = (this.dagRunJson) ? this.dagRunJson.dag_runs[0]["end_date"] : "";
         let owners = (this.dagJson) ? this.dagJson["owners"].join(", ") : "";
-        let tags:string = "";
-        this.dagJson["tags"].forEach(item => {tags += item.name + ", ";});
+        let tags: string = "";
+        this.dagJson["tags"].forEach(item => { tags += item.name + ", "; });
         tags = tags.slice(0, -3);
         let schedule_interval = (this.dagJson) ? this.dagJson["schedule_interval"].value : "";
         let isPaused = (this.dagJson) ? this.dagJson.is_paused ? "true" : "false" : "unknown";
@@ -148,7 +157,7 @@ export class DagView {
         let duration = ui.getDuration(new Date(start_date), new Date(end_date));
 
         let taskRows: string = "";
-        for(var t of this.dagTaskInstancesJson["task_instances"]){
+        for (var t of this.dagTaskInstancesJson["task_instances"]) {
             taskRows += `
             <tr>
                 <td>
@@ -162,7 +171,7 @@ export class DagView {
         }
 
         let runHistoryRows: string = "";
-        for(var t of this.dagRunHistoryJson["dag_runs"]){
+        for (var t of this.dagRunHistoryJson["dag_runs"]) {
             runHistoryRows += `
             <tr>
                 <td><div class="state-${t.state}"></div></td>
@@ -172,7 +181,7 @@ export class DagView {
             `;
         }
 
-        return /*html*/ `
+        let result = /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
       <head>
@@ -351,9 +360,12 @@ export class DagView {
       </body>
     </html>
     `;
+        ui.logToOutput('DagView._getWebviewContent Completed');
+        return result;
     }
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
+        ui.logToOutput('DagView._setWebviewMessageListener Started');
         webview.onDidReceiveMessage(
             (message: any) => {
                 const command = message.command;
@@ -383,6 +395,7 @@ export class DagView {
     }
 
     async lastDAGRunLog() {
+        ui.logToOutput('DagView.lastDAGRunLog Started');
         if (!Api.isApiParamsSet()) { return; }
 
         let result = await Api.getLastDagRunLog(this.dagId);
@@ -395,15 +408,16 @@ export class DagView {
         }
     }
 
-    async triggerDagWConfig(config:string="", date:string="") {
+    async triggerDagWConfig(config: string = "", date: string = "") {
+        ui.logToOutput('DagView.triggerDagWConfig Started');
         if (!Api.isApiParamsSet()) { return; }
 
-        if(config && !ui.isJsonString(config)){
+        if (config && !ui.isJsonString(config)) {
             ui.showWarningMessage("Config is not a valid JSON");
             return;
         }
 
-        if(date && !ui.isValidDate(date)){
+        if (date && !ui.isValidDate(date)) {
             ui.showWarningMessage("Date is not a valid DATE");
             return;
         }
@@ -411,7 +425,7 @@ export class DagView {
         if (!config) {
             config = "{}";
         }
-    
+
 
         if (config !== undefined) {
 
@@ -431,6 +445,7 @@ export class DagView {
     }
 
     async refreshRunningDagState() {
+        ui.logToOutput('DagView.refreshRunningDagState Started');
         if (!Api.isApiParamsSet()) { return; }
 
         let state = (this.dagRunJson) ? this.dagRunJson.dag_runs[0]["state"] : "";

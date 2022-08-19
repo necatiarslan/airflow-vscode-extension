@@ -24,6 +24,7 @@ const api_1 = __webpack_require__(8);
 class DagTreeView {
     constructor(context) {
         this.filterString = '';
+        ui.logToOutput('DagTreeView.constructor Started');
         this.context = context;
         this.treeDataProvider = new dagTreeDataProvider_1.DagTreeDataProvider();
         this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
@@ -32,9 +33,11 @@ class DagTreeView {
         context.subscriptions.push(this.view);
     }
     refresh() {
+        ui.logToOutput('DagTreeView.refresh Started');
         this.loadDags();
     }
     resetView() {
+        ui.logToOutput('DagTreeView.resetView Started');
         api_1.Api.apiUrl = '';
         api_1.Api.apiUserName = '';
         api_1.Api.apiPassword = '';
@@ -47,15 +50,19 @@ class DagTreeView {
         this.refresh();
     }
     viewDagView(node) {
+        ui.logToOutput('DagTreeView.viewDagView Started');
         dagView_1.DagView.render(this.context.extensionUri, node.dagId);
     }
     async addToFavDAG(node) {
+        ui.logToOutput('DagTreeView.addToFavDAG Started');
         node.isFav = true;
     }
     async deleteFromFavDAG(node) {
+        ui.logToOutput('DagTreeView.deleteFromFavDAG Started');
         node.isFav = false;
     }
     async triggerDag(node) {
+        ui.logToOutput('DagTreeView.triggerDag Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -83,6 +90,7 @@ class DagTreeView {
         }
     }
     async refreshRunningDagState(dagTreeView) {
+        ui.logToOutput('DagTreeView.refreshRunningDagState Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -105,9 +113,12 @@ class DagTreeView {
         }
         if (noDagIsRunning && dagTreeView.dagStatusInterval) {
             clearInterval(dagTreeView.dagStatusInterval);
+            ui.showInfoMessage('All Dag Run(s) Completed');
+            ui.logToOutput('All Dag Run(s) Completed');
         }
     }
     async triggerDagWConfig(node) {
+        ui.logToOutput('DagTreeView.triggerDagWConfig Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -133,6 +144,7 @@ class DagTreeView {
         }
     }
     async checkAllDagsRunState() {
+        ui.logToOutput('DagTreeView.checkAllDagsRunState Started');
         if (!this.treeDataProvider) {
             return;
         }
@@ -143,6 +155,7 @@ class DagTreeView {
         }
     }
     async checkDagRunState(node) {
+        ui.logToOutput('DagTreeView.checkDagRunState Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -173,6 +186,7 @@ class DagTreeView {
         }
     }
     async pauseDAG(node) {
+        ui.logToOutput('DagTreeView.pauseDAG Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -192,6 +206,7 @@ class DagTreeView {
         }
     }
     async unPauseDAG(node) {
+        ui.logToOutput('DagTreeView.unPauseDAG Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -211,6 +226,7 @@ class DagTreeView {
         }
     }
     async lastDAGRunLog(node) {
+        ui.logToOutput('DagTreeView.lastDAGRunLog Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -224,6 +240,7 @@ class DagTreeView {
         }
     }
     async dagSourceCode(node) {
+        ui.logToOutput('DagTreeView.dagSourceCode Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -245,6 +262,7 @@ class DagTreeView {
         }
     }
     async filter() {
+        ui.logToOutput('DagTreeView.filter Started');
         let filterStringTemp = await vscode.window.showInputBox({ value: this.filterString, placeHolder: 'Enter your filters seperated by comma' });
         if (filterStringTemp === undefined) {
             return;
@@ -263,6 +281,7 @@ class DagTreeView {
         this.treeDataProvider.refresh();
     }
     async addServer() {
+        ui.logToOutput('DagTreeView.addServer Started');
         let apiUrlTemp = await vscode.window.showInputBox({ placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
         if (apiUrlTemp === undefined) {
             return;
@@ -290,6 +309,7 @@ class DagTreeView {
         this.refresh();
     }
     async loadDags() {
+        ui.logToOutput('DagTreeView.loadDags Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -305,6 +325,7 @@ class DagTreeView {
         this.view.title = api_1.Api.apiUrl;
     }
     saveState() {
+        ui.logToOutput('DagTreeView.saveState Started');
         try {
             this.context.globalState.update('apiUrl', api_1.Api.apiUrl);
             this.context.globalState.update('apiUserName', api_1.Api.apiUserName);
@@ -316,6 +337,7 @@ class DagTreeView {
         }
     }
     loadState() {
+        ui.logToOutput('DagTreeView.loadState Started');
         try {
             let apiUrlTemp = this.context.globalState.get('apiUrl');
             if (apiUrlTemp) {
@@ -360,14 +382,17 @@ const api_1 = __webpack_require__(8);
 class DagView {
     constructor(panel, extensionUri, dagId) {
         this._disposables = [];
+        ui.logToOutput('DagView.constructor Started');
         this.dagId = dagId;
         this.extensionUri = extensionUri;
         this._panel = panel;
         this._panel.onDidDispose(this.dispose, null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadDagData();
+        ui.logToOutput('DagView.constructor Completed');
     }
     async loadDagData() {
+        ui.logToOutput('DagView.loadDagData Started');
         await this.getDagInfo();
         await this.getLastRun();
         await this.getDagTasks();
@@ -379,6 +404,7 @@ class DagView {
         ui.showOutputMessage(this._panel.webview.html);
     }
     static render(extensionUri, dagId) {
+        ui.logToOutput('DagView.render Started');
         if (DagView.currentPanel) {
             this.currentPanel.dagId = dagId;
             DagView.currentPanel._panel.reveal(vscode.ViewColumn.Two);
@@ -392,6 +418,7 @@ class DagView {
         }
     }
     async getLastRun() {
+        ui.logToOutput('DagView.getLastRun Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -402,6 +429,7 @@ class DagView {
         }
     }
     async getRunHistory() {
+        ui.logToOutput('DagView.getRunHistory Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -411,6 +439,7 @@ class DagView {
         }
     }
     async getTaskInstances(dagRunId) {
+        ui.logToOutput('DagView.getTaskInstances Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -420,6 +449,7 @@ class DagView {
         }
     }
     async getDagInfo() {
+        ui.logToOutput('DagView.getDagInfo Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -429,6 +459,7 @@ class DagView {
         }
     }
     async getDagTasks() {
+        ui.logToOutput('DagView.getDagTasks Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -438,6 +469,7 @@ class DagView {
         }
     }
     dispose() {
+        ui.logToOutput('DagView.dispose Started');
         DagView.currentPanel = undefined;
         this._panel.dispose();
         while (this._disposables.length) {
@@ -448,7 +480,7 @@ class DagView {
         }
     }
     _getWebviewContent(webview, extensionUri) {
-        // Tip: Install the es6-string-html VS Code extension to enable code highlighting below
+        ui.logToOutput('DagView._getWebviewContent Started');
         const toolkitUri = (0, getUri_1.getUri)(webview, extensionUri, [
             "node_modules",
             "@vscode",
@@ -496,7 +528,7 @@ class DagView {
             </tr>
             `;
         }
-        return /*html*/ `
+        let result = /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
       <head>
@@ -675,8 +707,11 @@ class DagView {
       </body>
     </html>
     `;
+        ui.logToOutput('DagView._getWebviewContent Completed');
+        return result;
     }
     _setWebviewMessageListener(webview) {
+        ui.logToOutput('DagView._setWebviewMessageListener Started');
         webview.onDidReceiveMessage((message) => {
             const command = message.command;
             const text = message.text;
@@ -700,6 +735,7 @@ class DagView {
         }, undefined, this._disposables);
     }
     async lastDAGRunLog() {
+        ui.logToOutput('DagView.lastDAGRunLog Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -713,6 +749,7 @@ class DagView {
         }
     }
     async triggerDagWConfig(config = "", date = "") {
+        ui.logToOutput('DagView.triggerDagWConfig Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -742,6 +779,7 @@ class DagView {
         }
     }
     async refreshRunningDagState() {
+        ui.logToOutput('DagView.refreshRunningDagState Started');
         if (!api_1.Api.isApiParamsSet()) {
             return;
         }
@@ -13565,10 +13603,11 @@ exports.deactivate = exports.activate = void 0;
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
 const dagTreeView_1 = __webpack_require__(2);
+const ui = __webpack_require__(5);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
-    console.log('Extension "airflow-vscode-extension" is now active!');
+    ui.logToOutput('Extension activation started');
     let dagTreeView = new dagTreeView_1.DagTreeView(context);
     vscode.commands.registerCommand('dagTreeView.refreshServer', () => {
         dagTreeView.refresh();
@@ -13612,11 +13651,12 @@ function activate(context) {
     vscode.commands.registerCommand('dagTreeView.deleteFromFavDAG', (node) => {
         dagTreeView.deleteFromFavDAG(node);
     });
+    ui.logToOutput('Extension activation completed');
 }
 exports.activate = activate;
 // this method is called when your extension is deactivated
 function deactivate() {
-    console.log('Extension "airflow-vscode-extension" is now deactive!');
+    ui.logToOutput('Extension is now deactive!');
 }
 exports.deactivate = deactivate;
 

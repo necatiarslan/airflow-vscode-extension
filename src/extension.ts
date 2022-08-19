@@ -3,11 +3,12 @@
 import * as vscode from 'vscode';
 import { DagTreeView } from './dagTreeView';
 import { DagTreeItem } from './dagTreeItem';
+import * as ui from './ui';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-	console.log('Extension "airflow-vscode-extension" is now active!');
+	ui.logToOutput('Extension activation started');
 
 	let dagTreeView:DagTreeView = new DagTreeView(context);
 
@@ -67,9 +68,10 @@ export function activate(context: vscode.ExtensionContext) {
 		dagTreeView.deleteFromFavDAG(node);
 	});
 
+	ui.logToOutput('Extension activation completed');
 }
 
 // this method is called when your extension is deactivated
 export function deactivate() {
-	console.log('Extension "airflow-vscode-extension" is now deactive!');
+	ui.logToOutput('Extension is now deactive!');
 }

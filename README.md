@@ -57,22 +57,14 @@ airflow.api.auth.backend.basic_auth
 ## Todo List
 I am working on these features now, so they will be available in a couple of weeks.
 
-- Dag Details View
-		1. Trigger Dag
-		2. Dag Execution Logs
-		3. Execution Status
-		4. Execution History
 - Multiple server support
-- Server Health Check/Status
-- Logging
-- Execution History / Report / Analysis
-- Dag Coloring/Tagging
-- Support All Authentication Methods
-- Code Snipets
-- Dag Code Checks
+- Filter by tags
+- DAG Explorer (a treeview which lists your dags and tasks)
 - Connections, Variables, XComs
-- Notify user when a dag run completes
-- Highligt TODO:, FIXME: keywords
+
+- Server Health Check/Status
+- Support Kerberos Authentication
+- Dag Code Checks
 - Highligt DAG and Operator Keywords
 
 

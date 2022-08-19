@@ -16,6 +16,7 @@ export class DagTreeView {
 	dagStatusInterval: NodeJS.Timer;
 
 	constructor(context: vscode.ExtensionContext) {
+		ui.logToOutput('DagTreeView.constructor Started');
 		this.context = context;
 		this.treeDataProvider = new DagTreeDataProvider();
 		this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
@@ -25,10 +26,12 @@ export class DagTreeView {
 	}
 
 	refresh(): void {
+		ui.logToOutput('DagTreeView.refresh Started');
 		this.loadDags();
 	}
 
 	resetView(): void {
+		ui.logToOutput('DagTreeView.resetView Started');
 		Api.apiUrl = '';
 		Api.apiUserName = '';
 		Api.apiPassword = '';
@@ -44,18 +47,22 @@ export class DagTreeView {
 	}
 
 	viewDagView(node: DagTreeItem): void {
+		ui.logToOutput('DagTreeView.viewDagView Started');
 		DagView.render(this.context.extensionUri, node.dagId);
 	}
 
 	async addToFavDAG(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.addToFavDAG Started');
 		node.isFav = true;
 	}
 
 	async deleteFromFavDAG(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.deleteFromFavDAG Started');
 		node.isFav = false;
 	}
 
 	async triggerDag(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.triggerDag Started');
 		if(!Api.isApiParamsSet()) { return; }
 
 		if (node.isPaused) {
@@ -87,6 +94,7 @@ export class DagTreeView {
 	}
 
 	async refreshRunningDagState(dagTreeView: DagTreeView) {
+		ui.logToOutput('DagTreeView.refreshRunningDagState Started');
 		if(!Api.isApiParamsSet()) { return; }
 
 		let noDagIsRunning: boolean = true;
@@ -113,10 +121,13 @@ export class DagTreeView {
 		}
 		if (noDagIsRunning && dagTreeView.dagStatusInterval) {
 			clearInterval(dagTreeView.dagStatusInterval);
+			ui.showInfoMessage('All Dag Run(s) Completed');
+			ui.logToOutput('All Dag Run(s) Completed');
 		}
 	}
 
 	async triggerDagWConfig(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.triggerDagWConfig Started');
 		if(!Api.isApiParamsSet()) { return; }
 
 		let triggerDagConfig = await vscode.window.showInputBox({ placeHolder: 'Enter Configuration JSON (Optional, must be a dict object) or Press Enter' });
@@ -148,6 +159,7 @@ export class DagTreeView {
 	}
 
 	async checkAllDagsRunState() {
+		ui.logToOutput('DagTreeView.checkAllDagsRunState Started');
 		if (!this.treeDataProvider) { return; }
 		for (var node of this.treeDataProvider.visibleDagList) {
 			if (!node.isPaused) {
@@ -157,6 +169,7 @@ export class DagTreeView {
 	}
 
 	async checkDagRunState(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.checkDagRunState Started');
 		if(!Api.isApiParamsSet()) { return; }
 
 		if (!node) { return; }
@@ -184,6 +197,7 @@ export class DagTreeView {
 	}
 
 	async pauseDAG(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.pauseDAG Started');
 		if(!Api.isApiParamsSet()) { return; }
 
 		if (node.isPaused) { ui.showWarningMessage(node.dagId + 'Dag is already PAUSED'); return; }
@@ -202,6 +216,7 @@ export class DagTreeView {
 	}
 
 	async unPauseDAG(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.unPauseDAG Started');
 		if(!Api.isApiParamsSet()) { return; }
 
 		if (!node.isPaused) { ui.showInfoMessage(node.dagId + 'Dag is already UNPAUSED'); return; }
@@ -219,6 +234,7 @@ export class DagTreeView {
 	}
 
 	async lastDAGRunLog(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.lastDAGRunLog Started');
 		if(!Api.isApiParamsSet()) { return; }
 
 		let result = await Api.getLastDagRunLog(node.dagId);
@@ -233,6 +249,7 @@ export class DagTreeView {
 	}
 
 	async dagSourceCode(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.dagSourceCode Started');
 		if(!Api.isApiParamsSet()) { return; }
 
 		let result = await Api.getSourceCode(node.dagId, node.fileToken);
@@ -261,6 +278,7 @@ export class DagTreeView {
 	}
 
 	async filter() {
+		ui.logToOutput('DagTreeView.filter Started');
 		let filterStringTemp = await vscode.window.showInputBox({ value: this.filterString, placeHolder: 'Enter your filters seperated by comma' });
 
 		if (filterStringTemp === undefined) { return; }
@@ -280,6 +298,7 @@ export class DagTreeView {
 	}
 
 	async addServer() {
+		ui.logToOutput('DagTreeView.addServer Started');
 		let apiUrlTemp = await vscode.window.showInputBox({ placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
 
 		if (apiUrlTemp === undefined) { return; }
@@ -309,6 +328,7 @@ export class DagTreeView {
 	}
 
 	async loadDags() {
+		ui.logToOutput('DagTreeView.loadDags Started');
 		if(!Api.isApiParamsSet()) { return; }
 
 		this.daglistResponse = undefined;
@@ -326,6 +346,7 @@ export class DagTreeView {
 	}
 
 	saveState() {
+		ui.logToOutput('DagTreeView.saveState Started');
 		try {
 			this.context.globalState.update('apiUrl', Api.apiUrl);
 			this.context.globalState.update('apiUserName', Api.apiUserName);
@@ -337,6 +358,7 @@ export class DagTreeView {
 	}
 
 	loadState() {
+		ui.logToOutput('DagTreeView.loadState Started');
 		try {
 			let apiUrlTemp: string = this.context.globalState.get('apiUrl');
 			if (apiUrlTemp) { Api.apiUrl = apiUrlTemp; }

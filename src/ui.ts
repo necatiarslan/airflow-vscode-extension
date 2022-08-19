@@ -7,43 +7,37 @@ var logsOutputChannel: vscode.OutputChannel;
 
 export function showOutputMessage(message: any): void {
 
-  if(!outputChannel)
-  {
+  if (!outputChannel) {
     outputChannel = vscode.window.createOutputChannel("Airflow-Extension");
   }
-  
+
   outputChannel.clear();
 
-  if(typeof message === "object")
-  {
+  if (typeof message === "object") {
     outputChannel.appendLine(JSON.stringify(message, null, 4));
   }
-  else
-  {
+  else {
     outputChannel.appendLine(message);
   }
   outputChannel.show();
   showInfoMessage("Results are printed to OUTPUT / Airflow-Extension");
 }
 
-export function logToOutput(message: any, error:Error = undefined): void {
+export function logToOutput(message: any, error: Error = undefined): void {
   let now = new Date().toLocaleString();
 
-  if(!logsOutputChannel)
-  {
+  if (!logsOutputChannel) {
     logsOutputChannel = vscode.window.createOutputChannel("Airflow-Log");
   }
 
-  if(typeof message === "object")
-  {
+  if (typeof message === "object") {
     logsOutputChannel.appendLine("[" + now + "] " + JSON.stringify(message, null, 4));
   }
-  else
-  {
+  else {
     logsOutputChannel.appendLine("[" + now + "] " + message);
   }
 
-  if(error){
+  if (error) {
     logsOutputChannel.appendLine(error.name);
     logsOutputChannel.appendLine(error.message);
     logsOutputChannel.appendLine(error.stack);
@@ -51,35 +45,33 @@ export function logToOutput(message: any, error:Error = undefined): void {
 }
 
 export function showInfoMessage(message: string): void {
-    vscode.window.showInformationMessage(message);
+  vscode.window.showInformationMessage(message);
 }
 
 export function showWarningMessage(message: string): void {
-    vscode.window.showWarningMessage(message);
+  vscode.window.showWarningMessage(message);
 }
 
-export function showErrorMessage(message: string, error:Error = undefined): void {
-    if(error)
-    {
-      vscode.window.showErrorMessage(message + "\n\n" + error.name + "/n" + error.message);
-    }
-    else{
-      vscode.window.showErrorMessage(message);
-    }
+export function showErrorMessage(message: string, error: Error = undefined): void {
+  if (error) {
+    vscode.window.showErrorMessage(message + "\n\n" + error.name + "/n" + error.message);
+  }
+  else {
+    vscode.window.showErrorMessage(message);
+  }
 }
 
 export function showApiErrorMessage(message: string, jsonResult): void {
-  if(jsonResult)
-  {
+  if (jsonResult) {
     vscode.window.showErrorMessage(message + "\n\n"
-    + "type:"+jsonResult.type+"\n" 
-    + "title:"+jsonResult.title+"\n" 
-    + "status:"+jsonResult.status+"\n" 
-    + "detail:"+jsonResult.detail+"\n" 
-    + "instance:"+jsonResult.instance+"\n" 
+      + "type:" + jsonResult.type + "\n"
+      + "title:" + jsonResult.title + "\n"
+      + "status:" + jsonResult.status + "\n"
+      + "detail:" + jsonResult.detail + "\n"
+      + "instance:" + jsonResult.instance + "\n"
     );
   }
-  else{
+  else {
     vscode.window.showErrorMessage(message);
   }
 
@@ -109,13 +101,12 @@ function padTo2Digits(num: number) {
   return num.toString().padStart(2, '0');
 }
 
-export function getDuration(startDate:Date, endDate:Date):string
-{
+export function getDuration(startDate: Date, endDate: Date): string {
   var duration = endDate.valueOf() - startDate.valueOf();
-  return(convertMsToTime(duration));
+  return (convertMsToTime(duration));
 }
 
-export function convertMsToTime(milliseconds: number):string {
+export function convertMsToTime(milliseconds: number): string {
   let seconds = Math.floor(milliseconds / 1000);
   let minutes = Math.floor(seconds / 60);
   const hours = Math.floor(minutes / 60);
@@ -135,15 +126,15 @@ export function isJsonString(jsonString: string): boolean {
   }
 }
 
-export function isValidDate(dateString:string): boolean {
+export function isValidDate(dateString: string): boolean {
   var regEx = /^\d{4}-\d{2}-\d{2}$/;
-  if(!dateString.match(regEx)){
+  if (!dateString.match(regEx)) {
     return false;  // Invalid format
-  } 
+  }
   var d = new Date(dateString);
   var dNum = d.getTime();
-  if(!dNum && dNum !== 0) {
+  if (!dNum && dNum !== 0) {
     return false; // NaN value, Invalid date
-  } 
-  return d.toISOString().slice(0,10) === dateString;
   }
+  return d.toISOString().slice(0, 10) === dateString;
+}
