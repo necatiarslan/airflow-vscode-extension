@@ -142,8 +142,8 @@ export class DagView {
             "toolkit.js", // A toolkit.min.js file is also available
         ]);
 
-        const mainUri = getUri(webview, extensionUri, ["src", "main.js"]);
-        const styleUri = getUri(webview, extensionUri, ["src", "style.css"]);
+        const mainUri = getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = getUri(webview, extensionUri, ["media", "style.css"]);
 
         let dagId = this.dagId;
         let state = (this.dagRunJson) ? this.dagRunJson.state : "";
