@@ -135,7 +135,7 @@ export class Api {
 
 			result.result = response.json();
 			if (response.status === 200) {
-				ui.showInfoMessage(dagId + ' Dag PAUSED');
+				ui.showInfoMessage(dagId + ' Dag ' + (is_paused ? "PAUSED" : "UN-PAUSED"));
 				result.isSuccessful = true;
 				ui.logToOutput("api.pauseDag completed");
 				return result;

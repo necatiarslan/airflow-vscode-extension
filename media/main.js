@@ -21,12 +21,29 @@ function main() {
   const revRunsRefresh = document.getElementById("rev-runs-refresh");
   revRunsRefresh.addEventListener("click", revRunsRefreshClick);
 
+  const infoSourceCode = document.getElementById("info-source-code");
+  infoSourceCode.addEventListener("click", infoSourceCodeClick);
+
+  const runPauseDag = document.getElementById("run-pause-dag");
+  runPauseDag.addEventListener("click", runPauseDagClick);
+
+  const runUnPauseDag = document.getElementById("run-unpause-dag");
+  runUnPauseDag.addEventListener("click", runUnPauseDagClick);
+
+  const runLastRunCheck = document.getElementById("run-lastrun-check");
+  runLastRunCheck.addEventListener("click", runLastRunCheckClick);
+
+  const prevRunLinkList = document.querySelectorAll("[id^='history-dag-run-id']");
+  for (let i = 0; i < prevRunLinkList.length; i++) {
+    //prevRunLinkList[i].id
+    prevRunLinkList[i].addEventListener("click", dagRunHistoryLinkClicked);
+}
+
 }
 
 function triggerDagClick() {
   vscode.postMessage({
     command: "run-trigger-dag",
-    text: "Trigger Dag",
     config: document.getElementById("run_config").value,
     date: document.getElementById("run_date").value,
   });
@@ -35,34 +52,63 @@ function triggerDagClick() {
 function viewLogDagClick() {
   vscode.postMessage({
     command: "run-view-log",
-    text: "View Log",
   });
 }
 
 function runMoreDagRunDetailClick() {
   vscode.postMessage({
     command: "run-more-dagrun-detail",
-    text: "More",
   });
 }
 
 function otherDagDetailClick() {
   vscode.postMessage({
     command: "other-dag-detail",
-    text: "More",
   });
 }
 
 function tasksMoreDetailClick() {
   vscode.postMessage({
     command: "tasks-more-detail",
-    text: "More",
   });
 }
 
 function revRunsRefreshClick() {
   vscode.postMessage({
     command: "rev-runs-refresh",
-    text: "More",
+    text: "",
   });
 }
+
+function infoSourceCodeClick() {
+  vscode.postMessage({
+    command: "info-source-code",
+  });
+}
+
+function runPauseDagClick() {
+  vscode.postMessage({
+    command: "run-pause-dag",
+  });
+}
+
+function runUnPauseDagClick() {
+  vscode.postMessage({
+    command: "run-unpause-dag",
+  });
+}
+
+function runLastRunCheckClick() {
+  vscode.postMessage({
+    command: "run-lastrun-check",
+  });
+}
+
+
+
+function dagRunHistoryLinkClicked() {
+  vscode.postMessage({
+    command: "history-dag-run-id",
+  });
+}
+

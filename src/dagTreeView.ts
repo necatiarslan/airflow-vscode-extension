@@ -202,8 +202,8 @@ export class DagTreeView {
 
 		if (node.isPaused) { ui.showWarningMessage(node.dagId + 'Dag is already PAUSED'); return; }
 
-		let userAnswer = await vscode.window.showInputBox({ placeHolder: node.dagId + ' DAG will be PAUSED. Yes/No ?' });
-		if (userAnswer !== 'Yes') { return; }
+		//let userAnswer = await vscode.window.showInputBox({ placeHolder: node.dagId + ' DAG will be PAUSED. Yes/No ?' });
+		//if (userAnswer !== 'Yes') { return; }
 
 		let result = await Api.pauseDag(node.dagId, true);
 		if(result.isSuccessful)
@@ -221,8 +221,8 @@ export class DagTreeView {
 
 		if (!node.isPaused) { ui.showInfoMessage(node.dagId + 'Dag is already UNPAUSED'); return; }
 
-		let userAnswer = await vscode.window.showInputBox({ placeHolder: node.dagId + ' DAG will be UNPAUSED. Yes/No ?' });
-		if (userAnswer !== 'Yes') { return; }
+		//let userAnswer = await vscode.window.showInputBox({ placeHolder: node.dagId + ' DAG will be UNPAUSED. Yes/No ?' });
+		//if (userAnswer !== 'Yes') { return; }
 
 		let result = await Api.pauseDag(node.dagId, false);
 		if(result.isSuccessful)
@@ -244,7 +244,7 @@ export class DagTreeView {
 			var fs = require('fs');
 			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.dagId, postfix: '.log' });
 			fs.appendFileSync(tmpFile.name, result.result);
-			ui.showFile(tmpFile.name);
+			ui.openFile(tmpFile.name);
 		}
 	}
 
@@ -260,7 +260,7 @@ export class DagTreeView {
 
 			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.dagId, postfix: '.py' });
 			fs.appendFileSync(tmpFile.name, result.result);
-			ui.showFile(tmpFile.name);
+			ui.openFile(tmpFile.name);
 
 			//TODO: Option to print to output
 			// let outputAirflow = vscode.window.createOutputChannel("Airflow");

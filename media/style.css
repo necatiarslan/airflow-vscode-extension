@@ -159,20 +159,20 @@ section {
 .dag-paused-true {
   width: 10px;
   height: 10px;
-  background: red;
+  background: gray;
   border-radius: 50%;
 }
 
 .dag-paused-false {
-  width: 10px;
-  height: 10px;
+  width: 15px;
+  height: 15px;
   background: green;
   border-radius: 50%;
 }
 
 .dag-paused-unknown {
-  width: 10px;
-  height: 10px;
-  background: gray;
+  width: 15px;
+  height: 15px;
+  background: transparent;
   border-radius: 50%;
 }

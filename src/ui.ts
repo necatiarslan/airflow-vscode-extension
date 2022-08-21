@@ -93,8 +93,9 @@ export function getExtensionVersion() {
   return extVersion;
 }
 
-export function showFile(file: string) {
-  vscode.commands.executeCommand('vscode.open', vscode.Uri.file(file));
+export function openFile(file: string) {
+  vscode.commands.executeCommand('vscode.open', vscode.Uri.file(file), vscode.ViewColumn.One);
+  //vscode.workspace.openTextDocument(vscode.Uri.file(file));
 }
 
 function padTo2Digits(num: number) {
