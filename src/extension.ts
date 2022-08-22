@@ -68,6 +68,10 @@ export function activate(context: vscode.ExtensionContext) {
 		dagTreeView.deleteFromFavDAG(node);
 	});
 
+	vscode.commands.registerCommand('dagTreeView.showDagView', (node: DagTreeItem) => {
+		dagTreeView.viewDagView(node);
+	});
+
 	ui.logToOutput('Extension activation completed');
 }
 

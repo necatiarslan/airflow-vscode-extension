@@ -33,82 +33,122 @@ function main() {
   const runLastRunCheck = document.getElementById("run-lastrun-check");
   runLastRunCheck.addEventListener("click", runLastRunCheckClick);
 
+  const tasksRefreshButton = document.getElementById("tasks-refresh");
+  tasksRefreshButton.addEventListener("click", tasksRefreshClicked);
+
+  const tabControl= document.getElementById("tab-control");
+  tabControl.addEventListener("selectionchange", tabControlSelectionChange);
+
   const prevRunLinkList = document.querySelectorAll("[id^='history-dag-run-id']");
   for (let i = 0; i < prevRunLinkList.length; i++) {
     //prevRunLinkList[i].id
     prevRunLinkList[i].addEventListener("click", dagRunHistoryLinkClicked);
-}
+  }
 
-}
+  const taskLogLinkList = document.querySelectorAll("[id^='task-log-link-']");
+  for (let i = 0; i < taskLogLinkList.length; i++) {
+    //prevRunLinkList[i].id
+    taskLogLinkList[i].addEventListener("click", taskLogLinkClicked);
+  }
+
+  }
 
 function triggerDagClick() {
   vscode.postMessage({
     command: "run-trigger-dag",
     config: document.getElementById("run_config").value,
     date: document.getElementById("run_date").value,
+    activetabid: document.getElementById("tab-control").activeid,
   });
 }
 
 function viewLogDagClick() {
   vscode.postMessage({
     command: "run-view-log",
+    activetabid: document.getElementById("tab-control").activeid,
   });
 }
 
 function runMoreDagRunDetailClick() {
   vscode.postMessage({
     command: "run-more-dagrun-detail",
+    activetabid: document.getElementById("tab-control").activeid,
   });
 }
 
 function otherDagDetailClick() {
   vscode.postMessage({
     command: "other-dag-detail",
+    activetabid: document.getElementById("tab-control").activeid,
   });
 }
 
 function tasksMoreDetailClick() {
   vscode.postMessage({
     command: "tasks-more-detail",
+    activetabid: document.getElementById("tab-control").activeid,
   });
 }
 
 function revRunsRefreshClick() {
   vscode.postMessage({
     command: "rev-runs-refresh",
-    text: "",
+    activetabid: document.getElementById("tab-control").activeid,
   });
 }
 
 function infoSourceCodeClick() {
   vscode.postMessage({
     command: "info-source-code",
+    activetabid: document.getElementById("tab-control").activeid,
   });
 }
 
 function runPauseDagClick() {
   vscode.postMessage({
     command: "run-pause-dag",
+    activetabid: document.getElementById("tab-control").activeid,
   });
 }
 
 function runUnPauseDagClick() {
   vscode.postMessage({
     command: "run-unpause-dag",
+    activetabid: document.getElementById("tab-control").activeid,
   });
 }
 
 function runLastRunCheckClick() {
   vscode.postMessage({
     command: "run-lastrun-check",
+    activetabid: document.getElementById("tab-control").activeid,
   });
 }
-
-
 
 function dagRunHistoryLinkClicked() {
   vscode.postMessage({
     command: "history-dag-run-id",
+    activetabid: document.getElementById("tab-control").activeid,
   });
 }
 
+function tasksRefreshClicked() {
+  vscode.postMessage({
+    command: "tasks-refresh",
+    activetabid: document.getElementById("tab-control").activeid,
+  });
+}
+
+function tabControlSelectionChange() {
+  vscode.postMessage({
+    command: "tab-control",
+    activetabid: document.getElementById("tab-control").activeid,
+  });
+}
+
+function taskLogLinkClicked() {
+  vscode.postMessage({
+    command: "task-log-link",
+    activetabid: document.getElementById("tab-control").activeid,
+  });
+}

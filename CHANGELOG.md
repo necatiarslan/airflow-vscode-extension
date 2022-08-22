@@ -1,9 +1,16 @@
 # Change Log
 
+- v.1.3.2 (2022-08-21)
+    - Active Tab fix
+    - Tasks and Pre Runs are not loaded by default
+    - State name removed from the task list
+    - Bug Report and Feature Request Link 
+
 - v.1.3.1 (2022-08-12)
     - Favorite Dags and filter these by fav keyword
     - Show Source Code in an editor
     - Show Dag Run Logs in an editor
+    - Dag View
 
 - v.1.2.1 (2022-08-09)
     - Dag run indicator

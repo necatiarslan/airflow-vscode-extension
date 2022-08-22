@@ -6,7 +6,8 @@
 [![GitHub](https://flat.badgen.net/github/release/necatiarslan/airflow-vscode-extension/)](https://github.com/necatiarslan/airflow-vscode-extension/releases)
 [![Visual Studio Marketplace](https://vsmarketplacebadge.apphb.com/installs-short/necatiarslan.airflow-vscode-extension.svg?style=flat-square)](https://marketplace.visualstudio.com/items?itemName=necatiarslan.airflow-vscode-extension)
 
-![screenshoot](./docs/ScreenShot1.png)
+![screenshoot](./docs/airflow-extension.png)
+
 
 ## Introduction
 
@@ -53,6 +54,22 @@ $ airflow config get-value api auth_backends
 Result Should Be
 
 airflow.api.auth.backend.basic_auth
+
+## Dag Tree
+![screenshoot](./docs/dagview-dagtree.png)
+
+## Dag Run
+![screenshoot](./docs/dagview-run.png)
+
+## Dag Tasks
+![screenshoot](./docs/dagview-tasks.png)
+
+# Dag Info
+![screenshoot](./docs/dagview-info.png)
+
+## Previous Dag Runs
+![screenshoot](./docs/dagview-prevruns.png)
+
 
 ## Todo List
 I am working on these features now, so they will be available in a couple of weeks.
