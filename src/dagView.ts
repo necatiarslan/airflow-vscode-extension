@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import { getUri } from "./getUri";
 import * as ui from './ui';
 import { Api } from './api';
+import { DagTreeView } from "./dagTreeView";
 
 export class DagView {
     public static currentPanel: DagView | undefined;
@@ -34,6 +35,17 @@ export class DagView {
         ui.logToOutput('DagView.constructor Completed');
     }
 
+    public resetDagData(){
+        this.activetabid = "tab-1";
+        this.triggeredDagRunId = undefined;
+        this.dagJson = undefined;
+        this.dagRunJson = undefined;
+        this.dagRunHistoryJson = undefined;
+        this.dagTaskInstancesJson = undefined;
+        this.dagTasksJson = undefined;
+        this.stopCheckingDagRunStatus();
+    }
+
     public async loadAllDagData() {
         ui.logToOutput('DagView.loadAllDagData Started');
         await this.getDagInfo();
@@ -61,6 +73,7 @@ export class DagView {
         if (DagView.currentPanel) {
             this.currentPanel.dagId = dagId;
             DagView.currentPanel._panel.reveal(vscode.ViewColumn.Two);
+            DagView.currentPanel.resetDagData();
             DagView.currentPanel.loadAllDagData();
         } else {
             const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
@@ -141,6 +154,8 @@ export class DagView {
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
         ui.logToOutput('DagView._getWebviewContent Started');
+
+        //file URIs
         const toolkitUri = getUri(webview, extensionUri, [
             "node_modules",
             "@vscode",
@@ -152,25 +167,47 @@ export class DagView {
         const mainUri = getUri(webview, extensionUri, ["media", "main.js"]);
         const styleUri = getUri(webview, extensionUri, ["media", "style.css"]);
 
-        let dagId = this.dagId;
-        let state = (this.dagRunJson) ? this.dagRunJson.state : "";
-        let logical_date = (this.dagRunJson) ? this.dagRunJson.logical_date : "";
-        let start_date = (this.dagRunJson) ? this.dagRunJson.start_date : "";
-        let end_date = (this.dagRunJson) ? this.dagRunJson.end_date : "";
+        //LATEST DAG RUN
+        let state:string = "";
+        let logical_date:Date = undefined;
+        let start_date:Date = undefined;
+        let end_date:Date = undefined;
+        let logical_date_string:string = "";
+        let start_date_string:string = "";
+        let duration:string = "";
+        let next_dagrun:string = "";
+        let isDagRunning:boolean = false;
+        if(this.dagRunJson){
+            state = this.dagRunJson.state;
+            logical_date = this.dagRunJson.logical_date;
+            start_date = this.dagRunJson.start_date;
+            end_date = this.dagRunJson.end_date;
+            logical_date_string = new Date(logical_date).toLocaleDateString();
+            start_date_string = new Date(start_date).toLocaleString();
+            duration = ui.getDuration(new Date(start_date), new Date(end_date));
+            next_dagrun = '';//(this.dagJson) ? this.dagJson["next_dagrun"] : "";
+            isDagRunning = (state === "queued" || state === "running") ? true : false;
+        }
+
+        let runningOrFailedTasks: string = "";
+        if (this.dagTaskInstancesJson) {
+            for (var t of this.dagTaskInstancesJson["task_instances"]) {
+                if(t.state === "running" || t.state === "failed")
+                {
+                    runningOrFailedTasks += t.task_id + ", " ;
+                }
+            }
+        }
+
+        //INFO TAB
         let owners = (this.dagJson) ? this.dagJson["owners"].join(", ") : "";
         let tags: string = "";
         this.dagJson["tags"].forEach(item => { tags += item.name + ", "; });
-        tags = tags.slice(0, -3);
-        let schedule_interval = (this.dagJson) ? this.dagJson["schedule_interval"].value : "";
+        let schedule_interval = (this.dagJson && this.dagJson["schedule_interval"] && this.dagJson["schedule_interval"].value) ? this.dagJson["schedule_interval"].value : "";
         let isPaused = (this.dagJson) ? this.dagJson.is_paused ? "true" : "false" : "unknown";
-        let next_dagrun = '';//(this.dagJson) ? this.dagJson["next_dagrun"] : "";
 
-        let logical_date_string = new Date(logical_date).toLocaleDateString();
-        let start_date_string = new Date(start_date).toLocaleString();
-        let duration = ui.getDuration(new Date(start_date), new Date(end_date));
-
-        let isDagRunning: boolean = (state === "queued" || state === "running") ? true : false;
-
+        
+        //TASKS TAB
         let taskRows: string = "";
         if (this.dagTaskInstancesJson) {
             for (var t of this.dagTaskInstancesJson["task_instances"]) {
@@ -190,6 +227,7 @@ export class DagView {
             }
         }
 
+        //HISTORY TAB
         let runHistoryRows: string = "";
         if (this.dagRunHistoryJson) {
             for (var t of this.dagRunHistoryJson["dag_runs"]) {
@@ -225,7 +263,7 @@ export class DagView {
 
         <div style="display: flex; align-items: center;">
             <div class="dag-paused-${isPaused}"></div>
-            &nbsp; &nbsp; <h2>${dagId}</h2>
+            &nbsp; &nbsp; <h2>${this.dagId}</h2>
             <div style="visibility: ${isDagRunning ? "visible" : "hidden"}; display: flex; align-items: center;">
             &nbsp; &nbsp; <vscode-progress-ring></vscode-progress-ring>
             </div>
@@ -254,6 +292,11 @@ export class DagView {
                                     <div class="state-${state}"></div> &nbsp; ${state}
                                 </div>
                             </td>
+                        </tr>
+                        <tr>
+                            <td>Tasks</td>
+                            <td>:</td>
+                            <td>${runningOrFailedTasks}</td>
                         </tr>
                         <tr>
                             <td>Date</td>
@@ -466,7 +509,13 @@ export class DagView {
                         return;
 
                     case "run-lastrun-check":
-                        this.startCheckingDagRunStatus();
+                        this.getLastRun();
+                        if(this.dagRunJson)
+                        {
+
+                            this.startCheckingDagRunStatus(this.dagRunJson.dag_run_id);
+                        }
+                        
                         return;
 
                     case "history-dag-run-id":
@@ -507,6 +556,7 @@ export class DagView {
         let result = await Api.pauseDag(this.dagId, is_paused);
         if (result.isSuccessful) {
             this.loadDagDataOnly();
+            is_paused ? DagTreeView.currentPanel.notifyDagPaused(this.dagId) : DagTreeView.currentPanel.notifyDagUnPaused(this.dagId);
         }
 
     }
@@ -570,15 +620,15 @@ export class DagView {
             let result = await Api.triggerDag(this.dagId, config);
 
             if (result.isSuccessful) {
-                this.triggeredDagRunId = result.result["dag_run_id"];
-
-                this.startCheckingDagRunStatus();
+                this.startCheckingDagRunStatus(result.result["dag_run_id"]);
+                DagTreeView.currentPanel.notifyDagStateWithDagId(this.dagId);
             }
         }
     }
 
-    async startCheckingDagRunStatus() {
+    async startCheckingDagRunStatus(dagRunId:string) {
         ui.logToOutput('DagView.startCheckingDagRunStatus Started');
+        this.triggeredDagRunId = dagRunId;
         await this.refreshRunningDagState(this);
         if (this.dagStatusInterval) {
             clearInterval(this.dagStatusInterval);//stop prev checking
@@ -596,6 +646,11 @@ export class DagView {
     async refreshRunningDagState(dagView: DagView) {
         ui.logToOutput('DagView.refreshRunningDagState Started');
         if (!Api.isApiParamsSet()) { return; }
+        if (!dagView.dagId || !dagView.triggeredDagRunId)
+        {
+            dagView.stopCheckingDagRunStatus();
+            return;
+        }
 
         let result = await Api.getDagRun(dagView.dagId, dagView.triggeredDagRunId);
         if (result.isSuccessful) {

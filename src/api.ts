@@ -92,10 +92,8 @@ export class Api {
 			//https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId, params);
 
-			var responseDagRun = await response.json();
+			result.result = await response.json();
 			if (response.status === 200) {
-
-				result.result = responseDagRun;
 				result.isSuccessful = true;
 				ui.logToOutput("api.getDagRun completed");
 				return result;

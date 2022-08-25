@@ -8,6 +8,7 @@ import { Api } from './api';
 
 export class DagTreeView {
 
+	public static currentPanel: DagTreeView | undefined;
 	view: vscode.TreeView<DagTreeItem>;
 	treeDataProvider: DagTreeDataProvider;
 	daglistResponse: any;
@@ -23,6 +24,7 @@ export class DagTreeView {
 		this.loadState();
 		this.refresh();
 		context.subscriptions.push(this.view);
+		DagTreeView.currentPanel = this;
 	}
 
 	refresh(): void {
@@ -168,6 +170,16 @@ export class DagTreeView {
 		}
 	}
 
+	public async notifyDagStateWithDagId(dagId: string){
+		ui.logToOutput('DagTreeView.checDagStateWitDagId Started');
+		if (!this.treeDataProvider) { return; }
+		for (var node of this.treeDataProvider.visibleDagList) {
+			if (node.dagId === dagId) {
+				this.checkDagRunState(node);
+			}
+		}
+	}
+
 	async checkDagRunState(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.checkDagRunState Started');
 		if(!Api.isApiParamsSet()) { return; }
@@ -179,8 +191,8 @@ export class DagTreeView {
 		let result = await Api.getLastDagRun(node.dagId);
 		if (result.isSuccessful)
 		{
-			node.latestDagRunId = result.result['dag_runs'][0]['dag_run_id'];
-			node.latestDagState = result.result['dag_runs'][0]['state'];
+			node.latestDagRunId = result.result.dag_run_id;
+			node.latestDagState = result.result.state;
 			node.refreshUI();
 			this.treeDataProvider.refresh();
 
@@ -213,6 +225,30 @@ export class DagTreeView {
 			this.treeDataProvider.refresh();
 		}
 
+	}
+
+	public async notifyDagPaused(dagId: string){
+		ui.logToOutput('DagTreeView.notifyDagPaused Started');
+		if (!this.treeDataProvider) { return; }
+		for (var node of this.treeDataProvider.visibleDagList) {
+			if (node.dagId === dagId) {
+				node.isPaused = true;
+				node.refreshUI();
+				this.treeDataProvider.refresh();
+			}
+		}
+	}
+
+	public async notifyDagUnPaused(dagId: string){
+		ui.logToOutput('DagTreeView.notifyDagPaused Started');
+		if (!this.treeDataProvider) { return; }
+		for (var node of this.treeDataProvider.visibleDagList) {
+			if (node.dagId === dagId) {
+				node.isPaused = false;
+				node.refreshUI();
+				this.treeDataProvider.refresh();
+			}
+		}
 	}
 
 	async unPauseDAG(node: DagTreeItem) {

@@ -1,5 +1,9 @@
 # Change Log
 
+- v.1.3.3 (2022-08-24)
+    - Dag View switch bug fixed
+    - Running or Failed Tasks added to the Last Dag view
+
 - v.1.3.2 (2022-08-21)
     - Active Tab fix
     - Tasks and Pre Runs are not loaded by default
