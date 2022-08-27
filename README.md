@@ -15,6 +15,8 @@ This is a VSCode extension for Apache Airflow 2.0 and up.
 You can trigger your DAGs, pause/unpause DAGs, view execution logs, explore source code and do much more.
 The motivation of this extension is having the same functionality like Airflow Web UI and make Airflow development easier for vscode developers.
 
+To install the vscode extension, search 'Airflow' in the marketplace and install owned by Necati ARSLAN.
+
 ## Requirements - Airflow REST Api
 
 To be able to connect an Airflow Server, you should enable Airflow Rest Api.
