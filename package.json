@@ -2,7 +2,7 @@
 	"name": "airflow-vscode-extension",
 	"displayName": "Airflow",
 	"description": "Apache Airflow UI Extension to List/Trigger DAGs, View Logs and much more",
-	"version": "1.3.3",
+	"version": "1.3.4",
 	"publisher": "NecatiARSLAN",
 	"icon": "media/airflow-extension-logo.png",
 	"repository": {
@@ -27,14 +27,34 @@
 				"icon": "$(refresh)"
 			},
 			{
+				"command": "dagTreeView.connectServer",
+				"title": "Connect",
+				"icon": "$(plug)"
+			},
+			{
 				"command": "dagTreeView.addServer",
 				"title": "Add",
 				"icon": "$(add)"
 			},
 			{
+				"command": "dagTreeView.removeServer",
+				"title": "Remove",
+				"icon": "$(remove)"
+			},
+			{
 				"command": "dagTreeView.filter",
 				"title": "Filter",
 				"icon": "$(filter)"
+			},
+			{
+				"command": "dagTreeView.showOnlyActive",
+				"title": "Show Only Active",
+				"icon": "$(circle-large-filled)"
+			},
+			{
+				"command": "dagTreeView.showOnlyFavorite",
+				"title": "Show Only Favorite",
+				"icon": "$(bookmark)"
 			},
 			{
 				"command": "dagTreeView.viewDagView",
@@ -94,17 +114,37 @@
 				{
 					"command": "dagTreeView.refreshServer",
 					"when": "view == dagTreeView",
-					"group": "navigation"
+					"group": "navigation@7"
+				},
+				{
+					"command": "dagTreeView.connectServer",
+					"when": "view == dagTreeView",
+					"group": "navigation@6"
 				},
 				{
 					"command": "dagTreeView.addServer",
 					"when": "view == dagTreeView",
-					"group": "navigation"
+					"group": "navigation@5"
+				},
+				{
+					"command": "dagTreeView.removeServer",
+					"when": "view == dagTreeView",
+					"group": "navigation@4"
 				},
 				{
 					"command": "dagTreeView.filter",
 					"when": "view == dagTreeView",
-					"group": "navigation"
+					"group": "navigation@3"
+				},
+				{
+					"command": "dagTreeView.showOnlyActive",
+					"when": "view == dagTreeView",
+					"group": "navigation@2"
+				},
+				{
+					"command": "dagTreeView.showOnlyFavorite",
+					"when": "view == dagTreeView",
+					"group": "navigation@1"
 				}
 			],
 			"view/item/context": [

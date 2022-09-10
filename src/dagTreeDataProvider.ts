@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import { DagTreeItem } from './dagTreeItem';
+import { DagTreeView } from './dagTreeView';
 
 export class DagTreeDataProvider implements vscode.TreeDataProvider<DagTreeItem>
 {
 	private _onDidChangeTreeData: vscode.EventEmitter<DagTreeItem | undefined | void> = new vscode.EventEmitter<DagTreeItem | undefined | void>();
 	readonly onDidChangeTreeData: vscode.Event<DagTreeItem | undefined | void> = this._onDidChangeTreeData.event;
 	daglistResponse: any;
-	filterString: string = '';
 	dagList: DagTreeItem[] = [];
 	visibleDagList: DagTreeItem[] = [];
 
@@ -29,15 +29,22 @@ export class DagTreeDataProvider implements vscode.TreeDataProvider<DagTreeItem>
 
 	getChildren(element: DagTreeItem): Thenable<DagTreeItem[]> {
 		if (!element) {
-			this.visibleDagList = [];
-			for (var node of this.dagList) {
-				if (!this.filterString || (this.filterString && node.doesFilterMatch(this.filterString))) {
-					this.visibleDagList.push(node);
-				}
-			}
+			this.visibleDagList = this.getVisibleDagList();
 			return Promise.resolve(this.visibleDagList);
 		}
 		return Promise.resolve([]);
+	}
+
+	getVisibleDagList(): DagTreeItem[]{
+		var result: DagTreeItem[] = [];
+		for (var node of this.dagList) {
+			if (DagTreeView.currentPanel.filterString && !node.doesFilterMatch(DagTreeView.currentPanel.filterString)) { continue; }
+			if (DagTreeView.currentPanel.ShowOnlyActive && node.isPaused) { continue; }
+			if (DagTreeView.currentPanel.ShowOnlyFavorite && !node.isFav) { continue; }
+
+			result.push(node);
+		}
+		return result;
 	}
 
 	getTreeItem(element: DagTreeItem): DagTreeItem {

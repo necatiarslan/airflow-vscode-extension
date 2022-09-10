@@ -76,14 +76,12 @@ airflow.api.auth.backend.basic_auth
 ## Todo List
 I am working on these features now, so they will be available in a couple of weeks.
 
-- Multiple server support
 - Filter by tags
 - DAG Explorer (a treeview which lists your dags and tasks)
 - Connections, Variables, XComs
 - Task Tab, Log link
 - DagTree, open dagview with double click or hit enter key
 - Loading Indicator
-- Last Run: show running or failed tasks
 
 - Server Health Check/Status
 - Support Kerberos Authentication

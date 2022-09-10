@@ -20,8 +20,24 @@ export function activate(context: vscode.ExtensionContext) {
 		dagTreeView.addServer();
 	});
 
+	vscode.commands.registerCommand('dagTreeView.removeServer', () => {
+		dagTreeView.removeServer();
+	});
+
+	vscode.commands.registerCommand('dagTreeView.connectServer', () => {
+		dagTreeView.connectServer();
+	});
+
 	vscode.commands.registerCommand('dagTreeView.filter', () => {
 		dagTreeView.filter();
+	});
+
+	vscode.commands.registerCommand('dagTreeView.showOnlyActive', () => {
+		dagTreeView.showOnlyActive();
+	});
+
+	vscode.commands.registerCommand('dagTreeView.showOnlyFavorite', () => {
+		dagTreeView.showOnlyFavorite();
 	});
 
 	vscode.commands.registerCommand('dagTreeView.viewDagView', (node: DagTreeItem) => {

@@ -15,13 +15,17 @@ export class DagTreeView {
 	context: vscode.ExtensionContext;
 	filterString: string = '';
 	dagStatusInterval: NodeJS.Timer;
+	public ShowOnlyActive: boolean = true;
+	public ShowOnlyFavorite: boolean = false;
+
+	public ServerList: {}[] = [];
 
 	constructor(context: vscode.ExtensionContext) {
 		ui.logToOutput('DagTreeView.constructor Started');
 		this.context = context;
+		this.loadState();
 		this.treeDataProvider = new DagTreeDataProvider();
 		this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
-		this.loadState();
 		this.refresh();
 		context.subscriptions.push(this.view);
 		DagTreeView.currentPanel = this;
@@ -297,14 +301,6 @@ export class DagTreeView {
 			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.dagId, postfix: '.py' });
 			fs.appendFileSync(tmpFile.name, result.result);
 			ui.openFile(tmpFile.name);
-
-			//TODO: Option to print to output
-			// let outputAirflow = vscode.window.createOutputChannel("Airflow");
-			// outputAirflow.clear();
-			// outputAirflow.append(sourceCode);
-			// outputAirflow.show();
-
-			// this.showInfoMessage('Source Code printed to output.');
 		}
 		else
 		{
@@ -322,29 +318,38 @@ export class DagTreeView {
 		if (filterStringTemp !== '') {
 			this.filterString = filterStringTemp;
 			this.view.message = 'Filter : ' + this.filterString;
-			this.treeDataProvider.filterString = this.filterString;
 		}
 		else {
 			this.filterString = '';
 			this.view.message = '';
-			this.treeDataProvider.filterString = this.filterString;
 		}
-		this.saveState();
 		this.treeDataProvider.refresh();
+		this.saveState();
+	}
+
+	async showOnlyActive() {
+		ui.logToOutput('DagTreeView.showOnlyActive Started');
+		this.ShowOnlyActive = !this.ShowOnlyActive;
+		this.treeDataProvider.refresh();
+		this.saveState();
+	}
+
+	async showOnlyFavorite() {
+		ui.logToOutput('DagTreeView.showOnlyFavorite Started');
+		this.ShowOnlyFavorite = !this.ShowOnlyFavorite;
+		this.treeDataProvider.refresh();
+		this.saveState();
 	}
 
 	async addServer() {
 		ui.logToOutput('DagTreeView.addServer Started');
-		let apiUrlTemp = await vscode.window.showInputBox({ placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
 
+		let apiUrlTemp = await vscode.window.showInputBox({ placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
 		if (apiUrlTemp === undefined) { return; }
 
-		if (apiUrlTemp === '' && Api.apiUrl) {
-			let deleteApiConfig = await vscode.window.showInputBox({ placeHolder: 'Delete Current Airflow Connection Coniguration ? (Yes/No)' });
-			if (deleteApiConfig === 'Yes') {
-				this.resetView();
-				return;
-			}
+		if(this.ServerList.find(e => e["apiUrl"] === apiUrlTemp))
+		{
+			ui.showWarningMessage(apiUrlTemp + " Already Added.");
 			return;
 		}
 
@@ -354,13 +359,63 @@ export class DagTreeView {
 		let passwordTemp = await vscode.window.showInputBox({ placeHolder: 'Password' });
 		if (!passwordTemp) { return; }
 
+		this.ServerList.push({ "apiUrl": apiUrlTemp, "apiUserName":userNameTemp, "apiPassword": passwordTemp});
+
+
 		Api.apiUrl = apiUrlTemp;
 		Api.apiUserName = userNameTemp;
 		Api.apiPassword = passwordTemp;
 
 		this.saveState();
-
 		this.refresh();
+	}
+
+	async removeServer() {
+		ui.logToOutput('DagTreeView.removeServer Started');
+
+		var items: string[] = [];
+		for(var s of this.ServerList)
+		{
+			items.push(s["apiUrl"]);
+		}
+
+		let apiUrlTemp = await vscode.window.showQuickPick(items, {canPickMany:false});
+		if(apiUrlTemp)
+		{
+			this.ServerList = this.ServerList.filter(item => item["apiUrl"] !== apiUrlTemp);
+			ui.showInfoMessage("Server removed, you can remain working on it or connect a new one.");
+		}
+
+	}
+
+	async connectServer() {
+		ui.logToOutput('DagTreeView.connectServer Started');
+
+		if(this.ServerList.length === 0)
+		{
+			this.addServer();
+			return;
+		}
+
+		var items: string[] = [];
+		for(var s of this.ServerList)
+		{
+			items.push(s["apiUrl"]);
+		}
+
+		let apiUrlTemp = await vscode.window.showQuickPick(items, {canPickMany:false});
+
+		if(apiUrlTemp)
+		{
+			var item = this.ServerList.find(e => e["apiUrl"] === apiUrlTemp);
+
+			Api.apiUrl = apiUrlTemp;
+			Api.apiUserName = item["apiUserName"];
+			Api.apiPassword = item["apiPassword"];
+	
+			this.saveState();
+			this.refresh();
+		}
 	}
 
 	async loadDags() {
@@ -388,6 +443,10 @@ export class DagTreeView {
 			this.context.globalState.update('apiUserName', Api.apiUserName);
 			this.context.globalState.update('apiPassword', Api.apiPassword);
 			this.context.globalState.update('filterString', this.filterString);
+			this.context.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
+			this.context.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
+			this.context.globalState.update('ServerList', this.ServerList);
+
 		} catch (error) {
 			ui.logToOutput("dagTreeView.saveState Error !!!", error);
 		}
@@ -409,8 +468,21 @@ export class DagTreeView {
 			if (filterStringTemp) {
 				this.filterString = filterStringTemp;
 				this.view.message = 'Filter : ' + this.filterString;
-				this.treeDataProvider.filterString = this.filterString;
 			}
+
+			let ShowOnlyActiveTemp: boolean = this.context.globalState.get('ShowOnlyActive');
+			if (ShowOnlyActiveTemp) { this.ShowOnlyActive = ShowOnlyActiveTemp; }
+
+			let ShowOnlyFavoriteTemp: boolean = this.context.globalState.get('ShowOnlyFavorite');
+			if (ShowOnlyFavoriteTemp) { this.ShowOnlyFavorite = ShowOnlyFavoriteTemp; }
+
+			if(!this.ServerList.find(e => e["apiUrl"] === apiUrlTemp))
+			{
+				this.ServerList.push({ "apiUrl": apiUrlTemp, "apiUserName":apiUserNameTemp, "apiPassword": apiPasswordTemp });
+			}
+
+			let ServerListTemp: {}[] = this.context.globalState.get('ServerList');
+			if (ServerListTemp) { this.ServerList = ServerListTemp; }
 		} catch (error) {
 			ui.logToOutput("dagTreeView.loadState Error !!!", error);
 		}

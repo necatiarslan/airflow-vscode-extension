@@ -1,5 +1,9 @@
 # Change Log
 
+- v.1.3.4 (2022-09-10)
+    - Multi Server Support
+    - Show Only Active and Show Favs Filter Buttons
+
 - v.1.3.3 (2022-08-24)
     - Dag View switch bug fixed
     - Running or Failed Tasks added to the Last Dag view

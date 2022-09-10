@@ -1,5 +1,8 @@
 package:
     vsce package
 
-publid:
+build:
+    vsce package
+
+publish:
     vsce publish
