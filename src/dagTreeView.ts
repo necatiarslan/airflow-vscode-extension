@@ -372,6 +372,7 @@ export class DagTreeView {
 
 	async removeServer() {
 		ui.logToOutput('DagTreeView.removeServer Started');
+		if(this.ServerList.length === 0) { return; }
 
 		var items: string[] = [];
 		for(var s of this.ServerList)
