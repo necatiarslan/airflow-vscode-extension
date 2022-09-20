@@ -8,7 +8,7 @@ import { Api } from './api';
 
 export class DagTreeView {
 
-	public static currentPanel: DagTreeView | undefined;
+	public static Current: DagTreeView | undefined;
 	view: vscode.TreeView<DagTreeItem>;
 	treeDataProvider: DagTreeDataProvider;
 	daglistResponse: any;
@@ -28,7 +28,8 @@ export class DagTreeView {
 		this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
 		this.refresh();
 		context.subscriptions.push(this.view);
-		DagTreeView.currentPanel = this;
+		DagTreeView.Current = this;
+		this.setFilterMessage();
 	}
 
 	refresh(): void {
@@ -315,15 +316,9 @@ export class DagTreeView {
 
 		if (filterStringTemp === undefined) { return; }
 
-		if (filterStringTemp !== '') {
-			this.filterString = filterStringTemp;
-			this.view.message = 'Filter : ' + this.filterString;
-		}
-		else {
-			this.filterString = '';
-			this.view.message = '';
-		}
+		this.filterString = filterStringTemp;
 		this.treeDataProvider.refresh();
+		this.setFilterMessage();
 		this.saveState();
 	}
 
@@ -331,6 +326,7 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.showOnlyActive Started');
 		this.ShowOnlyActive = !this.ShowOnlyActive;
 		this.treeDataProvider.refresh();
+		this.setFilterMessage();
 		this.saveState();
 	}
 
@@ -338,6 +334,7 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.showOnlyFavorite Started');
 		this.ShowOnlyFavorite = !this.ShowOnlyFavorite;
 		this.treeDataProvider.refresh();
+		this.setFilterMessage();
 		this.saveState();
 	}
 
@@ -453,6 +450,15 @@ export class DagTreeView {
 		}
 	}
 
+	setFilterMessage(){
+		this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, '+this.getBoolenSign(this.ShowOnlyActive)+'Active, Filter : ' + this.filterString;
+	}
+
+	getBoolenSign(variable: boolean){
+		return variable ? "✓" : "𐄂";
+	}
+
+
 	loadState() {
 		ui.logToOutput('DagTreeView.loadState Started');
 		try {
@@ -468,7 +474,7 @@ export class DagTreeView {
 			let filterStringTemp: string = this.context.globalState.get('filterString');
 			if (filterStringTemp) {
 				this.filterString = filterStringTemp;
-				this.view.message = 'Filter : ' + this.filterString;
+				this.setFilterMessage();
 			}
 
 			let ShowOnlyActiveTemp: boolean = this.context.globalState.get('ShowOnlyActive');

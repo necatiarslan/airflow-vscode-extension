@@ -1,9 +1,14 @@
 import * as vscode from 'vscode';
+import { Uri, Webview } from "vscode";
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
 var outputChannel: vscode.OutputChannel;
 var logsOutputChannel: vscode.OutputChannel;
+
+export function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
+  return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
+}
 
 export function showOutputMessage(message: any): void {
 

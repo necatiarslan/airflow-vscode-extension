@@ -1,4 +1,7 @@
 # Change Log
+- v.1.3.5 (2022-09-18)
+    - Filter message updated 
+    - Filter by DAG tags
 
 - v.1.3.4 (2022-09-10)
     - Multi Server Support

@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
-import { getUri } from "./getUri";
 import * as ui from './ui';
 import { Api } from './api';
 import { DagTreeView } from "./dagTreeView";
 
 export class DagView {
-    public static currentPanel: DagView | undefined;
+    public static Current: DagView | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
@@ -53,6 +52,11 @@ export class DagView {
         //await this.getDagTasks();
         //await this.getRunHistory();
         await this.renderHmtl();
+
+        if(this.dagRunJson && this.dagJson.state === "running" )
+        {
+            this.startCheckingDagRunStatus(this.dagRunJson.dag_run_id);
+        }
     }
 
     public async loadDagDataOnly() {
@@ -70,17 +74,17 @@ export class DagView {
 
     public static render(extensionUri: vscode.Uri, dagId: string) {
         ui.logToOutput('DagView.render Started');
-        if (DagView.currentPanel) {
-            this.currentPanel.dagId = dagId;
-            DagView.currentPanel._panel.reveal(vscode.ViewColumn.Two);
-            DagView.currentPanel.resetDagData();
-            DagView.currentPanel.loadAllDagData();
+        if (DagView.Current) {
+            this.Current.dagId = dagId;
+            DagView.Current._panel.reveal(vscode.ViewColumn.Two);
+            DagView.Current.resetDagData();
+            DagView.Current.loadAllDagData();
         } else {
             const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
                 enableScripts: true,
             });
 
-            DagView.currentPanel = new DagView(panel, extensionUri, dagId);
+            DagView.Current = new DagView(panel, extensionUri, dagId);
         }
     }
 
@@ -140,7 +144,7 @@ export class DagView {
 
     public dispose() {
         ui.logToOutput('DagView.dispose Started');
-        DagView.currentPanel = undefined;
+        DagView.Current = undefined;
 
         this._panel.dispose();
 
@@ -156,7 +160,7 @@ export class DagView {
         ui.logToOutput('DagView._getWebviewContent Started');
 
         //file URIs
-        const toolkitUri = getUri(webview, extensionUri, [
+        const toolkitUri = ui.getUri(webview, extensionUri, [
             "node_modules",
             "@vscode",
             "webview-ui-toolkit",
@@ -164,8 +168,8 @@ export class DagView {
             "toolkit.js", // A toolkit.min.js file is also available
         ]);
 
-        const mainUri = getUri(webview, extensionUri, ["media", "main.js"]);
-        const styleUri = getUri(webview, extensionUri, ["media", "style.css"]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
 
         //LATEST DAG RUN
         let state:string = "";
@@ -556,7 +560,7 @@ export class DagView {
         let result = await Api.pauseDag(this.dagId, is_paused);
         if (result.isSuccessful) {
             this.loadDagDataOnly();
-            is_paused ? DagTreeView.currentPanel.notifyDagPaused(this.dagId) : DagTreeView.currentPanel.notifyDagUnPaused(this.dagId);
+            is_paused ? DagTreeView.Current.notifyDagPaused(this.dagId) : DagTreeView.Current.notifyDagUnPaused(this.dagId);
         }
 
     }
@@ -621,7 +625,7 @@ export class DagView {
 
             if (result.isSuccessful) {
                 this.startCheckingDagRunStatus(result.result["dag_run_id"]);
-                DagTreeView.currentPanel.notifyDagStateWithDagId(this.dagId);
+                DagTreeView.Current.notifyDagStateWithDagId(this.dagId);
             }
         }
     }

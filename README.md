@@ -37,26 +37,6 @@ If you want to test Airflow on your machine in a docker container, click link be
 
 https://www.youtube.com/watch?v=aTaytcxy2Ck
 
-## Troubleshooting
-- Can Not Connect to Airflow
-
-Check Api Url, UserName and Password.
-Api URL should be like this below.
-
-http://<SERVER_NAME>:<PORT_NUMBER>/api/v1/dags
-
-- DAG Load Error !!! FORBIDDEN 
-
-Check your API authentication configuration.
-
-Run this command on your airflow server
-
-$ airflow config get-value api auth_backends
-
-Result Should Be
-
-airflow.api.auth.backend.basic_auth
-
 ## Dag Tree
 ![screenshoot](./docs/dagview-dagtree.png)
 
@@ -76,16 +56,18 @@ airflow.api.auth.backend.basic_auth
 ## Todo List
 I am working on these features now, so they will be available in a couple of weeks.
 
-- Filter by tags
-- DAG Explorer (a treeview which lists your dags and tasks)
+- Fix: when you open a dag while running, dagview does not check dag state continuously
 - Connections, Variables, XComs
 - Task Tab, Log link
-- DagTree, open dagview with double click or hit enter key
 - Loading Indicator
+- Show Dag Import Errors on TreeView and DagView
+- Hierarchical Tasks List
+- Cancel a Dag Run
+- Run Specific Tasks
 
 - Server Health Check/Status
-- Support Kerberos Authentication
 - Dag Code Checks
+- DAG Explorer (a treeview which lists your dags and tasks)
 - Highligt DAG and Operator Keywords
 - Theme Support
 

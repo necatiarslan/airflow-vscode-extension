@@ -35,6 +35,7 @@ class DagTreeView {
         this.refresh();
         context.subscriptions.push(this.view);
         DagTreeView.currentPanel = this;
+        this.setFilterMessage();
     }
     refresh() {
         ui.logToOutput('DagTreeView.refresh Started');
@@ -298,27 +299,23 @@ class DagTreeView {
         if (filterStringTemp === undefined) {
             return;
         }
-        if (filterStringTemp !== '') {
-            this.filterString = filterStringTemp;
-            this.view.message = 'Filter : ' + this.filterString;
-        }
-        else {
-            this.filterString = '';
-            this.view.message = '';
-        }
+        this.filterString = filterStringTemp;
         this.treeDataProvider.refresh();
+        this.setFilterMessage();
         this.saveState();
     }
     async showOnlyActive() {
         ui.logToOutput('DagTreeView.showOnlyActive Started');
         this.ShowOnlyActive = !this.ShowOnlyActive;
         this.treeDataProvider.refresh();
+        this.setFilterMessage();
         this.saveState();
     }
     async showOnlyFavorite() {
         ui.logToOutput('DagTreeView.showOnlyFavorite Started');
         this.ShowOnlyFavorite = !this.ShowOnlyFavorite;
         this.treeDataProvider.refresh();
+        this.setFilterMessage();
         this.saveState();
     }
     async addServer() {
@@ -412,6 +409,12 @@ class DagTreeView {
             ui.logToOutput("dagTreeView.saveState Error !!!", error);
         }
     }
+    setFilterMessage() {
+        this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, ' + this.getBoolenSign(this.ShowOnlyActive) + 'Active, Filter : ' + this.filterString;
+    }
+    getBoolenSign(variable) {
+        return variable ? "✓" : "𐄂";
+    }
     loadState() {
         ui.logToOutput('DagTreeView.loadState Started');
         try {
@@ -430,7 +433,7 @@ class DagTreeView {
             let filterStringTemp = this.context.globalState.get('filterString');
             if (filterStringTemp) {
                 this.filterString = filterStringTemp;
-                this.view.message = 'Filter : ' + this.filterString;
+                this.setFilterMessage();
             }
             let ShowOnlyActiveTemp = this.context.globalState.get('ShowOnlyActive');
             if (ShowOnlyActiveTemp) {
@@ -13746,11 +13749,12 @@ class DagTreeItem extends vscode.TreeItem {
                 matchingWords.push(word);
                 continue;
             }
-            //TODO
-            // for(var t of this.tags)
-            // {
-            // 	if (t.includes(word)) { matchingWords.push(word); continue; }
-            // }
+            for (var t of this.tags) {
+                if (t.name.includes(word)) {
+                    matchingWords.push(word);
+                    continue;
+                }
+            }
         }
         return words.length === matchingWords.length;
     }

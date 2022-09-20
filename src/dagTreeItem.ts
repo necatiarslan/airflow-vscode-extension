@@ -6,7 +6,7 @@ export class DagTreeItem extends vscode.TreeItem {
 	public isActive: boolean;
 	public dagId: string;
 	public owners: string[];
-	public tags: string[];
+	public tags: {name:string}[];
 	public apiResponse: any;
 	public fileToken: string;
 	public latestDagRunId: string;
@@ -69,11 +69,10 @@ export class DagTreeItem extends vscode.TreeItem {
 			if (this.owners.includes(word)) { matchingWords.push(word); continue; }
 			if (word === 'fav' && this.isFav) { matchingWords.push(word); continue; }
 
-			//TODO
-			// for(var t of this.tags)
-			// {
-			// 	if (t.includes(word)) { matchingWords.push(word); continue; }
-			// }
+			for(var t of this.tags)
+			{
+				if (t.name.includes(word)) { matchingWords.push(word); continue; }
+			}
 		}
 
 		return words.length === matchingWords.length;
