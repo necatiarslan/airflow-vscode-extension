@@ -53,7 +53,8 @@ function main() {
 
   }
 
-function triggerDagClick() {
+
+  function triggerDagClick() {
   vscode.postMessage({
     command: "run-trigger-dag",
     config: document.getElementById("run_config").value,

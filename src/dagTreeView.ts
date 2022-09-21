@@ -9,14 +9,15 @@ import { Api } from './api';
 export class DagTreeView {
 
 	public static Current: DagTreeView | undefined;
-	view: vscode.TreeView<DagTreeItem>;
-	treeDataProvider: DagTreeDataProvider;
-	daglistResponse: any;
-	context: vscode.ExtensionContext;
-	filterString: string = '';
-	dagStatusInterval: NodeJS.Timer;
+	public view: vscode.TreeView<DagTreeItem>;
+	public treeDataProvider: DagTreeDataProvider;
+	public daglistResponse: any;
+	public context: vscode.ExtensionContext;
+	public filterString: string = '';
+	public dagStatusInterval: NodeJS.Timer;
 	public ShowOnlyActive: boolean = true;
 	public ShowOnlyFavorite: boolean = false;
+	public ImportErrorsJson: any;
 
 	public ServerList: {}[] = [];
 
@@ -35,6 +36,7 @@ export class DagTreeView {
 	refresh(): void {
 		ui.logToOutput('DagTreeView.refresh Started');
 		this.loadDags();
+		this.getImportErrors();
 	}
 
 	resetView(): void {
@@ -432,6 +434,22 @@ export class DagTreeView {
 		}
 		this.treeDataProvider.refresh();
 		this.view.title = Api.apiUrl;
+	}
+
+	async getImportErrors(){
+		ui.logToOutput('DagTreeView.getImportErrors Started');
+		if(!Api.isApiParamsSet()) { return; }
+
+		let result = await Api.getImportErrors();
+		if(result.isSuccessful)
+		{
+			this.ImportErrorsJson = result.result;
+			if(this.ImportErrorsJson.total_entries > 0)
+			{
+				ui.showOutputMessage(result.result, "Import Dag Errors! Check Output Panel");
+			}
+			
+		}
 	}
 
 	saveState() {

@@ -6,11 +6,13 @@ import { join } from 'path';
 var outputChannel: vscode.OutputChannel;
 var logsOutputChannel: vscode.OutputChannel;
 
+var NEW_LINE:string = "<br/>";
+
 export function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
   return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
 }
 
-export function showOutputMessage(message: any): void {
+export function showOutputMessage(message: any, popupMessage: string = "Results are printed to OUTPUT / Airflow-Extension"): void {
 
   if (!outputChannel) {
     outputChannel = vscode.window.createOutputChannel("Airflow-Extension");
@@ -25,7 +27,7 @@ export function showOutputMessage(message: any): void {
     outputChannel.appendLine(message);
   }
   outputChannel.show();
-  showInfoMessage("Results are printed to OUTPUT / Airflow-Extension");
+  showInfoMessage(popupMessage);
 }
 
 export function logToOutput(message: any, error: Error = undefined): void {
@@ -59,7 +61,7 @@ export function showWarningMessage(message: string): void {
 
 export function showErrorMessage(message: string, error: Error = undefined): void {
   if (error) {
-    vscode.window.showErrorMessage(message + "\n\n" + error.name + "/n" + error.message);
+    vscode.window.showErrorMessage(message + NEW_LINE + error.name + NEW_LINE + error.message);
   }
   else {
     vscode.window.showErrorMessage(message);
@@ -68,12 +70,12 @@ export function showErrorMessage(message: string, error: Error = undefined): voi
 
 export function showApiErrorMessage(message: string, jsonResult): void {
   if (jsonResult) {
-    vscode.window.showErrorMessage(message + "\n\n"
-      + "type:" + jsonResult.type + "\n"
-      + "title:" + jsonResult.title + "\n"
-      + "status:" + jsonResult.status + "\n"
-      + "detail:" + jsonResult.detail + "\n"
-      + "instance:" + jsonResult.instance + "\n"
+    vscode.window.showErrorMessage(message + NEW_LINE
+      + "type:" + jsonResult.type + NEW_LINE
+      + "title:" + jsonResult.title + NEW_LINE
+      + "status:" + jsonResult.status + NEW_LINE
+      + "detail:" + jsonResult.detail + NEW_LINE
+      + "instance:" + jsonResult.instance + NEW_LINE
     );
   }
   else {

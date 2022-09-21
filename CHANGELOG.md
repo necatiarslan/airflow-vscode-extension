@@ -2,6 +2,7 @@
 - v.1.3.5 (2022-09-18)
     - Filter message updated 
     - Filter by DAG tags
+    - Reports Dag Import Errors
 
 - v.1.3.4 (2022-09-10)
     - Multi Server Support

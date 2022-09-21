@@ -60,7 +60,6 @@ I am working on these features now, so they will be available in a couple of wee
 - Connections, Variables, XComs
 - Task Tab, Log link
 - Loading Indicator
-- Show Dag Import Errors on TreeView and DagView
 - Hierarchical Tasks List
 - Cancel a Dag Run
 - Run Specific Tasks

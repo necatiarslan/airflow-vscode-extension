@@ -446,4 +446,53 @@ export class Api {
 		}
 	}
 
+	/*
+	{
+    "import_errors": [
+        {
+            "filename": "/opt/airflow/dags/dag_load_error.py",
+            "import_error_id": 98,
+            "stack_trace": "Traceback (most recent call last):\n  File \"<frozen importlib._bootstrap>\", line 219, in _call_with_frames_removed\n  File \"/opt/airflow/dags/dag_load_error.py\", line 73, in <module>\n    this_will_skip2 >> run_this_last\nNameError: name 'this_will_skip2' is not defined\n",
+            "timestamp": "2022-09-21T03:00:58.618426+00:00"
+        }
+    ],
+    "total_entries": 1
+	}
+	 */
+	public static async getImportErrors(): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getImportErrors started");
+		let result: MethodResult<any> = new MethodResult<any>();
+
+		try {
+			let params = {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
+				}
+			};
+
+			let response = await fetch(Api.apiUrl + '/importErrors', params);
+
+			result.result = await response.json();
+			if (response.status === 200) {
+				result.isSuccessful = true;
+				ui.logToOutput("api.getImportErrors completed");
+				return result;
+			}
+			else {
+				ui.showApiErrorMessage('Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getImportErrors completed");
+				return result;
+			}
+		} catch (error) {
+			ui.showErrorMessage('Can not connect to Airflow. Please check Url, UserName and Password.', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getImportErrors Error !!!", error);
+			return result;
+		}
+	}
+
 }
