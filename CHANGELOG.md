@@ -3,6 +3,9 @@
     - Filter message updated 
     - Filter by DAG tags
     - Reports Dag Import Errors
+    - Tasks Order Fixed
+    - Task Logs
+    - Prev Runs Link
 
 - v.1.3.4 (2022-09-10)
     - Multi Server Support

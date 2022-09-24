@@ -57,12 +57,12 @@ https://www.youtube.com/watch?v=aTaytcxy2Ck
 I am working on these features now, so they will be available in a couple of weeks.
 
 - Fix: when you open a dag while running, dagview does not check dag state continuously
-- Connections, Variables, XComs
-- Task Tab, Log link
-- Loading Indicator
-- Hierarchical Tasks List
 - Cancel a Dag Run
 - Run Specific Tasks
+- Connections, Variables, XComs
+- Loading Indicator
+- Hierarchical Tasks List
+
 
 - Server Health Check/Status
 - Dag Code Checks

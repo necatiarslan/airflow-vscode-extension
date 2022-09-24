@@ -33,6 +33,9 @@ function main() {
   const runLastRunCheck = document.getElementById("run-lastrun-check");
   runLastRunCheck.addEventListener("click", runLastRunCheckClick);
 
+  const runLastRunCancel = document.getElementById("run-lastrun-cancel");
+  runLastRunCancel.addEventListener("click", runLastRunCancelClick);
+
   const tasksRefreshButton = document.getElementById("tasks-refresh");
   tasksRefreshButton.addEventListener("click", tasksRefreshClicked);
 
@@ -126,10 +129,18 @@ function runLastRunCheckClick() {
   });
 }
 
-function dagRunHistoryLinkClicked() {
+function runLastRunCancelClick() {
+  vscode.postMessage({
+    command: "run-lastrun-cancel",
+    activetabid: document.getElementById("tab-control").activeid,
+  });
+}
+
+function dagRunHistoryLinkClicked(e) {
   vscode.postMessage({
     command: "history-dag-run-id",
     activetabid: document.getElementById("tab-control").activeid,
+    id: e.target.id,
   });
 }
 
@@ -147,9 +158,10 @@ function tabControlSelectionChange() {
   });
 }
 
-function taskLogLinkClicked() {
+function taskLogLinkClicked(e) {
   vscode.postMessage({
     command: "task-log-link",
     activetabid: document.getElementById("tab-control").activeid,
+    id: e.target.id,
   });
 }

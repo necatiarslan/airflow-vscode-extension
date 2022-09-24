@@ -63,13 +63,13 @@ export class Api {
 				return result;
 			}
 			else {
-				ui.showApiErrorMessage('Error !!!', result.result);
+				ui.showApiErrorMessage(dagId + ' Api Call Error !!!', result.result);
 				result.isSuccessful = false;
 				ui.logToOutput("api.triggerDag completed");
 				return result;
 			}
 		} catch (error) {
-			ui.showErrorMessage(dagId + ' Dag Trigger Error !!!', error);
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
 			result.isSuccessful = false;
 			result.error = error;
 			ui.logToOutput("api.triggerDag Error !!!", error);
@@ -99,16 +99,52 @@ export class Api {
 				return result;
 			}
 			else {
-				ui.showApiErrorMessage('Error !!!', result.result);
+				ui.showApiErrorMessage(dagId + ' Api Call Error !!!', result.result);
 				result.isSuccessful = false;
 				ui.logToOutput("api.getDagRun completed");
 				return result;
 			}
 		} catch (error) {
-			ui.showErrorMessage(dagId + ' Dag Trigger Error !!!\n\n' + error.message);
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
 			result.isSuccessful = false;
 			result.error = error;
 			ui.logToOutput("api.getDagRun Error !!!", error);
+			return result;
+		}
+	}
+
+	public static async cancelDagRun(dagId: string, dagRunId: string): Promise<MethodResult<any>> {
+		ui.logToOutput("api.cancelDagRun started");
+		let result: MethodResult<any> = new MethodResult<any>();
+		try {
+			let params = {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
+				}
+			};
+
+			
+			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId + "/taskInstances", params);
+
+			result.result = await response.json();
+			if (response.status === 200) {
+				result.isSuccessful = true;
+				ui.logToOutput("api.cancelDagRun completed");
+				return result;
+			}
+			else {
+				ui.showApiErrorMessage(dagId + ' Api Call Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.cancelDagRun completed");
+				return result;
+			}
+		} catch (error) {
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.cancelDagRun Error !!!", error);
 			return result;
 		}
 	}
@@ -139,14 +175,14 @@ export class Api {
 				return result;
 			}
 			else {
-				ui.showApiErrorMessage('Error !!!', result.result);
+				ui.showApiErrorMessage(dagId + ' Api Call Error !!!', result.result);
 				result.isSuccessful = false;
 				ui.logToOutput("api.pauseDag completed");
 				return result;
 			}
 
 		} catch (error) {
-			ui.showErrorMessage('Error !!!', error);
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
 			result.isSuccessful = false;
 			result.error = error;
 			ui.logToOutput("api.pauseDag Error !!!", error);
@@ -176,14 +212,14 @@ export class Api {
 
 			}
 			else {
-				ui.showApiErrorMessage('Error !!!', result.result);
+				ui.showApiErrorMessage(dagId + ' Api Call Error !!!', result.result);
 				result.isSuccessful = false;
 				ui.logToOutput("api.getSourceCode completed");
 				return result;
 			}
 
 		} catch (error) {
-			ui.showErrorMessage('Error !!!\n\n', error);
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
 			result.isSuccessful = false;
 			result.error = error;
 			ui.logToOutput("api.getSourceCode Error !!!", error);
@@ -212,13 +248,13 @@ export class Api {
 				return result;
 			}
 			else {
-				ui.showApiErrorMessage('Error !!!', result.result);
+				ui.showApiErrorMessage(dagId + ' Api Call Error !!!', result.result);
 				result.isSuccessful = false;
 				ui.logToOutput("api.getDagInfo completed");
 				return result;
 			}
 		} catch (error) {
-			ui.showErrorMessage('Can not connect to Airflow. Please check Url, UserName and Password.\n\n' + error.message);
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
 			result.isSuccessful = false;
 			result.error = error;
 			ui.logToOutput("api.getDagInfo Error !!!", error);
@@ -248,13 +284,13 @@ export class Api {
 				return result;
 			}
 			else {
-				ui.showApiErrorMessage('Error !!!', result.result);
+				ui.showApiErrorMessage(dagId + ' Api Call Error !!!', result.result);
 				result.isSuccessful = false;
 				ui.logToOutput("api.getDagTasks completed");
 				return result;
 			}
 		} catch (error) {
-			ui.showErrorMessage('Error !!!\n\n', error);
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
 			result.isSuccessful = false;
 			result.error = error;
 			ui.logToOutput("api.getDagTasks Error !!!", error);
@@ -301,14 +337,14 @@ export class Api {
 				return result;
 			}
 			else {
-				ui.showApiErrorMessage('Error !!!', result.result);
+				ui.showApiErrorMessage(dagId + ' Api Call Error !!!', result.result);
 				result.isSuccessful = false;
 				ui.logToOutput("api.getDagRunHistory completed");
 				return result;
 			}
 
 		} catch (error) {
-			ui.showErrorMessage('Error !!!', error);
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
 			result.isSuccessful = false;
 			result.error = error;
 			ui.logToOutput("api.getDagRunHistory Error !!!", error);
@@ -339,14 +375,14 @@ export class Api {
 				return result;
 			}
 			else {
-				ui.showApiErrorMessage('Error !!!', result.result);
+				ui.showApiErrorMessage(dagId + ' Api Call Error !!!', result.result);
 				result.isSuccessful = false;
 				ui.logToOutput("api.getTaskInstances completed");
 				return result;
 			}
 
 		} catch (error) {
-			ui.showErrorMessage('Error !!!', error);
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
 			result.isSuccessful = false;
 			result.error = error;
 			ui.logToOutput("api.getTaskInstances Error !!!", error);
@@ -377,7 +413,7 @@ export class Api {
 				let responseTaskInstances = await (await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId + '/taskInstances', params));
 				let responseTaskInstancesJson = await responseTaskInstances.json();
 
-				result.result += '###################### BEGINING OF DAG RUN ######################\n\n';
+				result.result = '###################### BEGINING OF DAG RUN ######################\n\n';
 				for (var taskInstance of responseTaskInstancesJson['task_instances']) {
 					let responseLogs = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId + '/taskInstances/' + taskInstance['task_id'] + '/logs/' + taskInstance['try_number'], params);
 					let responseLogsText = await responseLogs.text();
@@ -395,17 +431,62 @@ export class Api {
 				return result;
 			}
 			else {
-				ui.showErrorMessage('Error !!!\n\n' + response.statusText);
+				ui.showErrorMessage('Error !!!\n' + response.statusText);
 				result.isSuccessful = false;
 				ui.logToOutput("api.getLastDagRunLog completed");
 				return result;
 			}
 
 		} catch (error) {
-			ui.showErrorMessage('Error !!!', error);
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
 			result.isSuccessful = false;
 			result.error = error;
 			ui.logToOutput("api.getLastDagRunLog Error !!!", error);
+			return result;
+		}
+	}
+
+	public static async getTaskInstanceLog(dagId: string, dagRunId:string, taskId:string): Promise<MethodResult<string>> {
+		ui.logToOutput("api.getTaskInstanceLog started");
+		let result: MethodResult<string> = new MethodResult<any>();
+		try {
+			let params = {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
+				}
+			};
+
+			ui.showInfoMessage('Fecthing Latest DAG Run Logs, wait please ...');
+
+			let responseTaskInstances = await (await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId + '/taskInstances', params));
+			let responseTaskInstancesJson = await responseTaskInstances.json();
+
+			result.result = '';
+			for (var taskInstance of responseTaskInstancesJson['task_instances']) {
+				if (taskInstance['task_id'] !== taskId){ continue; }
+
+				let responseLogs = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId + '/taskInstances/' + taskInstance['task_id'] + '/logs/' + taskInstance['try_number'], params);
+				let responseLogsText = await responseLogs.text();
+				result.result += '############################################################\n';
+				result.result += 'Dag=' + dagId + '\n';
+				result.result += 'DagRun=' + dagRunId + '\n';
+				result.result += 'TaskId=' + taskInstance['task_id'] + '\n';
+				result.result += 'Try=' + taskInstance['try_number'] + '\n';
+				result.result += '############################################################\n\n';
+				result.result += responseLogsText;
+			}
+			result.result += '';
+			result.isSuccessful = true;
+			ui.logToOutput("api.getTaskInstanceLog completed");
+			return result;
+
+		} catch (error) {
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getTaskInstanceLog Error !!!", error);
 			return result;
 		}
 	}
@@ -432,13 +513,13 @@ export class Api {
 				return result;
 			}
 			else {
-				ui.showApiErrorMessage('Error !!!', result.result);
+				ui.showApiErrorMessage('Api Call Error !!!', result.result);
 				result.isSuccessful = false;
 				ui.logToOutput("api.getDagList completed");
 				return result;
 			}
 		} catch (error) {
-			ui.showErrorMessage('Can not connect to Airflow. Please check Url, UserName and Password.', error);
+			ui.showErrorMessage('Can not connect to Airflow. Please check Url, UserName and Password.\n', error);
 			result.isSuccessful = false;
 			result.error = error;
 			ui.logToOutput("api.getDagList Error !!!", error);
@@ -481,13 +562,13 @@ export class Api {
 				return result;
 			}
 			else {
-				ui.showApiErrorMessage('Error !!!', result.result);
+				ui.showApiErrorMessage('Api Call Error !!!', result.result);
 				result.isSuccessful = false;
 				ui.logToOutput("api.getImportErrors completed");
 				return result;
 			}
 		} catch (error) {
-			ui.showErrorMessage('Can not connect to Airflow. Please check Url, UserName and Password.', error);
+			ui.showErrorMessage('System Error !!!', error);
 			result.isSuccessful = false;
 			result.error = error;
 			ui.logToOutput("api.getImportErrors Error !!!", error);

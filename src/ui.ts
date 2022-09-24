@@ -6,7 +6,7 @@ import { join } from 'path';
 var outputChannel: vscode.OutputChannel;
 var logsOutputChannel: vscode.OutputChannel;
 
-var NEW_LINE:string = "<br/>";
+var NEW_LINE:string = "\n";
 
 export function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
   return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
