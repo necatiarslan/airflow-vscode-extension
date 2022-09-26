@@ -6,7 +6,7 @@ import { join } from 'path';
 var outputChannel: vscode.OutputChannel;
 var logsOutputChannel: vscode.OutputChannel;
 
-var NEW_LINE:string = "\n";
+var NEW_LINE:string = "\n\n";
 
 export function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
   return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
@@ -69,14 +69,27 @@ export function showErrorMessage(message: string, error: Error = undefined): voi
 }
 
 export function showApiErrorMessage(message: string, jsonResult): void {
+  let preText:string = "";
   if (jsonResult) {
-    vscode.window.showErrorMessage(message + NEW_LINE
-      + "type:" + jsonResult.type + NEW_LINE
-      + "title:" + jsonResult.title + NEW_LINE
-      + "status:" + jsonResult.status + NEW_LINE
-      + "detail:" + jsonResult.detail + NEW_LINE
-      + "instance:" + jsonResult.instance + NEW_LINE
-    );
+    if (jsonResult.status === 403)
+    {
+      preText = "Permission Denied !!!";
+      vscode.window.showErrorMessage(preText);
+    }
+    else if (jsonResult.status === 401)
+    {
+      preText = "Invalid Authentication Info !!!";
+      vscode.window.showErrorMessage(preText);
+    }
+    else if (jsonResult.status === 404)
+    {
+      preText = "Resource Not Found !!!";
+      vscode.window.showErrorMessage(preText);
+    }
+    else
+    {
+      vscode.window.showErrorMessage(preText);
+    }
   }
   else {
     vscode.window.showErrorMessage(message);

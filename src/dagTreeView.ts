@@ -5,6 +5,7 @@ import { DagTreeItem } from './dagTreeItem';
 import { DagTreeDataProvider } from './dagTreeDataProvider';
 import * as ui from './ui';
 import { Api } from './api';
+import { urlToHttpOptions } from 'url';
 
 export class DagTreeView {
 
@@ -35,7 +36,18 @@ export class DagTreeView {
 
 	refresh(): void {
 		ui.logToOutput('DagTreeView.refresh Started');
-		this.loadDags();
+
+		vscode.window.withProgress({
+			location: vscode.ProgressLocation.Window,
+			title: "Airflow: Loading...",
+		}, (progress, token) => {
+			progress.report({ increment: 0 });
+
+			this.loadDags();
+
+			return new Promise<void>(resolve => { resolve(); });
+		});
+
 		this.getImportErrors();
 	}
 
@@ -49,7 +61,7 @@ export class DagTreeView {
 		this.daglistResponse = undefined;
 		this.treeDataProvider.daglistResponse = this.daglistResponse;
 		this.treeDataProvider.refresh();
-		this.view.title = Api.apiUrl;
+		this.setViewTitle();
 
 		this.saveState();
 		this.refresh();
@@ -57,24 +69,24 @@ export class DagTreeView {
 
 	viewDagView(node: DagTreeItem): void {
 		ui.logToOutput('DagTreeView.viewDagView Started');
-		DagView.render(this.context.extensionUri, node.dagId);
+		DagView.render(this.context.extensionUri, node.DagId);
 	}
 
 	async addToFavDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.addToFavDAG Started');
-		node.isFav = true;
+		node.IsFav = true;
 	}
 
 	async deleteFromFavDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.deleteFromFavDAG Started');
-		node.isFav = false;
+		node.IsFav = false;
 	}
 
 	async triggerDag(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.triggerDag Started');
 		if(!Api.isApiParamsSet()) { return; }
 
-		if (node.isPaused) {
+		if (node.IsPaused) {
 			ui.showWarningMessage('Dag is PAUSED !!!');
 			return;
 		}
@@ -84,13 +96,13 @@ export class DagTreeView {
 			return;
 		}
 
-		let result = await Api.triggerDag(node.dagId);
+		let result = await Api.triggerDag(node.DagId);
 
 		if(result.isSuccessful)
 		{
 			var responseTrigger = result.result;
-			node.latestDagRunId = responseTrigger['dag_run_id'];
-			node.latestDagState = responseTrigger['state'];
+			node.LatestDagRunId = responseTrigger['dag_run_id'];
+			node.LatestDagState = responseTrigger['state'];
 			node.refreshUI();
 			this.treeDataProvider.refresh();
 			if (this.dagStatusInterval) {
@@ -112,17 +124,17 @@ export class DagTreeView {
 			if (node.isDagRunning()) {
 				noDagIsRunning = false;
 
-				let result = await Api.getDagRun(node.dagId, node.latestDagRunId);
+				let result = await Api.getDagRun(node.DagId, node.LatestDagRunId);
 
 				if(result.isSuccessful)
 				{
-					node.latestDagState = result.result['state'];
+					node.LatestDagState = result.result['state'];
 					node.refreshUI();
 				}
 				else
 				{
-					node.latestDagRunId = '';
-					node.latestDagState = '';
+					node.LatestDagRunId = '';
+					node.LatestDagState = '';
 				}
 
 			}
@@ -147,13 +159,13 @@ export class DagTreeView {
 
 		if (triggerDagConfig !== undefined) {
 			
-			let result = await Api.triggerDag(node.dagId, triggerDagConfig);
+			let result = await Api.triggerDag(node.DagId, triggerDagConfig);
 		
 			if(result.isSuccessful)
 			{
 				var responseTrigger = result.result;
-				node.latestDagRunId = responseTrigger['dag_run_id'];
-				node.latestDagState = responseTrigger['state'];
+				node.LatestDagRunId = responseTrigger['dag_run_id'];
+				node.LatestDagState = responseTrigger['state'];
 				node.refreshUI();
 				this.treeDataProvider.refresh();
 				if (this.dagStatusInterval) {
@@ -171,7 +183,7 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.checkAllDagsRunState Started');
 		if (!this.treeDataProvider) { return; }
 		for (var node of this.treeDataProvider.visibleDagList) {
-			if (!node.isPaused) {
+			if (!node.IsPaused) {
 				this.checkDagRunState(node);
 			}
 		}
@@ -181,7 +193,7 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.checDagStateWitDagId Started');
 		if (!this.treeDataProvider) { return; }
 		for (var node of this.treeDataProvider.visibleDagList) {
-			if (node.dagId === dagId) {
+			if (node.DagId === dagId) {
 				this.checkDagRunState(node);
 			}
 		}
@@ -193,13 +205,13 @@ export class DagTreeView {
 
 		if (!node) { return; }
 		if (!this.treeDataProvider) { return; }
-		if (node.isPaused) { ui.showWarningMessage(node.dagId + 'Dag is PAUSED'); return; }
+		if (node.IsPaused) { ui.showWarningMessage(node.DagId + 'Dag is PAUSED'); return; }
 
-		let result = await Api.getLastDagRun(node.dagId);
+		let result = await Api.getLastDagRun(node.DagId);
 		if (result.isSuccessful)
 		{
-			node.latestDagRunId = result.result.dag_run_id;
-			node.latestDagState = result.result.state;
+			node.LatestDagRunId = result.result.dag_run_id;
+			node.LatestDagState = result.result.state;
 			node.refreshUI();
 			this.treeDataProvider.refresh();
 
@@ -219,15 +231,15 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.pauseDAG Started');
 		if(!Api.isApiParamsSet()) { return; }
 
-		if (node.isPaused) { ui.showWarningMessage(node.dagId + 'Dag is already PAUSED'); return; }
+		if (node.IsPaused) { ui.showWarningMessage(node.DagId + 'Dag is already PAUSED'); return; }
 
 		//let userAnswer = await vscode.window.showInputBox({ placeHolder: node.dagId + ' DAG will be PAUSED. Yes/No ?' });
 		//if (userAnswer !== 'Yes') { return; }
 
-		let result = await Api.pauseDag(node.dagId, true);
+		let result = await Api.pauseDag(node.DagId, true);
 		if(result.isSuccessful)
 		{
-			node.isPaused = true;
+			node.IsPaused = true;
 			node.refreshUI();
 			this.treeDataProvider.refresh();
 		}
@@ -238,8 +250,8 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.notifyDagPaused Started');
 		if (!this.treeDataProvider) { return; }
 		for (var node of this.treeDataProvider.visibleDagList) {
-			if (node.dagId === dagId) {
-				node.isPaused = true;
+			if (node.DagId === dagId) {
+				node.IsPaused = true;
 				node.refreshUI();
 				this.treeDataProvider.refresh();
 			}
@@ -250,8 +262,8 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.notifyDagPaused Started');
 		if (!this.treeDataProvider) { return; }
 		for (var node of this.treeDataProvider.visibleDagList) {
-			if (node.dagId === dagId) {
-				node.isPaused = false;
+			if (node.DagId === dagId) {
+				node.IsPaused = false;
 				node.refreshUI();
 				this.treeDataProvider.refresh();
 			}
@@ -262,15 +274,15 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.unPauseDAG Started');
 		if(!Api.isApiParamsSet()) { return; }
 
-		if (!node.isPaused) { ui.showInfoMessage(node.dagId + 'Dag is already UNPAUSED'); return; }
+		if (!node.IsPaused) { ui.showInfoMessage(node.DagId + 'Dag is already UNPAUSED'); return; }
 
 		//let userAnswer = await vscode.window.showInputBox({ placeHolder: node.dagId + ' DAG will be UNPAUSED. Yes/No ?' });
 		//if (userAnswer !== 'Yes') { return; }
 
-		let result = await Api.pauseDag(node.dagId, false);
+		let result = await Api.pauseDag(node.DagId, false);
 		if(result.isSuccessful)
 		{
-			node.isPaused = false;
+			node.IsPaused = false;
 			node.refreshUI();
 			this.treeDataProvider.refresh();
 		}
@@ -280,12 +292,12 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.lastDAGRunLog Started');
 		if(!Api.isApiParamsSet()) { return; }
 
-		let result = await Api.getLastDagRunLog(node.dagId);
+		let result = await Api.getLastDagRunLog(node.DagId);
 		if(result.isSuccessful)
 		{
 			const tmp = require('tmp');
 			var fs = require('fs');
-			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.dagId, postfix: '.log' });
+			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.log' });
 			fs.appendFileSync(tmpFile.name, result.result);
 			ui.openFile(tmpFile.name);
 		}
@@ -295,13 +307,13 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.dagSourceCode Started');
 		if(!Api.isApiParamsSet()) { return; }
 
-		let result = await Api.getSourceCode(node.dagId, node.fileToken);
+		let result = await Api.getSourceCode(node.DagId, node.FileToken);
 		if(result.isSuccessful)
 		{
 			const tmp = require('tmp');
 			var fs = require('fs');
 
-			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.dagId, postfix: '.py' });
+			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.py' });
 			fs.appendFileSync(tmpFile.name, result.result);
 			ui.openFile(tmpFile.name);
 		}
@@ -346,12 +358,6 @@ export class DagTreeView {
 		let apiUrlTemp = await vscode.window.showInputBox({ placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
 		if (apiUrlTemp === undefined) { return; }
 
-		if(this.ServerList.find(e => e["apiUrl"] === apiUrlTemp))
-		{
-			ui.showWarningMessage(apiUrlTemp + " Already Added.");
-			return;
-		}
-
 		let userNameTemp = await vscode.window.showInputBox({ placeHolder: 'User Name' });
 		if (!userNameTemp) { return; }
 
@@ -376,13 +382,15 @@ export class DagTreeView {
 		var items: string[] = [];
 		for(var s of this.ServerList)
 		{
-			items.push(s["apiUrl"]);
+			items.push(s["apiUrl"]+ " - " + s["apiUserName"]);
 		}
 
-		let apiUrlTemp = await vscode.window.showQuickPick(items, {canPickMany:false});
-		if(apiUrlTemp)
+		let selected = await vscode.window.showQuickPick(items, {canPickMany:false});
+		let selectedItems = selected.split(" - ");
+
+		if(selectedItems[0])
 		{
-			this.ServerList = this.ServerList.filter(item => item["apiUrl"] !== apiUrlTemp);
+			this.ServerList = this.ServerList.filter(item => item["apiUrl"] !== selectedItems[0]);
 			ui.showInfoMessage("Server removed, you can remain working on it or connect a new one.");
 		}
 
@@ -400,16 +408,18 @@ export class DagTreeView {
 		var items: string[] = [];
 		for(var s of this.ServerList)
 		{
-			items.push(s["apiUrl"]);
+			items.push(s["apiUrl"] + " - " + s["apiUserName"]);
 		}
 
-		let apiUrlTemp = await vscode.window.showQuickPick(items, {canPickMany:false});
+		let selected = await vscode.window.showQuickPick(items, {canPickMany:false});
+		let selectedItems = selected.split(" - ");
 
-		if(apiUrlTemp)
+
+		if(selectedItems[0])
 		{
-			var item = this.ServerList.find(e => e["apiUrl"] === apiUrlTemp);
+			var item = this.ServerList.find(e => e["apiUrl"] === selectedItems[0]);
 
-			Api.apiUrl = apiUrlTemp;
+			Api.apiUrl = selectedItems[0];
 			Api.apiUserName = item["apiUserName"];
 			Api.apiPassword = item["apiPassword"];
 	
@@ -433,7 +443,14 @@ export class DagTreeView {
 			this.treeDataProvider.loadDagTreeItemsFromApiResponse();
 		}
 		this.treeDataProvider.refresh();
-		this.view.title = Api.apiUrl;
+		this.setViewTitle();
+	}
+
+	async setViewTitle(){
+		if(Api.apiUrl && Api.apiUserName)
+		{
+			this.view.title = Api.apiUrl + " - " + Api.apiUserName;
+		}
 	}
 
 	async getImportErrors(){

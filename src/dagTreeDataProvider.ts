@@ -39,8 +39,8 @@ export class DagTreeDataProvider implements vscode.TreeDataProvider<DagTreeItem>
 		var result: DagTreeItem[] = [];
 		for (var node of this.dagList) {
 			if (DagTreeView.Current.filterString && !node.doesFilterMatch(DagTreeView.Current.filterString)) { continue; }
-			if (DagTreeView.Current.ShowOnlyActive && node.isPaused) { continue; }
-			if (DagTreeView.Current.ShowOnlyFavorite && !node.isFav) { continue; }
+			if (DagTreeView.Current.ShowOnlyActive && node.IsPaused) { continue; }
+			if (DagTreeView.Current.ShowOnlyFavorite && !node.IsFav) { continue; }
 
 			result.push(node);
 		}

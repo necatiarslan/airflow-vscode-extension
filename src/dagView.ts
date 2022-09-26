@@ -49,14 +49,9 @@ export class DagView {
         ui.logToOutput('DagView.loadAllDagData Started');
         await this.getDagInfo();
         await this.getLastRun();
-        //await this.getDagTasks();
+        await this.getDagTasks();
         //await this.getRunHistory();
         await this.renderHmtl();
-
-        if(this.dagRunJson && this.dagJson.state === "running" )
-        {
-            this.startCheckingDagRunStatus(this.dagRunJson.dag_run_id);
-        }
     }
 
     public async loadDagDataOnly() {
@@ -96,6 +91,11 @@ export class DagView {
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
             this.getTaskInstances(this.dagRunJson.dag_run_id);
+
+            if(this.dagRunJson && this.dagRunJson.state === "running" )
+            {
+                this.startCheckingDagRunStatus(this.dagRunJson.dag_run_id);
+            }
         }
 
     }
@@ -193,6 +193,8 @@ export class DagView {
         let duration:string = "";
         let next_dagrun:string = "";
         let isDagRunning:boolean = false;
+        let hasDagLatestRun:boolean = false;
+
         if(this.dagRunJson){
             state = this.dagRunJson.state;
             logical_date = this.dagRunJson.logical_date;
@@ -203,6 +205,7 @@ export class DagView {
             duration = ui.getDuration(new Date(start_date), new Date(end_date));
             next_dagrun = '';//(this.dagJson) ? this.dagJson["next_dagrun"] : "";
             isDagRunning = (state === "queued" || state === "running") ? true : false;
+            hasDagLatestRun = true;
         }
 
         let runningOrFailedTasks: string = "";
@@ -333,8 +336,8 @@ export class DagView {
                             <td colspan="3">
                                 <vscode-button appearance="primary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Check</vscode-button>  
                                 <vscode-button appearance="primary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>     
-                                <vscode-button appearance="primary" id="run-view-log">View Log</vscode-button>  
-                                <vscode-button appearance="primary" id="run-more-dagrun-detail">More</vscode-button>
+                                <vscode-button appearance="primary" id="run-view-log" ${!hasDagLatestRun ? "disabled" : ""}>View Log</vscode-button>  
+                                <vscode-button appearance="primary" id="run-more-dagrun-detail" ${!hasDagLatestRun ? "disabled" : ""}>More</vscode-button>
                             </td>
                         </tr>
                     </table>
@@ -410,7 +413,7 @@ export class DagView {
                         <tr>          
                             <td colspan="4">
                                 <vscode-button appearance="primary" id="tasks-refresh">Refresh</vscode-button>
-                                <vscode-button appearance="primary" id="tasks-more-detail">More</vscode-button>
+                                <vscode-button appearance="primary" id="tasks-more-detail" ${!this.dagTaskInstancesJson ? "disabled" : ""}>More</vscode-button>
                             </td>
                         </tr>
                     </table>
@@ -576,9 +579,6 @@ export class DagView {
     }
 
     async cancelDagRun(dagRunId:string){
-        ui.showInfoMessage("Development is in progress...");
-        return;
-
         ui.logToOutput('DagView.cancelDagRun Started');
         if (!Api.isApiParamsSet()) { return; }
 

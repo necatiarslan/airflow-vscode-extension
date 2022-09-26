@@ -56,22 +56,27 @@ https://www.youtube.com/watch?v=aTaytcxy2Ck
 ## Todo List
 I am working on these features now, so they will be available in a couple of weeks.
 
-- Fix: when you open a dag while running, dagview does not check dag state continuously
-- Cancel a Dag Run
 - Run Specific Tasks
 - Connections, Variables, XComs
-- Loading Indicator
 - Hierarchical Tasks List
+- Tasks graph view
+- Tasks gantt chart view
+- Task View
+    - Instance Details
+    - Rendered Template
+    - Log
+    - X-Com
 
 
+- Highligt DAG and Operator Keywords
 - Server Health Check/Status
 - Dag Code Checks
-- DAG Explorer (a treeview which lists your dags and tasks)
-- Highligt DAG and Operator Keywords
 - Theme Support
 
 
+Follow me on linkedin to get latest news \
+https://www.linkedin.com/in/necati-arslan/
 
-Thanks,
-Necati ARSLAN
+Thanks, \
+Necati ARSLAN \
 necatia@gmail.com

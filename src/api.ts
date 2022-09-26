@@ -118,15 +118,19 @@ export class Api {
 		let result: MethodResult<any> = new MethodResult<any>();
 		try {
 			let params = {
-				method: 'GET',
+				method: 'PATCH',
 				headers: {
 					'Content-Type': 'application/json',
 					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				}
+				},				
+				body: JSON.stringify(
+					{
+						"state": "failed"
+					}),
 			};
 
-			
-			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId + "/taskInstances", params);
+			//https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}
+			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns/' + dagRunId, params);
 
 			result.result = await response.json();
 			if (response.status === 200) {

@@ -1,11 +1,13 @@
 # Change Log
-- v.1.3.5 (2022-09-18)
+- v.1.4.0 (2022-09-18)
     - Filter message updated 
     - Filter by DAG tags
     - Reports Dag Import Errors
     - Tasks Order Fixed
-    - Task Logs
+    - Task Logs Link is functional
     - Prev Runs Link
+    - Cancel Running Dag is functional
+    - Running Dag State Check issue fixed
 
 - v.1.3.4 (2022-09-10)
     - Multi Server Support
