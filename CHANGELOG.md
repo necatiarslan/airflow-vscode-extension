@@ -1,12 +1,12 @@
 # Change Log
-- v.1.4.0 (2022-09-18)
-    - Filter message updated 
+- v.1.4.0 (2022-09-25)
+    - Cancel Running Dag is functional
+    - Task Logs Link is functional
+    - Prev Runs Link is functional
     - Filter by DAG tags
     - Reports Dag Import Errors
     - Tasks Order Fixed
-    - Task Logs Link is functional
-    - Prev Runs Link
-    - Cancel Running Dag is functional
+    - Filter message updated 
     - Running Dag State Check issue fixed
 
 - v.1.3.4 (2022-09-10)

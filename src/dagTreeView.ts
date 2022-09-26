@@ -385,12 +385,13 @@ export class DagTreeView {
 			items.push(s["apiUrl"]+ " - " + s["apiUserName"]);
 		}
 
-		let selected = await vscode.window.showQuickPick(items, {canPickMany:false});
+		let selected = await vscode.window.showQuickPick(items, {canPickMany:false, placeHolder: 'Select To Remove'});
 		let selectedItems = selected.split(" - ");
 
 		if(selectedItems[0])
 		{
-			this.ServerList = this.ServerList.filter(item => item["apiUrl"] !== selectedItems[0]);
+			this.ServerList = this.ServerList.filter(item => !(item["apiUrl"] === selectedItems[0] && item["apiUserName"] === selectedItems[1]));
+			this.saveState();
 			ui.showInfoMessage("Server removed, you can remain working on it or connect a new one.");
 		}
 
@@ -411,13 +412,13 @@ export class DagTreeView {
 			items.push(s["apiUrl"] + " - " + s["apiUserName"]);
 		}
 
-		let selected = await vscode.window.showQuickPick(items, {canPickMany:false});
+		let selected = await vscode.window.showQuickPick(items, {canPickMany:false, placeHolder: 'Select To Connect'});
 		let selectedItems = selected.split(" - ");
 
 
 		if(selectedItems[0])
 		{
-			var item = this.ServerList.find(e => e["apiUrl"] === selectedItems[0]);
+			var item = this.ServerList.find(item => item["apiUrl"] === selectedItems[0] && item["apiUserName"] === selectedItems[1]);
 
 			Api.apiUrl = selectedItems[0];
 			Api.apiUserName = item["apiUserName"];
