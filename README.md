@@ -56,16 +56,22 @@ https://www.youtube.com/watch?v=aTaytcxy2Ck
 ## Todo List
 I am working on these features now, so they will be available in a couple of weeks.
 
+- Fix: not runned task duration
 - Run Specific Tasks
+- Server Alias
 - Connections, Variables, XComs
 - Hierarchical Tasks List
 - Tasks graph view
 - Tasks gantt chart view
+- Prev Run, Date Filter
 - Task View
     - Instance Details
     - Rendered Template
     - Log
     - X-Com
+- Intelligent Error Logs
+- TreeView Dag List Pagination (top 100 limit now)
+- Treeview Dag hierarcy by owner, last run date, next run date, dag file folder structure, tags
 
 
 - Highligt DAG and Operator Keywords

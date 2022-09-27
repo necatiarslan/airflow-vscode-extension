@@ -39,9 +39,6 @@ function main() {
   const tasksRefreshButton = document.getElementById("tasks-refresh");
   tasksRefreshButton.addEventListener("click", tasksRefreshClicked);
 
-  const tabControl= document.getElementById("tab-control");
-  tabControl.addEventListener("selectionchange", tabControlSelectionChange);
-
   const prevRunLinkList = document.querySelectorAll("[id^='history-dag-run-id']");
   for (let i = 0; i < prevRunLinkList.length; i++) {
     //prevRunLinkList[i].id
@@ -54,7 +51,10 @@ function main() {
     taskLogLinkList[i].addEventListener("click", taskLogLinkClicked);
   }
 
-  }
+  const tabControl = document.getElementById("tab-control");
+  tabControl.addEventListener("change", tabControlChanged);
+
+}
 
 
   function triggerDagClick() {
@@ -151,17 +151,17 @@ function tasksRefreshClicked() {
   });
 }
 
-function tabControlSelectionChange() {
-  vscode.postMessage({
-    command: "tab-control",
-    activetabid: document.getElementById("tab-control").activeid,
-  });
-}
-
 function taskLogLinkClicked(e) {
   vscode.postMessage({
     command: "task-log-link",
     activetabid: document.getElementById("tab-control").activeid,
     id: e.target.id,
+  });
+}
+
+function tabControlChanged(e) {
+  vscode.postMessage({
+    command: "tabControlChanged",
+    activeid: e.target.activeid
   });
 }

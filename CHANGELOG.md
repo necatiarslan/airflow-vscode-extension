@@ -1,4 +1,9 @@
 # Change Log
+
+- v.1.4.2 (2022-09-27)
+    - Dag List limit increased 100 to 1000
+    - DagView active tab issue fixed
+
 - v.1.4.0 (2022-09-25)
     - Cancel Running Dag is functional
     - Task Logs Link is functional

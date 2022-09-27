@@ -191,7 +191,6 @@ export class DagView {
         let logical_date_string:string = "";
         let start_date_string:string = "";
         let duration:string = "";
-        let next_dagrun:string = "";
         let isDagRunning:boolean = false;
         let hasDagLatestRun:boolean = false;
 
@@ -203,7 +202,6 @@ export class DagView {
             logical_date_string = new Date(logical_date).toLocaleDateString();
             start_date_string = new Date(start_date).toLocaleString();
             duration = ui.getDuration(new Date(start_date), new Date(end_date));
-            next_dagrun = '';//(this.dagJson) ? this.dagJson["next_dagrun"] : "";
             isDagRunning = (state === "queued" || state === "running") ? true : false;
             hasDagLatestRun = true;
         }
@@ -443,11 +441,6 @@ export class DagView {
                         <td>:</td>
                         <td>${schedule_interval}</td>
                     </tr>
-                    <tr>
-                        <td>Next Run</td>
-                        <td>:</td>
-                        <td>${next_dagrun}</td>
-                    </tr>
                     <tr>           
                         <td colspan="3"><vscode-button appearance="primary" id="info-source-code">Source Code</vscode-button> <vscode-button appearance="primary" id="other-dag-detail">More</vscode-button></td>
                     </tr>
@@ -558,12 +551,13 @@ export class DagView {
                         this.showLastTaskInstanceLog(this.dagId, this.dagRunJson.dag_run_id, taskId);
                         return;
 
-                    case "tab-control":
-                        ui.logToOutput("Acive Tab Id = " + message.activeid);
-                        return;
-
                     case "tasks-refresh":
                         this.getTasksAndRenderHtml();
+                        return;
+                    
+                    case "tabControlChanged":
+                        this.activetabid = message.activeid;
+                        ui.logToOutput("tab changed to " + message.activeid);
                         return;
                 }
 
