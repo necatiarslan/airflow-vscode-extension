@@ -508,7 +508,7 @@ export class Api {
 				}
 			};
 
-			let response = await fetch(Api.apiUrl + '/dags?limit=1000', params);
+			let response = await fetch(Api.apiUrl + '/dags', params);
 
 			result.result = await response.json();
 			if (response.status === 200) {
