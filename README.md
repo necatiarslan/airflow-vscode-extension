@@ -57,6 +57,7 @@ https://www.youtube.com/watch?v=aTaytcxy2Ck
 I am working on these features now, so they will be available in a couple of weeks.
 
 - Fix: not runned task duration
+- Skip Try=0 Logs
 - Run Specific Tasks
 - Server Alias
 - Connections, Variables, XComs
