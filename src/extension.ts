@@ -28,6 +28,10 @@ export function activate(context: vscode.ExtensionContext) {
 		dagTreeView.connectServer();
 	});
 
+	vscode.commands.registerCommand('dagTreeView.clearServers', () => {
+		dagTreeView.clearServers();
+	});
+
 	vscode.commands.registerCommand('dagTreeView.filter', () => {
 		dagTreeView.filter();
 	});

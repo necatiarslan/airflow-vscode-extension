@@ -1,5 +1,9 @@
 # Change Log
 
+- v.1.4.3 (2022-12-23)
+    - Clear Servers Command
+    - Default Airflow Server Url
+
 - v.1.4.2 (2022-09-27)
     - Dag List limit increased 100 to 1000
     - DagView active tab issue fixed

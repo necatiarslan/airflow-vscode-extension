@@ -355,8 +355,8 @@ export class DagTreeView {
 	async addServer() {
 		ui.logToOutput('DagTreeView.addServer Started');
 
-		let apiUrlTemp = await vscode.window.showInputBox({ placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
-		if (apiUrlTemp === undefined) { return; }
+		let apiUrlTemp = await vscode.window.showInputBox({ value: 'http://localhost:8080/api/v1',  placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
+		if (!apiUrlTemp) { return; }
 
 		let userNameTemp = await vscode.window.showInputBox({ placeHolder: 'User Name' });
 		if (!userNameTemp) { return; }
@@ -427,6 +427,15 @@ export class DagTreeView {
 			this.saveState();
 			this.refresh();
 		}
+	}
+
+	async clearServers() {
+		ui.logToOutput('DagTreeView.clearServers Started');
+
+		this.ServerList = [];
+
+		this.saveState();
+		ui.showInfoMessage("Server List Cleared");
 	}
 
 	async loadDags() {
@@ -519,7 +528,7 @@ export class DagTreeView {
 			let ShowOnlyFavoriteTemp: boolean = this.context.globalState.get('ShowOnlyFavorite');
 			if (ShowOnlyFavoriteTemp) { this.ShowOnlyFavorite = ShowOnlyFavoriteTemp; }
 
-			if(!this.ServerList.find(e => e["apiUrl"] === apiUrlTemp))
+			if(apiUrlTemp && !this.ServerList.find(e => e["apiUrl"] === apiUrlTemp))
 			{
 				this.ServerList.push({ "apiUrl": apiUrlTemp, "apiUserName":apiUserNameTemp, "apiPassword": apiPasswordTemp });
 			}
