@@ -49,12 +49,10 @@ https://www.youtube.com/watch?v=aTaytcxy2Ck
 
 
 ## Todo List
-I am working on these features now, so they will be available in a couple of weeks.
 
 - Fix: not runned task duration
 - Skip Try=0 Logs
-- Run Specific Tasks
-- Server Alias
+- Run Selected Tasks
 - Connections, Variables, XComs
 - Hierarchical Tasks List
 - Tasks graph view
@@ -65,16 +63,21 @@ I am working on these features now, so they will be available in a couple of wee
     - Rendered Template
     - Log
     - X-Com
-- Intelligent Error Logs
 - TreeView Dag List Pagination (top 100 limit now)
 - Treeview Dag hierarcy by owner, last run date, next run date, dag file folder structure, tags
-
+- New DAG Wizard
+- Run DAGs in your local (devcontainer)
+- DAG Dry Run
+- DAG Validation
+- Run DAG Tests
+- DAG Dependencies
+- Preview DAG flow in your local
+- Hide Dags & Show Hidden Dags Filter
 
 - Highligt DAG and Operator Keywords
 - Server Health Check/Status
 - Dag Code Checks
-- Theme Support
-
+- Server Alias
 
 Follow me on linkedin to get latest news \
 https://www.linkedin.com/in/necati-arslan/
