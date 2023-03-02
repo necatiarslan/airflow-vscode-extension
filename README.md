@@ -19,6 +19,10 @@ You can take a look the link below on how to do it.
 
 https://airflow.apache.org/docs/apache-airflow/stable/security/api.html
 
+## Survey
+Please take this survey to help me make the extension better.\
+https://bit.ly/airflow-extension-survey
+
 ## Bug Report
 
 If you have an issue or new feature request, please click link below to add a new issue.
@@ -73,6 +77,8 @@ https://www.youtube.com/watch?v=aTaytcxy2Ck
 - DAG Dependencies
 - Preview DAG flow in your local
 - Hide Dags & Show Hidden Dags Filter
+- Add Survey to the DAG View
+- Add Survey and Bug Report to TreeView Other commands
 
 - Highligt DAG and Operator Keywords
 - Server Health Check/Status
