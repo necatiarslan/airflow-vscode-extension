@@ -386,6 +386,11 @@ export class DagView {
                                 <vscode-link href="https://github.com/necatiarslan/airflow-vscode-extension/issues/new">Bug Report & Feature Request</vscode-link>
                             </td>
                         </tr>
+                        <tr>
+                            <td colspan="3">
+                                <vscode-link href="https://bit.ly/airflow-extension-survey">New Feature Survey</vscode-link>
+                            </td>
+                        </tr>
                     </table>
             </section>
             </vscode-panel-view>
