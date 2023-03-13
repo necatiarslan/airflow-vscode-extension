@@ -79,6 +79,8 @@ https://www.youtube.com/watch?v=aTaytcxy2Ck
 - Hide Dags & Show Hidden Dags Filter
 - Add Survey to the DAG View
 - Add Survey and Bug Report to TreeView Other commands
+- DagView Table Colors
+- How To Enable Airflow API and Connect
 
 - Highligt DAG and Operator Keywords
 - Server Health Check/Status
