@@ -81,6 +81,7 @@ https://www.youtube.com/watch?v=aTaytcxy2Ck
 - Add Survey and Bug Report to TreeView Other commands
 - DagView Table Colors
 - How To Enable Airflow API and Connect
+- DAG.test() support
 
 - Highligt DAG and Operator Keywords
 - Server Health Check/Status
