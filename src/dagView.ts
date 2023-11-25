@@ -332,10 +332,10 @@ export class DagView {
                         </tr>
                         <tr>
                             <td colspan="3">
-                                <vscode-button appearance="primary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Check</vscode-button>  
-                                <vscode-button appearance="primary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>     
-                                <vscode-button appearance="primary" id="run-view-log" ${!hasDagLatestRun ? "disabled" : ""}>View Log</vscode-button>  
-                                <vscode-button appearance="primary" id="run-more-dagrun-detail" ${!hasDagLatestRun ? "disabled" : ""}>More</vscode-button>
+                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Check</vscode-button>  
+                                <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>     
+                                <vscode-button appearance="secondary" id="run-view-log" ${!hasDagLatestRun ? "disabled" : ""}>View Log</vscode-button>  
+                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagLatestRun ? "disabled" : ""}>More</vscode-button>
                             </td>
                         </tr>
                     </table>
@@ -357,7 +357,7 @@ export class DagView {
                             <td><vscode-text-area id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-text-area></td>
                         </tr>
                         <tr>           
-                            <td colspan="3"><vscode-button appearance="primary" id="run-trigger-dag" ${isPaused ? "disabled" : ""}>
+                            <td colspan="3"><vscode-button appearance="secondary" id="run-trigger-dag" ${isPaused ? "disabled" : ""}>
                             Run
                             </vscode-button></td>
                         </tr>
@@ -368,10 +368,10 @@ export class DagView {
                     <table>
                         <tr>
                             <th colspan="3">
-                            <vscode-button appearance="primary" id="run-pause-dag" ${isPaused ? "disabled" : ""}>
+                            <vscode-button appearance="secondary" id="run-pause-dag" ${isPaused ? "disabled" : ""}>
                             Pause
                             </vscode-button>
-                            <vscode-button appearance="primary" id="run-unpause-dag" ${!isPaused ? "disabled" : ""}>
+                            <vscode-button appearance="secondary" id="run-unpause-dag" ${!isPaused ? "disabled" : ""}>
                             Un Pause
                             </vscode-button>
                             </th>
@@ -419,8 +419,8 @@ export class DagView {
 
                         <tr>          
                             <td colspan="4">
-                                <vscode-button appearance="primary" id="tasks-refresh">Refresh</vscode-button>
-                                <vscode-button appearance="primary" id="tasks-more-detail" ${!this.dagTaskInstancesJson ? "disabled" : ""}>More</vscode-button>
+                                <vscode-button appearance="secondary" id="tasks-refresh">Refresh</vscode-button>
+                                <vscode-button appearance="secondary" id="tasks-more-detail" ${!this.dagTaskInstancesJson ? "disabled" : ""}>More</vscode-button>
                             </td>
                         </tr>
                     </table>
@@ -451,7 +451,7 @@ export class DagView {
                         <td>${schedule_interval}</td>
                     </tr>
                     <tr>           
-                        <td colspan="3"><vscode-button appearance="primary" id="info-source-code">Source Code</vscode-button> <vscode-button appearance="primary" id="other-dag-detail">More</vscode-button></td>
+                        <td colspan="3"><vscode-button appearance="secondary" id="info-source-code">Source Code</vscode-button> <vscode-button appearance="secondary" id="other-dag-detail">More</vscode-button></td>
                     </tr>
                     </table>
 
@@ -474,7 +474,7 @@ export class DagView {
                         ${runHistoryRows}
 
                         <tr>
-                            <td colspan="3"><vscode-button appearance="primary" id="rev-runs-refresh">Refresh</vscode-button></td>
+                            <td colspan="3"><vscode-button appearance="secondary" id="rev-runs-refresh">Refresh</vscode-button></td>
                         </tr>
                     </table>   
     

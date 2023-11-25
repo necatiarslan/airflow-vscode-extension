@@ -6,16 +6,13 @@ table {
 }
 
 th {
-  background-color: #2a2d2e;
-  color: white;
+  background-color: var(--vscode-settings-focusedRowBackground);
   padding: 5px;
   font-size: 15px;
   font: bold;
 }
 
 td {
-  background-color: #3c3c3c;
-  color: white;
   padding: 5px;
   font-size: 12px;
 }
@@ -27,13 +24,11 @@ vscode-panels {
 
 vscode-text-field {
   border: 1px;
-  border-color: #2a2d2e;
   font-size: 12px;
 }
 
 vscode-text-area {
   border: 1px;
-  border-color: #2a2d2e;
   font-size: 12px;
 }
 
