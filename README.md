@@ -29,12 +29,19 @@ If you have an issue or new feature request, please click link below to add a ne
 
 https://github.com/necatiarslan/airflow-vscode-extension/issues/new
 
-Please start issue with "fix:" and new feature with "feat:" in the title.
+## To Run Airflow In Your Local
+Use Astro provided by the team who build Airflow 
+https://docs.astronomer.io/astro/cli/overview
 
-## Install Airflow In Your Local
-If you want to test Airflow on your machine in a docker container, click link below on how to run Airflow in your local machine in 5 mins.
+```bash 
+brew install astro  #install cli tool from homebrew
+astro dev init      #init the local env
+astro dev start     #start airflow as a docker container
 
-https://www.youtube.com/watch?v=aTaytcxy2Ck
+#then you can connect your local airflow using the extension.
+#url        http://localhost:8080/api/v1
+#user/pass  admin/admin
+```
 
 ## Dag Tree
 ![screenshoot](./docs/dagview-dagtree.png)
@@ -53,8 +60,9 @@ https://www.youtube.com/watch?v=aTaytcxy2Ck
 
 
 ## Todo List
+-
 
-- Fix: not runned task duration
+## Nice To Have
 - Skip Try=0 Logs
 - Run Selected Tasks
 - Connections, Variables, XComs
@@ -67,6 +75,7 @@ https://www.youtube.com/watch?v=aTaytcxy2Ck
     - Rendered Template
     - Log
     - X-Com
+- Fix: not runned task duration
 - TreeView Dag List Pagination (top 100 limit now)
 - Treeview Dag hierarcy by owner, last run date, next run date, dag file folder structure, tags
 - New DAG Wizard
@@ -77,12 +86,10 @@ https://www.youtube.com/watch?v=aTaytcxy2Ck
 - DAG Dependencies
 - Preview DAG flow in your local
 - Hide Dags & Show Hidden Dags Filter
-- Add Survey to the DAG View
 - Add Survey and Bug Report to TreeView Other commands
 - DagView Table Colors
 - How To Enable Airflow API and Connect
 - DAG.test() support
-
 - Highligt DAG and Operator Keywords
 - Server Health Check/Status
 - Dag Code Checks
