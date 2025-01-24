@@ -19,6 +19,10 @@ You can take a look the link below on how to do it.
 
 https://airflow.apache.org/docs/apache-airflow/stable/security/api.html
 
+## Sponsor Me
+If you find this extension useful, you can [sponsor me on GitHub](https://github.com/sponsors/necatiarslan).
+
+
 ## Survey
 Please take this survey to help me make the extension better.\
 https://bit.ly/airflow-extension-survey

@@ -396,6 +396,13 @@ export class DagView {
                             </td>
                         </tr>
                     </table>
+                    <table>
+                        <tr>
+                            <td colspan="3">
+                                <vscode-link href="https://github.com/sponsors/necatiarslan">Support Me</vscode-link>
+                            </td>
+                        </tr>
+                    </table>
             </section>
             </vscode-panel-view>
 
