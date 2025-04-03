@@ -1,6 +1,10 @@
 # Change Log
+- v1.6.0 (2025-04-02)
+    - Support DAGs more then 100
+
 - v.1.5.0 (2023-11-25)
     - Full Vscode Theme support
+
 - v.1.4.3 (2022-12-23)
     - Clear Servers Command
     - Default Airflow Server Url

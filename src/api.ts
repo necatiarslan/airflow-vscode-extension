@@ -498,39 +498,50 @@ export class Api {
 	public static async getDagList(): Promise<MethodResult<any>> {
 		ui.logToOutput("api.getDagList started");
 		let result: MethodResult<any> = new MethodResult<any>();
-
+		let allDags: any[] = [];
+		let offset = 0;
+		const limit = 100;
+	
 		try {
-			let params = {
-				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
+			while (true) {
+				let params = {
+					method: 'GET',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
+					}
+				};
+	
+				let response = await fetch(`${Api.apiUrl}/dags?limit=${limit}&offset=${offset}`, params);
+				let data = await response.json();
+	
+				if (response.status === 200) {
+					allDags.push(...data["dags"]);
+					if (data["dags"].length < limit) {
+						break; // Stop fetching if fewer than 100 DAGs are returned
+					}
+					offset += limit; // Move to the next batch
+				} else {
+					ui.showApiErrorMessage('Api Call Error !!!', data);
+					result.isSuccessful = false;
+					ui.logToOutput("api.getDagList completed with error");
+					return result;
 				}
-			};
-
-			let response = await fetch(Api.apiUrl + '/dags', params);
-
-			result.result = await response.json();
-			if (response.status === 200) {
-				result.isSuccessful = true;
-				ui.logToOutput("api.getDagList completed");
-				return result;
 			}
-			else {
-				ui.showApiErrorMessage('Api Call Error !!!', result.result);
-				result.isSuccessful = false;
-				ui.logToOutput("api.getDagList completed");
-				return result;
-			}
+	
+			result.result = allDags;
+			result.isSuccessful = true;
+			ui.logToOutput("api.getDagList completed successfully");
+			return result;
 		} catch (error) {
-			ui.showErrorMessage('Can not connect to Airflow. Please check Url, UserName and Password.\n', error);
+			ui.showErrorMessage('Can not connect to Airflow. Please check URL, Username, and Password.\n', error);
 			result.isSuccessful = false;
 			result.error = error;
 			ui.logToOutput("api.getDagList Error !!!", error);
 			return result;
 		}
 	}
-
+	
 	/*
 	{
     "import_errors": [

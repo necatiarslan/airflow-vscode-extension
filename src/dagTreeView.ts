@@ -12,7 +12,7 @@ export class DagTreeView {
 	public static Current: DagTreeView | undefined;
 	public view: vscode.TreeView<DagTreeItem>;
 	public treeDataProvider: DagTreeDataProvider;
-	public daglistResponse: any;
+	public dagList: any;
 	public context: vscode.ExtensionContext;
 	public filterString: string = '';
 	public dagStatusInterval: NodeJS.Timer;
@@ -58,8 +58,8 @@ export class DagTreeView {
 		Api.apiPassword = '';
 		this.filterString = '';
 
-		this.daglistResponse = undefined;
-		this.treeDataProvider.daglistResponse = this.daglistResponse;
+		this.dagList = undefined;
+		this.treeDataProvider.dagList = this.dagList;
 		this.treeDataProvider.refresh();
 		this.setViewTitle();
 
@@ -442,14 +442,14 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.loadDags Started');
 		if(!Api.isApiParamsSet()) { return; }
 
-		this.daglistResponse = undefined;
-		this.treeDataProvider.daglistResponse = this.daglistResponse;
+		this.dagList = undefined;
+		this.treeDataProvider.dagList = this.dagList;
 
 		let result = await Api.getDagList();
 		if(result.isSuccessful)
 		{
-			this.daglistResponse = result.result;
-			this.treeDataProvider.daglistResponse = this.daglistResponse;
+			this.dagList = result.result;
+			this.treeDataProvider.dagList = this.dagList;
 			this.treeDataProvider.loadDagTreeItemsFromApiResponse();
 		}
 		this.treeDataProvider.refresh();

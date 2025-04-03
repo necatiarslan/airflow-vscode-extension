@@ -7,8 +7,8 @@ export class DagTreeDataProvider implements vscode.TreeDataProvider<DagTreeItem>
 {
 	private _onDidChangeTreeData: vscode.EventEmitter<DagTreeItem | undefined | void> = new vscode.EventEmitter<DagTreeItem | undefined | void>();
 	readonly onDidChangeTreeData: vscode.Event<DagTreeItem | undefined | void> = this._onDidChangeTreeData.event;
-	daglistResponse: any;
-	dagList: DagTreeItem[] = [];
+	dagList: any;
+	dagTreeItemList: DagTreeItem[] = [];
 	visibleDagList: DagTreeItem[] = [];
 
 	refresh(): void {
@@ -16,12 +16,12 @@ export class DagTreeDataProvider implements vscode.TreeDataProvider<DagTreeItem>
 	}
 
 	loadDagTreeItemsFromApiResponse() {
-		this.dagList = [];
-		if (this.daglistResponse) {
-			for (var dag of this.daglistResponse["dags"]) {
+		this.dagTreeItemList = [];
+		if (this.dagList) {
+			for (var dag of this.dagList) {
 				if (dag) {
 					let treeItem = new DagTreeItem(dag);
-					this.dagList.push(treeItem);
+					this.dagTreeItemList.push(treeItem);
 				}
 			}
 		}
@@ -37,7 +37,7 @@ export class DagTreeDataProvider implements vscode.TreeDataProvider<DagTreeItem>
 
 	getVisibleDagList(): DagTreeItem[]{
 		var result: DagTreeItem[] = [];
-		for (var node of this.dagList) {
+		for (var node of this.dagTreeItemList) {
 			if (DagTreeView.Current.filterString && !node.doesFilterMatch(DagTreeView.Current.filterString)) { continue; }
 			if (DagTreeView.Current.ShowOnlyActive && node.IsPaused) { continue; }
 			if (DagTreeView.Current.ShowOnlyFavorite && !node.IsFav) { continue; }
