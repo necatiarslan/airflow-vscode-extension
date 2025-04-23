@@ -442,7 +442,7 @@ export class Api {
 					result.result += '############################################################\n\n';
 					result.result += responseLogsText;
 				}
-				result.result += '###################### END OF DAG RUN ######################\n\n';
+				result.result += '\n\n###################### END OF DAG RUN ######################\n\n';
 				result.isSuccessful = true;
 				ui.logToOutput("api.getLastDagRunLog completed");
 				return result;

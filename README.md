@@ -1,70 +1,91 @@
 # Airflow Extension for Visual Studio Code
-
+✅ Now works with Airflow 3.0
 
 ![screenshoot](./docs/airflow-extension.png)
 
 
-## Introduction
 
-This VSCode extension is designed for Apache Airflow 2.0 and later.
+A Visual Studio Code extension to interact with [Apache Airflow](https://airflow.apache.org/) (v2.x & v3.x) directly from your editor.  
+Trigger DAGs, pause/unpause, explore DAG runs, view logs, browse code, and more—no browser required.
 
-With it, you can trigger DAGs, pause/unpause them, view execution logs, explore source code, and more—all within VSCode.
+## 🔑 Features
 
-## Requirements - Airflow REST Api
+- **DAG List**  
+  - Browse all available DAGs in a tree view.
+  - Filter DAGs by name, owner, active/paused status, tags
+  - Hide DAGs that you don't interested in
+  - Add your favorite DAGs to favorites to quickly access them
+  - Add multiple Airflow Servers and switch between them
 
-To be able to connect an Airflow Server, you should enable Airflow Rest Api.
+- **DAG Actions**  
+  - Trigger a DAG with optional config and date
+  - Pause, or unpause any DAG with a single click
+  - View source code running on Airflow
+
+- **DAG Run Explorer**  
+  - View past & current DAG runs  
+  - View logs  
+  - See task instances, execution durations, and statuses
+
+## 📷 Screenshots
+
+| Dag Tree | Runs | Tasks |
+| ----------- | ----------- | ----------- |
+| ![screenshoot](./docs/dagview-dagtree.png) | ![screenshoot](./docs/dagview-run.png) | ![screenshoot](./docs/dagview-tasks.png) |
+
+
+| Info | Run History |
+| ----------- | ----------- |
+| ![screenshoot](./docs/dagview-info.png) | ![screenshoot](./docs/dagview-prevruns.png) |
+
+
+## ⚙️ Configuration
+After installing the extension, you need to configure the extension to connect to your Airflow Server.
+- Click 🔌 Connect to Airflow Server at the top of the extension sidebar.
+- Enter your Airflow Server API Url
+    - Exp Airflow 2: http://localhost:8080/api/v1
+    - Exp Airflow 3: http://localhost:8080/api/v2
+- Enter your Airflow username
+- Enter your Airflow password
+
+You can also add multiple Airflow Servers to connect to.
+- Use [+] button to add a new Airflow Server
+- Use [-] button to remove an Airflow Server
+- Use [🔌] to switch between servers
+
+
+ℹ️ To be able to connect an Airflow Server, you should enable Airflow Rest Api.
 You can take a look the link below on how to do it.
 
 https://airflow.apache.org/docs/apache-airflow/stable/security/api.html
 
-## Sponsor Me
-If you find this extension useful, you can [sponsor me on GitHub](https://github.com/sponsors/necatiarslan).
 
-
-## Survey
-Please take this survey to help me make the extension better.\
-https://bit.ly/airflow-extension-survey
-
-## Bug Report
+## 🪲 Bug & New Feature Report
 
 If you have an issue or new feature request, please click link below to add a new issue.
 
 https://github.com/necatiarslan/airflow-vscode-extension/issues/new
 
-## To Run Airflow In Your Local
+## 💻 Local Airflow via Astronomer
 Use Astro provided by the team who build Airflow 
 https://docs.astronomer.io/astro/cli/overview
+
+To spin up a local Airflow instance for testing:
 
 ```bash 
 brew install astro  #install cli tool from homebrew
 astro dev init      #init the local env
 astro dev start     #start airflow as a docker container
 
-#then you can connect your local airflow using the extension.
-#url        http://localhost:8080/api/v1
+#Then you can connect your local airflow using the extension.
+#airflow 2 url        http://localhost:8080/api/v1
+#airflow 3 url        http://localhost:8080/api/v2
 #user/pass  admin/admin
 ```
 
-## Dag Tree
-![screenshoot](./docs/dagview-dagtree.png)
+## 📝 Roadmap
 
-## Dag Run
-![screenshoot](./docs/dagview-run.png)
-
-## Dag Tasks
-![screenshoot](./docs/dagview-tasks.png)
-
-# Dag Info
-![screenshoot](./docs/dagview-info.png)
-
-## Previous Dag Runs
-![screenshoot](./docs/dagview-prevruns.png)
-
-
-## Todo List
--
-
-## Nice To Have
+### Coming Soon
 - Skip Try=0 Logs
 - Run Selected Tasks
 - Connections, Variables, XComs
@@ -97,9 +118,20 @@ astro dev start     #start airflow as a docker container
 - Dag Code Checks
 - Server Alias
 
-Follow me on linkedin to get latest news \
-https://www.linkedin.com/in/necati-arslan/
 
-Thanks, \
-Necati ARSLAN \
-necatia@gmail.com
+## 💖 Sponsor & Feedback
+
+If you find this extension useful, please consider:
+- ⭐️ Starring the repo
+- 🪲 Reporting bugs or suggesting features on [GitHub Issues](https://github.com/necatiarslan/airflow-vscode-extension/issues/new)
+- 💖 [Sponsoring me on GitHub](https://github.com/sponsors/necatiarslan)
+- ✍️ Taking our quick user [survey](https://docs.google.com/forms/d/e/1FAIpQLSevcgFSUgc0anMMbZUp5CXNot2zyQDIiN6bkzc0lbWugolVkg/viewform)
+
+## 📬 Stay in Touch
+
+- Author: Necati ARSLAN (necatia@gmail.com)
+- LinkedIn: https://www.linkedin.com/in/necati-arslan/
+- Marketplace: https://marketplace.visualstudio.com/items?itemName=NecatiARSLAN.airflow-vscode-extension
+
+Enjoy! 🚀
+

@@ -1,4 +1,7 @@
 # Change Log
+- v1.7.0 (2025-04-23)
+    - Airflow 3.0 Support
+
 - v1.6.0 (2025-04-02)
     - Support DAGs more then 100
 
