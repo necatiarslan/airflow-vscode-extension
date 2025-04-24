@@ -9,14 +9,57 @@ export class Api {
 	public static apiUrl: string = '';
 	public static apiUserName: string = '';
 	public static apiPassword: string = '';
+	public static jwtToken: string = '';
 
-	public static getHeaders() {
-		ui.logToOutput("api.getHeaders started");
+	public static async getJwtToken() {
+		ui.logToOutput("api.getJwtToken started");
+		if (!Api.jwtToken) {
+			try {
+
+				let params = {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json'
+					},
+					body: '{"username": "' + Api.apiUserName + '", "password": "' + Api.apiPassword + '"}',
+				};
+	
+				let response = await fetch(Api.apiUrl.replace("/api/v2", "") + '/auth/token', params);
+	
+				let result = await response.json();
+				if (response.status === 201) {
+					ui.logToOutput("api.getJwtToken completed");
+					Api.jwtToken = result['access_token'];
+				}
+				else {
+					ui.showApiErrorMessage('getJwtToken Error !!!', result);
+					ui.logToOutput("api.getJwtToken Error !!!" + result);
+					Api.jwtToken = undefined;
+				}
+			} catch (error) {
+				ui.showErrorMessage('getJwtToken Error !!!', error);
+				ui.logToOutput("api.getJwtToken Error !!!", error);
+				Api.jwtToken = undefined;
+			}
+		}
+
+		return Api.jwtToken;
+	}
+
+	public static async getHeaders() {
+		let auth = '';
+
+		if (Api.apiUrl.includes("v1")) {
+			auth = 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword);
+		}
+		else if (Api.apiUrl.includes("v2")) {
+			auth = 'Bearer ' + await Api.getJwtToken();
+		}
+
 		let result = {
 			'Content-Type': 'application/json',
-			'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
+			'Authorization': auth
 		};
-		ui.logToOutput("api.getHeaders completed");
 		return result;
 	}
 
@@ -46,10 +89,7 @@ export class Api {
 
 			let params = {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				},
+				headers: await Api.getHeaders(),
 				body: '{"conf": ' + config + logicalDateParam + '}',
 			};
 
@@ -83,10 +123,7 @@ export class Api {
 		try {
 			let params = {
 				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				}
+				headers: await Api.getHeaders()
 			};
 
 			//https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}
@@ -119,10 +156,7 @@ export class Api {
 		try {
 			let params = {
 				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				},				
+				headers: await Api.getHeaders(),				
 				body: JSON.stringify(
 					{
 						"state": "failed"
@@ -159,10 +193,7 @@ export class Api {
 		try {
 			let params = {
 				method: 'PATCH',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				},
+				headers: await Api.getHeaders(),
 				body: JSON.stringify(
 					{
 						"is_paused": is_paused
@@ -200,10 +231,7 @@ export class Api {
 		try {
 			let params = {
 				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				}
+				headers: await Api.getHeaders()
 			};
 
 			let response = await fetch(Api.apiUrl + '/dagSources/' + fileToken, params);
@@ -237,10 +265,7 @@ export class Api {
 		try {
 			let params = {
 				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				}
+				headers: await Api.getHeaders()
 			};
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/details', params);
@@ -273,10 +298,7 @@ export class Api {
 		try {
 			let params = {
 				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				}
+				headers: await Api.getHeaders()
 			};
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/tasks', params);
@@ -326,10 +348,7 @@ export class Api {
 		try {
 			let params = {
 				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				}
+				headers: await Api.getHeaders()
 			};
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns?order_by=-start_date&limit=' + limit, params);
@@ -363,10 +382,7 @@ export class Api {
 		try {
 			let params = {
 				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				}
+				headers: await Api.getHeaders()
 			};
 
 			//https://airflow.apache.org/api/v1/dags/{dag_id}/dagRuns/{dag_run_id}/taskInstances
@@ -401,10 +417,7 @@ export class Api {
 		try {
 			let params = {
 				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				}
+				headers: await Api.getHeaders()
 			};
 
 			ui.showInfoMessage('Fecthing Latest DAG Run Logs, wait please ...');
@@ -429,7 +442,7 @@ export class Api {
 					result.result += '############################################################\n\n';
 					result.result += responseLogsText;
 				}
-				result.result += '###################### END OF DAG RUN ######################\n\n';
+				result.result += '\n\n###################### END OF DAG RUN ######################\n\n';
 				result.isSuccessful = true;
 				ui.logToOutput("api.getLastDagRunLog completed");
 				return result;
@@ -456,10 +469,7 @@ export class Api {
 		try {
 			let params = {
 				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				}
+				headers: await Api.getHeaders()
 			};
 
 			ui.showInfoMessage('Fecthing Latest DAG Run Logs, wait please ...');
@@ -506,10 +516,7 @@ export class Api {
 			while (true) {
 				let params = {
 					method: 'GET',
-					headers: {
-						'Content-Type': 'application/json',
-						'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-					}
+					headers: await Api.getHeaders()
 				};
 	
 				let response = await fetch(`${Api.apiUrl}/dags?limit=${limit}&offset=${offset}`, params);
@@ -562,10 +569,7 @@ export class Api {
 		try {
 			let params = {
 				method: 'GET',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword)
-				}
+				headers: await Api.getHeaders()
 			};
 
 			let response = await fetch(Api.apiUrl + '/importErrors', params);

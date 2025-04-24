@@ -11,7 +11,8 @@ export class DagTreeItem extends vscode.TreeItem {
 	public FileToken: string;
 	public LatestDagRunId: string;
 	public LatestDagState: string;
-	public IsFav: boolean = false;
+	private _IsFav: boolean = false;
+	public IsFiltered: boolean = false;
 
 	constructor(apiResponse: any) {
 		super(apiResponse["dag_id"]);
@@ -27,14 +28,33 @@ export class DagTreeItem extends vscode.TreeItem {
 		this.Owners = apiResponse["owners"];
 		this.Tags = apiResponse["tags"];
 		this.FileToken = apiResponse["file_token"];
+		this.setContextValue();
+	}
+
+	public set IsFav(value: boolean) {
+		this._IsFav = value;
+		this.setContextValue();
+	}
+
+	public get IsFav(): boolean {
+		return this._IsFav;
 	}
 
 	public isDagRunning(): boolean {
 		return (this.LatestDagState === 'queued' || this.LatestDagState === 'running');
 	}
 
+	public setContextValue(){
+		let contextValue = "#";
+		contextValue += this.IsFav ? "IsFav#" : "!IsFav#";
+		contextValue += this.IsPaused ? "IsPaused#" : "!IsPaused#";
+		contextValue += this.IsActive ? "IsActive#" : "!IsActive#";
+		contextValue += this.IsFiltered ? "IsFiltered#" : "!IsFiltered#";
+
+		this.contextValue = contextValue;
+	}
+
 	public refreshUI() {
-		super.label = this.DagId;
 
 		if (this.IsPaused) {
 			this.iconPath = new vscode.ThemeIcon('circle-outline');
@@ -76,7 +96,7 @@ export class DagTreeItem extends vscode.TreeItem {
 				if (t.name.includes(word)) { matchingWords.push(word); continue; }
 			}
 		}
-
-		return words.length === matchingWords.length;
+		this.IsFiltered = (words.length === matchingWords.length);
+		return this.IsFiltered;
 	}
 }
