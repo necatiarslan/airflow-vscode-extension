@@ -188,22 +188,22 @@
 				},
 				{
 					"command": "dagTreeView.pauseDAG",
-					"when": "view == dagTreeView",
+					"when": "view == dagTreeView && viewItem =~ /#!IsPaused#/",
 					"group": "pause"
 				},
 				{
 					"command": "dagTreeView.unPauseDAG",
-					"when": "view == dagTreeView",
+					"when": "view == dagTreeView && viewItem =~ /#IsPaused#/",
 					"group": "pause"
 				},
 				{
 					"command": "dagTreeView.addToFavDAG",
-					"when": "view == dagTreeView",
+					"when": "view == dagTreeView && viewItem =~ /#!IsFav#/",
 					"group": "fav"
 				},
 				{
 					"command": "dagTreeView.deleteFromFavDAG",
-					"when": "view == dagTreeView",
+					"when": "view == dagTreeView && viewItem =~ /#IsFav#/",
 					"group": "fav"
 				},
 				{

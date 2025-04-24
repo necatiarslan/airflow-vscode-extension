@@ -75,11 +75,13 @@ export class DagTreeView {
 	async addToFavDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.addToFavDAG Started');
 		node.IsFav = true;
+		this.treeDataProvider.refresh();
 	}
 
 	async deleteFromFavDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.deleteFromFavDAG Started');
 		node.IsFav = false;
+		this.treeDataProvider.refresh();
 	}
 
 	async triggerDag(node: DagTreeItem) {
