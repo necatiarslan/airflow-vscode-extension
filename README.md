@@ -85,12 +85,10 @@ astro dev start     #start airflow as a docker container
 ## 📝 Roadmap
 
 ### Coming Soon
-- Skip Try=0 Logs
 - Run Selected Tasks
+- Hide Dags & Show Hidden Dags Filter
 - Connections, Variables, XComs
 - Hierarchical Tasks List
-- Tasks graph view
-- Tasks gantt chart view
 - Prev Run, Date Filter
 - Task View
     - Instance Details
@@ -98,24 +96,13 @@ astro dev start     #start airflow as a docker container
     - Log
     - X-Com
 - Fix: not runned task duration
-- TreeView Dag List Pagination (top 100 limit now)
 - Treeview Dag hierarcy by owner, last run date, next run date, dag file folder structure, tags
 - New DAG Wizard
-- Run DAGs in your local (devcontainer)
 - DAG Dry Run
-- DAG Validation
 - Run DAG Tests
-- DAG Dependencies
-- Preview DAG flow in your local
-- Hide Dags & Show Hidden Dags Filter
-- Add Survey and Bug Report to TreeView Other commands
-- DagView Table Colors
-- How To Enable Airflow API and Connect
 - DAG.test() support
 - Highligt DAG and Operator Keywords
 - Server Health Check/Status
-- Dag Code Checks
-- Server Alias
 
 
 ## 💖 Sponsor & Feedback
