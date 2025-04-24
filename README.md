@@ -13,7 +13,6 @@ Trigger DAGs, pause/unpause, explore DAG runs, view logs, browse code, and moreâ
 - **DAG List**  
   - Browse all available DAGs in a tree view.
   - Filter DAGs by name, owner, active/paused status, tags
-  - Hide DAGs that you don't interested in
   - Add your favorite DAGs to favorites to quickly access them
   - Add multiple Airflow Servers and switch between them
 
