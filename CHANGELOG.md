@@ -1,4 +1,9 @@
 # Change Log
+- v1.7.1 (2025-06-08)
+    - Trigger Dag v2
+    - Show Source Code fix
+    - Minor bug fixes
+
 - v1.7.0 (2025-04-23)
     - Airflow 3.0 Support
 

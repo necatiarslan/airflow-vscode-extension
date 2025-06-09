@@ -46,13 +46,25 @@ export class Api {
 		return Api.jwtToken;
 	}
 
+	public static getAirflowVersion() {
+		if (Api.apiUrl.includes("v1")) {
+			return "v1";
+		}
+		else if (Api.apiUrl.includes("v2")) {
+			return "v2";
+		}
+		else {
+			return "";
+		}
+	}
+
 	public static async getHeaders() {
 		let auth = '';
 
-		if (Api.apiUrl.includes("v1")) {
+		if (Api.getAirflowVersion() === "v1") {
 			auth = 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword);
 		}
-		else if (Api.apiUrl.includes("v2")) {
+		else if (Api.getAirflowVersion() === "v2") {
 			auth = 'Bearer ' + await Api.getJwtToken();
 		}
 
@@ -73,6 +85,17 @@ export class Api {
 
 	public static async triggerDag(dagId: string, config: string = undefined, date: string = undefined): Promise<MethodResult<any>> {
 		ui.logToOutput("api.triggerDag started");
+
+		if (Api.getAirflowVersion() === "v1") {
+			return Api.triggerDagV1(dagId, config, date);
+		}
+		else if (Api.getAirflowVersion() === "v2") {
+			return Api.triggerDagV2(dagId, config, date);
+		}
+	}
+
+	public static async triggerDagV1(dagId: string, config: string = undefined, date: string = undefined): Promise<MethodResult<any>> {
+		ui.logToOutput("api.triggerDagV1 started");
 		if (!Api.isApiParamsSet()) { return; }
 
 		let result: MethodResult<any> = new MethodResult<any>();
@@ -99,20 +122,71 @@ export class Api {
 			if (response.status === 200) {
 				ui.showInfoMessage(dagId + " Dag Triggered.");
 				result.isSuccessful = true;
-				ui.logToOutput("api.triggerDag completed");
+				ui.logToOutput("api.triggerDagV1 completed");
 				return result;
 			}
 			else {
 				ui.showApiErrorMessage(dagId + ' Api Call Error !!!', result.result);
 				result.isSuccessful = false;
-				ui.logToOutput("api.triggerDag completed");
+				ui.logToOutput("api.triggerDagV1 completed");
 				return result;
 			}
 		} catch (error) {
 			ui.showErrorMessage(dagId + ' System Error !!!', error);
 			result.isSuccessful = false;
 			result.error = error;
-			ui.logToOutput("api.triggerDag Error !!!", error);
+			ui.logToOutput("api.triggerDagV1 Error !!!", error);
+			return result;
+		}
+	}
+
+	public static async triggerDagV2(dagId: string, config: string = undefined, date: string = undefined): Promise<MethodResult<any>> {
+		ui.logToOutput("api.triggerDagV2 started");
+		if (!Api.isApiParamsSet()) { return; }
+
+		let result: MethodResult<any> = new MethodResult<any>();
+
+		if (!config) {
+			config = "{}";
+		}
+		let logicalDateParam: string = "";
+		if (!date) {
+			let today = new Date();
+			date = today.toISOString();
+		}
+		else {
+			date = date + 'T00:00:00Z';
+		}
+		logicalDateParam = ', "logical_date": "' + date + '"';
+
+		try {
+
+			let params = {
+				method: 'POST',
+				headers: await Api.getHeaders(),
+				body: '{"conf": ' + config + logicalDateParam + '}',
+			};
+
+			let response = await fetch(Api.apiUrl + '/dags/' + dagId + '/dagRuns', params);
+
+			result.result = await response.json();
+			if (response.status === 200) {
+				ui.showInfoMessage(dagId + " Dag Triggered.");
+				result.isSuccessful = true;
+				ui.logToOutput("api.triggerDagV2 completed");
+				return result;
+			}
+			else {
+				ui.showApiErrorMessage(dagId + ' Api Call Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.triggerDagV2 completed");
+				return result;
+			}
+		} catch (error) {
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.triggerDagV2 Error !!!", error);
 			return result;
 		}
 	}
@@ -225,7 +299,7 @@ export class Api {
 		}
 	}
 
-	public static async getSourceCode(dagId: string, fileToken: string): Promise<MethodResult<any>> {
+	public static async getSourceCodeV1(dagId: string, fileToken: string): Promise<MethodResult<any>> {
 		ui.logToOutput("api.getSourceCode started");
 		let result: MethodResult<any> = new MethodResult<any>();
 		try {
@@ -237,6 +311,40 @@ export class Api {
 			let response = await fetch(Api.apiUrl + '/dagSources/' + fileToken, params);
 
 			result.result = await response.text();
+			if (response.status === 200) {
+				result.isSuccessful = true;
+				ui.logToOutput("api.getSourceCode completed");
+				return result;
+
+			}
+			else {
+				ui.showApiErrorMessage(dagId + ' Api Call Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getSourceCode completed");
+				return result;
+			}
+
+		} catch (error) {
+			ui.showErrorMessage(dagId + ' System Error !!!', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getSourceCode Error !!!", error);
+			return result;
+		}
+	}
+
+	public static async getSourceCodeV2(dagId: string): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getSourceCode started");
+		let result: MethodResult<any> = new MethodResult<any>();
+		try {
+			let params = {
+				method: 'GET',
+				headers: await Api.getHeaders()
+			};
+
+			let response = await fetch(Api.apiUrl + '/dagSources/' + dagId, params);
+
+			result.result = (await response.json())["content"];
 			if (response.status === 200) {
 				result.isSuccessful = true;
 				ui.logToOutput("api.getSourceCode completed");

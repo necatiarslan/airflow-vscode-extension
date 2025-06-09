@@ -5,7 +5,7 @@ import { DagTreeItem } from './dagTreeItem';
 import { DagTreeDataProvider } from './dagTreeDataProvider';
 import * as ui from './ui';
 import { Api } from './api';
-import { urlToHttpOptions } from 'url';
+import { MethodResult } from './methodResult';
 
 export class DagTreeView {
 
@@ -251,25 +251,13 @@ export class DagTreeView {
 	public async notifyDagPaused(dagId: string){
 		ui.logToOutput('DagTreeView.notifyDagPaused Started');
 		if (!this.treeDataProvider) { return; }
-		for (var node of this.treeDataProvider.visibleDagList) {
-			if (node.DagId === dagId) {
-				node.IsPaused = true;
-				node.refreshUI();
-				this.treeDataProvider.refresh();
-			}
-		}
+		this.refresh();
 	}
 
 	public async notifyDagUnPaused(dagId: string){
 		ui.logToOutput('DagTreeView.notifyDagPaused Started');
 		if (!this.treeDataProvider) { return; }
-		for (var node of this.treeDataProvider.visibleDagList) {
-			if (node.DagId === dagId) {
-				node.IsPaused = false;
-				node.refreshUI();
-				this.treeDataProvider.refresh();
-			}
-		}
+		this.refresh();
 	}
 
 	async unPauseDAG(node: DagTreeItem) {
@@ -309,7 +297,22 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.dagSourceCode Started');
 		if(!Api.isApiParamsSet()) { return; }
 
-		let result = await Api.getSourceCode(node.DagId, node.FileToken);
+		var result: MethodResult<any>;
+
+		if(Api.getAirflowVersion() === "v1")
+		{
+			result = await Api.getSourceCodeV1(node.DagId, node.FileToken);
+		}
+		else if(Api.getAirflowVersion() === "v2")
+		{
+			result = await Api.getSourceCodeV2(node.DagId);
+		}
+		else{
+			result = new MethodResult<any>();
+			result.isSuccessful = false;
+			result.result = "Unknown Airflow Version";
+		}
+		
 		if(result.isSuccessful)
 		{
 			const tmp = require('tmp');
@@ -321,7 +324,8 @@ export class DagTreeView {
 		}
 		else
 		{
-
+			ui.logToOutput(result.result);
+			ui.showErrorMessage(result.result);
 		}
 
 	}

@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import * as ui from './ui';
 import { Api } from './api';
 import { DagTreeView } from "./dagTreeView";
+import { MethodResult } from './methodResult';
 
 export class DagView {
     public static Current: DagView | undefined;
@@ -399,7 +400,7 @@ export class DagView {
                     <table>
                         <tr>
                             <td colspan="3">
-                                <vscode-link href="https://github.com/sponsors/necatiarslan">Support Me</vscode-link>
+                                <vscode-link href="https://github.com/sponsors/necatiarslan">Donate to support this extension</vscode-link>
                             </td>
                         </tr>
                     </table>
@@ -617,7 +618,21 @@ export class DagView {
         ui.logToOutput('DagView.showSourceCode Started');
         if (!Api.isApiParamsSet()) { return; }
 
-        let result = await Api.getSourceCode(this.dagId, this.dagJson.file_token);
+        var result: MethodResult<any>;
+        if(Api.getAirflowVersion() === "v1")
+        {
+            result = await Api.getSourceCodeV1(this.dagId, this.dagJson.file_token);
+        }
+        else if(Api.getAirflowVersion() === "v2")
+        {
+            result = await Api.getSourceCodeV2(this.dagId);
+        }
+        else{
+            result = new MethodResult<any>();
+            result.isSuccessful = false;
+            result.result = "Unknown Airflow Version";
+        }
+
         if (result.isSuccessful) {
             const tmp = require('tmp');
             var fs = require('fs');
@@ -625,6 +640,11 @@ export class DagView {
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.py' });
             fs.appendFileSync(tmpFile.name, result.result);
             ui.openFile(tmpFile.name);
+        }
+        else
+        {
+            ui.logToOutput(result.result);
+            ui.showErrorMessage(result.result);
         }
     }
 
@@ -683,7 +703,7 @@ export class DagView {
 
         if (config !== undefined) {
 
-            let result = await Api.triggerDag(this.dagId, config);
+            let result = await Api.triggerDag(this.dagId, config, date);
 
             if (result.isSuccessful) {
                 this.startCheckingDagRunStatus(result.result["dag_run_id"]);
