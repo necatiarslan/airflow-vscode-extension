@@ -30,25 +30,32 @@ export class DagTreeView {
 		this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
 		this.refresh();
 		context.subscriptions.push(this.view);
+		// ensure intervals are cleared when extension is deactivated
+		context.subscriptions.push({ dispose: () => this.dispose() });
 		DagTreeView.Current = this;
 		this.setFilterMessage();
 	}
 
-	refresh(): void {
+	public dispose() {
+		ui.logToOutput('DagTreeView.dispose Started');
+		if (this.dagStatusInterval) {
+			clearInterval(this.dagStatusInterval);
+		}
+	}
+
+	async refresh(): Promise<void> {
 		ui.logToOutput('DagTreeView.refresh Started');
 
-		vscode.window.withProgress({
+		await vscode.window.withProgress({
 			location: vscode.ProgressLocation.Window,
 			title: "Airflow: Loading...",
-		}, (progress, token) => {
+		}, async (progress, token) => {
 			progress.report({ increment: 0 });
 
-			this.loadDags();
-
-			return new Promise<void>(resolve => { resolve(); });
+			await this.loadDags();
 		});
 
-		this.getImportErrors();
+		await this.getImportErrors();
 	}
 
 	resetView(): void {
@@ -107,11 +114,10 @@ export class DagTreeView {
 			node.LatestDagState = responseTrigger['state'];
 			node.refreshUI();
 			this.treeDataProvider.refresh();
-			if (this.dagStatusInterval) {
-				this.dagStatusInterval.refresh();
-			}
-			else {
-				this.dagStatusInterval = setInterval(this.refreshRunningDagState, 10 * 1000, this);
+			if (!this.dagStatusInterval) {
+				this.dagStatusInterval = setInterval(() => {
+					void this.refreshRunningDagState(this).catch((err: any) => ui.logToOutput('refreshRunningDagState Error', err));
+				}, 10 * 1000);
 			}
 		}
 	}
@@ -170,11 +176,10 @@ export class DagTreeView {
 				node.LatestDagState = responseTrigger['state'];
 				node.refreshUI();
 				this.treeDataProvider.refresh();
-				if (this.dagStatusInterval) {
-					this.dagStatusInterval.refresh();
-				}
-				else {
-					this.dagStatusInterval = setInterval(this.refreshRunningDagState, 10 * 1000, this);
+				if (!this.dagStatusInterval) {
+					this.dagStatusInterval = setInterval(() => {
+						void this.refreshRunningDagState(this).catch((err: any) => ui.logToOutput('refreshRunningDagState Error', err));
+					}, 10 * 1000);
 				}
 			}
 
@@ -217,12 +222,11 @@ export class DagTreeView {
 			node.refreshUI();
 			this.treeDataProvider.refresh();
 
-			if (node.isDagRunning) {
-				if (this.dagStatusInterval) {
-					this.dagStatusInterval.refresh();
-				}
-				else {
-					this.dagStatusInterval = setInterval(this.refreshRunningDagState, 10 * 1000, this);
+			if (node.isDagRunning()) {
+				if (!this.dagStatusInterval) {
+					this.dagStatusInterval = setInterval(() => {
+						void this.refreshRunningDagState(this).catch((err: any) => ui.logToOutput('refreshRunningDagState Error', err));
+					}, 10 * 1000);
 				}
 			}
 		}
@@ -383,19 +387,15 @@ export class DagTreeView {
 
 	async removeServer() {
 		ui.logToOutput('DagTreeView.removeServer Started');
-		if(this.ServerList.length === 0) { return; }
+		if (this.ServerList.length === 0) { return; }
 
-		var items: string[] = [];
-		for(var s of this.ServerList)
-		{
-			items.push(s["apiUrl"]+ " - " + s["apiUserName"]);
-		}
+		const items: string[] = this.ServerList.map(s => `${s["apiUrl"]} - ${s["apiUserName"]}`);
 
-		let selected = await vscode.window.showQuickPick(items, {canPickMany:false, placeHolder: 'Select To Remove'});
-		let selectedItems = selected.split(" - ");
+		const selected = await vscode.window.showQuickPick(items, { canPickMany: false, placeHolder: 'Select To Remove' });
+		if (!selected) { return; }
 
-		if(selectedItems[0])
-		{
+		const selectedItems = selected.split(' - ');
+		if (selectedItems[0]) {
 			this.ServerList = this.ServerList.filter(item => !(item["apiUrl"] === selectedItems[0] && item["apiUserName"] === selectedItems[1]));
 			this.saveState();
 			ui.showInfoMessage("Server removed, you can remain working on it or connect a new one.");
@@ -418,18 +418,18 @@ export class DagTreeView {
 			items.push(s["apiUrl"] + " - " + s["apiUserName"]);
 		}
 
-		let selected = await vscode.window.showQuickPick(items, {canPickMany:false, placeHolder: 'Select To Connect'});
-		let selectedItems = selected.split(" - ");
+		const selected = await vscode.window.showQuickPick(items, { canPickMany: false, placeHolder: 'Select To Connect' });
+		if (!selected) { return; }
 
+		const selectedItems = selected.split(' - ');
 
-		if(selectedItems[0])
-		{
-			var item = this.ServerList.find(item => item["apiUrl"] === selectedItems[0] && item["apiUserName"] === selectedItems[1]);
+		if (selectedItems[0]) {
+			const item = this.ServerList.find(item => item["apiUrl"] === selectedItems[0] && item["apiUserName"] === selectedItems[1]);
 
 			Api.apiUrl = selectedItems[0];
-			Api.apiUserName = item["apiUserName"];
-			Api.apiPassword = item["apiPassword"];
-	
+			Api.apiUserName = item?.["apiUserName"];
+			Api.apiPassword = item?.["apiPassword"];
+
 			this.saveState();
 			this.refresh();
 		}

@@ -29,7 +29,7 @@ export class DagView {
         this.extensionUri = extensionUri;
 
         this._panel = panel;
-        this._panel.onDidDispose(this.dispose, null, this._disposables);
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadAllDagData();
         ui.logToOutput('DagView.constructor Completed');
@@ -159,6 +159,9 @@ export class DagView {
         ui.logToOutput('DagView.dispose Started');
         DagView.Current = undefined;
 
+        // stop any running interval checks
+        this.stopCheckingDagRunStatus();
+
         this._panel.dispose();
 
         while (this._disposables.length) {
@@ -218,9 +221,11 @@ export class DagView {
         }
 
         //INFO TAB
-        let owners = (this.dagJson) ? this.dagJson["owners"].join(", ") : "";
+        let owners = (this.dagJson && Array.isArray(this.dagJson["owners"])) ? this.dagJson["owners"].join(", ") : "";
         let tags: string = "";
-        this.dagJson["tags"].forEach(item => { tags += item.name + ", "; });
+        if (this.dagJson && Array.isArray(this.dagJson["tags"])) {
+            this.dagJson["tags"].forEach(item => { tags += item.name + ", "; });
+        }
         let schedule_interval = (this.dagJson && this.dagJson["schedule_interval"] && this.dagJson["schedule_interval"].value) ? this.dagJson["schedule_interval"].value : "";
         let isPausedText = (this.dagJson) ? this.dagJson.is_paused ? "true" : "false" : "unknown";
         let isPaused = isPausedText === "true";
@@ -585,8 +590,8 @@ export class DagView {
     }
 
     private async getTasksAndRenderHtml() {
-        this.getDagTasks();
-        this.renderHmtl();
+        await this.getDagTasks();
+        await this.renderHmtl();
     }
 
     async cancelDagRun(dagRunId:string){
@@ -719,7 +724,9 @@ export class DagView {
         if (this.dagStatusInterval) {
             clearInterval(this.dagStatusInterval);//stop prev checking
         }
-        this.dagStatusInterval = setInterval(this.refreshRunningDagState, 5 * 1000, this);
+        this.dagStatusInterval = setInterval(() => {
+            void this.refreshRunningDagState(this).catch((err: any) => ui.logToOutput('refreshRunningDagState Error', err));
+        }, 5 * 1000);
     }
 
     async stopCheckingDagRunStatus() {
@@ -743,7 +750,7 @@ export class DagView {
             dagView.dagRunJson = result.result;
 
             let resultTasks = await Api.getTaskInstances(dagView.dagId, dagView.triggeredDagRunId);
-            if (result.isSuccessful) {
+            if (resultTasks.isSuccessful) {
                 dagView.dagTaskInstancesJson = resultTasks.result;
             }
         }

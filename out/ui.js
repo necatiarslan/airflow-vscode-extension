@@ -1,12 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.isValidDate = exports.isJsonString = exports.convertMsToTime = exports.getDuration = exports.showFile = exports.getExtensionVersion = exports.showApiErrorMessage = exports.showErrorMessage = exports.showWarningMessage = exports.showInfoMessage = exports.logToOutput = exports.showOutputMessage = void 0;
+exports.isValidDate = exports.isJsonString = exports.convertMsToTime = exports.getDuration = exports.openFile = exports.getExtensionVersion = exports.showApiErrorMessage = exports.showErrorMessage = exports.showWarningMessage = exports.showInfoMessage = exports.logToOutput = exports.showOutputMessage = exports.getUri = void 0;
 const vscode = require("vscode");
+const vscode_1 = require("vscode");
 const fs_1 = require("fs");
 const path_1 = require("path");
 var outputChannel;
 var logsOutputChannel;
-function showOutputMessage(message) {
+var NEW_LINE = "\n\n";
+function getUri(webview, extensionUri, pathList) {
+    return webview.asWebviewUri(vscode_1.Uri.joinPath(extensionUri, ...pathList));
+}
+exports.getUri = getUri;
+function showOutputMessage(message, popupMessage = "Results are printed to OUTPUT / Airflow-Extension") {
     if (!outputChannel) {
         outputChannel = vscode.window.createOutputChannel("Airflow-Extension");
     }
@@ -18,7 +24,7 @@ function showOutputMessage(message) {
         outputChannel.appendLine(message);
     }
     outputChannel.show();
-    showInfoMessage("Results are printed to OUTPUT / Airflow-Extension");
+    showInfoMessage(popupMessage);
 }
 exports.showOutputMessage = showOutputMessage;
 function logToOutput(message, error = undefined) {
@@ -49,7 +55,7 @@ function showWarningMessage(message) {
 exports.showWarningMessage = showWarningMessage;
 function showErrorMessage(message, error = undefined) {
     if (error) {
-        vscode.window.showErrorMessage(message + "\n\n" + error.name + "/n" + error.message);
+        vscode.window.showErrorMessage(message + NEW_LINE + error.name + NEW_LINE + error.message);
     }
     else {
         vscode.window.showErrorMessage(message);
@@ -57,13 +63,23 @@ function showErrorMessage(message, error = undefined) {
 }
 exports.showErrorMessage = showErrorMessage;
 function showApiErrorMessage(message, jsonResult) {
+    let preText = "";
     if (jsonResult) {
-        vscode.window.showErrorMessage(message + "\n\n"
-            + "type:" + jsonResult.type + "\n"
-            + "title:" + jsonResult.title + "\n"
-            + "status:" + jsonResult.status + "\n"
-            + "detail:" + jsonResult.detail + "\n"
-            + "instance:" + jsonResult.instance + "\n");
+        if (jsonResult.status === 403) {
+            preText = "Permission Denied !!!";
+            vscode.window.showErrorMessage(preText);
+        }
+        else if (jsonResult.status === 401) {
+            preText = "Invalid Authentication Info !!!";
+            vscode.window.showErrorMessage(preText);
+        }
+        else if (jsonResult.status === 404) {
+            preText = "Resource Not Found !!!";
+            vscode.window.showErrorMessage(preText);
+        }
+        else {
+            vscode.window.showErrorMessage(preText);
+        }
     }
     else {
         vscode.window.showErrorMessage(message);
@@ -84,10 +100,19 @@ function getExtensionVersion() {
     return extVersion;
 }
 exports.getExtensionVersion = getExtensionVersion;
-function showFile(file) {
-    vscode.commands.executeCommand('vscode.open', vscode.Uri.file(file));
+function openFile(file) {
+    // Use workspace API to open file in editor and show it in column one
+    (async () => {
+        try {
+            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+            await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.One, preview: false });
+        }
+        catch (err) {
+            logToOutput('openFile Error', err);
+        }
+    })();
 }
-exports.showFile = showFile;
+exports.openFile = openFile;
 function padTo2Digits(num) {
     return num.toString().padStart(2, '0');
 }

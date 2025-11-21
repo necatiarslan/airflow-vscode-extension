@@ -9,7 +9,7 @@ export class Api {
 	public static apiUrl: string = '';
 	public static apiUserName: string = '';
 	public static apiPassword: string = '';
-	public static jwtToken: string = '';
+	public static jwtToken: string | undefined = undefined;
 
 	public static async getJwtToken() {
 		ui.logToOutput("api.getJwtToken started");
@@ -59,20 +59,23 @@ export class Api {
 	}
 
 	public static async getHeaders() {
-		let auth = '';
+		const headers: any = {
+			'Content-Type': 'application/json'
+		};
 
 		if (Api.getAirflowVersion() === "v1") {
-			auth = 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword);
-		}
-		else if (Api.getAirflowVersion() === "v2") {
-			auth = 'Bearer ' + await Api.getJwtToken();
+			headers['Authorization'] = 'Basic ' + encode(Api.apiUserName + ":" + Api.apiPassword);
+		} else if (Api.getAirflowVersion() === "v2") {
+			const token = await Api.getJwtToken();
+			if (token) {
+				headers['Authorization'] = 'Bearer ' + token;
+			} else {
+				// no token - leave headers without Authorization
+				ui.showWarningMessage('Unable to obtain JWT token for Airflow API v2.');
+			}
 		}
 
-		let result = {
-			'Content-Type': 'application/json',
-			'Authorization': auth
-		};
-		return result;
+		return headers;
 	}
 
 	public static isApiParamsSet() {
@@ -92,6 +95,11 @@ export class Api {
 		else if (Api.getAirflowVersion() === "v2") {
 			return Api.triggerDagV2(dagId, config, date);
 		}
+
+		const mr = new MethodResult<any>();
+		mr.isSuccessful = false;
+		mr.error = new Error('Unknown Airflow API version');
+		return mr;
 	}
 
 	public static async triggerDagV1(dagId: string, config: string = undefined, date: string = undefined): Promise<MethodResult<any>> {
@@ -276,7 +284,7 @@ export class Api {
 
 			let response = await fetch(Api.apiUrl + '/dags/' + dagId, params);
 
-			result.result = response.json();
+			result.result = await response.json();
 			if (response.status === 200) {
 				ui.showInfoMessage(dagId + ' Dag ' + (is_paused ? "PAUSED" : "UN-PAUSED"));
 				result.isSuccessful = true;

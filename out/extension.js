@@ -11,48 +11,31 @@ const ui = require("./ui");
 function activate(context) {
     ui.logToOutput('Extension activation started');
     let dagTreeView = new dagTreeView_1.DagTreeView(context);
-    vscode.commands.registerCommand('dagTreeView.refreshServer', () => {
-        dagTreeView.refresh();
-    });
-    vscode.commands.registerCommand('dagTreeView.addServer', () => {
-        dagTreeView.addServer();
-    });
-    vscode.commands.registerCommand('dagTreeView.filter', () => {
-        dagTreeView.filter();
-    });
-    vscode.commands.registerCommand('dagTreeView.viewDagView', (node) => {
-        dagTreeView.viewDagView(node);
-    });
-    vscode.commands.registerCommand('dagTreeView.triggerDag', (node) => {
-        dagTreeView.triggerDag(node);
-    });
-    vscode.commands.registerCommand('dagTreeView.triggerDagWithConfig', (node) => {
-        dagTreeView.triggerDagWConfig(node);
-    });
-    vscode.commands.registerCommand('dagTreeView.checkDagRunState', (node) => {
-        dagTreeView.checkDagRunState(node);
-    });
-    vscode.commands.registerCommand('dagTreeView.checkAllDagsRunState', (node) => {
-        dagTreeView.checkAllDagsRunState();
-    });
-    vscode.commands.registerCommand('dagTreeView.pauseDAG', (node) => {
-        dagTreeView.pauseDAG(node);
-    });
-    vscode.commands.registerCommand('dagTreeView.unPauseDAG', (node) => {
-        dagTreeView.unPauseDAG(node);
-    });
-    vscode.commands.registerCommand('dagTreeView.lastDAGRunLog', (node) => {
-        dagTreeView.lastDAGRunLog(node);
-    });
-    vscode.commands.registerCommand('dagTreeView.dagSourceCode', (node) => {
-        dagTreeView.dagSourceCode(node);
-    });
-    vscode.commands.registerCommand('dagTreeView.addToFavDAG', (node) => {
-        dagTreeView.addToFavDAG(node);
-    });
-    vscode.commands.registerCommand('dagTreeView.deleteFromFavDAG', (node) => {
-        dagTreeView.deleteFromFavDAG(node);
-    });
+    // register commands and keep disposables so they are cleaned up on deactivate
+    const commands = [];
+    commands.push(vscode.commands.registerCommand('dagTreeView.refreshServer', () => { dagTreeView.refresh(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.addServer', () => { dagTreeView.addServer(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.removeServer', () => { dagTreeView.removeServer(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.connectServer', () => { dagTreeView.connectServer(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.clearServers', () => { dagTreeView.clearServers(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.filter', () => { dagTreeView.filter(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.showOnlyActive', () => { dagTreeView.showOnlyActive(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.showOnlyFavorite', () => { dagTreeView.showOnlyFavorite(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewDagView', (node) => { dagTreeView.viewDagView(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.triggerDag', (node) => { dagTreeView.triggerDag(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.triggerDagWithConfig', (node) => { dagTreeView.triggerDagWConfig(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.checkDagRunState', (node) => { dagTreeView.checkDagRunState(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.checkAllDagsRunState', () => { dagTreeView.checkAllDagsRunState(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.pauseDAG', (node) => { dagTreeView.pauseDAG(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.unPauseDAG', (node) => { dagTreeView.unPauseDAG(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.lastDAGRunLog', (node) => { dagTreeView.lastDAGRunLog(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.dagSourceCode', (node) => { dagTreeView.dagSourceCode(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.addToFavDAG', (node) => { dagTreeView.addToFavDAG(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.deleteFromFavDAG', (node) => { dagTreeView.deleteFromFavDAG(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.showDagView', (node) => { dagTreeView.viewDagView(node); }));
+    for (const c of commands) {
+        context.subscriptions.push(c);
+    }
     ui.logToOutput('Extension activation completed');
 }
 exports.activate = activate;

@@ -114,8 +114,15 @@ export function getExtensionVersion() {
 }
 
 export function openFile(file: string) {
-  vscode.commands.executeCommand('vscode.open', vscode.Uri.file(file), vscode.ViewColumn.One);
-  //vscode.workspace.openTextDocument(vscode.Uri.file(file));
+  // Use workspace API to open file in editor and show it in column one
+  (async () => {
+    try {
+      const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+      await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.One, preview: false });
+    } catch (err) {
+      logToOutput('openFile Error', err as Error);
+    }
+  })();
 }
 
 function padTo2Digits(num: number) {

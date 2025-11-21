@@ -12,85 +12,31 @@ export function activate(context: vscode.ExtensionContext) {
 
 	let dagTreeView:DagTreeView = new DagTreeView(context);
 
-	vscode.commands.registerCommand('dagTreeView.refreshServer', () => {
-		dagTreeView.refresh();
-	});
+	// register commands and keep disposables so they are cleaned up on deactivate
+	const commands: vscode.Disposable[] = [];
 
-	vscode.commands.registerCommand('dagTreeView.addServer', () => {
-		dagTreeView.addServer();
-	});
+	commands.push(vscode.commands.registerCommand('dagTreeView.refreshServer', () => { dagTreeView.refresh(); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.addServer', () => { dagTreeView.addServer(); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.removeServer', () => { dagTreeView.removeServer(); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.connectServer', () => { dagTreeView.connectServer(); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.clearServers', () => { dagTreeView.clearServers(); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.filter', () => { dagTreeView.filter(); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.showOnlyActive', () => { dagTreeView.showOnlyActive(); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.showOnlyFavorite', () => { dagTreeView.showOnlyFavorite(); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.viewDagView', (node: DagTreeItem) => { dagTreeView.viewDagView(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.triggerDag', (node: DagTreeItem) => { dagTreeView.triggerDag(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.triggerDagWithConfig', (node: DagTreeItem) => { dagTreeView.triggerDagWConfig(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.checkDagRunState', (node: DagTreeItem) => { dagTreeView.checkDagRunState(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.checkAllDagsRunState', () => { dagTreeView.checkAllDagsRunState(); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.pauseDAG', (node: DagTreeItem) => { dagTreeView.pauseDAG(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.unPauseDAG', (node: DagTreeItem) => { dagTreeView.unPauseDAG(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.lastDAGRunLog', (node: DagTreeItem) => { dagTreeView.lastDAGRunLog(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.dagSourceCode', (node: DagTreeItem) => { dagTreeView.dagSourceCode(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.addToFavDAG', (node: DagTreeItem) => { dagTreeView.addToFavDAG(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.deleteFromFavDAG', (node: DagTreeItem) => { dagTreeView.deleteFromFavDAG(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.showDagView', (node: DagTreeItem) => { dagTreeView.viewDagView(node); }));
 
-	vscode.commands.registerCommand('dagTreeView.removeServer', () => {
-		dagTreeView.removeServer();
-	});
-
-	vscode.commands.registerCommand('dagTreeView.connectServer', () => {
-		dagTreeView.connectServer();
-	});
-
-	vscode.commands.registerCommand('dagTreeView.clearServers', () => {
-		dagTreeView.clearServers();
-	});
-
-	vscode.commands.registerCommand('dagTreeView.filter', () => {
-		dagTreeView.filter();
-	});
-
-	vscode.commands.registerCommand('dagTreeView.showOnlyActive', () => {
-		dagTreeView.showOnlyActive();
-	});
-
-	vscode.commands.registerCommand('dagTreeView.showOnlyFavorite', () => {
-		dagTreeView.showOnlyFavorite();
-	});
-
-	vscode.commands.registerCommand('dagTreeView.viewDagView', (node: DagTreeItem) => {
-		dagTreeView.viewDagView(node);
-	});
-
-	vscode.commands.registerCommand('dagTreeView.triggerDag', (node: DagTreeItem) => {
-		dagTreeView.triggerDag(node);
-	});
-
-	vscode.commands.registerCommand('dagTreeView.triggerDagWithConfig', (node: DagTreeItem) => {
-		dagTreeView.triggerDagWConfig(node);
-	});
-
-	vscode.commands.registerCommand('dagTreeView.checkDagRunState', (node: DagTreeItem) => {
-		dagTreeView.checkDagRunState(node);
-	});
-
-	vscode.commands.registerCommand('dagTreeView.checkAllDagsRunState', (node: DagTreeItem) => {
-		dagTreeView.checkAllDagsRunState();
-	});
-
-	vscode.commands.registerCommand('dagTreeView.pauseDAG', (node: DagTreeItem) => {
-		dagTreeView.pauseDAG(node);
-	});
-
-	vscode.commands.registerCommand('dagTreeView.unPauseDAG', (node: DagTreeItem) => {
-		dagTreeView.unPauseDAG(node);
-	});
-
-	vscode.commands.registerCommand('dagTreeView.lastDAGRunLog', (node: DagTreeItem) => {
-		dagTreeView.lastDAGRunLog(node);
-	});
-
-	vscode.commands.registerCommand('dagTreeView.dagSourceCode', (node: DagTreeItem) => {
-		dagTreeView.dagSourceCode(node);
-	});
-
-	vscode.commands.registerCommand('dagTreeView.addToFavDAG', (node: DagTreeItem) => {
-		dagTreeView.addToFavDAG(node);
-	});
-
-	vscode.commands.registerCommand('dagTreeView.deleteFromFavDAG', (node: DagTreeItem) => {
-		dagTreeView.deleteFromFavDAG(node);
-	});
-
-	vscode.commands.registerCommand('dagTreeView.showDagView', (node: DagTreeItem) => {
-		dagTreeView.viewDagView(node);
-	});
+	for (const c of commands) { context.subscriptions.push(c); }
 
 	ui.logToOutput('Extension activation completed');
 }
