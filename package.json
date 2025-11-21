@@ -110,6 +110,21 @@
 			{
 				"command": "dagTreeView.clearServers",
 				"title": "Clear Servers"
+			},
+			{
+				"command": "dagTreeView.viewConnections",
+				"title": "View Connections",
+				"icon": "$(link)"
+			},
+			{
+				"command": "dagTreeView.viewVariables",
+				"title": "View Variables",
+				"icon": "$(symbol-variable)"
+			},
+			{
+				"command": "dagTreeView.viewProviders",
+				"title": "View Providers",
+				"icon": "$(package)"
 			}
 		],
 		"menus": {
@@ -151,6 +166,21 @@
 				},
 				{
 					"command": "dagTreeView.clearServers",
+					"when": "view == dagTreeView",
+					"group": "other"
+				},
+				{
+					"command": "dagTreeView.viewConnections",
+					"when": "view == dagTreeView",
+					"group": "other"
+				},
+				{
+					"command": "dagTreeView.viewVariables",
+					"when": "view == dagTreeView",
+					"group": "other"
+				},
+				{
+					"command": "dagTreeView.viewProviders",
 					"when": "view == dagTreeView",
 					"group": "other"
 				}

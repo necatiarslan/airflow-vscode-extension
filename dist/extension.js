@@ -497,6 +497,21 @@ class DagTreeView {
             ui.logToOutput("dagTreeView.loadState Error !!!", error);
         }
     }
+    async viewConnections() {
+        ui.logToOutput('DagTreeView.viewConnections Started');
+        const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(69));
+        ConnectionsView.render(this.context.extensionUri);
+    }
+    async viewVariables() {
+        ui.logToOutput('DagTreeView.viewVariables Started');
+        const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(70));
+        VariablesView.render(this.context.extensionUri);
+    }
+    async viewProviders() {
+        ui.logToOutput('DagTreeView.viewProviders Started');
+        const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(71));
+        ProvidersView.render(this.context.extensionUri);
+    }
 }
 exports.DagTreeView = DagTreeView;
 
@@ -2034,6 +2049,96 @@ class Api {
             result.isSuccessful = false;
             result.error = error;
             ui.logToOutput("api.getImportErrors Error !!!", error);
+            return result;
+        }
+    }
+    static async getConnections() {
+        ui.logToOutput("api.getConnections started");
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: await Api.getHeaders()
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/connections', params);
+            result.result = await response.json();
+            if (response.status === 200) {
+                result.isSuccessful = true;
+                ui.logToOutput("api.getConnections completed");
+                return result;
+            }
+            else {
+                ui.showApiErrorMessage('Api Call Error !!!', result.result);
+                result.isSuccessful = false;
+                ui.logToOutput("api.getConnections completed");
+                return result;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage('System Error !!!', error);
+            result.isSuccessful = false;
+            result.error = error;
+            ui.logToOutput("api.getConnections Error !!!", error);
+            return result;
+        }
+    }
+    static async getVariables() {
+        ui.logToOutput("api.getVariables started");
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: await Api.getHeaders()
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/variables', params);
+            result.result = await response.json();
+            if (response.status === 200) {
+                result.isSuccessful = true;
+                ui.logToOutput("api.getVariables completed");
+                return result;
+            }
+            else {
+                ui.showApiErrorMessage('Api Call Error !!!', result.result);
+                result.isSuccessful = false;
+                ui.logToOutput("api.getVariables completed");
+                return result;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage('System Error !!!', error);
+            result.isSuccessful = false;
+            result.error = error;
+            ui.logToOutput("api.getVariables Error !!!", error);
+            return result;
+        }
+    }
+    static async getProviders() {
+        ui.logToOutput("api.getProviders started");
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: await Api.getHeaders()
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/providers', params);
+            result.result = await response.json();
+            if (response.status === 200) {
+                result.isSuccessful = true;
+                ui.logToOutput("api.getProviders completed");
+                return result;
+            }
+            else {
+                ui.showApiErrorMessage('Api Call Error !!!', result.result);
+                result.isSuccessful = false;
+                ui.logToOutput("api.getProviders completed");
+                return result;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage('System Error !!!', error);
+            result.isSuccessful = false;
+            result.error = error;
+            ui.logToOutput("api.getProviders Error !!!", error);
             return result;
         }
     }
@@ -14159,6 +14264,340 @@ class DagTreeItem extends vscode.TreeItem {
 exports.DagTreeItem = DagTreeItem;
 
 
+/***/ }),
+/* 68 */,
+/* 69 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ConnectionsView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(4);
+const api_1 = __webpack_require__(7);
+class ConnectionsView {
+    constructor(panel, extensionUri) {
+        this._disposables = [];
+        ui.logToOutput('ConnectionsView.constructor Started');
+        this.extensionUri = extensionUri;
+        this._panel = panel;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('ConnectionsView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('ConnectionsView.loadData Started');
+        if (!api_1.Api.isApiParamsSet()) {
+            return;
+        }
+        const result = await api_1.Api.getConnections();
+        if (result.isSuccessful) {
+            this.connectionsJson = result.result;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('ConnectionsView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        ui.logToOutput('ConnectionsView.renderHtml Completed');
+    }
+    static render(extensionUri) {
+        ui.logToOutput('ConnectionsView.render Started');
+        if (ConnectionsView.Current) {
+            ConnectionsView.Current._panel.reveal(vscode.ViewColumn.Two);
+            ConnectionsView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("connectionsView", "Connections", vscode.ViewColumn.Two, {
+                enableScripts: true,
+            });
+            ConnectionsView.Current = new ConnectionsView(panel, extensionUri);
+        }
+    }
+    dispose() {
+        ui.logToOutput('ConnectionsView.dispose Started');
+        ConnectionsView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('ConnectionsView._getWebviewContent Started');
+        const toolkitUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode",
+            "webview-ui-toolkit",
+            "dist",
+            "toolkit.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        const connectionsData = this.connectionsJson ? JSON.stringify(this.connectionsJson, null, 4) : "No connections found";
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <title>Connections</title>
+      </head>
+      <body>  
+        <h2>Airflow Connections</h2>
+        <vscode-button appearance="secondary" id="refresh-connections">Refresh</vscode-button>
+        <br><br>
+        <pre>${connectionsData}</pre>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('ConnectionsView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('ConnectionsView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "refresh-connections":
+                    this.loadData();
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.ConnectionsView = ConnectionsView;
+
+
+/***/ }),
+/* 70 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.VariablesView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(4);
+const api_1 = __webpack_require__(7);
+class VariablesView {
+    constructor(panel, extensionUri) {
+        this._disposables = [];
+        ui.logToOutput('VariablesView.constructor Started');
+        this.extensionUri = extensionUri;
+        this._panel = panel;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('VariablesView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('VariablesView.loadData Started');
+        if (!api_1.Api.isApiParamsSet()) {
+            return;
+        }
+        const result = await api_1.Api.getVariables();
+        if (result.isSuccessful) {
+            this.variablesJson = result.result;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('VariablesView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        ui.logToOutput('VariablesView.renderHtml Completed');
+    }
+    static render(extensionUri) {
+        ui.logToOutput('VariablesView.render Started');
+        if (VariablesView.Current) {
+            VariablesView.Current._panel.reveal(vscode.ViewColumn.Two);
+            VariablesView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("variablesView", "Variables", vscode.ViewColumn.Two, {
+                enableScripts: true,
+            });
+            VariablesView.Current = new VariablesView(panel, extensionUri);
+        }
+    }
+    dispose() {
+        ui.logToOutput('VariablesView.dispose Started');
+        VariablesView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('VariablesView._getWebviewContent Started');
+        const toolkitUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode",
+            "webview-ui-toolkit",
+            "dist",
+            "toolkit.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        const variablesData = this.variablesJson ? JSON.stringify(this.variablesJson, null, 4) : "No variables found";
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <title>Variables</title>
+      </head>
+      <body>  
+        <h2>Airflow Variables</h2>
+        <vscode-button appearance="secondary" id="refresh-variables">Refresh</vscode-button>
+        <br><br>
+        <pre>${variablesData}</pre>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('VariablesView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('VariablesView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "refresh-variables":
+                    this.loadData();
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.VariablesView = VariablesView;
+
+
+/***/ }),
+/* 71 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ProvidersView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(4);
+const api_1 = __webpack_require__(7);
+class ProvidersView {
+    constructor(panel, extensionUri) {
+        this._disposables = [];
+        ui.logToOutput('ProvidersView.constructor Started');
+        this.extensionUri = extensionUri;
+        this._panel = panel;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('ProvidersView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('ProvidersView.loadData Started');
+        if (!api_1.Api.isApiParamsSet()) {
+            return;
+        }
+        const result = await api_1.Api.getProviders();
+        if (result.isSuccessful) {
+            this.providersJson = result.result;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('ProvidersView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        ui.logToOutput('ProvidersView.renderHtml Completed');
+    }
+    static render(extensionUri) {
+        ui.logToOutput('ProvidersView.render Started');
+        if (ProvidersView.Current) {
+            ProvidersView.Current._panel.reveal(vscode.ViewColumn.Two);
+            ProvidersView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("providersView", "Providers", vscode.ViewColumn.Two, {
+                enableScripts: true,
+            });
+            ProvidersView.Current = new ProvidersView(panel, extensionUri);
+        }
+    }
+    dispose() {
+        ui.logToOutput('ProvidersView.dispose Started');
+        ProvidersView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('ProvidersView._getWebviewContent Started');
+        const toolkitUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode",
+            "webview-ui-toolkit",
+            "dist",
+            "toolkit.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        const providersData = this.providersJson ? JSON.stringify(this.providersJson, null, 4) : "No providers found";
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <title>Providers</title>
+      </head>
+      <body>  
+        <h2>Airflow Providers</h2>
+        <vscode-button appearance="secondary" id="refresh-providers">Refresh</vscode-button>
+        <br><br>
+        <pre>${providersData}</pre>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('ProvidersView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('ProvidersView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "refresh-providers":
+                    this.loadData();
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.ProvidersView = ProvidersView;
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -14335,6 +14774,9 @@ function activate(context) {
     commands.push(vscode.commands.registerCommand('dagTreeView.addToFavDAG', (node) => { dagTreeView.addToFavDAG(node); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.deleteFromFavDAG', (node) => { dagTreeView.deleteFromFavDAG(node); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.showDagView', (node) => { dagTreeView.viewDagView(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewConnections', () => { dagTreeView.viewConnections(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewVariables', () => { dagTreeView.viewVariables(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewProviders', () => { dagTreeView.viewProviders(); }));
     for (const c of commands) {
         context.subscriptions.push(c);
     }

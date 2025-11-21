@@ -483,6 +483,21 @@ class DagTreeView {
             ui.logToOutput("dagTreeView.loadState Error !!!", error);
         }
     }
+    async viewConnections() {
+        ui.logToOutput('DagTreeView.viewConnections Started');
+        const { ConnectionsView } = await Promise.resolve().then(() => require('./connectionsView'));
+        ConnectionsView.render(this.context.extensionUri);
+    }
+    async viewVariables() {
+        ui.logToOutput('DagTreeView.viewVariables Started');
+        const { VariablesView } = await Promise.resolve().then(() => require('./variablesView'));
+        VariablesView.render(this.context.extensionUri);
+    }
+    async viewProviders() {
+        ui.logToOutput('DagTreeView.viewProviders Started');
+        const { ProvidersView } = await Promise.resolve().then(() => require('./providersView'));
+        ProvidersView.render(this.context.extensionUri);
+    }
 }
 exports.DagTreeView = DagTreeView;
 //# sourceMappingURL=dagTreeView.js.map

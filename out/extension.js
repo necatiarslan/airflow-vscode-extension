@@ -33,6 +33,9 @@ function activate(context) {
     commands.push(vscode.commands.registerCommand('dagTreeView.addToFavDAG', (node) => { dagTreeView.addToFavDAG(node); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.deleteFromFavDAG', (node) => { dagTreeView.deleteFromFavDAG(node); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.showDagView', (node) => { dagTreeView.viewDagView(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewConnections', () => { dagTreeView.viewConnections(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewVariables', () => { dagTreeView.viewVariables(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewProviders', () => { dagTreeView.viewProviders(); }));
     for (const c of commands) {
         context.subscriptions.push(c);
     }

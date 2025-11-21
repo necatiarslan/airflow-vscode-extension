@@ -711,4 +711,100 @@ export class Api {
 		}
 	}
 
+	public static async getConnections(): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getConnections started");
+		let result: MethodResult<any> = new MethodResult<any>();
+		try {
+			let params = {
+				method: 'GET',
+				headers: await Api.getHeaders()
+			};
+
+			let response = await fetch(Api.apiUrl + '/connections', params);
+
+			result.result = await response.json();
+			if (response.status === 200) {
+				result.isSuccessful = true;
+				ui.logToOutput("api.getConnections completed");
+				return result;
+			}
+			else {
+				ui.showApiErrorMessage('Api Call Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getConnections completed");
+				return result;
+			}
+		} catch (error) {
+			ui.showErrorMessage('System Error !!!', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getConnections Error !!!", error);
+			return result;
+		}
+	}
+
+	public static async getVariables(): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getVariables started");
+		let result: MethodResult<any> = new MethodResult<any>();
+		try {
+			let params = {
+				method: 'GET',
+				headers: await Api.getHeaders()
+			};
+
+			let response = await fetch(Api.apiUrl + '/variables', params);
+
+			result.result = await response.json();
+			if (response.status === 200) {
+				result.isSuccessful = true;
+				ui.logToOutput("api.getVariables completed");
+				return result;
+			}
+			else {
+				ui.showApiErrorMessage('Api Call Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getVariables completed");
+				return result;
+			}
+		} catch (error) {
+			ui.showErrorMessage('System Error !!!', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getVariables Error !!!", error);
+			return result;
+		}
+	}
+
+	public static async getProviders(): Promise<MethodResult<any>> {
+		ui.logToOutput("api.getProviders started");
+		let result: MethodResult<any> = new MethodResult<any>();
+		try {
+			let params = {
+				method: 'GET',
+				headers: await Api.getHeaders()
+			};
+
+			let response = await fetch(Api.apiUrl + '/providers', params);
+
+			result.result = await response.json();
+			if (response.status === 200) {
+				result.isSuccessful = true;
+				ui.logToOutput("api.getProviders completed");
+				return result;
+			}
+			else {
+				ui.showApiErrorMessage('Api Call Error !!!', result.result);
+				result.isSuccessful = false;
+				ui.logToOutput("api.getProviders completed");
+				return result;
+			}
+		} catch (error) {
+			ui.showErrorMessage('System Error !!!', error);
+			result.isSuccessful = false;
+			result.error = error;
+			ui.logToOutput("api.getProviders Error !!!", error);
+			return result;
+		}
+	}
+
 }

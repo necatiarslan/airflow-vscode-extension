@@ -545,5 +545,21 @@ export class DagTreeView {
 			ui.logToOutput("dagTreeView.loadState Error !!!", error);
 		}
 	}
-}
 
+	async viewConnections() {
+		ui.logToOutput('DagTreeView.viewConnections Started');
+		const { ConnectionsView } = await import('./connectionsView');
+		ConnectionsView.render(this.context.extensionUri);
+	}
+
+	async viewVariables() {
+		ui.logToOutput('DagTreeView.viewVariables Started');
+		const { VariablesView } = await import('./variablesView');
+		VariablesView.render(this.context.extensionUri);
+	}
+	async viewProviders() {
+		ui.logToOutput('DagTreeView.viewProviders Started');
+		const { ProvidersView } = await import('./providersView');
+		ProvidersView.render(this.context.extensionUri);
+	}
+}

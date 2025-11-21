@@ -640,6 +640,96 @@ class Api {
             return result;
         }
     }
+    static async getConnections() {
+        ui.logToOutput("api.getConnections started");
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: await Api.getHeaders()
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/connections', params);
+            result.result = await response.json();
+            if (response.status === 200) {
+                result.isSuccessful = true;
+                ui.logToOutput("api.getConnections completed");
+                return result;
+            }
+            else {
+                ui.showApiErrorMessage('Api Call Error !!!', result.result);
+                result.isSuccessful = false;
+                ui.logToOutput("api.getConnections completed");
+                return result;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage('System Error !!!', error);
+            result.isSuccessful = false;
+            result.error = error;
+            ui.logToOutput("api.getConnections Error !!!", error);
+            return result;
+        }
+    }
+    static async getVariables() {
+        ui.logToOutput("api.getVariables started");
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: await Api.getHeaders()
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/variables', params);
+            result.result = await response.json();
+            if (response.status === 200) {
+                result.isSuccessful = true;
+                ui.logToOutput("api.getVariables completed");
+                return result;
+            }
+            else {
+                ui.showApiErrorMessage('Api Call Error !!!', result.result);
+                result.isSuccessful = false;
+                ui.logToOutput("api.getVariables completed");
+                return result;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage('System Error !!!', error);
+            result.isSuccessful = false;
+            result.error = error;
+            ui.logToOutput("api.getVariables Error !!!", error);
+            return result;
+        }
+    }
+    static async getProviders() {
+        ui.logToOutput("api.getProviders started");
+        let result = new methodResult_1.MethodResult();
+        try {
+            let params = {
+                method: 'GET',
+                headers: await Api.getHeaders()
+            };
+            let response = await (0, node_fetch_1.default)(Api.apiUrl + '/providers', params);
+            result.result = await response.json();
+            if (response.status === 200) {
+                result.isSuccessful = true;
+                ui.logToOutput("api.getProviders completed");
+                return result;
+            }
+            else {
+                ui.showApiErrorMessage('Api Call Error !!!', result.result);
+                result.isSuccessful = false;
+                ui.logToOutput("api.getProviders completed");
+                return result;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage('System Error !!!', error);
+            result.isSuccessful = false;
+            result.error = error;
+            ui.logToOutput("api.getProviders Error !!!", error);
+            return result;
+        }
+    }
 }
 exports.Api = Api;
 Api.apiUrl = '';
