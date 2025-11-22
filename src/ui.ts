@@ -3,10 +3,10 @@ import { Uri, Webview } from "vscode";
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-var outputChannel: vscode.OutputChannel;
-var logsOutputChannel: vscode.OutputChannel;
+let outputChannel: vscode.OutputChannel;
+let logsOutputChannel: vscode.OutputChannel;
 
-var NEW_LINE:string = "\n\n";
+const NEW_LINE: string = "\n\n";
 
 export function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
   return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
@@ -30,8 +30,8 @@ export function showOutputMessage(message: any, popupMessage: string = "Results 
   showInfoMessage(popupMessage);
 }
 
-export function logToOutput(message: any, error: Error = undefined): void {
-  let now = new Date().toLocaleString();
+export function logToOutput(message: any, error: Error | undefined = undefined): void {
+  const now = new Date().toLocaleString();
 
   if (!logsOutputChannel) {
     logsOutputChannel = vscode.window.createOutputChannel("Airflow-Log");
@@ -47,7 +47,9 @@ export function logToOutput(message: any, error: Error = undefined): void {
   if (error) {
     logsOutputChannel.appendLine(error.name);
     logsOutputChannel.appendLine(error.message);
-    logsOutputChannel.appendLine(error.stack);
+    if (error.stack) {
+      logsOutputChannel.appendLine(error.stack);
+    }
   }
 }
 
@@ -59,7 +61,7 @@ export function showWarningMessage(message: string): void {
   vscode.window.showWarningMessage(message);
 }
 
-export function showErrorMessage(message: string, error: Error = undefined): void {
+export function showErrorMessage(message: string, error: Error | undefined = undefined): void {
   if (error) {
     vscode.window.showErrorMessage(message + NEW_LINE + error.name + NEW_LINE + error.message);
   }
@@ -68,42 +70,28 @@ export function showErrorMessage(message: string, error: Error = undefined): voi
   }
 }
 
-export function showApiErrorMessage(message: string, jsonResult): void {
-  let preText:string = "";
+export function showApiErrorMessage(message: string, jsonResult: any): void {
+  let preText: string = "";
   if (jsonResult) {
-    if (jsonResult.status === 403)
-    {
+    if (jsonResult.status === 403) {
       preText = "Permission Denied !!!";
       vscode.window.showErrorMessage(preText);
     }
-    else if (jsonResult.status === 401)
-    {
+    else if (jsonResult.status === 401) {
       preText = "Invalid Authentication Info !!!";
       vscode.window.showErrorMessage(preText);
     }
-    else if (jsonResult.status === 404)
-    {
+    else if (jsonResult.status === 404) {
       preText = "Resource Not Found !!!";
       vscode.window.showErrorMessage(preText);
     }
-    else
-    {
+    else {
       vscode.window.showErrorMessage(preText);
     }
   }
   else {
     vscode.window.showErrorMessage(message);
   }
-
-  /*
-  {
-  "type": "string",
-  "title": "string",
-  "status": 0,
-  "detail": "string",
-  "instance": "string"
-  }
-  */
 }
 
 export function getExtensionVersion() {
@@ -130,17 +118,15 @@ function padTo2Digits(num: number) {
 }
 
 export function getDuration(startDate: Date, endDate: Date): string {
-  if(!startDate)
-  {
+  if (!startDate) {
     return "";
   }
 
-  if(!endDate || endDate < startDate)
-  {
+  if (!endDate || endDate < startDate) {
     endDate = new Date();//now
   }
 
-  var duration = endDate.valueOf() - startDate.valueOf();
+  const duration = endDate.valueOf() - startDate.valueOf();
   return (convertMsToTime(duration));
 }
 
@@ -157,7 +143,7 @@ export function convertMsToTime(milliseconds: number): string {
 
 export function isJsonString(jsonString: string): boolean {
   try {
-    var json = JSON.parse(jsonString);
+    const json = JSON.parse(jsonString);
     return (typeof json === 'object');
   } catch (e) {
     return false;
@@ -165,12 +151,12 @@ export function isJsonString(jsonString: string): boolean {
 }
 
 export function isValidDate(dateString: string): boolean {
-  var regEx = /^\d{4}-\d{2}-\d{2}$/;
+  const regEx = /^\d{4}-\d{2}-\d{2}$/;
   if (!dateString.match(regEx)) {
     return false;  // Invalid format
   }
-  var d = new Date(dateString);
-  var dNum = d.getTime();
+  const d = new Date(dateString);
+  const dNum = d.getTime();
   if (!dNum && dNum !== 0) {
     return false; // NaN value, Invalid date
   }

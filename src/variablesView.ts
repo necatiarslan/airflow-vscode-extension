@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import * as ui from './ui';
-import { Api } from './api';
+import { AirflowApi } from './api';
 import { MethodResult } from './methodResult';
 
 export class VariablesView {
@@ -10,11 +10,13 @@ export class VariablesView {
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
     private variablesJson: any;
+    private api: AirflowApi;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, api: AirflowApi) {
         ui.logToOutput('VariablesView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
+        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -23,9 +25,8 @@ export class VariablesView {
 
     public async loadData() {
         ui.logToOutput('VariablesView.loadData Started');
-        if (!Api.isApiParamsSet()) { return; }
 
-        const result = await Api.getVariables();
+        const result = await this.api.getVariables();
         if (result.isSuccessful) {
             this.variablesJson = result.result;
         }
@@ -38,9 +39,10 @@ export class VariablesView {
         ui.logToOutput('VariablesView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri) {
+    public static render(extensionUri: vscode.Uri, api: AirflowApi) {
         ui.logToOutput('VariablesView.render Started');
         if (VariablesView.Current) {
+            VariablesView.Current.api = api;
             VariablesView.Current._panel.reveal(vscode.ViewColumn.Two);
             VariablesView.Current.loadData();
         } else {
@@ -48,7 +50,7 @@ export class VariablesView {
                 enableScripts: true,
             });
 
-            VariablesView.Current = new VariablesView(panel, extensionUri);
+            VariablesView.Current = new VariablesView(panel, extensionUri, api);
         }
     }
 

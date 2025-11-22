@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import * as ui from './ui';
-import { Api } from './api';
+import { AirflowApi } from './api';
 import { MethodResult } from './methodResult';
 
 export class ConnectionsView {
@@ -10,11 +10,13 @@ export class ConnectionsView {
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
     private connectionsJson: any;
+    private api: AirflowApi;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, api: AirflowApi) {
         ui.logToOutput('ConnectionsView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
+        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -23,9 +25,8 @@ export class ConnectionsView {
 
     public async loadData() {
         ui.logToOutput('ConnectionsView.loadData Started');
-        if (!Api.isApiParamsSet()) { return; }
 
-        const result = await Api.getConnections();
+        const result = await this.api.getConnections();
         if (result.isSuccessful) {
             this.connectionsJson = result.result;
         }
@@ -38,9 +39,10 @@ export class ConnectionsView {
         ui.logToOutput('ConnectionsView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri) {
+    public static render(extensionUri: vscode.Uri, api: AirflowApi) {
         ui.logToOutput('ConnectionsView.render Started');
         if (ConnectionsView.Current) {
+            ConnectionsView.Current.api = api;
             ConnectionsView.Current._panel.reveal(vscode.ViewColumn.Two);
             ConnectionsView.Current.loadData();
         } else {
@@ -48,7 +50,7 @@ export class ConnectionsView {
                 enableScripts: true,
             });
 
-            ConnectionsView.Current = new ConnectionsView(panel, extensionUri);
+            ConnectionsView.Current = new ConnectionsView(panel, extensionUri, api);
         }
     }
 

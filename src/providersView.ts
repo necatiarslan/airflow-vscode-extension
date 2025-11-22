@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import * as ui from './ui';
-import { Api } from './api';
+import { AirflowApi } from './api';
 import { MethodResult } from './methodResult';
 
 export class ProvidersView {
@@ -10,11 +10,13 @@ export class ProvidersView {
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
     private providersJson: any;
+    private api: AirflowApi;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, api: AirflowApi) {
         ui.logToOutput('ProvidersView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
+        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -23,9 +25,8 @@ export class ProvidersView {
 
     public async loadData() {
         ui.logToOutput('ProvidersView.loadData Started');
-        if (!Api.isApiParamsSet()) { return; }
 
-        const result = await Api.getProviders();
+        const result = await this.api.getProviders();
         if (result.isSuccessful) {
             this.providersJson = result.result;
         }
@@ -38,9 +39,10 @@ export class ProvidersView {
         ui.logToOutput('ProvidersView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri) {
+    public static render(extensionUri: vscode.Uri, api: AirflowApi) {
         ui.logToOutput('ProvidersView.render Started');
         if (ProvidersView.Current) {
+            ProvidersView.Current.api = api;
             ProvidersView.Current._panel.reveal(vscode.ViewColumn.Two);
             ProvidersView.Current.loadData();
         } else {
@@ -48,7 +50,7 @@ export class ProvidersView {
                 enableScripts: true,
             });
 
-            ProvidersView.Current = new ProvidersView(panel, extensionUri);
+            ProvidersView.Current = new ProvidersView(panel, extensionUri, api);
         }
     }
 
