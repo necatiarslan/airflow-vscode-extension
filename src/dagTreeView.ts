@@ -439,9 +439,38 @@ export class DagTreeView {
 		if (result.isSuccessful) {
 			this.treeDataProvider.dagList = result.result;
 			this.treeDataProvider.loadDagTreeItemsFromApiResponse();
+			
+			// Fetch latest run status for each DAG
+			await this.loadLatestRunStatusForAllDags();
 		}
 		this.treeDataProvider.refresh();
 		this.setViewTitle();
+	}
+
+	async loadLatestRunStatusForAllDags() {
+		ui.logToOutput('DagTreeView.loadLatestRunStatusForAllDags Started');
+		if (!this.api) { return; }
+
+		// Fetch latest run status for each visible DAG (limit to avoid too many API calls)
+		const visibleDags = this.treeDataProvider.visibleDagList.slice(0, 50); // Limit to first 50 DAGs
+		
+		for (const dagItem of visibleDags) {
+			if (!dagItem.IsPaused) {
+				try {
+					const runResult = await this.api.getLastDagRun(dagItem.DagId);
+					if (runResult.isSuccessful && runResult.result) {
+						dagItem.LatestDagRunId = runResult.result.dag_run_id;
+						dagItem.LatestDagState = runResult.result.state;
+						dagItem.refreshUI();
+					}
+				} catch (error) {
+					// Silently continue if a DAG's last run can't be fetched
+					ui.logToOutput(`Failed to fetch last run for ${dagItem.DagId}`, error as Error);
+				}
+			}
+		}
+		
+		this.treeDataProvider.refresh();
 	}
 
 	async setViewTitle() {

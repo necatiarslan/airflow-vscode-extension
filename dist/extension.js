@@ -18,9 +18,9 @@ exports.DagTreeView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
 const dagView_1 = __webpack_require__(3);
-const dagTreeDataProvider_1 = __webpack_require__(10);
+const dagTreeDataProvider_1 = __webpack_require__(29);
 const ui = __webpack_require__(4);
-const api_1 = __webpack_require__(12);
+const api_1 = __webpack_require__(31);
 class DagTreeView {
     constructor(context) {
         this.filterString = '';
@@ -421,9 +421,36 @@ class DagTreeView {
         if (result.isSuccessful) {
             this.treeDataProvider.dagList = result.result;
             this.treeDataProvider.loadDagTreeItemsFromApiResponse();
+            // Fetch latest run status for each DAG
+            await this.loadLatestRunStatusForAllDags();
         }
         this.treeDataProvider.refresh();
         this.setViewTitle();
+    }
+    async loadLatestRunStatusForAllDags() {
+        ui.logToOutput('DagTreeView.loadLatestRunStatusForAllDags Started');
+        if (!this.api) {
+            return;
+        }
+        // Fetch latest run status for each visible DAG (limit to avoid too many API calls)
+        const visibleDags = this.treeDataProvider.visibleDagList.slice(0, 50); // Limit to first 50 DAGs
+        for (const dagItem of visibleDags) {
+            if (!dagItem.IsPaused) {
+                try {
+                    const runResult = await this.api.getLastDagRun(dagItem.DagId);
+                    if (runResult.isSuccessful && runResult.result) {
+                        dagItem.LatestDagRunId = runResult.result.dag_run_id;
+                        dagItem.LatestDagState = runResult.result.state;
+                        dagItem.refreshUI();
+                    }
+                }
+                catch (error) {
+                    // Silently continue if a DAG's last run can't be fetched
+                    ui.logToOutput(`Failed to fetch last run for ${dagItem.DagId}`, error);
+                }
+            }
+        }
+        this.treeDataProvider.refresh();
     }
     async setViewTitle() {
         if (this.currentServer) {
@@ -513,21 +540,21 @@ class DagTreeView {
     async viewConnections() {
         ui.logToOutput('DagTreeView.viewConnections Started');
         if (this.api) {
-            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(49));
+            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(68));
             ConnectionsView.render(this.context.extensionUri, this.api);
         }
     }
     async viewVariables() {
         ui.logToOutput('DagTreeView.viewVariables Started');
         if (this.api) {
-            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(50));
+            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(69));
             VariablesView.render(this.context.extensionUri, this.api);
         }
     }
     async viewProviders() {
         ui.logToOutput('DagTreeView.viewProviders Started');
         if (this.api) {
-            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(51));
+            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(70));
             ProvidersView.render(this.context.extensionUri, this.api);
         }
     }
@@ -700,14 +727,14 @@ class DagView {
             end_date = this.dagRunJson.end_date;
             logical_date_string = logical_date ? new Date(logical_date).toLocaleDateString() : "";
             start_date_string = start_date ? new Date(start_date).toLocaleString() : "";
-            duration = (start_date && end_date) ? ui.getDuration(new Date(start_date), new Date(end_date)) : "";
+            duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
             isDagRunning = (state === "queued" || state === "running") ? true : false;
             hasDagLatestRun = true;
         }
         let runningOrFailedTasks = "";
         if (this.dagTaskInstancesJson) {
             for (const t of this.dagTaskInstancesJson["task_instances"]) {
-                if (t.state === "running" || t.state === "failed") {
+                if (t.state === "running" || t.state === "failed" || t.state === "up_for_retry" || t.state === "up_for_reschedule" || t.state === "deferred") {
                     runningOrFailedTasks += t.task_id + ", ";
                 }
             }
@@ -1322,19 +1349,7 @@ exports.DagView = DagView;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getUri = getUri;
-exports.showOutputMessage = showOutputMessage;
-exports.logToOutput = logToOutput;
-exports.showInfoMessage = showInfoMessage;
-exports.showWarningMessage = showWarningMessage;
-exports.showErrorMessage = showErrorMessage;
-exports.showApiErrorMessage = showApiErrorMessage;
-exports.getExtensionVersion = getExtensionVersion;
-exports.openFile = openFile;
-exports.getDuration = getDuration;
-exports.convertMsToTime = convertMsToTime;
-exports.isJsonString = isJsonString;
-exports.isValidDate = isValidDate;
+exports.isValidDate = exports.isJsonString = exports.convertMsToTime = exports.getDuration = exports.openFile = exports.getExtensionVersion = exports.showApiErrorMessage = exports.showErrorMessage = exports.showWarningMessage = exports.showInfoMessage = exports.logToOutput = exports.showOutputMessage = exports.getUri = void 0;
 const vscode = __webpack_require__(1);
 const vscode_1 = __webpack_require__(1);
 const fs_1 = __webpack_require__(5);
@@ -1345,6 +1360,7 @@ const NEW_LINE = "\n\n";
 function getUri(webview, extensionUri, pathList) {
     return webview.asWebviewUri(vscode_1.Uri.joinPath(extensionUri, ...pathList));
 }
+exports.getUri = getUri;
 function showOutputMessage(message, popupMessage = "Results are printed to OUTPUT / Airflow-Extension") {
     if (!outputChannel) {
         outputChannel = vscode.window.createOutputChannel("Airflow-Extension");
@@ -1359,6 +1375,7 @@ function showOutputMessage(message, popupMessage = "Results are printed to OUTPU
     outputChannel.show();
     showInfoMessage(popupMessage);
 }
+exports.showOutputMessage = showOutputMessage;
 function logToOutput(message, error = undefined) {
     const now = new Date().toLocaleString();
     if (!logsOutputChannel) {
@@ -1378,12 +1395,15 @@ function logToOutput(message, error = undefined) {
         }
     }
 }
+exports.logToOutput = logToOutput;
 function showInfoMessage(message) {
     vscode.window.showInformationMessage(message);
 }
+exports.showInfoMessage = showInfoMessage;
 function showWarningMessage(message) {
     vscode.window.showWarningMessage(message);
 }
+exports.showWarningMessage = showWarningMessage;
 function showErrorMessage(message, error = undefined) {
     if (error) {
         vscode.window.showErrorMessage(message + NEW_LINE + error.name + NEW_LINE + error.message);
@@ -1392,6 +1412,7 @@ function showErrorMessage(message, error = undefined) {
         vscode.window.showErrorMessage(message);
     }
 }
+exports.showErrorMessage = showErrorMessage;
 function showApiErrorMessage(message, jsonResult) {
     let preText = "";
     if (jsonResult) {
@@ -1415,10 +1436,12 @@ function showApiErrorMessage(message, jsonResult) {
         vscode.window.showErrorMessage(message);
     }
 }
+exports.showApiErrorMessage = showApiErrorMessage;
 function getExtensionVersion() {
     const { version: extVersion } = JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(__dirname, '..', 'package.json'), { encoding: 'utf8' }));
     return extVersion;
 }
+exports.getExtensionVersion = getExtensionVersion;
 function openFile(file) {
     // Use workspace API to open file in editor and show it in column one
     (async () => {
@@ -1431,6 +1454,7 @@ function openFile(file) {
         }
     })();
 }
+exports.openFile = openFile;
 function padTo2Digits(num) {
     return num.toString().padStart(2, '0');
 }
@@ -1444,6 +1468,7 @@ function getDuration(startDate, endDate) {
     const duration = endDate.valueOf() - startDate.valueOf();
     return (convertMsToTime(duration));
 }
+exports.getDuration = getDuration;
 function convertMsToTime(milliseconds) {
     let seconds = Math.floor(milliseconds / 1000);
     let minutes = Math.floor(seconds / 60);
@@ -1452,6 +1477,7 @@ function convertMsToTime(milliseconds) {
     minutes = minutes % 60;
     return `${padTo2Digits(hours)}:${padTo2Digits(minutes)}:${padTo2Digits(seconds)}`;
 }
+exports.convertMsToTime = convertMsToTime;
 function isJsonString(jsonString) {
     try {
         const json = JSON.parse(jsonString);
@@ -1461,6 +1487,7 @@ function isJsonString(jsonString) {
         return false;
     }
 }
+exports.isJsonString = isJsonString;
 function isValidDate(dateString) {
     const regEx = /^\d{4}-\d{2}-\d{2}$/;
     if (!dateString.match(regEx)) {
@@ -1473,6 +1500,7 @@ function isValidDate(dateString) {
     }
     return d.toISOString().slice(0, 10) === dateString;
 }
+exports.isValidDate = isValidDate;
 
 
 /***/ }),
@@ -2352,7 +2380,26 @@ module.exports = require("os");
 module.exports = require("crypto");
 
 /***/ }),
-/* 10 */
+/* 10 */,
+/* 11 */,
+/* 12 */,
+/* 13 */,
+/* 14 */,
+/* 15 */,
+/* 16 */,
+/* 17 */,
+/* 18 */,
+/* 19 */,
+/* 20 */,
+/* 21 */,
+/* 22 */,
+/* 23 */,
+/* 24 */,
+/* 25 */,
+/* 26 */,
+/* 27 */,
+/* 28 */,
+/* 29 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2361,7 +2408,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DagTreeDataProvider = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const dagTreeItem_1 = __webpack_require__(11);
+const dagTreeItem_1 = __webpack_require__(30);
 const dagTreeView_1 = __webpack_require__(2);
 class DagTreeDataProvider {
     constructor() {
@@ -2415,7 +2462,7 @@ exports.DagTreeDataProvider = DagTreeDataProvider;
 
 
 /***/ }),
-/* 11 */
+/* 30 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2523,7 +2570,7 @@ exports.DagTreeItem = DagTreeItem;
 
 
 /***/ }),
-/* 12 */
+/* 31 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2531,12 +2578,12 @@ exports.DagTreeItem = DagTreeItem;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AirflowApi = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
-const base_64_1 = __webpack_require__(13);
+const base_64_1 = __webpack_require__(32);
 const ui = __webpack_require__(4);
-const methodResult_1 = __webpack_require__(14);
+const methodResult_1 = __webpack_require__(33);
 // Wrapper for fetch to handle ESM node-fetch in CommonJS
 const fetch = async (url, init) => {
-    const module = await Promise.resolve().then(() => __webpack_require__(15));
+    const module = await Promise.resolve().then(() => __webpack_require__(34));
     return module.default(url, init);
 };
 class AirflowApi {
@@ -2988,7 +3035,7 @@ exports.AirflowApi = AirflowApi;
 
 
 /***/ }),
-/* 13 */
+/* 32 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* module decorator */ module = __webpack_require__.nmd(module);
@@ -3142,14 +3189,13 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/base64 v1.0.0 by @mathias 
 			return base64;
 		}).call(exports, __webpack_require__, exports, module),
 		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-	}	else // removed by dead control flow
-{ var key; }
+	}	else { var key; }
 
 }(this));
 
 
 /***/ }),
-/* 14 */
+/* 33 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -3168,44 +3214,44 @@ exports.MethodResult = MethodResult;
 
 
 /***/ }),
-/* 15 */
+/* 34 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   AbortError: () => (/* reexport safe */ _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_11__.AbortError),
-/* harmony export */   Blob: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.Blob),
-/* harmony export */   FetchError: () => (/* reexport safe */ _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__.FetchError),
-/* harmony export */   File: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.File),
-/* harmony export */   FormData: () => (/* reexport safe */ formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_13__.FormData),
+/* harmony export */   AbortError: () => (/* reexport safe */ _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_12__.AbortError),
+/* harmony export */   Blob: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_7__.Blob),
+/* harmony export */   FetchError: () => (/* reexport safe */ _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_11__.FetchError),
+/* harmony export */   File: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_7__.File),
+/* harmony export */   FormData: () => (/* reexport safe */ formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_6__.FormData),
 /* harmony export */   Headers: () => (/* reexport safe */ _headers_js__WEBPACK_IMPORTED_MODULE_8__["default"]),
 /* harmony export */   Request: () => (/* reexport safe */ _request_js__WEBPACK_IMPORTED_MODULE_9__["default"]),
-/* harmony export */   Response: () => (/* reexport safe */ _response_js__WEBPACK_IMPORTED_MODULE_7__["default"]),
-/* harmony export */   blobFrom: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.blobFrom),
-/* harmony export */   blobFromSync: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.blobFromSync),
+/* harmony export */   Response: () => (/* reexport safe */ _response_js__WEBPACK_IMPORTED_MODULE_10__["default"]),
+/* harmony export */   blobFrom: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_7__.blobFrom),
+/* harmony export */   blobFromSync: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_7__.blobFromSync),
 /* harmony export */   "default": () => (/* binding */ fetch),
-/* harmony export */   fileFrom: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.fileFrom),
-/* harmony export */   fileFromSync: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.fileFromSync),
-/* harmony export */   isRedirect: () => (/* reexport safe */ _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__.isRedirect)
+/* harmony export */   fileFrom: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_7__.fileFrom),
+/* harmony export */   fileFromSync: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_7__.fileFromSync),
+/* harmony export */   isRedirect: () => (/* reexport safe */ _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_13__.isRedirect)
 /* harmony export */ });
-/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(16);
-/* harmony import */ var node_https__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(17);
-/* harmony import */ var node_zlib__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(18);
-/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(19);
-/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(20);
-/* harmony import */ var data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(21);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(22);
-/* harmony import */ var _response_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(35);
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(36);
-/* harmony import */ var _request_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(38);
-/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(32);
-/* harmony import */ var _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(43);
-/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(37);
-/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(30);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(34);
-/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(41);
-/* harmony import */ var fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(44);
+/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(35);
+/* harmony import */ var node_https__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(36);
+/* harmony import */ var node_zlib__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(37);
+/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(38);
+/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(39);
+/* harmony import */ var data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(40);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(41);
+/* harmony import */ var _response_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(54);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(55);
+/* harmony import */ var _request_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(57);
+/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(51);
+/* harmony import */ var _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(62);
+/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(56);
+/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(49);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(53);
+/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(60);
+/* harmony import */ var fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(63);
 /**
  * Index.js
  *
@@ -3257,7 +3303,7 @@ async function fetch(url, options_) {
 
 		if (parsedURL.protocol === 'data:') {
 			const data = (0,data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__["default"])(request.url);
-			const response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](data, {headers: {'Content-Type': data.typeFull}});
+			const response = new _response_js__WEBPACK_IMPORTED_MODULE_10__["default"](data, {headers: {'Content-Type': data.typeFull}});
 			resolve(response);
 			return;
 		}
@@ -3268,7 +3314,7 @@ async function fetch(url, options_) {
 		let response = null;
 
 		const abort = () => {
-			const error = new _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_11__.AbortError('The operation was aborted.');
+			const error = new _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_12__.AbortError('The operation was aborted.');
 			reject(error);
 			if (request.body && request.body instanceof node_stream__WEBPACK_IMPORTED_MODULE_3__.Readable) {
 				request.body.destroy(error);
@@ -3306,7 +3352,7 @@ async function fetch(url, options_) {
 		};
 
 		request_.on('error', error => {
-			reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__.FetchError(`request to ${request.url} failed, reason: ${error.message}`, 'system', error));
+			reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_11__.FetchError(`request to ${request.url} failed, reason: ${error.message}`, 'system', error));
 			finalize();
 		});
 
@@ -3341,7 +3387,7 @@ async function fetch(url, options_) {
 			const headers = (0,_headers_js__WEBPACK_IMPORTED_MODULE_8__.fromRawHeaders)(response_.rawHeaders);
 
 			// HTTP fetch step 5
-			if ((0,_utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__.isRedirect)(response_.statusCode)) {
+			if ((0,_utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_13__.isRedirect)(response_.statusCode)) {
 				// HTTP fetch step 5.2
 				const location = headers.get('Location');
 
@@ -3354,7 +3400,7 @@ async function fetch(url, options_) {
 					// do not throw when options.redirect == manual
 					// let the user extract the errorneous redirect URL
 					if (request.redirect !== 'manual') {
-						reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__.FetchError(`uri requested responds with an invalid redirect URL: ${location}`, 'invalid-redirect'));
+						reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_11__.FetchError(`uri requested responds with an invalid redirect URL: ${location}`, 'invalid-redirect'));
 						finalize();
 						return;
 					}
@@ -3363,7 +3409,7 @@ async function fetch(url, options_) {
 				// HTTP fetch step 5.5
 				switch (request.redirect) {
 					case 'error':
-						reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__.FetchError(`uri requested responds with a redirect, redirect mode is set to error: ${request.url}`, 'no-redirect'));
+						reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_11__.FetchError(`uri requested responds with a redirect, redirect mode is set to error: ${request.url}`, 'no-redirect'));
 						finalize();
 						return;
 					case 'manual':
@@ -3377,7 +3423,7 @@ async function fetch(url, options_) {
 
 						// HTTP-redirect fetch step 5
 						if (request.counter >= request.follow) {
-							reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__.FetchError(`maximum redirect reached at: ${request.url}`, 'max-redirect'));
+							reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_11__.FetchError(`maximum redirect reached at: ${request.url}`, 'max-redirect'));
 							finalize();
 							return;
 						}
@@ -3391,7 +3437,7 @@ async function fetch(url, options_) {
 							agent: request.agent,
 							compress: request.compress,
 							method: request.method,
-							body: (0,_body_js__WEBPACK_IMPORTED_MODULE_6__.clone)(request),
+							body: (0,_body_js__WEBPACK_IMPORTED_MODULE_14__.clone)(request),
 							signal: request.signal,
 							size: request.size,
 							referrer: request.referrer,
@@ -3407,7 +3453,7 @@ async function fetch(url, options_) {
 						// headers will also be ignored when following a redirect to a domain using
 						// a different protocol. For example, a redirect from "https://foo.com" to "http://foo.com"
 						// will not forward the sensitive headers
-						if (!(0,_utils_is_js__WEBPACK_IMPORTED_MODULE_14__.isDomainOrSubdomain)(request.url, locationURL) || !(0,_utils_is_js__WEBPACK_IMPORTED_MODULE_14__.isSameProtocol)(request.url, locationURL)) {
+						if (!(0,_utils_is_js__WEBPACK_IMPORTED_MODULE_15__.isDomainOrSubdomain)(request.url, locationURL) || !(0,_utils_is_js__WEBPACK_IMPORTED_MODULE_15__.isSameProtocol)(request.url, locationURL)) {
 							for (const name of ['authorization', 'www-authenticate', 'cookie', 'cookie2']) {
 								requestOptions.headers.delete(name);
 							}
@@ -3415,7 +3461,7 @@ async function fetch(url, options_) {
 
 						// HTTP-redirect fetch step 9
 						if (response_.statusCode !== 303 && request.body && options_.body instanceof node_stream__WEBPACK_IMPORTED_MODULE_3__.Readable) {
-							reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__.FetchError('Cannot follow redirect with body being a readable stream', 'unsupported-redirect'));
+							reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_11__.FetchError('Cannot follow redirect with body being a readable stream', 'unsupported-redirect'));
 							finalize();
 							return;
 						}
@@ -3428,7 +3474,7 @@ async function fetch(url, options_) {
 						}
 
 						// HTTP-redirect fetch step 14
-						const responseReferrerPolicy = (0,_utils_referrer_js__WEBPACK_IMPORTED_MODULE_15__.parseReferrerPolicyFromHeader)(headers);
+						const responseReferrerPolicy = (0,_utils_referrer_js__WEBPACK_IMPORTED_MODULE_16__.parseReferrerPolicyFromHeader)(headers);
 						if (responseReferrerPolicy) {
 							requestOptions.referrerPolicy = responseReferrerPolicy;
 						}
@@ -3484,7 +3530,7 @@ async function fetch(url, options_) {
 			// 4. no content response (204)
 			// 5. content not modified response (304)
 			if (!request.compress || request.method === 'HEAD' || codings === null || response_.statusCode === 204 || response_.statusCode === 304) {
-				response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](body, responseOptions);
+				response = new _response_js__WEBPACK_IMPORTED_MODULE_10__["default"](body, responseOptions);
 				resolve(response);
 				return;
 			}
@@ -3506,7 +3552,7 @@ async function fetch(url, options_) {
 						reject(error);
 					}
 				});
-				response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](body, responseOptions);
+				response = new _response_js__WEBPACK_IMPORTED_MODULE_10__["default"](body, responseOptions);
 				resolve(response);
 				return;
 			}
@@ -3536,14 +3582,14 @@ async function fetch(url, options_) {
 						});
 					}
 
-					response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](body, responseOptions);
+					response = new _response_js__WEBPACK_IMPORTED_MODULE_10__["default"](body, responseOptions);
 					resolve(response);
 				});
 				raw.once('end', () => {
 					// Some old IIS servers return zero-length OK deflate responses, so
 					// 'data' is never emitted. See https://github.com/node-fetch/node-fetch/pull/903
 					if (!response) {
-						response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](body, responseOptions);
+						response = new _response_js__WEBPACK_IMPORTED_MODULE_10__["default"](body, responseOptions);
 						resolve(response);
 					}
 				});
@@ -3557,18 +3603,18 @@ async function fetch(url, options_) {
 						reject(error);
 					}
 				});
-				response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](body, responseOptions);
+				response = new _response_js__WEBPACK_IMPORTED_MODULE_10__["default"](body, responseOptions);
 				resolve(response);
 				return;
 			}
 
 			// Otherwise, use response as-is
-			response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](body, responseOptions);
+			response = new _response_js__WEBPACK_IMPORTED_MODULE_10__["default"](body, responseOptions);
 			resolve(response);
 		});
 
 		// eslint-disable-next-line promise/prefer-await-to-then
-		(0,_body_js__WEBPACK_IMPORTED_MODULE_6__.writeToStream)(request_, request).catch(reject);
+		(0,_body_js__WEBPACK_IMPORTED_MODULE_14__.writeToStream)(request_, request).catch(reject);
 	});
 }
 
@@ -3619,42 +3665,42 @@ function fixResponseChunkedTransferBadEnding(request, errorCallback) {
 
 
 /***/ }),
-/* 16 */
+/* 35 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:http");
 
 /***/ }),
-/* 17 */
+/* 36 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:https");
 
 /***/ }),
-/* 18 */
+/* 37 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:zlib");
 
 /***/ }),
-/* 19 */
+/* 38 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:stream");
 
 /***/ }),
-/* 20 */
+/* 39 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:buffer");
 
 /***/ }),
-/* 21 */
+/* 40 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3718,7 +3764,7 @@ function dataUriToBuffer(uri) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 22 */
+/* 41 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3730,14 +3776,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   getTotalBytes: () => (/* binding */ getTotalBytes),
 /* harmony export */   writeToStream: () => (/* binding */ writeToStream)
 /* harmony export */ });
-/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(19);
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(23);
-/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(20);
-/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(24);
-/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(30);
-/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(32);
-/* harmony import */ var _errors_base_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(33);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(34);
+/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(38);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(42);
+/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(39);
+/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(43);
+/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(49);
+/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(51);
+/* harmony import */ var _errors_base_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(52);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(53);
 
 /**
  * Body.js
@@ -3777,10 +3823,10 @@ class Body {
 		if (body === null) {
 			// Body is undefined or null
 			body = null;
-		} else if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_7__.isURLSearchParameters)(body)) {
+		} else if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_5__.isURLSearchParameters)(body)) {
 			// Body is a URLSearchParams
 			body = node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.from(body.toString());
-		} else if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_7__.isBlob)(body)) {
+		} else if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_5__.isBlob)(body)) {
 			// Body is blob
 		} else if (node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.isBuffer(body)) {
 			// Body is Buffer
@@ -3806,7 +3852,7 @@ class Body {
 
 		if (node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.isBuffer(body)) {
 			stream = node_stream__WEBPACK_IMPORTED_MODULE_0__.Readable.from(body);
-		} else if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_7__.isBlob)(body)) {
+		} else if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_5__.isBlob)(body)) {
 			stream = node_stream__WEBPACK_IMPORTED_MODULE_0__.Readable.from(body.stream());
 		}
 
@@ -3823,7 +3869,7 @@ class Body {
 			body.on('error', error_ => {
 				const error = error_ instanceof _errors_base_js__WEBPACK_IMPORTED_MODULE_6__.FetchBaseError ?
 					error_ :
-					new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__.FetchError(`Invalid response body while trying to fetch ${this.url}: ${error_.message}`, 'system', error_);
+					new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_7__.FetchError(`Invalid response body while trying to fetch ${this.url}: ${error_.message}`, 'system', error_);
 				this[INTERNALS].error = error;
 			});
 		}
@@ -3861,7 +3907,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 52));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 71));
 		return toFormData(this.body, ct);
 	}
 
@@ -3962,7 +4008,7 @@ async function consumeBody(data) {
 	try {
 		for await (const chunk of body) {
 			if (data.size > 0 && accumBytes + chunk.length > data.size) {
-				const error = new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__.FetchError(`content size at ${data.url} over limit: ${data.size}`, 'max-size');
+				const error = new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_7__.FetchError(`content size at ${data.url} over limit: ${data.size}`, 'max-size');
 				body.destroy(error);
 				throw error;
 			}
@@ -3971,7 +4017,7 @@ async function consumeBody(data) {
 			accum.push(chunk);
 		}
 	} catch (error) {
-		const error_ = error instanceof _errors_base_js__WEBPACK_IMPORTED_MODULE_6__.FetchBaseError ? error : new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__.FetchError(`Invalid response body while trying to fetch ${data.url}: ${error.message}`, 'system', error);
+		const error_ = error instanceof _errors_base_js__WEBPACK_IMPORTED_MODULE_6__.FetchBaseError ? error : new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_7__.FetchError(`Invalid response body while trying to fetch ${data.url}: ${error.message}`, 'system', error);
 		throw error_;
 	}
 
@@ -3983,10 +4029,10 @@ async function consumeBody(data) {
 
 			return node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.concat(accum, accumBytes);
 		} catch (error) {
-			throw new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__.FetchError(`Could not create Buffer from response body for ${data.url}: ${error.message}`, 'system', error);
+			throw new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_7__.FetchError(`Could not create Buffer from response body for ${data.url}: ${error.message}`, 'system', error);
 		}
 	} else {
-		throw new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__.FetchError(`Premature close of server response while trying to fetch ${data.url}`);
+		throw new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_7__.FetchError(`Premature close of server response while trying to fetch ${data.url}`);
 	}
 }
 
@@ -4051,12 +4097,12 @@ const extractContentType = (body, request) => {
 	}
 
 	// Body is a URLSearchParams
-	if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_7__.isURLSearchParameters)(body)) {
+	if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_5__.isURLSearchParameters)(body)) {
 		return 'application/x-www-form-urlencoded;charset=UTF-8';
 	}
 
 	// Body is blob
-	if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_7__.isBlob)(body)) {
+	if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_5__.isBlob)(body)) {
 		return body.type || null;
 	}
 
@@ -4101,7 +4147,7 @@ const getTotalBytes = request => {
 	}
 
 	// Body is Blob
-	if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_7__.isBlob)(body)) {
+	if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_5__.isBlob)(body)) {
 		return body.size;
 	}
 
@@ -4138,14 +4184,14 @@ const writeToStream = async (dest, {body}) => {
 
 
 /***/ }),
-/* 23 */
+/* 42 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:util");
 
 /***/ }),
-/* 24 */
+/* 43 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4154,7 +4200,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   Blob: () => (/* binding */ Blob),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _streams_cjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(25);
+/* harmony import */ var _streams_cjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(44);
 /*! fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 // TODO (jimmywarting): in the feature use conditional loading with top level await (requires 14.x)
@@ -4408,7 +4454,7 @@ const Blob = _Blob
 
 
 /***/ }),
-/* 25 */
+/* 44 */
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
 
 /* c8 ignore start */
@@ -4420,11 +4466,11 @@ if (!globalThis.ReadableStream) {
   // and it's preferred over the polyfilled version. So we also
   // suppress the warning that gets emitted by NodeJS for using it.
   try {
-    const process = __webpack_require__(26)
+    const process = __webpack_require__(45)
     const { emitWarning } = process
     try {
       process.emitWarning = () => {}
-      Object.assign(globalThis, __webpack_require__(27))
+      Object.assign(globalThis, __webpack_require__(46))
       process.emitWarning = emitWarning
     } catch (error) {
       process.emitWarning = emitWarning
@@ -4432,14 +4478,14 @@ if (!globalThis.ReadableStream) {
     }
   } catch (error) {
     // fallback to polyfill implementation
-    Object.assign(globalThis, __webpack_require__(28))
+    Object.assign(globalThis, __webpack_require__(47))
   }
 }
 
 try {
   // Don't use node: prefix for this, require+node: is not supported until node v14.14
   // Only `import()` can use prefix in 12.20 and later
-  const { Blob } = __webpack_require__(29)
+  const { Blob } = __webpack_require__(48)
   if (Blob && !Blob.prototype.stream) {
     Blob.prototype.stream = function name (params) {
       let position = 0
@@ -4465,21 +4511,21 @@ try {
 
 
 /***/ }),
-/* 26 */
+/* 45 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:process");
 
 /***/ }),
-/* 27 */
+/* 46 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:stream/web");
 
 /***/ }),
-/* 28 */
+/* 47 */
 /***/ (function(__unused_webpack_module, exports) {
 
 /**
@@ -8697,14 +8743,14 @@ module.exports = require("node:stream/web");
 
 
 /***/ }),
-/* 29 */
+/* 48 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("buffer");
 
 /***/ }),
-/* 30 */
+/* 49 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -8714,8 +8760,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   FormData: () => (/* binding */ FormData),
 /* harmony export */   formDataToBlob: () => (/* binding */ formDataToBlob)
 /* harmony export */ });
-/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(24);
-/* harmony import */ var fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(31);
+/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(43);
+/* harmony import */ var fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(50);
 /*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 
@@ -8759,7 +8805,7 @@ return new B(c,{type:"multipart/form-data; boundary="+b})}
 
 
 /***/ }),
-/* 31 */
+/* 50 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -8768,7 +8814,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   File: () => (/* binding */ File),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(24);
+/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(43);
 
 
 const _File = class File extends _index_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
@@ -8821,7 +8867,7 @@ const File = _File
 
 
 /***/ }),
-/* 32 */
+/* 51 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -8829,7 +8875,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   FetchError: () => (/* binding */ FetchError)
 /* harmony export */ });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(33);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(52);
 
 
 
@@ -8859,7 +8905,7 @@ class FetchError extends _base_js__WEBPACK_IMPORTED_MODULE_0__.FetchBaseError {
 
 
 /***/ }),
-/* 33 */
+/* 52 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -8887,7 +8933,7 @@ class FetchBaseError extends Error {
 
 
 /***/ }),
-/* 34 */
+/* 53 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -8989,7 +9035,7 @@ const isSameProtocol = (destination, original) => {
 
 
 /***/ }),
-/* 35 */
+/* 54 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -8997,9 +9043,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (/* binding */ Response)
 /* harmony export */ });
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(36);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(22);
-/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(37);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(55);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(41);
+/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(56);
 /**
  * Response.js
  *
@@ -9021,17 +9067,17 @@ const INTERNALS = Symbol('Response internals');
  * @param   Object  opts  Response options
  * @return  Void
  */
-class Response extends _body_js__WEBPACK_IMPORTED_MODULE_1__["default"] {
+class Response extends _body_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
 	constructor(body = null, options = {}) {
 		super(body, options);
 
 		// eslint-disable-next-line no-eq-null, eqeqeq, no-negated-condition
 		const status = options.status != null ? options.status : 200;
 
-		const headers = new _headers_js__WEBPACK_IMPORTED_MODULE_0__["default"](options.headers);
+		const headers = new _headers_js__WEBPACK_IMPORTED_MODULE_1__["default"](options.headers);
 
 		if (body !== null && !headers.has('Content-Type')) {
-			const contentType = (0,_body_js__WEBPACK_IMPORTED_MODULE_1__.extractContentType)(body, this);
+			const contentType = (0,_body_js__WEBPACK_IMPORTED_MODULE_0__.extractContentType)(body, this);
 			if (contentType) {
 				headers.append('Content-Type', contentType);
 			}
@@ -9089,7 +9135,7 @@ class Response extends _body_js__WEBPACK_IMPORTED_MODULE_1__["default"] {
 	 * @return  Response
 	 */
 	clone() {
-		return new Response((0,_body_js__WEBPACK_IMPORTED_MODULE_1__.clone)(this, this.highWaterMark), {
+		return new Response((0,_body_js__WEBPACK_IMPORTED_MODULE_0__.clone)(this, this.highWaterMark), {
 			type: this.type,
 			url: this.url,
 			status: this.status,
@@ -9133,7 +9179,7 @@ class Response extends _body_js__WEBPACK_IMPORTED_MODULE_1__["default"] {
 			throw new TypeError('data is not JSON serializable');
 		}
 
-		const headers = new _headers_js__WEBPACK_IMPORTED_MODULE_0__["default"](init && init.headers);
+		const headers = new _headers_js__WEBPACK_IMPORTED_MODULE_1__["default"](init && init.headers);
 
 		if (!headers.has('content-type')) {
 			headers.set('content-type', 'application/json');
@@ -9163,7 +9209,7 @@ Object.defineProperties(Response.prototype, {
 
 
 /***/ }),
-/* 36 */
+/* 55 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9172,8 +9218,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (/* binding */ Headers),
 /* harmony export */   fromRawHeaders: () => (/* binding */ fromRawHeaders)
 /* harmony export */ });
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(23);
-/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(16);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(42);
+/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(35);
 /**
  * Headers.js
  *
@@ -9444,7 +9490,7 @@ function fromRawHeaders(headers = []) {
 
 
 /***/ }),
-/* 37 */
+/* 56 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9466,7 +9512,7 @@ const isRedirect = code => {
 
 
 /***/ }),
-/* 38 */
+/* 57 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9475,13 +9521,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (/* binding */ Request),
 /* harmony export */   getNodeRequestOptions: () => (/* binding */ getNodeRequestOptions)
 /* harmony export */ });
-/* harmony import */ var node_url__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(39);
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(23);
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(36);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(22);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(34);
-/* harmony import */ var _utils_get_search_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(40);
-/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(41);
+/* harmony import */ var node_url__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(58);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(42);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(55);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(41);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(53);
+/* harmony import */ var _utils_get_search_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(59);
+/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(60);
 /**
  * Request.js
  *
@@ -9526,7 +9572,7 @@ const doBadDataWarn = (0,node_util__WEBPACK_IMPORTED_MODULE_1__.deprecate)(() =>
  * @param   Object  init   Custom options
  * @return  Void
  */
-class Request extends _body_js__WEBPACK_IMPORTED_MODULE_3__["default"] {
+class Request extends _body_js__WEBPACK_IMPORTED_MODULE_2__["default"] {
 	constructor(input, init = {}) {
 		let parsedURL;
 
@@ -9560,17 +9606,17 @@ class Request extends _body_js__WEBPACK_IMPORTED_MODULE_3__["default"] {
 		const inputBody = init.body ?
 			init.body :
 			(isRequest(input) && input.body !== null ?
-				(0,_body_js__WEBPACK_IMPORTED_MODULE_3__.clone)(input) :
+				(0,_body_js__WEBPACK_IMPORTED_MODULE_2__.clone)(input) :
 				null);
 
 		super(inputBody, {
 			size: init.size || input.size || 0
 		});
 
-		const headers = new _headers_js__WEBPACK_IMPORTED_MODULE_2__["default"](init.headers || input.headers || {});
+		const headers = new _headers_js__WEBPACK_IMPORTED_MODULE_3__["default"](init.headers || input.headers || {});
 
 		if (inputBody !== null && !headers.has('Content-Type')) {
-			const contentType = (0,_body_js__WEBPACK_IMPORTED_MODULE_3__.extractContentType)(inputBody, this);
+			const contentType = (0,_body_js__WEBPACK_IMPORTED_MODULE_2__.extractContentType)(inputBody, this);
 			if (contentType) {
 				headers.set('Content-Type', contentType);
 			}
@@ -9671,7 +9717,7 @@ class Request extends _body_js__WEBPACK_IMPORTED_MODULE_3__["default"] {
 	}
 
 	set referrerPolicy(referrerPolicy) {
-		this[INTERNALS].referrerPolicy = (0,_utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__.validateReferrerPolicy)(referrerPolicy);
+		this[INTERNALS].referrerPolicy = (0,_utils_referrer_js__WEBPACK_IMPORTED_MODULE_5__.validateReferrerPolicy)(referrerPolicy);
 	}
 
 	/**
@@ -9707,7 +9753,7 @@ Object.defineProperties(Request.prototype, {
  */
 const getNodeRequestOptions = request => {
 	const {parsedURL} = request[INTERNALS];
-	const headers = new _headers_js__WEBPACK_IMPORTED_MODULE_2__["default"](request[INTERNALS].headers);
+	const headers = new _headers_js__WEBPACK_IMPORTED_MODULE_3__["default"](request[INTERNALS].headers);
 
 	// Fetch step 1.3
 	if (!headers.has('Accept')) {
@@ -9721,7 +9767,7 @@ const getNodeRequestOptions = request => {
 	}
 
 	if (request.body !== null) {
-		const totalBytes = (0,_body_js__WEBPACK_IMPORTED_MODULE_3__.getTotalBytes)(request);
+		const totalBytes = (0,_body_js__WEBPACK_IMPORTED_MODULE_2__.getTotalBytes)(request);
 		// Set Content-Length if totalBytes is a number (that is not NaN)
 		if (typeof totalBytes === 'number' && !Number.isNaN(totalBytes)) {
 			contentLengthValue = String(totalBytes);
@@ -9736,14 +9782,14 @@ const getNodeRequestOptions = request => {
 	// > If request's referrer policy is the empty string, then set request's referrer policy to the
 	// > default referrer policy.
 	if (request.referrerPolicy === '') {
-		request.referrerPolicy = _utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__.DEFAULT_REFERRER_POLICY;
+		request.referrerPolicy = _utils_referrer_js__WEBPACK_IMPORTED_MODULE_5__.DEFAULT_REFERRER_POLICY;
 	}
 
 	// 4.1. Main fetch, step 2.7
 	// > If request's referrer is not "no-referrer", set request's referrer to the result of invoking
 	// > determine request's referrer.
 	if (request.referrer && request.referrer !== 'no-referrer') {
-		request[INTERNALS].referrer = (0,_utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__.determineRequestsReferrer)(request);
+		request[INTERNALS].referrer = (0,_utils_referrer_js__WEBPACK_IMPORTED_MODULE_5__.determineRequestsReferrer)(request);
 	} else {
 		request[INTERNALS].referrer = 'no-referrer';
 	}
@@ -9773,7 +9819,7 @@ const getNodeRequestOptions = request => {
 	// HTTP-network fetch step 4.2
 	// chunked encoding is handled by Node.js
 
-	const search = (0,_utils_get_search_js__WEBPACK_IMPORTED_MODULE_5__.getSearch)(parsedURL);
+	const search = (0,_utils_get_search_js__WEBPACK_IMPORTED_MODULE_6__.getSearch)(parsedURL);
 
 	// Pass the full URL directly to request(), but overwrite the following
 	// options:
@@ -9796,14 +9842,14 @@ const getNodeRequestOptions = request => {
 
 
 /***/ }),
-/* 39 */
+/* 58 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:url");
 
 /***/ }),
-/* 40 */
+/* 59 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9823,7 +9869,7 @@ const getSearch = parsedURL => {
 
 
 /***/ }),
-/* 41 */
+/* 60 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9838,7 +9884,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   stripURLForUseAsAReferrer: () => (/* binding */ stripURLForUseAsAReferrer),
 /* harmony export */   validateReferrerPolicy: () => (/* binding */ validateReferrerPolicy)
 /* harmony export */ });
-/* harmony import */ var node_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(42);
+/* harmony import */ var node_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(61);
 
 
 /**
@@ -10182,14 +10228,14 @@ function parseReferrerPolicyFromHeader(headers) {
 
 
 /***/ }),
-/* 42 */
+/* 61 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:net");
 
 /***/ }),
-/* 43 */
+/* 62 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10197,7 +10243,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   AbortError: () => (/* binding */ AbortError)
 /* harmony export */ });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(33);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(52);
 
 
 /**
@@ -10211,7 +10257,7 @@ class AbortError extends _base_js__WEBPACK_IMPORTED_MODULE_0__.FetchBaseError {
 
 
 /***/ }),
-/* 44 */
+/* 63 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10225,11 +10271,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   fileFrom: () => (/* binding */ fileFrom),
 /* harmony export */   fileFromSync: () => (/* binding */ fileFromSync)
 /* harmony export */ });
-/* harmony import */ var node_fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(45);
-/* harmony import */ var node_path__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(46);
-/* harmony import */ var node_domexception__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(47);
-/* harmony import */ var _file_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(31);
-/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(24);
+/* harmony import */ var node_fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(64);
+/* harmony import */ var node_path__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(65);
+/* harmony import */ var node_domexception__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(66);
+/* harmony import */ var _file_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(50);
+/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(43);
 
 
 
@@ -10333,28 +10379,28 @@ class BlobDataItem {
 
 
 /***/ }),
-/* 45 */
+/* 64 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:fs");
 
 /***/ }),
-/* 46 */
+/* 65 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:path");
 
 /***/ }),
-/* 47 */
+/* 66 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /*! node-domexception. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 if (!globalThis.DOMException) {
   try {
-    const { MessageChannel } = __webpack_require__(48),
+    const { MessageChannel } = __webpack_require__(67),
     port = new MessageChannel().port1,
     ab = new ArrayBuffer()
     port.postMessage(ab, [ab, ab])
@@ -10369,14 +10415,14 @@ module.exports = globalThis.DOMException
 
 
 /***/ }),
-/* 48 */
+/* 67 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("worker_threads");
 
 /***/ }),
-/* 49 */
+/* 68 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -10485,7 +10531,7 @@ exports.ConnectionsView = ConnectionsView;
 
 
 /***/ }),
-/* 50 */
+/* 69 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -10594,7 +10640,7 @@ exports.VariablesView = VariablesView;
 
 
 /***/ }),
-/* 51 */
+/* 70 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -10825,10 +10871,7 @@ exports.ProvidersView = ProvidersView;
 /******/ 			// "1" is the signal for "already loaded"
 /******/ 			if(!installedChunks[chunkId]) {
 /******/ 				if(true) { // all chunks have JS
-/******/ 					var installedChunk = require("./" + __webpack_require__.u(chunkId));
-/******/ 					if (!installedChunks[chunkId]) {
-/******/ 						installChunk(installedChunk);
-/******/ 					}
+/******/ 					installChunk(require("./" + __webpack_require__.u(chunkId)));
 /******/ 				} else installedChunks[chunkId] = 1;
 /******/ 			}
 /******/ 		};
@@ -10848,8 +10891,7 @@ var __webpack_exports__ = {};
 var exports = __webpack_exports__;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.activate = activate;
-exports.deactivate = deactivate;
+exports.deactivate = exports.activate = void 0;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
@@ -10891,10 +10933,12 @@ function activate(context) {
     }
     ui.logToOutput('Extension activation completed');
 }
+exports.activate = activate;
 // this method is called when your extension is deactivated
 function deactivate() {
     ui.logToOutput('Extension is now deactive!');
 }
+exports.deactivate = deactivate;
 
 })();
 

@@ -206,7 +206,7 @@ export class DagView {
             end_date = this.dagRunJson.end_date;
             logical_date_string = logical_date ? new Date(logical_date).toLocaleDateString() : "";
             start_date_string = start_date ? new Date(start_date).toLocaleString() : "";
-            duration = (start_date && end_date) ? ui.getDuration(new Date(start_date), new Date(end_date)) : "";
+            duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
             isDagRunning = (state === "queued" || state === "running") ? true : false;
             hasDagLatestRun = true;
         }
@@ -214,7 +214,7 @@ export class DagView {
         let runningOrFailedTasks: string = "";
         if (this.dagTaskInstancesJson) {
             for (const t of this.dagTaskInstancesJson["task_instances"]) {
-                if(t.state === "running" || t.state === "failed")
+                if(t.state === "running" || t.state === "failed" || t.state === "up_for_retry" || t.state === "up_for_reschedule" || t.state === "deferred")
                 {
                     runningOrFailedTasks += t.task_id + ", " ;
                 }
