@@ -51,13 +51,18 @@ function main() {
     taskLogLinkList[i].addEventListener("click", taskLogLinkClicked);
   }
 
+  const taskXComLinkList = document.querySelectorAll("[id^='task-xcom-link-']");
+  for (let i = 0; i < taskXComLinkList.length; i++) {
+    taskXComLinkList[i].addEventListener("click", taskXComLinkClicked);
+  }
+
   const tabControl = document.getElementById("tab-control");
   tabControl.addEventListener("change", tabControlChanged);
 
 }
 
 
-  function triggerDagClick() {
+function triggerDagClick() {
   vscode.postMessage({
     command: "run-trigger-dag",
     config: document.getElementById("run_config").value,
@@ -154,6 +159,14 @@ function tasksRefreshClicked() {
 function taskLogLinkClicked(e) {
   vscode.postMessage({
     command: "task-log-link",
+    activetabid: document.getElementById("tab-control").activeid,
+    id: e.target.id,
+  });
+}
+
+function taskXComLinkClicked(e) {
+  vscode.postMessage({
+    command: "task-xcom-link",
     activetabid: document.getElementById("tab-control").activeid,
     id: e.target.id,
   });

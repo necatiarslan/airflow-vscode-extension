@@ -385,6 +385,29 @@ export class AirflowApi {
         return result;
     }
 
+    public async getTaskXComs(dagId: string, dagRunId: string, taskId: string): Promise<MethodResult<any>> {
+        const result = new MethodResult<any>();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${taskId}/xcomEntries`, { method: 'GET', headers });
+            
+            if (response.status === 200) {
+                const data = await response.json();
+                result.result = data;
+                result.isSuccessful = true;
+            } else {
+                const data = await response.json();
+                ui.showApiErrorMessage(`XCom fetch error for ${taskId}`, data);
+                result.isSuccessful = false;
+            }
+        } catch (error) {
+            ui.showErrorMessage(`XCom fetch error for ${taskId}`, error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
     // Add other methods as needed (getConnections, getVariables, getProviders)
     public async getConnections(): Promise<MethodResult<any>> {
         return this.genericGet('/connections');

@@ -733,7 +733,10 @@ class DagView {
                             &nbsp; ${t.task_id} (${t.try_number})
                         </div>
                     </td>
-                    <td><vscode-link id="task-log-link-${t.task_id}">Log</vscode-link></td>
+                    <td>
+                        <vscode-link id="task-log-link-${t.task_id}">Log</vscode-link> | 
+                        <vscode-link id="task-xcom-link-${t.task_id}">XCom</vscode-link>
+                    </td>
                     <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
                     <td>${t.operator}</td>
                 </tr>
@@ -1065,7 +1068,12 @@ class DagView {
                 case "task-log-link":
                     let taskId = message.id;
                     taskId = taskId.replace("task-log-link-", "");
-                    this.showLastTaskInstanceLog(this.dagId, this.dagRunJson.dag_run_id, taskId);
+                    this.showTaskInstanceLog(this.dagId, this.dagRunJson.dag_run_id, taskId);
+                    return;
+                case "task-xcom-link":
+                    let xcomTaskId = message.id;
+                    xcomTaskId = xcomTaskId.replace("task-xcom-link-", "");
+                    this.showTaskXComs(this.dagId, this.dagRunJson.dag_run_id, xcomTaskId);
                     return;
                 case "tasks-refresh":
                     this.getTasksAndRenderHtml();
@@ -1137,17 +1145,30 @@ class DagView {
             ui.openFile(tmpFile.name);
         }
     }
-    async showLastTaskInstanceLog(dagId, dagRunId, taskId) {
-        ui.logToOutput('DagView.showLastTaskInstanceLog Started');
-        // Note: getTaskInstanceLog is missing in AirflowApi, need to add it.
-        // let result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
-        // if (result.isSuccessful) {
-        //     const tmp = require('tmp');
-        //     const fs = require('fs');
-        //     const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId, postfix: '.log' });
-        //     fs.appendFileSync(tmpFile.name, result.result);
-        //     ui.openFile(tmpFile.name);
-        // }
+    async showTaskInstanceLog(dagId, dagRunId, taskId) {
+        ui.logToOutput('DagView.showTaskInstanceLog Started');
+        let result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
+        if (result.isSuccessful) {
+            const tmp = __webpack_require__(7);
+            const fs = __webpack_require__(5);
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId, postfix: '.log' });
+            fs.appendFileSync(tmpFile.name, result.result);
+            ui.openFile(tmpFile.name);
+        }
+    }
+    async showTaskXComs(dagId, dagRunId, taskId) {
+        ui.logToOutput('DagView.showTaskXComs Started');
+        let result = await this.api.getTaskXComs(dagId, dagRunId, taskId);
+        if (result.isSuccessful) {
+            const tmp = __webpack_require__(7);
+            const fs = __webpack_require__(5);
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId + '_xcom', postfix: '.json' });
+            fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
+            ui.openFile(tmpFile.name);
+        }
+        else {
+            ui.showInfoMessage(`No XCom entries found for task: ${taskId}`);
+        }
     }
     async triggerDagWConfig(config = "", date = "") {
         ui.logToOutput('DagView.triggerDagWConfig Started');
@@ -6552,6 +6573,29 @@ class AirflowApi {
         }
         catch (error) {
             ui.showErrorMessage(`${dagId} Log Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getTaskXComs(dagId, dagRunId, taskId) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${taskId}/xcomEntries`, { method: 'GET', headers });
+            if (response.status === 200) {
+                const data = await response.json();
+                result.result = data;
+                result.isSuccessful = true;
+            }
+            else {
+                const data = await response.json();
+                ui.showApiErrorMessage(`XCom fetch error for ${taskId}`, data);
+                result.isSuccessful = false;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage(`XCom fetch error for ${taskId}`, error);
             result.isSuccessful = false;
             result.error = error;
         }

@@ -243,7 +243,10 @@ export class DagView {
                             &nbsp; ${t.task_id} (${t.try_number})
                         </div>
                     </td>
-                    <td><vscode-link id="task-log-link-${t.task_id}">Log</vscode-link></td>
+                    <td>
+                        <vscode-link id="task-log-link-${t.task_id}">Log</vscode-link> | 
+                        <vscode-link id="task-xcom-link-${t.task_id}">XCom</vscode-link>
+                    </td>
                     <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
                     <td>${t.operator}</td>
                 </tr>
@@ -591,7 +594,13 @@ export class DagView {
                     case "task-log-link":
                         let taskId:string = message.id;
                         taskId = taskId.replace("task-log-link-", "");
-                        this.showLastTaskInstanceLog(this.dagId, this.dagRunJson.dag_run_id, taskId);
+                        this.showTaskInstanceLog(this.dagId, this.dagRunJson.dag_run_id, taskId);
+                        return;
+
+                    case "task-xcom-link":
+                        let xcomTaskId:string = message.id;
+                        xcomTaskId = xcomTaskId.replace("task-xcom-link-", "");
+                        this.showTaskXComs(this.dagId, this.dagRunJson.dag_run_id, xcomTaskId);
                         return;
 
                     case "tasks-refresh":
@@ -680,18 +689,32 @@ export class DagView {
         }
     }
 
-    async showLastTaskInstanceLog(dagId: string, dagRunId:string, taskId:string) {
-        ui.logToOutput('DagView.showLastTaskInstanceLog Started');
+    async showTaskInstanceLog(dagId: string, dagRunId:string, taskId:string) {
+        ui.logToOutput('DagView.showTaskInstanceLog Started');
 
-        // Note: getTaskInstanceLog is missing in AirflowApi, need to add it.
-        // let result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
-        // if (result.isSuccessful) {
-        //     const tmp = require('tmp');
-        //     const fs = require('fs');
-        //     const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId, postfix: '.log' });
-        //     fs.appendFileSync(tmpFile.name, result.result);
-        //     ui.openFile(tmpFile.name);
-        // }
+        let result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
+        if (result.isSuccessful) {
+            const tmp = require('tmp');
+            const fs = require('fs');
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId, postfix: '.log' });
+            fs.appendFileSync(tmpFile.name, result.result);
+            ui.openFile(tmpFile.name);
+        }
+    }
+
+    async showTaskXComs(dagId: string, dagRunId:string, taskId:string) {
+        ui.logToOutput('DagView.showTaskXComs Started');
+
+        let result = await this.api.getTaskXComs(dagId, dagRunId, taskId);
+        if (result.isSuccessful) {
+            const tmp = require('tmp');
+            const fs = require('fs');
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId + '_xcom', postfix: '.json' });
+            fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
+            ui.openFile(tmpFile.name);
+        } else {
+            ui.showInfoMessage(`No XCom entries found for task: ${taskId}`);
+        }
     }
 
     async triggerDagWConfig(config: string = "", date: string = "") {
