@@ -39,6 +39,9 @@ function main() {
   const tasksRefreshButton = document.getElementById("tasks-refresh");
   tasksRefreshButton.addEventListener("click", tasksRefreshClicked);
 
+  const runUpdateNoteButton = document.getElementById("run-update-note");
+  runUpdateNoteButton.addEventListener("click", runUpdateNoteClicked);
+
   const prevRunLinkList = document.querySelectorAll("[id^='history-dag-run-id']");
   for (let i = 0; i < prevRunLinkList.length; i++) {
     //prevRunLinkList[i].id
@@ -152,6 +155,13 @@ function dagRunHistoryLinkClicked(e) {
 function tasksRefreshClicked() {
   vscode.postMessage({
     command: "tasks-refresh",
+    activetabid: document.getElementById("tab-control").activeid,
+  });
+}
+
+function runUpdateNoteClicked() {
+  vscode.postMessage({
+    command: "run-update-note",
     activetabid: document.getElementById("tab-control").activeid,
   });
 }

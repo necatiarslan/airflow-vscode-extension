@@ -408,6 +408,33 @@ export class AirflowApi {
         return result;
     }
 
+    public async updateDagRunNote(dagId: string, dagRunId: string, note: string): Promise<MethodResult<any>> {
+        const result = new MethodResult<any>();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({ note: note })
+            });
+            const data = await response.json();
+            
+            if (response.status === 200) {
+                ui.showInfoMessage('DAG run note updated successfully');
+                result.result = data;
+                result.isSuccessful = true;
+            } else {
+                ui.showApiErrorMessage(`Failed to update note`, data);
+                result.isSuccessful = false;
+            }
+        } catch (error) {
+            ui.showErrorMessage(`Failed to update note`, error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
     // Add other methods as needed (getConnections, getVariables, getProviders)
     public async getConnections(): Promise<MethodResult<any>> {
         return this.genericGet('/connections');

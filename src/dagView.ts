@@ -347,10 +347,16 @@ export class DagView {
                             <td>${duration}</td>
                         </tr>
                         <tr>
+                            <td>Note</td>
+                            <td>:</td>
+                            <td>${this.dagRunJson?.note || '(No note)'}</td>
+                        </tr>
+                        <tr>
                             <td colspan="3">
                                 <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Check</vscode-button>  
                                 <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>     
                                 <vscode-button appearance="secondary" id="run-view-log" ${!hasDagLatestRun ? "disabled" : ""}>View Log</vscode-button>  
+                                <vscode-button appearance="secondary" id="run-update-note" ${!hasDagLatestRun ? "disabled" : ""}>Update Note</vscode-button>
                                 <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagLatestRun ? "disabled" : ""}>More</vscode-button>
                             </td>
                         </tr>
@@ -584,6 +590,13 @@ export class DagView {
                         
                         return;
 
+                    case "run-update-note":
+                        if(this.dagRunJson)
+                        {
+                            this.updateDagRunNote("");
+                        }
+                        return;
+
                     case "history-dag-run-id":
                         let dagRunId:string = message.id;
                         dagRunId = dagRunId.replace("history-dag-run-id-", "");
@@ -634,6 +647,30 @@ export class DagView {
         // if (result.isSuccessful) {
             
         // }
+    }
+
+    async updateDagRunNote(note: string) {
+        ui.logToOutput('DagView.updateDagRunNote Started');
+        
+        if (!this.api || !this.dagRunJson) { return; }
+        
+        // Show input box with current note as default value
+        const newNote = await vscode.window.showInputBox({
+            prompt: 'Enter note for this DAG run',
+            value: this.dagRunJson.note || '',
+            placeHolder: 'Add a note for this DAG run'
+        });
+        
+        // User cancelled the input
+        if (newNote === undefined) {
+            return;
+        }
+        
+        const result = await this.api.updateDagRunNote(this.dagId, this.dagRunJson.dag_run_id, newNote);
+        if (result.isSuccessful) {
+            // Refresh the DAG run to get the updated note
+            await this.getDagRun(this.dagId, this.dagRunJson.dag_run_id);
+        }
     }
 
     async pauseDAG(is_paused: boolean) {
