@@ -295,27 +295,27 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
-		"@types/base-64": "^1.0.0",
-		"@types/glob": "^7.2.0",
-		"@types/mocha": "^9.1.1",
-		"@types/node": "16.x",
+		"@types/base-64": "^1.0.2",
+		"@types/glob": "^9.0.0",
+		"@types/mocha": "^10.0.10",
+		"@types/node": "24.x",
 		"@types/vscode": "^1.104.0",
-		"@typescript-eslint/eslint-plugin": "^5.30.0",
-		"@typescript-eslint/parser": "^5.30.0",
-		"@vscode/test-electron": "^2.1.5",
-		"eslint": "^8.18.0",
-		"glob": "^8.0.3",
-		"mocha": "^10.0.0",
-		"ts-loader": "^9.3.1",
-		"typescript": "^4.7.4",
-		"webpack": "^5.73.0",
-		"webpack-cli": "^4.10.0"
+		"@typescript-eslint/eslint-plugin": "^8.48.0",
+		"@typescript-eslint/parser": "^8.48.0",
+		"@vscode/test-electron": "^2.5.2",
+		"eslint": "^9.39.1",
+		"glob": "^13.0.0",
+		"mocha": "^11.7.5",
+		"ts-loader": "^9.5.4",
+		"typescript": "^5.9.3",
+		"webpack": "^5.103.0",
+		"webpack-cli": "^6.0.1"
 	},
 	"dependencies": {
-		"@vscode/codicons": "^0.0.32",
-		"@vscode/webview-ui-toolkit": "^1.0.0",
+		"@vscode/codicons": "^0.0.43",
+		"@vscode/webview-ui-toolkit": "^1.4.0",
 		"base-64": "^1.0.0",
-		"node-fetch": "^3.2.9",
-		"tmp": "^0.2.1"
+		"node-fetch": "^3.3.2",
+		"tmp": "^0.2.5"
 	}
 }

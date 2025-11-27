@@ -21,7 +21,7 @@ export class DagView {
     public dagTaskInstancesJson: any;
     public dagTasksJson: any;
 
-    private dagStatusInterval: NodeJS.Timer | undefined;
+    private dagStatusInterval: NodeJS.Timeout | undefined;
     private activetabid: string = "tab-1";
 
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, dagId: string, api: AirflowApi) {

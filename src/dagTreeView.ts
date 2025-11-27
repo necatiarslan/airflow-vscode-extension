@@ -14,7 +14,7 @@ export class DagTreeView {
 	public treeDataProvider: DagTreeDataProvider;
 	public context: vscode.ExtensionContext;
 	public filterString: string = '';
-	public dagStatusInterval: NodeJS.Timer | undefined;
+	public dagStatusInterval: NodeJS.Timeout | undefined;
 	public ShowOnlyActive: boolean = true;
 	public ShowOnlyFavorite: boolean = false;
 	
