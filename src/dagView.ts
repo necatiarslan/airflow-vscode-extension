@@ -251,6 +251,12 @@ export class DagView {
             }
         }
 
+        // BUILD TASK DEPENDENCY TREE
+        let taskDependencyTree: string = "";
+        if (this.dagTasksJson && this.dagTasksJson.tasks && this.dagTasksJson.tasks.length > 0) {
+            taskDependencyTree = this.buildTaskDependencyTree(this.dagTasksJson.tasks);
+        }
+
         //HISTORY TAB
         let runHistoryRows: string = "";
         if (this.dagRunHistoryJson) {
@@ -417,6 +423,20 @@ export class DagView {
             <vscode-panel-view id="view-2">
 
             <section>
+
+                    ${taskDependencyTree ? `
+                    <table>
+                        <tr>
+                            <th>Task Dependencies</th>
+                        </tr>
+                        <tr>
+                            <td>
+                                <pre class="task-tree">${taskDependencyTree}</pre>
+                            </td>
+                        </tr>
+                    </table>
+                    <br>
+                    ` : ''}
 
                     <table>
                         <tr>
@@ -755,6 +775,65 @@ export class DagView {
         }
 
         dagView.renderHmtl();
+    }
+
+    private buildTaskDependencyTree(tasks: any[]): string {
+        ui.logToOutput('DagView.buildTaskDependencyTree Started');
+        
+        // Create a map for quick task lookup
+        const taskMap = new Map<string, any>();
+        tasks.forEach(task => {
+            taskMap.set(task.task_id, task);
+        });
+
+        // Find root tasks (tasks with no upstream dependencies)
+        const rootTasks = tasks.filter(task => 
+            !task.upstream_task_ids || task.upstream_task_ids.length === 0
+        );
+
+        if (rootTasks.length === 0) {
+            return "No task dependencies found or circular dependencies detected.";
+        }
+
+        // Build tree recursively
+        const visited = new Set<string>();
+        let treeHtml = "";
+
+        const buildTree = (taskId: string, prefix: string = "", isLast: boolean = true): string => {
+            if (visited.has(taskId)) {
+                return ""; // Prevent infinite loops
+            }
+            visited.add(taskId);
+
+            const task = taskMap.get(taskId);
+            if (!task) {
+                return "";
+            }
+
+            const connector = isLast ? "└── " : "├── ";
+            const taskLine = `${prefix}${connector}${task.task_id} (${task.operator || ''})\n`;
+            
+            let result = taskLine;
+
+            // Get downstream tasks
+            const downstreamIds = task.downstream_task_ids || [];
+            const childPrefix = prefix + (isLast ? "    " : "│   ");
+
+            downstreamIds.forEach((downstreamId: string, index: number) => {
+                const isLastChild = index === downstreamIds.length - 1;
+                result += buildTree(downstreamId, childPrefix, isLastChild);
+            });
+
+            return result;
+        };
+
+        // Build tree for each root task
+        rootTasks.forEach((rootTask, index) => {
+            const isLastRoot = index === rootTasks.length - 1;
+            treeHtml += buildTree(rootTask.task_id, "", isLastRoot);
+        });
+
+        return treeHtml || "No tasks to display.";
     }
 
 }
