@@ -294,6 +294,25 @@ export class DagTreeView {
 		}
 	}
 
+	async showDagInfo(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.showDagInfo Started');
+		if (!this.api) { return; }
+
+		const result = await this.api.getDagInfo(node.DagId);
+
+		if (result.isSuccessful) {
+			const tmp = require('tmp');
+			const fs = require('fs');
+
+			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId + '_info', postfix: '.json' });
+			fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
+			ui.openFile(tmpFile.name);
+		} else {
+			ui.logToOutput(result.result);
+			ui.showErrorMessage('Failed to fetch DAG info');
+		}
+	}
+
 	async filter() {
 		ui.logToOutput('DagTreeView.filter Started');
 		const filterStringTemp = await vscode.window.showInputBox({ value: this.filterString, placeHolder: 'Enter your filters seperated by comma' });

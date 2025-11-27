@@ -314,7 +314,7 @@ export class AirflowApi {
     }
     
     public async getDagInfo(dagId: string): Promise<MethodResult<any>> {
-        return this.genericGet(`/dags/${dagId}/details`);
+        return this.genericGet(`/dags/${dagId}`);
     }
 
     public async getDagTasks(dagId: string): Promise<MethodResult<any>> {

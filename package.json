@@ -99,14 +99,19 @@
 				"icon": "$(output)"
 			},
 			{
-				"command": "dagTreeView.dagSourceCode",
-				"title": "Source Code",
-				"icon": "$(code)"
-			},
-			{
-				"command": "dagTreeView.showDagView",
-				"title": "DAG View"
-			},
+			"command": "dagTreeView.dagSourceCode",
+			"title": "Source Code",
+			"icon": "$(code)"
+		},
+		{
+			"command": "dagTreeView.showDagInfo",
+			"title": "DAG Info",
+			"icon": "$(info)"
+		},
+		{
+			"command": "dagTreeView.showDagView",
+			"title": "DAG View"
+		},
 			{
 				"command": "dagTreeView.clearServers",
 				"title": "Clear Servers"
@@ -197,15 +202,20 @@
 					"group": "inline"
 				},
 				{
-					"command": "dagTreeView.lastDAGRunLog",
-					"when": "view == dagTreeView",
-					"group": "inline"
-				},
-				{
-					"command": "dagTreeView.triggerDagWithConfig",
-					"when": "view == dagTreeView",
-					"group": "trigger"
-				},
+				"command": "dagTreeView.lastDAGRunLog",
+				"when": "view == dagTreeView",
+				"group": "inline"
+			},
+			{
+				"command": "dagTreeView.showDagInfo",
+				"when": "view == dagTreeView",
+				"group": "inline"
+			},
+			{
+				"command": "dagTreeView.triggerDagWithConfig",
+				"when": "view == dagTreeView",
+				"group": "trigger"
+			},
 				{
 					"command": "dagTreeView.checkDagRunState",
 					"when": "view == dagTreeView",
