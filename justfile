@@ -7,6 +7,7 @@ publish:
 
 npm_outdated:
     npm outdated
+    npx npm-check-updates
 
 npm_upgrade:
     brew upgrade # upgrade homebrew

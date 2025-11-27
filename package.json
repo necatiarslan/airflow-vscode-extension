@@ -2,7 +2,7 @@
 	"name": "airflow-vscode-extension",
 	"displayName": "Airflow",
 	"description": "Apache Airflow Extension to List/Trigger DAGs, View Logs and much more",
-	"version": "1.7.1",
+	"version": "1.8.0",
 	"publisher": "NecatiARSLAN",
 	"icon": "media/airflow-extension-logo.png",
 	"repository": {
@@ -10,7 +10,7 @@
 		"url": "https://github.com/necatiarslan/airflow-vscode-extension"
 	},
 	"engines": {
-		"vscode": "^1.69.0"
+		"vscode": "^1.104.0"
 	},
 	"categories": [
 		"Other"
@@ -279,7 +279,7 @@
 		"viewsWelcome": [
 			{
 				"view": "dagTreeView",
-				"contents": "To connect to Airflow Click Below \n [Connect to Airflow](command:dagTreeView.addServer)\n\n You should enable REST Api in the Airflow to connect.\n For now, only basic authentication (username/password) supported.\n [learn more](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md) \n\n Click [here](https://www.youtube.com/watch?v=aTaytcxy2Ck) on how to run Airflow in your local machine in 5 mins."
+				"contents": "To connect to Airflow Click Below \n [Connect to Airflow](command:dagTreeView.addServer)\n\n You should enable REST Api in the Airflow to connect.\n For now, only basic authentication (username/password) supported.\n [Learn More](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md) \n\n Click [here](https://www.youtube.com/watch?v=aTaytcxy2Ck) on how to run Airflow in your local machine in 5 mins."
 			}
 		]
 	},
@@ -299,7 +299,7 @@
 		"@types/glob": "^7.2.0",
 		"@types/mocha": "^9.1.1",
 		"@types/node": "16.x",
-		"@types/vscode": "^1.69.0",
+		"@types/vscode": "^1.104.0",
 		"@typescript-eslint/eslint-plugin": "^5.30.0",
 		"@typescript-eslint/parser": "^5.30.0",
 		"@vscode/test-electron": "^2.1.5",
