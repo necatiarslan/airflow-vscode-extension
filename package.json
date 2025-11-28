@@ -279,7 +279,7 @@
 		"viewsWelcome": [
 			{
 				"view": "dagTreeView",
-				"contents": "To connect to Airflow Click Below \n [Connect to Airflow](command:dagTreeView.addServer)\n\n You should enable REST Api in the Airflow to connect.\n For now, only basic authentication (username/password) supported.\n [Learn More](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md) \n\n Click [here](https://www.youtube.com/watch?v=aTaytcxy2Ck) on how to run Airflow in your local machine in 5 mins."
+				"contents": "To connect to Airflow Click Below \n [Connect to Airflow](command:dagTreeView.addServer)\n\n You should enable REST Api in the Airflow to connect.\n For now, only basic authentication (username/password) supported.\n [Learn More](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md) \n\n Click [here](https://www.youtube.com/watch?v=ZeWDVPNDXZg) on how to run Airflow in your local machine in 5 mins."
 			}
 		]
 	},

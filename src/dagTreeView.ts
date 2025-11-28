@@ -344,7 +344,7 @@ export class DagTreeView {
 	async addServer() {
 		ui.logToOutput('DagTreeView.addServer Started');
 
-		const apiUrlTemp = await vscode.window.showInputBox({ value: 'http://localhost:8080/api/v1', placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
+		const apiUrlTemp = await vscode.window.showInputBox({ value: 'http://localhost:8080/api/v2', placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
 		if (!apiUrlTemp) { return; }
 
 		const userNameTemp = await vscode.window.showInputBox({ placeHolder: 'User Name' });
@@ -356,8 +356,15 @@ export class DagTreeView {
 		const newServer: ServerConfig = { apiUrl: apiUrlTemp, apiUserName: userNameTemp, apiPassword: passwordTemp };
 		this.ServerList.push(newServer);
 
+		let api = new AirflowApi(newServer);
+		let result = await api.checkConnection();
+		if (!result) {
+			ui.showErrorMessage("Failed to connect to server.");
+			return;
+		}
+
 		this.currentServer = newServer;
-		this.api = new AirflowApi(this.currentServer);
+		this.api = api;
 
 		this.saveState();
 		this.refresh();
@@ -410,10 +417,17 @@ export class DagTreeView {
 		if (selectedItems[0]) {
 			const item = this.ServerList.find(item => item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]);
 			if (item) {
-				this.currentServer = item;
-				this.api = new AirflowApi(this.currentServer);
-				this.saveState();
-				this.refresh();
+				let api = new AirflowApi(item);
+				let result = await api.checkConnection();
+				if (result) {
+					this.currentServer = item;
+					this.api = new AirflowApi(this.currentServer);
+					this.saveState();
+					this.refresh();
+				}
+				else {
+					ui.showErrorMessage("Failed to connect to server.");
+				}
 			}
 		}
 	}
@@ -518,7 +532,9 @@ export class DagTreeView {
 	}
 
 	setFilterMessage() {
-		this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, ' + this.getBoolenSign(this.ShowOnlyActive) + 'Active, Filter : ' + this.filterString;
+		if (this.currentServer) {
+			this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, ' + this.getBoolenSign(this.ShowOnlyActive) + 'Active, Filter : ' + this.filterString;
+		}
 	}
 
 	getBoolenSign(variable: boolean) {
