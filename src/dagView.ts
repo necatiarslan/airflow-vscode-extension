@@ -13,7 +13,7 @@ export class DagView {
     private api: AirflowApi;
 
     public dagId: string;
-    public triggeredDagRunId: string | undefined;
+    public dagRunId: string | undefined;
 
     public dagJson: any;
     public dagRunJson: any;
@@ -39,9 +39,10 @@ export class DagView {
 
     public resetDagData(){
         this.activetabid = "tab-1";
-        this.triggeredDagRunId = undefined;
+        this.dagRunId = undefined;
         this.dagJson = undefined;
         this.dagRunJson = undefined;
+        this.dagRunId = undefined;
         this.dagRunHistoryJson = undefined;
         this.dagTaskInstancesJson = undefined;
         this.dagTasksJson = undefined;
@@ -93,11 +94,12 @@ export class DagView {
         let result = await this.api.getLastDagRun(this.dagId);
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
-            this.getTaskInstances(this.dagRunJson.dag_run_id);
+            this.dagRunId = this.dagRunJson.dag_run_id;
+            this.getTaskInstances(this.dagRunId);
 
             if(this.dagRunJson && this.dagRunJson.state === "running" )
             {
-                this.startCheckingDagRunStatus(this.dagRunJson.dag_run_id);
+                this.startCheckingDagRunStatus(this.dagRunId);
             }
         }
 
@@ -109,7 +111,8 @@ export class DagView {
         let result = await this.api.getDagRun(dagId, dagRunId);
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
-            this.getTaskInstances(this.dagRunJson.dag_run_id);
+            this.dagRunId = this.dagRunJson.dag_run_id;
+            this.getTaskInstances(this.dagRunId);
         }
         await this.renderHmtl();
     }
@@ -197,7 +200,7 @@ export class DagView {
         let start_date_string:string = "";
         let duration:string = "";
         let isDagRunning:boolean = false;
-        let hasDagLatestRun:boolean = false;
+        let hasDagARun:boolean = false;
 
         if(this.dagRunJson){
             state = this.dagRunJson.state;
@@ -208,7 +211,7 @@ export class DagView {
             start_date_string = start_date ? new Date(start_date).toLocaleString() : "";
             duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
             isDagRunning = (state === "queued" || state === "running") ? true : false;
-            hasDagLatestRun = true;
+            hasDagARun = true;
         }
 
         let runningOrFailedTasks: string = "";
@@ -307,7 +310,7 @@ export class DagView {
             <vscode-panel-tab id="tab-1">RUN</vscode-panel-tab>
             <vscode-panel-tab id="tab-2">TASKS</vscode-panel-tab>
             <vscode-panel-tab id="tab-3">INFO</vscode-panel-tab>
-            <vscode-panel-tab id="tab-4">PREV RUNS</vscode-panel-tab>
+            <vscode-panel-tab id="tab-4">HISTORY</vscode-panel-tab>
             
             <vscode-panel-view id="view-1">
                 
@@ -353,11 +356,12 @@ export class DagView {
                         </tr>
                         <tr>
                             <td colspan="3">
-                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Check</vscode-button>  
+                                <vscode-button appearance="secondary" id="run-ask-ai" ${!hasDagARun ? "disabled" : ""}>Ask AI</vscode-button>
+                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>  
                                 <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>     
-                                <vscode-button appearance="secondary" id="run-view-log" ${!hasDagLatestRun ? "disabled" : ""}>View Log</vscode-button>  
-                                <vscode-button appearance="secondary" id="run-update-note" ${!hasDagLatestRun ? "disabled" : ""}>Update Note</vscode-button>
-                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagLatestRun ? "disabled" : ""}>More</vscode-button>
+                                <vscode-button appearance="secondary" id="run-view-log" ${!hasDagARun ? "disabled" : ""}>View Log</vscode-button>  
+                                <vscode-button appearance="secondary" id="run-update-note" ${!hasDagARun ? "disabled" : ""}>Update Note</vscode-button>
+                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagARun ? "disabled" : ""}>More</vscode-button>
                             </td>
                         </tr>
                     </table>
@@ -549,7 +553,7 @@ export class DagView {
                         this.triggerDagWConfig(message.config, message.date);
                         return;
                     case "run-view-log":
-                        this.showLastDAGRunLog();
+                        this.showDAGRunLog();
                         return;
                     case "run-more-dagrun-detail":
                         ui.showOutputMessage(this.dagRunJson);
@@ -573,11 +577,15 @@ export class DagView {
                         this.pauseDAG(false);
                         return;
 
+                    case "run-ask-ai":
+                        this.askAI();
+                        return;
+
                     case "run-lastrun-check":
                         this.getLastRun();
                         if(this.dagRunJson)
                         {
-                            this.startCheckingDagRunStatus(this.dagRunJson.dag_run_id);
+                            this.startCheckingDagRunStatus(this.dagRunId);
                         }
                         
                         return;
@@ -585,7 +593,7 @@ export class DagView {
                     case "run-lastrun-cancel":
                         if(this.dagRunJson)
                         {
-                            this.cancelDagRun(this.dagRunJson.dag_run_id);
+                            this.cancelDagRun(this.dagRunId);
                         }
                         
                         return;
@@ -607,13 +615,13 @@ export class DagView {
                     case "task-log-link":
                         let taskId:string = message.id;
                         taskId = taskId.replace("task-log-link-", "");
-                        this.showTaskInstanceLog(this.dagId, this.dagRunJson.dag_run_id, taskId);
+                        this.showTaskInstanceLog(this.dagId, this.dagRunId, taskId);
                         return;
 
                     case "task-xcom-link":
                         let xcomTaskId:string = message.id;
                         xcomTaskId = xcomTaskId.replace("task-xcom-link-", "");
-                        this.showTaskXComs(this.dagId, this.dagRunJson.dag_run_id, xcomTaskId);
+                        this.showTaskXComs(this.dagId, this.dagRunId, xcomTaskId);
                         return;
 
                     case "tasks-refresh":
@@ -666,10 +674,10 @@ export class DagView {
             return;
         }
         
-        const result = await this.api.updateDagRunNote(this.dagId, this.dagRunJson.dag_run_id, newNote);
+        const result = await this.api.updateDagRunNote(this.dagId, this.dagRunId, newNote);
         if (result.isSuccessful) {
             // Refresh the DAG run to get the updated note
-            await this.getDagRun(this.dagId, this.dagRunJson.dag_run_id);
+            await this.getDagRun(this.dagId, this.dagRunId);
         }
     }
 
@@ -685,6 +693,35 @@ export class DagView {
             is_paused ? DagTreeView.Current?.notifyDagPaused(this.dagId) : DagTreeView.Current?.notifyDagUnPaused(this.dagId);
         }
 
+    }
+
+    async askAI() {
+        ui.logToOutput('DagView.askAI Started');
+
+        if (!DagTreeView.Current) {
+            ui.showErrorMessage('DagTreeView is not available');
+            return;
+        }
+
+        if (!this.dagJson) {
+            ui.showErrorMessage('DAG information is not available');
+            return;
+        }
+        
+        let code = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
+        if (!code.isSuccessful) {
+            ui.showErrorMessage('Failed to retrieve DAG source code for AI context');
+            return;
+        }
+
+        let logs = await this.api.getDagRunLog(this.dagId, this.dagRunId);
+        if (!logs.isSuccessful) {
+            ui.showErrorMessage('Failed to retrieve DAG logs for AI context');
+            return;
+        }
+
+        // Call the askAI function from DagTreeView
+        await DagTreeView.Current?.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
     }
 
     async showSourceCode() {
@@ -713,10 +750,10 @@ export class DagView {
         await this.renderHmtl();
     }
 
-    async showLastDAGRunLog() {
-        ui.logToOutput('DagView.lastDAGRunLog Started');
+    async showDAGRunLog() {
+        ui.logToOutput('DagView.DAGRunLog Started');
 
-        let result = await this.api.getLastDagRunLog(this.dagId);
+        let result = await this.api.getDagRunLog(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
             const tmp = require('tmp');
             const fs = require('fs');
@@ -785,7 +822,7 @@ export class DagView {
 
     async startCheckingDagRunStatus(dagRunId:string) {
         ui.logToOutput('DagView.startCheckingDagRunStatus Started');
-        this.triggeredDagRunId = dagRunId;
+        this.dagRunId = dagRunId;
         await this.refreshRunningDagState(this);
         if (this.dagStatusInterval) {
             clearInterval(this.dagStatusInterval);//stop prev checking
@@ -804,17 +841,17 @@ export class DagView {
 
     async refreshRunningDagState(dagView: DagView) {
         ui.logToOutput('DagView.refreshRunningDagState Started');
-        if (!dagView.dagId || !dagView.triggeredDagRunId)
+        if (!dagView.dagId || !dagView.dagRunId)
         {
             dagView.stopCheckingDagRunStatus();
             return;
         }
 
-        let result = await this.api.getDagRun(dagView.dagId, dagView.triggeredDagRunId);
+        let result = await this.api.getDagRun(dagView.dagId, dagView.dagRunId);
         if (result.isSuccessful) {
             dagView.dagRunJson = result.result;
 
-            let resultTasks = await this.api.getTaskInstances(dagView.dagId, dagView.triggeredDagRunId);
+            let resultTasks = await this.api.getTaskInstances(dagView.dagId, dagView.dagRunId);
             if (resultTasks.isSuccessful) {
                 dagView.dagTaskInstancesJson = resultTasks.result;
             }

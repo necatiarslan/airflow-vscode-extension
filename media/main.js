@@ -30,6 +30,9 @@ function main() {
   const runUnPauseDag = document.getElementById("run-unpause-dag");
   runUnPauseDag.addEventListener("click", runUnPauseDagClick);
 
+  const runAskAI = document.getElementById("run-ask-ai");
+  runAskAI.addEventListener("click", runAskAIClick);
+
   const runLastRunCheck = document.getElementById("run-lastrun-check");
   runLastRunCheck.addEventListener("click", runLastRunCheckClick);
 
@@ -126,6 +129,13 @@ function runPauseDagClick() {
 function runUnPauseDagClick() {
   vscode.postMessage({
     command: "run-unpause-dag",
+    activetabid: document.getElementById("tab-control").activeid,
+  });
+}
+
+function runAskAIClick() {
+  vscode.postMessage({
+    command: "run-ask-ai",
     activetabid: document.getElementById("tab-control").activeid,
   });
 }

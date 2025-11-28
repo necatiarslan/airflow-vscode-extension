@@ -285,25 +285,13 @@ export class AirflowApi {
             }
 
             const dagRunId = history.result.dag_runs[0].dag_run_id;
-            const headers = await this.getHeaders();
-            
-            const tasksResponse = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`, { method: 'GET', headers });
-            const tasksData = await tasksResponse.json() as any;
-
-            let logContent = '###################### BEGINNING OF DAG RUN ######################\n\n';
-            
-            for (const task of tasksData.task_instances || []) {
-                const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${task.task_id}/logs/${task.try_number}`, { method: 'GET', headers });
-                const logText = await logRes.text();
-                
-                logContent += `############################################################\n`;
-                logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${task.task_id}\nTry=${task.try_number}\n`;
-                logContent += `############################################################\n\n`;
-                logContent += logText + "\n\n";
+            let logContent = await this.getDagRunLog(dagId, dagRunId);
+            if (!logContent.isSuccessful) {
+                result.isSuccessful = false;
+                result.error = logContent.error;
+                return result;
             }
-            logContent += '###################### END OF DAG RUN ######################\n';
-            
-            result.result = logContent;
+            result.result = logContent.result;
             result.isSuccessful = true;
         } catch (error) {
             ui.showErrorMessage(`${dagId} Log Error`, error as Error);
@@ -313,6 +301,38 @@ export class AirflowApi {
         return result;
     }
     
+    public async getDagRunLog(dagId: string, dagRunId: string) : Promise<MethodResult<string>>{
+        const result = new MethodResult<string>();
+        ui.showInfoMessage('Fetching DAG Run Logs...');
+        try {
+            const headers = await this.getHeaders();
+
+            const tasksResponse = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`, { method: 'GET', headers });
+            const tasksData = await tasksResponse.json() as any;
+
+            let logContent = '###################### BEGINNING OF DAG RUN ######################\n\n';
+
+            for (const task of tasksData.task_instances || []) {
+                const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${task.task_id}/logs/${task.try_number}`, { method: 'GET', headers });
+                const logText = await logRes.text();
+
+                logContent += `############################################################\n`;
+                logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${task.task_id}\nTry=${task.try_number}\n`;
+                logContent += `############################################################\n\n`;
+                logContent += logText + "\n\n";
+            }
+            logContent += '###################### END OF DAG RUN ######################\n';
+            result.result = logContent;
+            result.isSuccessful = true;
+            return result
+        } catch (error) {
+            ui.showErrorMessage(`${dagId} Log Error`, error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+
+    }
+
     public async getDagInfo(dagId: string): Promise<MethodResult<any>> {
         return this.genericGet(`/dags/${dagId}`);
     }

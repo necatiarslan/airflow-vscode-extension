@@ -82,3 +82,12 @@ export interface ServerConfig {
     apiUserName: string;
     apiPassword: string;
 }
+
+export interface AskAIContext {
+    code: string;
+    logs: string;
+    dag: string|null;
+    dagRun: string|null;
+    tasks: string|null;
+    taskInstances: string|null;
+}

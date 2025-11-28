@@ -5,7 +5,7 @@ import { DagTreeItem } from './dagTreeItem';
 import { DagTreeDataProvider } from './dagTreeDataProvider';
 import * as ui from './ui';
 import { AirflowApi } from './api';
-import { ServerConfig } from './types';
+import { AskAIContext, ServerConfig } from './types';
 
 export class DagTreeView {
 
@@ -313,27 +313,41 @@ export class DagTreeView {
 		}
 	}
 
-	public activeDagForAI: { code: string, logs: string } | undefined;
+	public askAIContext: AskAIContext | undefined;
 
 	public async aIHandler (request, context, stream, token) : Promise<vscode.ChatRequestHandler>
 	{
 		
-		const activeDag = DagTreeView.Current?.activeDagForAI;
-		if (!activeDag) {
+		const aiContext = DagTreeView.Current?.askAIContext;
+		if (!aiContext) {
 			stream.markdown("No active DAG context found. Please use the 'Ask AI' button on a DAG item first.");
 			return;
 		}
 
-		const dagLogs = activeDag.logs;
-		const dagCode = activeDag.code;
 
 		// B. Construct the Prompt
 		const messages = [
 			vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. Here is the code for a DAG and its recent execution logs. Analyze them and explain any errors.`),
-			vscode.LanguageModelChatMessage.User(`DAG Code:\n\`\`\`python\n${dagCode}\n\`\`\``),
-			vscode.LanguageModelChatMessage.User(`Execution Logs:\n\`\`\`text\n${dagLogs}\n\`\`\``),
-			vscode.LanguageModelChatMessage.User(request.prompt || "Please analyze the error in these logs.")
+			vscode.LanguageModelChatMessage.User(`DAG Code:\n\`\`\`python\n${aiContext.code}\n\`\`\``),
+			vscode.LanguageModelChatMessage.User(`Execution Logs:\n\`\`\`text\n${aiContext.logs}\n\`\`\``),
+			vscode.LanguageModelChatMessage.User(request.prompt || "Please analyze the error in these logs if any.")
 		];
+
+		if (aiContext.dag) {
+			messages.push(vscode.LanguageModelChatMessage.User(`DAG:\n\`\`\`json\n${aiContext.dag}\n\`\`\``));
+		}
+
+		if (aiContext.dagRun) {
+			messages.push(vscode.LanguageModelChatMessage.User(`DAG Run:\n\`\`\`json\n${aiContext.dagRun}\n\`\`\``));
+		}
+
+		if (aiContext.tasks) {
+			messages.push(vscode.LanguageModelChatMessage.User(`DAG Tasks:\n\`\`\`json\n${aiContext.tasks}\n\`\`\``));
+		}
+
+		if (aiContext.taskInstances) {
+			messages.push(vscode.LanguageModelChatMessage.User(`Task Instances:\n\`\`\`json\n${aiContext.taskInstances}\n\`\`\``));
+		}
 
 		// C. Send to VS Code's AI (Copilot)
 		try {
@@ -360,7 +374,7 @@ export class DagTreeView {
 		return commands.includes('workbench.action.chat.open');
 	}
 
-	async askAI(node: DagTreeItem) {
+	public async askAI(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.askAI Started');
 		if (!this.api) { return; }
 		if (!await this.isChatCommandAvailable()) {
@@ -389,10 +403,11 @@ export class DagTreeView {
 			return;
 		}
 
-		this.activeDagForAI = {
-			code: dagSourceCode,
-			logs: latestDagLogs
-		};
+		await this.askAIWithContext({ code: dagSourceCode, logs: latestDagLogs, dag: node.DagId, dagRun: node.LatestDagRunId, tasks: null, taskInstances: null });
+	}
+
+	public async askAIWithContext(askAIContext: AskAIContext) {
+		this.askAIContext = askAIContext;
 
 		const appName = vscode.env.appName;
 		let commandId = '';
@@ -400,7 +415,7 @@ export class DagTreeView {
 			// Antigravity replaces the Chat with an Agent workflow.
 			// We must use the Agent Manager command instead.
 			// **REPLACE WITH THE ACTUAL ANTIGRAVITY AGENT COMMAND ID**
-			commandId = 'antigravity.startAgentTask'; 
+			commandId = 'antigravity.startAgentTask';
 
 		} else if (appName.includes('Code - OSS') || appName.includes('Visual Studio Code')) {
 			// This is standard VS Code or VSCodium. Check for the legacy Chat command.
@@ -410,10 +425,10 @@ export class DagTreeView {
 			// Unknown environment, default to checking if the command exists at all.
 			commandId = 'workbench.action.chat.open';
 		}
-	
-	await vscode.commands.executeCommand(commandId, {
-		query: '@airflow Analyze the current logs'
-	});
+
+		await vscode.commands.executeCommand(commandId, {
+			query: '@airflow Analyze the current logs'
+		});
 	}
 
 	async filter() {

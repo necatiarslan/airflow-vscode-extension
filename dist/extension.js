@@ -307,20 +307,30 @@ class DagTreeView {
         }
     }
     async aIHandler(request, context, stream, token) {
-        const activeDag = DagTreeView.Current?.activeDagForAI;
-        if (!activeDag) {
+        const aiContext = DagTreeView.Current?.askAIContext;
+        if (!aiContext) {
             stream.markdown("No active DAG context found. Please use the 'Ask AI' button on a DAG item first.");
             return;
         }
-        const dagLogs = activeDag.logs;
-        const dagCode = activeDag.code;
         // B. Construct the Prompt
         const messages = [
             vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. Here is the code for a DAG and its recent execution logs. Analyze them and explain any errors.`),
-            vscode.LanguageModelChatMessage.User(`DAG Code:\n\`\`\`python\n${dagCode}\n\`\`\``),
-            vscode.LanguageModelChatMessage.User(`Execution Logs:\n\`\`\`text\n${dagLogs}\n\`\`\``),
-            vscode.LanguageModelChatMessage.User(request.prompt || "Please analyze the error in these logs.")
+            vscode.LanguageModelChatMessage.User(`DAG Code:\n\`\`\`python\n${aiContext.code}\n\`\`\``),
+            vscode.LanguageModelChatMessage.User(`Execution Logs:\n\`\`\`text\n${aiContext.logs}\n\`\`\``),
+            vscode.LanguageModelChatMessage.User(request.prompt || "Please analyze the error in these logs if any.")
         ];
+        if (aiContext.dag) {
+            messages.push(vscode.LanguageModelChatMessage.User(`DAG:\n\`\`\`json\n${aiContext.dag}\n\`\`\``));
+        }
+        if (aiContext.dagRun) {
+            messages.push(vscode.LanguageModelChatMessage.User(`DAG Run:\n\`\`\`json\n${aiContext.dagRun}\n\`\`\``));
+        }
+        if (aiContext.tasks) {
+            messages.push(vscode.LanguageModelChatMessage.User(`DAG Tasks:\n\`\`\`json\n${aiContext.tasks}\n\`\`\``));
+        }
+        if (aiContext.taskInstances) {
+            messages.push(vscode.LanguageModelChatMessage.User(`Task Instances:\n\`\`\`json\n${aiContext.taskInstances}\n\`\`\``));
+        }
         // C. Send to VS Code's AI (Copilot)
         try {
             const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4' });
@@ -377,10 +387,10 @@ class DagTreeView {
             ui.showErrorMessage('Failed to fetch latest DAG run logs for AI analysis.');
             return;
         }
-        this.activeDagForAI = {
-            code: dagSourceCode,
-            logs: latestDagLogs
-        };
+        await this.askAIWithContext({ code: dagSourceCode, logs: latestDagLogs, dag: node.DagId, dagRun: node.LatestDagRunId, tasks: null, taskInstances: null });
+    }
+    async askAIWithContext(askAIContext) {
+        this.askAIContext = askAIContext;
         const appName = vscode.env.appName;
         let commandId = '';
         if (appName.includes('Antigravity')) {
@@ -700,9 +710,10 @@ class DagView {
     }
     resetDagData() {
         this.activetabid = "tab-1";
-        this.triggeredDagRunId = undefined;
+        this.dagRunId = undefined;
         this.dagJson = undefined;
         this.dagRunJson = undefined;
+        this.dagRunId = undefined;
         this.dagRunHistoryJson = undefined;
         this.dagTaskInstancesJson = undefined;
         this.dagTasksJson = undefined;
@@ -748,9 +759,10 @@ class DagView {
         let result = await this.api.getLastDagRun(this.dagId);
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
-            this.getTaskInstances(this.dagRunJson.dag_run_id);
+            this.dagRunId = this.dagRunJson.dag_run_id;
+            this.getTaskInstances(this.dagRunId);
             if (this.dagRunJson && this.dagRunJson.state === "running") {
-                this.startCheckingDagRunStatus(this.dagRunJson.dag_run_id);
+                this.startCheckingDagRunStatus(this.dagRunId);
             }
         }
     }
@@ -759,7 +771,8 @@ class DagView {
         let result = await this.api.getDagRun(dagId, dagRunId);
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
-            this.getTaskInstances(this.dagRunJson.dag_run_id);
+            this.dagRunId = this.dagRunJson.dag_run_id;
+            this.getTaskInstances(this.dagRunId);
         }
         await this.renderHmtl();
     }
@@ -829,7 +842,7 @@ class DagView {
         let start_date_string = "";
         let duration = "";
         let isDagRunning = false;
-        let hasDagLatestRun = false;
+        let hasDagARun = false;
         if (this.dagRunJson) {
             state = this.dagRunJson.state;
             logical_date = this.dagRunJson.logical_date;
@@ -839,7 +852,7 @@ class DagView {
             start_date_string = start_date ? new Date(start_date).toLocaleString() : "";
             duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
             isDagRunning = (state === "queued" || state === "running") ? true : false;
-            hasDagLatestRun = true;
+            hasDagARun = true;
         }
         let runningOrFailedTasks = "";
         if (this.dagTaskInstancesJson) {
@@ -930,7 +943,7 @@ class DagView {
             <vscode-panel-tab id="tab-1">RUN</vscode-panel-tab>
             <vscode-panel-tab id="tab-2">TASKS</vscode-panel-tab>
             <vscode-panel-tab id="tab-3">INFO</vscode-panel-tab>
-            <vscode-panel-tab id="tab-4">PREV RUNS</vscode-panel-tab>
+            <vscode-panel-tab id="tab-4">HISTORY</vscode-panel-tab>
             
             <vscode-panel-view id="view-1">
                 
@@ -976,11 +989,12 @@ class DagView {
                         </tr>
                         <tr>
                             <td colspan="3">
-                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Check</vscode-button>  
+                                <vscode-button appearance="secondary" id="run-ask-ai" ${!hasDagARun ? "disabled" : ""}>Ask AI</vscode-button>
+                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>  
                                 <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>     
-                                <vscode-button appearance="secondary" id="run-view-log" ${!hasDagLatestRun ? "disabled" : ""}>View Log</vscode-button>  
-                                <vscode-button appearance="secondary" id="run-update-note" ${!hasDagLatestRun ? "disabled" : ""}>Update Note</vscode-button>
-                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagLatestRun ? "disabled" : ""}>More</vscode-button>
+                                <vscode-button appearance="secondary" id="run-view-log" ${!hasDagARun ? "disabled" : ""}>View Log</vscode-button>  
+                                <vscode-button appearance="secondary" id="run-update-note" ${!hasDagARun ? "disabled" : ""}>Update Note</vscode-button>
+                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagARun ? "disabled" : ""}>More</vscode-button>
                             </td>
                         </tr>
                     </table>
@@ -1168,7 +1182,7 @@ class DagView {
                     this.triggerDagWConfig(message.config, message.date);
                     return;
                 case "run-view-log":
-                    this.showLastDAGRunLog();
+                    this.showDAGRunLog();
                     return;
                 case "run-more-dagrun-detail":
                     ui.showOutputMessage(this.dagRunJson);
@@ -1191,15 +1205,18 @@ class DagView {
                 case "run-unpause-dag":
                     this.pauseDAG(false);
                     return;
+                case "run-ask-ai":
+                    this.askAI();
+                    return;
                 case "run-lastrun-check":
                     this.getLastRun();
                     if (this.dagRunJson) {
-                        this.startCheckingDagRunStatus(this.dagRunJson.dag_run_id);
+                        this.startCheckingDagRunStatus(this.dagRunId);
                     }
                     return;
                 case "run-lastrun-cancel":
                     if (this.dagRunJson) {
-                        this.cancelDagRun(this.dagRunJson.dag_run_id);
+                        this.cancelDagRun(this.dagRunId);
                     }
                     return;
                 case "run-update-note":
@@ -1216,12 +1233,12 @@ class DagView {
                 case "task-log-link":
                     let taskId = message.id;
                     taskId = taskId.replace("task-log-link-", "");
-                    this.showTaskInstanceLog(this.dagId, this.dagRunJson.dag_run_id, taskId);
+                    this.showTaskInstanceLog(this.dagId, this.dagRunId, taskId);
                     return;
                 case "task-xcom-link":
                     let xcomTaskId = message.id;
                     xcomTaskId = xcomTaskId.replace("task-xcom-link-", "");
-                    this.showTaskXComs(this.dagId, this.dagRunJson.dag_run_id, xcomTaskId);
+                    this.showTaskXComs(this.dagId, this.dagRunId, xcomTaskId);
                     return;
                 case "tasks-refresh":
                     this.getTasksAndRenderHtml();
@@ -1261,10 +1278,10 @@ class DagView {
         if (newNote === undefined) {
             return;
         }
-        const result = await this.api.updateDagRunNote(this.dagId, this.dagRunJson.dag_run_id, newNote);
+        const result = await this.api.updateDagRunNote(this.dagId, this.dagRunId, newNote);
         if (result.isSuccessful) {
             // Refresh the DAG run to get the updated note
-            await this.getDagRun(this.dagId, this.dagRunJson.dag_run_id);
+            await this.getDagRun(this.dagId, this.dagRunId);
         }
     }
     async pauseDAG(is_paused) {
@@ -1282,6 +1299,29 @@ class DagView {
             this.loadDagDataOnly();
             is_paused ? dagTreeView_1.DagTreeView.Current?.notifyDagPaused(this.dagId) : dagTreeView_1.DagTreeView.Current?.notifyDagUnPaused(this.dagId);
         }
+    }
+    async askAI() {
+        ui.logToOutput('DagView.askAI Started');
+        if (!dagTreeView_1.DagTreeView.Current) {
+            ui.showErrorMessage('DagTreeView is not available');
+            return;
+        }
+        if (!this.dagJson) {
+            ui.showErrorMessage('DAG information is not available');
+            return;
+        }
+        let code = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
+        if (!code.isSuccessful) {
+            ui.showErrorMessage('Failed to retrieve DAG source code for AI context');
+            return;
+        }
+        let logs = await this.api.getDagRunLog(this.dagId, this.dagRunId);
+        if (!logs.isSuccessful) {
+            ui.showErrorMessage('Failed to retrieve DAG logs for AI context');
+            return;
+        }
+        // Call the askAI function from DagTreeView
+        await dagTreeView_1.DagTreeView.Current?.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
     }
     async showSourceCode() {
         ui.logToOutput('DagView.showSourceCode Started');
@@ -1303,9 +1343,9 @@ class DagView {
         await this.getRunHistory();
         await this.renderHmtl();
     }
-    async showLastDAGRunLog() {
-        ui.logToOutput('DagView.lastDAGRunLog Started');
-        let result = await this.api.getLastDagRunLog(this.dagId);
+    async showDAGRunLog() {
+        ui.logToOutput('DagView.DAGRunLog Started');
+        let result = await this.api.getDagRunLog(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
             const tmp = __webpack_require__(7);
             const fs = __webpack_require__(5);
@@ -1362,7 +1402,7 @@ class DagView {
     }
     async startCheckingDagRunStatus(dagRunId) {
         ui.logToOutput('DagView.startCheckingDagRunStatus Started');
-        this.triggeredDagRunId = dagRunId;
+        this.dagRunId = dagRunId;
         await this.refreshRunningDagState(this);
         if (this.dagStatusInterval) {
             clearInterval(this.dagStatusInterval); //stop prev checking
@@ -1379,14 +1419,14 @@ class DagView {
     }
     async refreshRunningDagState(dagView) {
         ui.logToOutput('DagView.refreshRunningDagState Started');
-        if (!dagView.dagId || !dagView.triggeredDagRunId) {
+        if (!dagView.dagId || !dagView.dagRunId) {
             dagView.stopCheckingDagRunStatus();
             return;
         }
-        let result = await this.api.getDagRun(dagView.dagId, dagView.triggeredDagRunId);
+        let result = await this.api.getDagRun(dagView.dagId, dagView.dagRunId);
         if (result.isSuccessful) {
             dagView.dagRunJson = result.result;
-            let resultTasks = await this.api.getTaskInstances(dagView.dagId, dagView.triggeredDagRunId);
+            let resultTasks = await this.api.getTaskInstances(dagView.dagId, dagView.dagRunId);
             if (resultTasks.isSuccessful) {
                 dagView.dagTaskInstancesJson = resultTasks.result;
             }
@@ -2951,6 +2991,26 @@ class AirflowApi {
                 throw new Error("No DAG runs found");
             }
             const dagRunId = history.result.dag_runs[0].dag_run_id;
+            let logContent = await this.getDagRunLog(dagId, dagRunId);
+            if (!logContent.isSuccessful) {
+                result.isSuccessful = false;
+                result.error = logContent.error;
+                return result;
+            }
+            result.result = logContent.result;
+            result.isSuccessful = true;
+        }
+        catch (error) {
+            ui.showErrorMessage(`${dagId} Log Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getDagRunLog(dagId, dagRunId) {
+        const result = new methodResult_1.MethodResult();
+        ui.showInfoMessage('Fetching DAG Run Logs...');
+        try {
             const headers = await this.getHeaders();
             const tasksResponse = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`, { method: 'GET', headers });
             const tasksData = await tasksResponse.json();
@@ -2966,13 +3026,13 @@ class AirflowApi {
             logContent += '###################### END OF DAG RUN ######################\n';
             result.result = logContent;
             result.isSuccessful = true;
+            return result;
         }
         catch (error) {
             ui.showErrorMessage(`${dagId} Log Error`, error);
             result.isSuccessful = false;
             result.error = error;
         }
-        return result;
     }
     async getDagInfo(dagId) {
         return this.genericGet(`/dags/${dagId}`);
