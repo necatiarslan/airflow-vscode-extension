@@ -18,8 +18,8 @@ function main() {
   const tasksMoreDetail = document.getElementById("tasks-more-detail");
   tasksMoreDetail.addEventListener("click", tasksMoreDetailClick);
 
-  const revRunsRefresh = document.getElementById("rev-runs-refresh");
-  revRunsRefresh.addEventListener("click", revRunsRefreshClick);
+  const historyLoadRuns = document.getElementById("history-load-runs");
+  historyLoadRuns.addEventListener("click", historyLoadRunsClick);
 
   const infoSourceCode = document.getElementById("info-source-code");
   infoSourceCode.addEventListener("click", infoSourceCodeClick);
@@ -105,10 +105,11 @@ function tasksMoreDetailClick() {
   });
 }
 
-function revRunsRefreshClick() {
+function historyLoadRunsClick() {
   vscode.postMessage({
-    command: "rev-runs-refresh",
+    command: "history-load-runs",
     activetabid: document.getElementById("tab-control").activeid,
+    date: document.getElementById("history_date").value,
   });
 }
 

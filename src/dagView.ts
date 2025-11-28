@@ -20,6 +20,7 @@ export class DagView {
     public dagRunHistoryJson: any;
     public dagTaskInstancesJson: any;
     public dagTasksJson: any;
+    public dagHistorySelectedDate: string | undefined = new Date().toISOString().split('T')[0];
 
     private dagStatusInterval: NodeJS.Timeout | undefined;
     private activetabid: string = "tab-1";
@@ -117,10 +118,10 @@ export class DagView {
         await this.renderHmtl();
     }
 
-    public async getRunHistory() {
+    public async getRunHistory(date?: string) {
         ui.logToOutput('DagView.getRunHistory Started');
 
-        let result = await this.api.getDagRunHistory(this.dagId, 10);
+        let result = await this.api.getDagRunHistory(this.dagId, date);
         if (result.isSuccessful) {
             this.dagRunHistoryJson = result.result;
         }
@@ -277,6 +278,7 @@ export class DagView {
                     </td>
                     <td><vscode-link id="history-dag-run-id-${t.dag_run_id}">${new Date(t.start_date).toLocaleString()}</vscode-link></td>
                     <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
+                    <td>${t.note}</td>
                 </tr>
                 `;
             }
@@ -318,7 +320,7 @@ export class DagView {
 
                     <table>
                         <tr>
-                            <th colspan=3>Last Run</th>
+                            <th colspan=3>Dag Run Details</th>
                         </tr>
                         <tr>
                             <td>State</td>
@@ -353,6 +355,11 @@ export class DagView {
                             <td>Note</td>
                             <td>:</td>
                             <td>${this.dagRunJson?.note || '(No note)'}</td>
+                        </tr>
+                        <tr>
+                            <td>Config</td>
+                            <td>:</td>
+                            <td><pre>${this.dagRunJson?.conf ? JSON.stringify(this.dagRunJson.conf, null, 2) : '(No config)'}</pre></td>
                         </tr>
                         <tr>
                             <td colspan="3">
@@ -511,18 +518,29 @@ export class DagView {
     
                     <table>
                         <tr>
-                            <th colspan=3>PREV RUNS</th>
+                            <th colspan=4>HISTORY</th>
+                        </tr>
+                        <tr>
+                            <td>Date</td>
+                            <td>:</td>
+                            <td>
+                            <vscode-text-field size="8" id="history_date" value="${this.dagHistorySelectedDate}" placeholder="YYYY-MM-DD" maxlength="10"></vscode-text-field>
+                            </td>
+                            <td><vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button></td>
+                        </tr>
+                    </table>
+
+                    <table>
+                        <tr>
+                            <th colspan=4>DAG RUNS</th>
                         </tr>
                         <tr>
                             <td></td>
                             <td>Start Time</td>            
                             <td>Duration</td>
+                            <td>Notes</td>
                         </tr>
                         ${runHistoryRows}
-
-                        <tr>
-                            <td colspan="3"><vscode-button appearance="secondary" id="rev-runs-refresh">Refresh</vscode-button></td>
-                        </tr>
                     </table>   
     
             </section>
@@ -564,8 +582,8 @@ export class DagView {
                     case "tasks-more-detail":
                         ui.showOutputMessage(this.dagTaskInstancesJson);
                         return;
-                    case "rev-runs-refresh":
-                        this.getRunHistoryAndRenderHtml();
+                    case "history-load-runs":
+                        this.getRunHistoryAndRenderHtml(message.date);
                         return;
                     case "info-source-code":
                         this.showSourceCode();
@@ -744,9 +762,10 @@ export class DagView {
         }
     }
 
-    async getRunHistoryAndRenderHtml() {
+    async getRunHistoryAndRenderHtml(date?: string) {
         ui.logToOutput('DagView.getRunHistoryAndRenderHtml Started');
-        await this.getRunHistory();
+        this.dagHistorySelectedDate = date;
+        await this.getRunHistory(date);
         await this.renderHmtl();
     }
 

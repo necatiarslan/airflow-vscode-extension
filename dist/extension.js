@@ -697,6 +697,7 @@ const dagTreeView_1 = __webpack_require__(2);
 class DagView {
     constructor(panel, extensionUri, dagId, api) {
         this._disposables = [];
+        this.dagHistorySelectedDate = new Date().toISOString().split('T')[0];
         this.activetabid = "tab-1";
         ui.logToOutput('DagView.constructor Started');
         this.dagId = dagId;
@@ -776,9 +777,9 @@ class DagView {
         }
         await this.renderHmtl();
     }
-    async getRunHistory() {
+    async getRunHistory(date) {
         ui.logToOutput('DagView.getRunHistory Started');
-        let result = await this.api.getDagRunHistory(this.dagId, 10);
+        let result = await this.api.getDagRunHistory(this.dagId, date);
         if (result.isSuccessful) {
             this.dagRunHistoryJson = result.result;
         }
@@ -912,6 +913,7 @@ class DagView {
                     </td>
                     <td><vscode-link id="history-dag-run-id-${t.dag_run_id}">${new Date(t.start_date).toLocaleString()}</vscode-link></td>
                     <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
+                    <td>${t.note}</td>
                 </tr>
                 `;
             }
@@ -951,7 +953,7 @@ class DagView {
 
                     <table>
                         <tr>
-                            <th colspan=3>Last Run</th>
+                            <th colspan=3>Dag Run Details</th>
                         </tr>
                         <tr>
                             <td>State</td>
@@ -986,6 +988,11 @@ class DagView {
                             <td>Note</td>
                             <td>:</td>
                             <td>${this.dagRunJson?.note || '(No note)'}</td>
+                        </tr>
+                        <tr>
+                            <td>Config</td>
+                            <td>:</td>
+                            <td><pre>${this.dagRunJson?.conf ? JSON.stringify(this.dagRunJson.conf, null, 2) : '(No config)'}</pre></td>
                         </tr>
                         <tr>
                             <td colspan="3">
@@ -1144,18 +1151,29 @@ class DagView {
     
                     <table>
                         <tr>
-                            <th colspan=3>PREV RUNS</th>
+                            <th colspan=4>HISTORY</th>
+                        </tr>
+                        <tr>
+                            <td>Date</td>
+                            <td>:</td>
+                            <td>
+                            <vscode-text-field size="8" id="history_date" value="${this.dagHistorySelectedDate}" placeholder="YYYY-MM-DD" maxlength="10"></vscode-text-field>
+                            </td>
+                            <td><vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button></td>
+                        </tr>
+                    </table>
+
+                    <table>
+                        <tr>
+                            <th colspan=4>DAG RUNS</th>
                         </tr>
                         <tr>
                             <td></td>
                             <td>Start Time</td>            
                             <td>Duration</td>
+                            <td>Notes</td>
                         </tr>
                         ${runHistoryRows}
-
-                        <tr>
-                            <td colspan="3"><vscode-button appearance="secondary" id="rev-runs-refresh">Refresh</vscode-button></td>
-                        </tr>
                     </table>   
     
             </section>
@@ -1193,8 +1211,8 @@ class DagView {
                 case "tasks-more-detail":
                     ui.showOutputMessage(this.dagTaskInstancesJson);
                     return;
-                case "rev-runs-refresh":
-                    this.getRunHistoryAndRenderHtml();
+                case "history-load-runs":
+                    this.getRunHistoryAndRenderHtml(message.date);
                     return;
                 case "info-source-code":
                     this.showSourceCode();
@@ -1338,9 +1356,10 @@ class DagView {
             ui.showErrorMessage(result.result);
         }
     }
-    async getRunHistoryAndRenderHtml() {
+    async getRunHistoryAndRenderHtml(date) {
         ui.logToOutput('DagView.getRunHistoryAndRenderHtml Started');
-        await this.getRunHistory();
+        this.dagHistorySelectedDate = date;
+        await this.getRunHistory(date);
         await this.renderHmtl();
     }
     async showDAGRunLog() {
@@ -2869,7 +2888,7 @@ class AirflowApi {
         return result;
     }
     async getLastDagRun(dagId) {
-        const history = await this.getDagRunHistory(dagId, 1);
+        const history = await this.getDagRunHistory(dagId);
         if (history.isSuccessful && history.result && history.result.dag_runs && history.result.dag_runs.length > 0) {
             return this.getDagRun(dagId, history.result.dag_runs[0].dag_run_id);
         }
@@ -2877,11 +2896,18 @@ class AirflowApi {
         res.isSuccessful = false;
         return res;
     }
-    async getDagRunHistory(dagId, limit) {
+    async getDagRunHistory(dagId, date) {
         const result = new methodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
-            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns?order_by=-start_date&limit=${limit}`, { method: 'GET', headers });
+            let url = `${this.config.apiUrl}/dags/${dagId}/dagRuns?order_by=-start_date`;
+            // If date is provided, filter runs for that specific day
+            if (date) {
+                const startDate = `${date}T00:00:00Z`;
+                const endDate = `${date}T23:59:59Z`;
+                url += `&start_date_gte=${encodeURIComponent(startDate)}&start_date_lte=${encodeURIComponent(endDate)}`;
+            }
+            const response = await fetch(url, { method: 'GET', headers });
             const data = await response.json();
             if (response.status === 200) {
                 result.result = data;
@@ -2986,7 +3012,7 @@ class AirflowApi {
         const result = new methodResult_1.MethodResult();
         try {
             ui.showInfoMessage('Fetching Latest DAG Run Logs...');
-            const history = await this.getDagRunHistory(dagId, 1);
+            const history = await this.getDagRunHistory(dagId);
             if (!history.isSuccessful || !history.result.dag_runs.length) {
                 throw new Error("No DAG runs found");
             }

@@ -163,7 +163,7 @@ export class AirflowApi {
     }
 
     public async getLastDagRun(dagId: string): Promise<MethodResult<any>> {
-        const history = await this.getDagRunHistory(dagId, 1);
+        const history = await this.getDagRunHistory(dagId);
         if (history.isSuccessful && history.result && history.result.dag_runs && history.result.dag_runs.length > 0) {
             return this.getDagRun(dagId, history.result.dag_runs[0].dag_run_id);
         }
@@ -172,11 +172,20 @@ export class AirflowApi {
         return res;
     }
 
-    public async getDagRunHistory(dagId: string, limit: number): Promise<MethodResult<any>> {
+    public async getDagRunHistory(dagId: string, date?: string): Promise<MethodResult<any>> {
         const result = new MethodResult<any>();
         try {
             const headers = await this.getHeaders();
-            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns?order_by=-start_date&limit=${limit}`, { method: 'GET', headers });
+            let url = `${this.config.apiUrl}/dags/${dagId}/dagRuns?order_by=-start_date`;
+            
+            // If date is provided, filter runs for that specific day
+            if (date) {
+                const startDate = `${date}T00:00:00Z`;
+                const endDate = `${date}T23:59:59Z`;
+                url += `&start_date_gte=${encodeURIComponent(startDate)}&start_date_lte=${encodeURIComponent(endDate)}`;
+            }
+            
+            const response = await fetch(url, { method: 'GET', headers });
             const data = await response.json();
 
             if (response.status === 200) {
@@ -279,7 +288,7 @@ export class AirflowApi {
         const result = new MethodResult<string>();
         try {
             ui.showInfoMessage('Fetching Latest DAG Run Logs...');
-            const history = await this.getDagRunHistory(dagId, 1);
+            const history = await this.getDagRunHistory(dagId);
             if (!history.isSuccessful || !history.result.dag_runs.length) {
                 throw new Error("No DAG runs found");
             }
