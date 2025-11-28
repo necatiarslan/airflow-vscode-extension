@@ -45,6 +45,11 @@ function main() {
   const runUpdateNoteButton = document.getElementById("run-update-note");
   runUpdateNoteButton.addEventListener("click", runUpdateNoteClicked);
 
+  const runUpdateNoteLink = document.getElementById("run-update-note-link");
+  if (runUpdateNoteLink) {
+    runUpdateNoteLink.addEventListener("click", runUpdateNoteClicked);
+  }
+
   const prevRunLinkList = document.querySelectorAll("[id^='history-dag-run-id']");
   for (let i = 0; i < prevRunLinkList.length; i++) {
     //prevRunLinkList[i].id

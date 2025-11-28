@@ -885,8 +885,8 @@ class DagView {
                         </div>
                     </td>
                     <td>
-                        <vscode-link id="task-log-link-${t.task_id}">Log</vscode-link> | 
-                        <vscode-link id="task-xcom-link-${t.task_id}">XCom</vscode-link>
+                        <a href="#" id="task-log-link-${t.task_id}">Log</a> | 
+                        <a href="#" id="task-xcom-link-${t.task_id}">XCom</a>
                     </td>
                     <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
                     <td>${t.operator}</td>
@@ -911,7 +911,7 @@ class DagView {
                             &nbsp; ${t.state}
                         </div>
                     </td>
-                    <td><vscode-link id="history-dag-run-id-${t.dag_run_id}">${new Date(t.start_date).toLocaleString()}</vscode-link></td>
+                    <td><a href="#" id="history-dag-run-id-${t.dag_run_id}">${new Date(t.start_date).toLocaleString()}</a></td>
                     <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
                     <td>${t.note}</td>
                 </tr>
@@ -951,7 +951,7 @@ class DagView {
                 
             <section>
 
-                    <table>
+                    <table class="dag-run-details-table">
                         <tr>
                             <th colspan=3>Dag Run Details</th>
                         </tr>
@@ -987,20 +987,18 @@ class DagView {
                         <tr>
                             <td>Note</td>
                             <td>:</td>
-                            <td>${this.dagRunJson?.note || '(No note)'}</td>
+                            <td><a href="#" id="run-update-note-link" title="Update Note">${this.dagRunJson?.note || '(No note)'}</a></td>
                         </tr>
                         <tr>
                             <td>Config</td>
                             <td>:</td>
-                            <td><pre>${this.dagRunJson?.conf ? JSON.stringify(this.dagRunJson.conf, null, 2) : '(No config)'}</pre></td>
+                            <td>${this.dagRunJson?.conf ? JSON.stringify(this.dagRunJson.conf, null, 2) : '(No config)'}</td>
                         </tr>
                         <tr>
                             <td colspan="3">
                                 <vscode-button appearance="secondary" id="run-ask-ai" ${!hasDagARun ? "disabled" : ""}>Ask AI</vscode-button>
-                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>  
-                                <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>     
+                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>     
                                 <vscode-button appearance="secondary" id="run-view-log" ${!hasDagARun ? "disabled" : ""}>View Log</vscode-button>  
-                                <vscode-button appearance="secondary" id="run-update-note" ${!hasDagARun ? "disabled" : ""}>Update Note</vscode-button>
                                 <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagARun ? "disabled" : ""}>More</vscode-button>
                             </td>
                         </tr>
@@ -1023,9 +1021,10 @@ class DagView {
                             <td><vscode-textarea id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-textarea></td>
                         </tr>
                         <tr>           
-                            <td colspan="3"><vscode-button appearance="secondary" id="run-trigger-dag" ${isPaused ? "disabled" : ""}>
-                            Run
-                            </vscode-button></td>
+                            <td colspan="3">
+                            <vscode-button appearance="secondary" id="run-trigger-dag" ${isPaused ? "disabled" : ""}>Run</vscode-button>
+                            <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>  
+                            </td>
                         </tr>
                     </table>
 
@@ -1051,21 +1050,21 @@ class DagView {
                     <table>
                         <tr>
                             <td colspan="3">
-                                <vscode-link href="https://github.com/necatiarslan/airflow-vscode-extension/issues/new">Bug Report & Feature Request</vscode-link>
+                                <a href="https://github.com/necatiarslan/airflow-vscode-extension/issues/new">Bug Report & Feature Request</a>
                             </td>
                         </tr>
                     </table>
                     <table>
                         <tr>
                             <td colspan="3">
-                                <vscode-link href="https://bit.ly/airflow-extension-survey">New Feature Survey</vscode-link>
+                                <a href="https://bit.ly/airflow-extension-survey">New Feature Survey</a>
                             </td>
                         </tr>
                     </table>
                     <table>
                         <tr>
                             <td colspan="3">
-                                <vscode-link href="https://github.com/sponsors/necatiarslan">Donate to support this extension</vscode-link>
+                                <a href="https://github.com/sponsors/necatiarslan">Donate to support this extension</a>
                             </td>
                         </tr>
                     </table>
@@ -1084,7 +1083,9 @@ class DagView {
                         </tr>
                         <tr>
                             <td>
-                                <pre class="task-tree">${taskDependencyTree}</pre>
+                                <vscode-tree>
+                                ${taskDependencyTree}
+                                </vscode-tree>
                             </td>
                         </tr>
                     </table>
@@ -1479,31 +1480,30 @@ class DagView {
         // Build tree recursively
         const visited = new Set();
         let treeHtml = "";
-        const buildTree = (taskId, prefix = "", isLast = true) => {
+        const buildTree = (taskId) => {
             if (visited.has(taskId)) {
-                return ""; // Prevent infinite loops
+                return ""; // Prevent infinite loops and duplicates in this spanning tree view
             }
             visited.add(taskId);
             const task = taskMap.get(taskId);
             if (!task) {
                 return "";
             }
-            const connector = isLast ? "└── " : "├── ";
-            const taskLine = `${prefix}${connector}${task.task_id} (${task.operator || ''})\n`;
-            let result = taskLine;
+            let itemHtml = `<vscode-tree-item>\n`;
+            itemHtml += `${task.task_id} (${task.operator || ''})\n`;
             // Get downstream tasks
             const downstreamIds = task.downstream_task_ids || [];
-            const childPrefix = prefix + (isLast ? "    " : "│   ");
-            downstreamIds.forEach((downstreamId, index) => {
-                const isLastChild = index === downstreamIds.length - 1;
-                result += buildTree(downstreamId, childPrefix, isLastChild);
-            });
-            return result;
+            if (downstreamIds.length > 0) {
+                downstreamIds.forEach((downstreamId) => {
+                    itemHtml += buildTree(downstreamId);
+                });
+            }
+            itemHtml += `</vscode-tree-item>\n`;
+            return itemHtml;
         };
         // Build tree for each root task
-        rootTasks.forEach((rootTask, index) => {
-            const isLastRoot = index === rootTasks.length - 1;
-            treeHtml += buildTree(rootTask.task_id, "", isLastRoot);
+        rootTasks.forEach((rootTask) => {
+            treeHtml += buildTree(rootTask.task_id);
         });
         return treeHtml || "No tasks to display.";
     }

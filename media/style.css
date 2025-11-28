@@ -17,19 +17,28 @@ td {
   font-size: 12px;
 }
 
-vscode-panels {
+vscode-tabs {
   border: 0px;
   border-radius: 1px;
 }
 
-vscode-text-field {
+vscode-textfield {
   border: 1px;
   font-size: 12px;
 }
 
-vscode-text-area {
+vscode-textarea {
   border: 1px;
   font-size: 12px;
+}
+
+a {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+a:hover {
+  text-decoration: underline;
 }
 
 section {
@@ -66,12 +75,26 @@ section {
   animation: blinkingColorRunning 1s infinite;
 }
 
-@keyframes blinkingColorRunning{
-  0%		{ background-color: green;}
-  15%		{ background-color: green;}
-  50%		{ background-color: lime;}
-  75%		{ background-color: lime;}
-  100%	{ background-color: lime;}
+@keyframes blinkingColorRunning {
+  0% {
+    background-color: green;
+  }
+
+  15% {
+    background-color: green;
+  }
+
+  50% {
+    background-color: lime;
+  }
+
+  75% {
+    background-color: lime;
+  }
+
+  100% {
+    background-color: lime;
+  }
 }
 
 .state-queued {
@@ -173,16 +196,10 @@ section {
 }
 
 /* Task Dependency Tree Styles */
-.task-tree {
-  font-family: 'Courier New', Courier, monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  padding: 10px;
-  margin: 0;
-  background-color: var(--vscode-editor-background);
-  border: 1px solid var(--vscode-panel-border);
-  border-radius: 4px;
-  overflow-x: auto;
-  white-space: pre;
-  color: var(--vscode-editor-foreground);
+.dag-run-details-table td:nth-child(1) {
+  width: 100px;
+}
+
+.dag-run-details-table td:nth-child(2) {
+  width: 10px;
 }
