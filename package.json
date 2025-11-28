@@ -334,6 +334,7 @@
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "base-64": "^1.0.0",
     "node-fetch": "^3.3.2",
-    "tmp": "^0.2.5"
+    "tmp": "^0.2.5",
+    "ajv": "^8.17.1"
   }
 }

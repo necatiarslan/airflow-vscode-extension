@@ -12,50 +12,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 	let dagTreeView:DagTreeView = new DagTreeView(context);
 
-	// 1. Register the Chat Participant
-	const handler: vscode.ChatRequestHandler = async (request, context, stream, token) => {
-		
-		const activeDag = DagTreeView.Current?.activeDagForAI;
-		if (!activeDag) {
-			stream.markdown("No active DAG context found. Please use the 'Ask AI' button on a DAG item first.");
-			return;
-		}
-
-		const dagLogs = activeDag.logs;
-		const dagCode = activeDag.code;
-
-		// B. Construct the Prompt
-		const messages = [
-			vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. Here is the code for a DAG and its recent execution logs. Analyze them and explain any errors.`),
-			vscode.LanguageModelChatMessage.User(`DAG Code:\n\`\`\`python\n${dagCode}\n\`\`\``),
-			vscode.LanguageModelChatMessage.User(`Execution Logs:\n\`\`\`text\n${dagLogs}\n\`\`\``),
-			vscode.LanguageModelChatMessage.User(request.prompt || "Please analyze the error in these logs.")
-		];
-
-		// C. Send to VS Code's AI (Copilot)
-		try {
-			const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4' });
-			if (model) {
-				const chatResponse = await model.sendRequest(messages, {}, token);
-				for await (const fragment of chatResponse.text) {
-					stream.markdown(fragment);
-				}
-			} else {
-				stream.markdown("No suitable AI model found.");
-			}
-		} catch (err) {
-			if (err instanceof Error) {
-				stream.markdown(`I'm sorry, I couldn't connect to the AI model: ${err.message}`);
-			} else {
-				stream.markdown("I'm sorry, I couldn't connect to the AI model.");
-			}
-		}
-	};
-
-	const participant = vscode.chat.createChatParticipant('airflow-ext.participant', handler);
-	participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'airflow-extension-logo.png');
-	context.subscriptions.push(participant);
-
 	// register commands and keep disposables so they are cleaned up on deactivate
 	const commands: vscode.Disposable[] = [];
 
@@ -84,6 +40,10 @@ export function activate(context: vscode.ExtensionContext) {
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewVariables', () => { dagTreeView.viewVariables(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewProviders', () => { dagTreeView.viewProviders(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node: DagTreeItem) => { dagTreeView.askAI(node); }));
+
+	const participant = vscode.chat.createChatParticipant('airflow-ext.participant', dagTreeView.aIHandler.bind(dagTreeView));
+	participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'airflow-extension-logo.png');
+	context.subscriptions.push(participant);
 
 	for (const c of commands) { context.subscriptions.push(c); }
 
