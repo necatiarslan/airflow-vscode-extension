@@ -313,6 +313,69 @@ export class DagTreeView {
 		}
 	}
 
+	public activeDagForAI: { code: string, logs: string } | undefined;
+
+	async isChatCommandAvailable(): Promise<boolean> {
+		const commands = await vscode.commands.getCommands(true); // 'true' includes internal commands
+		return commands.includes('workbench.action.chat.open');
+	}
+
+	async askAI(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.askAI Started');
+		if (!this.api) { return; }
+		if (!await this.isChatCommandAvailable()) {
+			ui.showErrorMessage('Chat command is not available. Please ensure you have access to VS Code AI features.');
+			return;
+		}
+
+		let dagSourceCode = '';
+		let latestDagLogs = '';
+
+		// Fetch DAG Source Code
+		const sourceResult = await this.api.getSourceCode(node.DagId, node.FileToken);
+		if (sourceResult.isSuccessful) {
+			dagSourceCode = sourceResult.result;
+		} else {
+			ui.showErrorMessage('Failed to fetch DAG source code for AI analysis.');
+			return;
+		}
+
+		// Fetch Latest DAG Run Logs
+		const logResult = await this.api.getLastDagRunLog(node.DagId);
+		if (logResult.isSuccessful) {
+			latestDagLogs = logResult.result;
+		} else {
+			ui.showErrorMessage('Failed to fetch latest DAG run logs for AI analysis.');
+			return;
+		}
+
+		this.activeDagForAI = {
+			code: dagSourceCode,
+			logs: latestDagLogs
+		};
+
+		const appName = vscode.env.appName;
+		let commandId = '';
+		if (appName.includes('Antigravity')) {
+			// Antigravity replaces the Chat with an Agent workflow.
+			// We must use the Agent Manager command instead.
+			// **REPLACE WITH THE ACTUAL ANTIGRAVITY AGENT COMMAND ID**
+			commandId = 'antigravity.startAgentTask'; 
+
+		} else if (appName.includes('Code - OSS') || appName.includes('Visual Studio Code')) {
+			// This is standard VS Code or VSCodium. Check for the legacy Chat command.
+			commandId = 'workbench.action.chat.open';
+
+		} else {
+			// Unknown environment, default to checking if the command exists at all.
+			commandId = 'workbench.action.chat.open';
+		}
+	
+	await vscode.commands.executeCommand(commandId, {
+		query: '@airflow Analyze the current logs'
+	});
+	}
+
 	async filter() {
 		ui.logToOutput('DagTreeView.filter Started');
 		const filterStringTemp = await vscode.window.showInputBox({ value: this.filterString, placeHolder: 'Enter your filters seperated by comma' });
