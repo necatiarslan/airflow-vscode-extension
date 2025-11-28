@@ -224,7 +224,7 @@
           "when": "view == dagTreeView",
           "group": "inline"
         },
-		{
+        {
           "command": "dagTreeView.AskAI",
           "when": "view == dagTreeView",
           "group": "inline"
@@ -330,11 +330,11 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
+    "@vscode-elements/elements": "^2.3.1",
     "@vscode/codicons": "^0.0.43",
-    "@vscode/webview-ui-toolkit": "^1.4.0",
+    "ajv": "^8.17.1",
     "base-64": "^1.0.0",
     "node-fetch": "^3.3.2",
-    "tmp": "^0.2.5",
-    "ajv": "^8.17.1"
+    "tmp": "^0.2.5"
   }
 }

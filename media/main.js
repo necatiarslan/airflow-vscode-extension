@@ -68,47 +68,54 @@ function main() {
 }
 
 
+function getActiveTabId() {
+  const tabControl = document.getElementById("tab-control");
+  // vscode-tabs uses selectedIndex (0-based)
+  const index = tabControl.selectedIndex;
+  return "tab-" + (index + 1);
+}
+
 function triggerDagClick() {
   vscode.postMessage({
     command: "run-trigger-dag",
     config: document.getElementById("run_config").value,
     date: document.getElementById("run_date").value,
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function viewLogDagClick() {
   vscode.postMessage({
     command: "run-view-log",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function runMoreDagRunDetailClick() {
   vscode.postMessage({
     command: "run-more-dagrun-detail",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function otherDagDetailClick() {
   vscode.postMessage({
     command: "other-dag-detail",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function tasksMoreDetailClick() {
   vscode.postMessage({
     command: "tasks-more-detail",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function historyLoadRunsClick() {
   vscode.postMessage({
     command: "history-load-runs",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
     date: document.getElementById("history_date").value,
   });
 }
@@ -116,49 +123,49 @@ function historyLoadRunsClick() {
 function infoSourceCodeClick() {
   vscode.postMessage({
     command: "info-source-code",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function runPauseDagClick() {
   vscode.postMessage({
     command: "run-pause-dag",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function runUnPauseDagClick() {
   vscode.postMessage({
     command: "run-unpause-dag",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function runAskAIClick() {
   vscode.postMessage({
     command: "run-ask-ai",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function runLastRunCheckClick() {
   vscode.postMessage({
     command: "run-lastrun-check",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function runLastRunCancelClick() {
   vscode.postMessage({
     command: "run-lastrun-cancel",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function dagRunHistoryLinkClicked(e) {
   vscode.postMessage({
     command: "history-dag-run-id",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
     id: e.target.id,
   });
 }
@@ -166,21 +173,21 @@ function dagRunHistoryLinkClicked(e) {
 function tasksRefreshClicked() {
   vscode.postMessage({
     command: "tasks-refresh",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function runUpdateNoteClicked() {
   vscode.postMessage({
     command: "run-update-note",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
   });
 }
 
 function taskLogLinkClicked(e) {
   vscode.postMessage({
     command: "task-log-link",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
     id: e.target.id,
   });
 }
@@ -188,7 +195,7 @@ function taskLogLinkClicked(e) {
 function taskXComLinkClicked(e) {
   vscode.postMessage({
     command: "task-xcom-link",
-    activetabid: document.getElementById("tab-control").activeid,
+    activetabid: getActiveTabId(),
     id: e.target.id,
   });
 }
@@ -196,6 +203,6 @@ function taskXComLinkClicked(e) {
 function tabControlChanged(e) {
   vscode.postMessage({
     command: "tabControlChanged",
-    activeid: e.target.activeid
+    activeid: "tab-" + (e.target.selectedIndex + 1)
   });
 }

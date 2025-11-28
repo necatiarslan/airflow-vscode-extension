@@ -827,10 +827,10 @@ class DagView {
         //file URIs
         const toolkitUri = ui.getUri(webview, extensionUri, [
             "node_modules",
-            "@vscode",
-            "webview-ui-toolkit",
+            "@vscode-elements",
+            "elements",
             "dist",
-            "toolkit.js", // A toolkit.min.js file is also available
+            "bundled.js",
         ]);
         const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
         const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
@@ -941,13 +941,13 @@ class DagView {
         </div>
                     
 
-        <vscode-panels id="tab-control" activeid="${this.activetabid}">
-            <vscode-panel-tab id="tab-1">RUN</vscode-panel-tab>
-            <vscode-panel-tab id="tab-2">TASKS</vscode-panel-tab>
-            <vscode-panel-tab id="tab-3">INFO</vscode-panel-tab>
-            <vscode-panel-tab id="tab-4">HISTORY</vscode-panel-tab>
+        <vscode-tabs id="tab-control" selected-index="${this.activetabid === 'tab-1' ? 0 : this.activetabid === 'tab-2' ? 1 : this.activetabid === 'tab-3' ? 2 : 3}">
+            <vscode-tab-header slot="header">RUN</vscode-tab-header>
+            <vscode-tab-header slot="header">TASKS</vscode-tab-header>
+            <vscode-tab-header slot="header">INFO</vscode-tab-header>
+            <vscode-tab-header slot="header">HISTORY</vscode-tab-header>
             
-            <vscode-panel-view id="view-1">
+            <vscode-tab-panel>
                 
             <section>
 
@@ -1015,12 +1015,12 @@ class DagView {
                         <tr>
                             <td>Date</td>
                             <td>:</td>
-                            <td><vscode-text-field size="30" id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10"></vscode-text-field></td>
+                            <td><vscode-textfield size="30" id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10"></vscode-textfield></td>
                         </tr>
                         <tr>
                             <td>Config</td>
                             <td>:</td>
-                            <td><vscode-text-area id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-text-area></td>
+                            <td><vscode-textarea id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-textarea></td>
                         </tr>
                         <tr>           
                             <td colspan="3"><vscode-button appearance="secondary" id="run-trigger-dag" ${isPaused ? "disabled" : ""}>
@@ -1070,10 +1070,10 @@ class DagView {
                         </tr>
                     </table>
             </section>
-            </vscode-panel-view>
+            </vscode-tab-panel>
 
 
-            <vscode-panel-view id="view-2">
+            <vscode-tab-panel>
 
             <section>
 
@@ -1113,9 +1113,9 @@ class DagView {
                     </table>
 
             </section>
-            </vscode-panel-view>
+            </vscode-tab-panel>
             
-            <vscode-panel-view id="view-3">
+            <vscode-tab-panel>
             <section>
 
                     <table>
@@ -1143,9 +1143,9 @@ class DagView {
                     </table>
 
             </section>
-            </vscode-panel-view>
+            </vscode-tab-panel>
 
-            <vscode-panel-view id="view-4">
+            <vscode-tab-panel>
 
             <section>
     
@@ -1157,7 +1157,7 @@ class DagView {
                             <td>Date</td>
                             <td>:</td>
                             <td>
-                            <vscode-text-field size="8" id="history_date" value="${this.dagHistorySelectedDate}" placeholder="YYYY-MM-DD" maxlength="10"></vscode-text-field>
+                            <vscode-textfield size="8" id="history_date" value="${this.dagHistorySelectedDate}" placeholder="YYYY-MM-DD" maxlength="10"></vscode-textfield>
                             </td>
                             <td><vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button></td>
                         </tr>
@@ -1177,9 +1177,9 @@ class DagView {
                     </table>   
     
             </section>
-            </vscode-panel-view>
+            </vscode-tab-panel>
 
-        </vscode-panels>
+        </vscode-tabs>
       </body>
     </html>
     `;
