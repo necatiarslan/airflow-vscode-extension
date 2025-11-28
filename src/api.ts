@@ -2,7 +2,9 @@
 import { encode } from 'base-64';
 import * as ui from './ui';
 import { MethodResult } from './methodResult';
-import { ServerConfig } from './types';
+import * as vscode from 'vscode';
+import { OAuthCallbackServer } from './oauthServer';
+import { ServerConfig, AuthType } from './types';
 
 // Wrapper for fetch to handle ESM node-fetch in CommonJS
 const fetch = async (url: string, init?: any) => {
@@ -45,21 +47,184 @@ export class AirflowApi {
         return undefined;
     }
 
+    private detectAuthType(): AuthType {
+        if (this.config.authType) {
+            return this.config.authType;
+        }
+        
+        // Auto-detection logic
+        if (this.config.customHeaders && Object.keys(this.config.customHeaders).length > 0) {
+            return AuthType.CUSTOM_HEADERS;
+        }
+        
+        if (this.version === 'v1') {
+            return AuthType.BASIC;
+        }
+        
+        return AuthType.JWT;
+    }
+
+    private async getOAuthToken(): Promise<string | undefined> {
+        // Check if token exists and is not expired
+        if (this.config.oauthAccessToken && this.config.oauthTokenExpiry) {
+            const expiry = new Date(this.config.oauthTokenExpiry);
+            if (new Date() < expiry) {
+                return this.config.oauthAccessToken;
+            }
+        }
+        
+        // Refresh token if available
+        if (this.config.oauthRefreshToken) {
+            return await this.refreshOAuthToken();
+        }
+        
+        // Otherwise, initiate OAuth flow
+        return await this.initiateOAuthFlow();
+    }
+
+    private async initiateOAuthFlow(): Promise<string | undefined> {
+        if (!this.config.oauthClientId || !this.config.oauthAuthUrl || !this.config.oauthTokenUrl) {
+            ui.showErrorMessage('Missing OAuth configuration (Client ID, Auth URL, or Token URL)');
+            return undefined;
+        }
+
+        try {
+            const server = new OAuthCallbackServer();
+            const redirectUri = this.config.oauthRedirectUri || 'http://localhost:54321/callback';
+            
+            // Construct authorization URL
+            const params = new URLSearchParams({
+                client_id: this.config.oauthClientId,
+                redirect_uri: redirectUri,
+                response_type: 'code',
+                scope: (this.config.oauthScopes || []).join(' ')
+            });
+            
+            const authUrl = `${this.config.oauthAuthUrl}?${params.toString()}`;
+            
+            // Start server and open browser
+            const codePromise = server.start();
+            await vscode.env.openExternal(vscode.Uri.parse(authUrl));
+            
+            // Wait for code
+            const code = await codePromise;
+            
+            // Exchange code for token
+            const response = await fetch(this.config.oauthTokenUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    grant_type: 'authorization_code',
+                    client_id: this.config.oauthClientId,
+                    client_secret: this.config.oauthClientSecret,
+                    code: code,
+                    redirect_uri: redirectUri
+                })
+            });
+            
+            const data = await response.json() as any;
+            
+            if (response.status === 200) {
+                this.config.oauthAccessToken = data.access_token;
+                this.config.oauthRefreshToken = data.refresh_token;
+                
+                // Calculate expiry
+                if (data.expires_in) {
+                    const expiry = new Date();
+                    expiry.setSeconds(expiry.getSeconds() + data.expires_in);
+                    this.config.oauthTokenExpiry = expiry.toISOString();
+                }
+                
+                return this.config.oauthAccessToken;
+            } else {
+                ui.showApiErrorMessage('OAuth Token Exchange Error', data);
+            }
+        } catch (error) {
+            ui.showErrorMessage('OAuth Flow Error', error as Error);
+        }
+        
+        return undefined;
+    }
+
+    private async refreshOAuthToken(): Promise<string | undefined> {
+        if (!this.config.oauthRefreshToken || !this.config.oauthTokenUrl) {
+            return undefined;
+        }
+
+        try {
+            const response = await fetch(this.config.oauthTokenUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    grant_type: 'refresh_token',
+                    client_id: this.config.oauthClientId,
+                    client_secret: this.config.oauthClientSecret,
+                    refresh_token: this.config.oauthRefreshToken
+                })
+            });
+            
+            const data = await response.json() as any;
+            
+            if (response.status === 200) {
+                this.config.oauthAccessToken = data.access_token;
+                if (data.refresh_token) {
+                    this.config.oauthRefreshToken = data.refresh_token;
+                }
+                
+                if (data.expires_in) {
+                    const expiry = new Date();
+                    expiry.setSeconds(expiry.getSeconds() + data.expires_in);
+                    this.config.oauthTokenExpiry = expiry.toISOString();
+                }
+                
+                return this.config.oauthAccessToken;
+            } else {
+                // If refresh fails, try full flow
+                return await this.initiateOAuthFlow();
+            }
+        } catch (error) {
+            ui.logToOutput('OAuth Refresh Error', error as Error);
+            return await this.initiateOAuthFlow();
+        }
+    }
+
     private async getHeaders(): Promise<Record<string, string>> {
         const headers: Record<string, string> = {
             'Content-Type': 'application/json'
         };
 
-        if (this.version === 'v1') {
-            headers['Authorization'] = 'Basic ' + encode(`${this.config.apiUserName}:${this.config.apiPassword}`);
-        } else if (this.version === 'v2') {
-            const token = await this.getJwtToken();
-            if (token) {
-                headers['Authorization'] = 'Bearer ' + token;
-            } else {
-                ui.showWarningMessage('Unable to obtain JWT token for Airflow API v2.');
-            }
+        const authType = this.detectAuthType();
+
+        switch (authType) {
+            case AuthType.BASIC:
+                headers['Authorization'] = 'Basic ' + encode(`${this.config.apiUserName}:${this.config.apiPassword}`);
+                break;
+                
+            case AuthType.JWT:
+                const jwtToken = await this.getJwtToken();
+                if (jwtToken) {
+                    headers['Authorization'] = 'Bearer ' + jwtToken;
+                } else {
+                    ui.showWarningMessage('Unable to obtain JWT token for Airflow API v2.');
+                }
+                break;
+                
+            case AuthType.CUSTOM_HEADERS:
+                if (this.config.customHeaders) {
+                    Object.assign(headers, this.config.customHeaders);
+                }
+                break;
+                
+            case AuthType.OAUTH2:
+                const oauthToken = await this.getOAuthToken();
+                if (oauthToken) {
+                    headers['Authorization'] = 'Bearer ' + oauthToken;
+                } else {
+                    ui.showWarningMessage('Unable to obtain OAuth token.');
+                }
+                break;
         }
+        
         return headers;
     }
 

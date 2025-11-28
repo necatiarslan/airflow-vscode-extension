@@ -5,7 +5,7 @@ import { DagTreeItem } from './dagTreeItem';
 import { DagTreeDataProvider } from './dagTreeDataProvider';
 import * as ui from './ui';
 import { AirflowApi } from './api';
-import { ServerConfig } from './types';
+import { AirflowDag, AuthType, ServerConfig } from './types';
 
 export class DagTreeView {
 
@@ -344,16 +344,63 @@ export class DagTreeView {
 	async addServer() {
 		ui.logToOutput('DagTreeView.addServer Started');
 
-		const apiUrlTemp = await vscode.window.showInputBox({ value: 'http://localhost:8080/api/v1', placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
+		let apiUrlTemp = await vscode.window.showInputBox({ placeHolder: 'API URL (e.g. http://localhost:8080/api/v1)' });
 		if (!apiUrlTemp) { return; }
+        
+        // Remove trailing slash if present
+        if (apiUrlTemp.endsWith('/')) {
+            apiUrlTemp = apiUrlTemp.slice(0, -1);
+        }
 
-		const userNameTemp = await vscode.window.showInputBox({ placeHolder: 'User Name' });
-		if (!userNameTemp) { return; }
+        // Ask for authentication type
+        const authTypeSelection = await vscode.window.showQuickPick([
+            { label: 'Basic Authentication (Username/Password)', value: AuthType.BASIC },
+            { label: 'JWT Token (Username/Password)', value: AuthType.JWT },
+            { label: 'Custom Headers (API Key, etc.)', value: AuthType.CUSTOM_HEADERS },
+            { label: 'OAuth 2.0', value: AuthType.OAUTH2 }
+        ], { placeHolder: 'Select authentication method' });
 
-		const passwordTemp = await vscode.window.showInputBox({ placeHolder: 'Password' });
-		if (!passwordTemp) { return; }
+        if (!authTypeSelection) { return; }
+        
+        let newServer: ServerConfig = { 
+            apiUrl: apiUrlTemp, 
+            apiUserName: '', 
+            apiPassword: '',
+            authType: authTypeSelection.value
+        };
 
-		const newServer: ServerConfig = { apiUrl: apiUrlTemp, apiUserName: userNameTemp, apiPassword: passwordTemp };
+        if (authTypeSelection.value === AuthType.BASIC || authTypeSelection.value === AuthType.JWT) {
+            const userNameTemp = await vscode.window.showInputBox({ placeHolder: 'User Name' });
+            if (!userNameTemp) { return; }
+
+            const passwordTemp = await vscode.window.showInputBox({ placeHolder: 'Password', password: true });
+            if (!passwordTemp) { return; }
+            
+            newServer.apiUserName = userNameTemp;
+            newServer.apiPassword = passwordTemp;
+        } 
+        else if (authTypeSelection.value === AuthType.CUSTOM_HEADERS) {
+            // For custom headers, we still might want a display name/username for the UI
+            const displayName = await vscode.window.showInputBox({ 
+                placeHolder: 'Display Name (for identifying this server)',
+                value: 'Custom Auth Server'
+            });
+            if (!displayName) { return; }
+            newServer.apiUserName = displayName;
+            
+            const customHeaders = await this.configureCustomHeaders();
+            if (!customHeaders) { return; }
+            newServer.customHeaders = customHeaders;
+        }
+        else if (authTypeSelection.value === AuthType.OAUTH2) {
+            const oauthConfig = await this.configureOAuth();
+            if (!oauthConfig) { return; }
+            
+            // Merge OAuth config into newServer
+            Object.assign(newServer, oauthConfig);
+            newServer.apiUserName = 'OAuth User'; // Placeholder
+        }
+
 		this.ServerList.push(newServer);
 
 		this.currentServer = newServer;
@@ -362,6 +409,84 @@ export class DagTreeView {
 		this.saveState();
 		this.refresh();
 	}
+
+    async configureOAuth(): Promise<Partial<ServerConfig> | undefined> {
+        const clientId = await vscode.window.showInputBox({
+            prompt: 'OAuth Client ID',
+            placeHolder: 'your-client-id'
+        });
+        if (!clientId) { return undefined; }
+        
+        const clientSecret = await vscode.window.showInputBox({
+            prompt: 'OAuth Client Secret (Optional)',
+            placeHolder: 'your-client-secret',
+            password: true
+        });
+        
+        const authUrl = await vscode.window.showInputBox({
+            prompt: 'Authorization URL',
+            placeHolder: 'https://auth.example.com/oauth/authorize'
+        });
+        if (!authUrl) { return undefined; }
+        
+        const tokenUrl = await vscode.window.showInputBox({
+            prompt: 'Token URL',
+            placeHolder: 'https://auth.example.com/oauth/token'
+        });
+        if (!tokenUrl) { return undefined; }
+        
+        const scopesStr = await vscode.window.showInputBox({
+            prompt: 'Scopes (space separated)',
+            placeHolder: 'openid profile email'
+        });
+        const scopes = scopesStr ? scopesStr.split(' ') : [];
+        
+        const redirectUri = await vscode.window.showInputBox({
+            prompt: 'Redirect URI (Default: http://localhost:54321/callback)',
+            value: 'http://localhost:54321/callback'
+        });
+        
+        return {
+            oauthClientId: clientId,
+            oauthClientSecret: clientSecret,
+            oauthAuthUrl: authUrl,
+            oauthTokenUrl: tokenUrl,
+            oauthScopes: scopes,
+            oauthRedirectUri: redirectUri
+        };
+    }
+
+    async configureCustomHeaders(): Promise<Record<string, string> | undefined> {
+        const headers: Record<string, string> = {};
+        
+        while (true) {
+            const headerName = await vscode.window.showInputBox({
+                prompt: 'Header Name (e.g. X-API-Key). Leave empty to finish.',
+                placeHolder: 'Header Name'
+            });
+            
+            if (!headerName) {
+                // If no headers added yet, ask if they want to cancel
+                if (Object.keys(headers).length === 0) {
+                    const proceed = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'No headers added. Cancel configuration?' });
+                    if (proceed === 'Yes') {return undefined;}
+                }
+                break;
+            }
+            
+            const headerValue = await vscode.window.showInputBox({
+                prompt: `Value for ${headerName}`,
+                placeHolder: 'Header Value',
+                password: headerName.toLowerCase().includes('key') || headerName.toLowerCase().includes('token') || headerName.toLowerCase().includes('auth')
+            });
+            
+            if (headerValue) {
+                headers[headerName] = headerValue;
+            }
+        }
+        
+        return headers;
+    }
 
 	async removeServer() {
 		ui.logToOutput('DagTreeView.removeServer Started');

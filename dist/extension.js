@@ -21,6 +21,7 @@ const dagView_1 = __webpack_require__(3);
 const dagTreeDataProvider_1 = __webpack_require__(29);
 const ui = __webpack_require__(4);
 const api_1 = __webpack_require__(31);
+const types_1 = __webpack_require__(10);
 class DagTreeView {
     constructor(context) {
         this.filterString = '';
@@ -333,24 +334,145 @@ class DagTreeView {
     }
     async addServer() {
         ui.logToOutput('DagTreeView.addServer Started');
-        const apiUrlTemp = await vscode.window.showInputBox({ value: 'http://localhost:8080/api/v1', placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
+        let apiUrlTemp = await vscode.window.showInputBox({ placeHolder: 'API URL (e.g. http://localhost:8080/api/v1)' });
         if (!apiUrlTemp) {
             return;
         }
-        const userNameTemp = await vscode.window.showInputBox({ placeHolder: 'User Name' });
-        if (!userNameTemp) {
+        // Remove trailing slash if present
+        if (apiUrlTemp.endsWith('/')) {
+            apiUrlTemp = apiUrlTemp.slice(0, -1);
+        }
+        // Ask for authentication type
+        const authTypeSelection = await vscode.window.showQuickPick([
+            { label: 'Basic Authentication (Username/Password)', value: types_1.AuthType.BASIC },
+            { label: 'JWT Token (Username/Password)', value: types_1.AuthType.JWT },
+            { label: 'Custom Headers (API Key, etc.)', value: types_1.AuthType.CUSTOM_HEADERS },
+            { label: 'OAuth 2.0', value: types_1.AuthType.OAUTH2 }
+        ], { placeHolder: 'Select authentication method' });
+        if (!authTypeSelection) {
             return;
         }
-        const passwordTemp = await vscode.window.showInputBox({ placeHolder: 'Password' });
-        if (!passwordTemp) {
-            return;
+        let newServer = {
+            apiUrl: apiUrlTemp,
+            apiUserName: '',
+            apiPassword: '',
+            authType: authTypeSelection.value
+        };
+        if (authTypeSelection.value === types_1.AuthType.BASIC || authTypeSelection.value === types_1.AuthType.JWT) {
+            const userNameTemp = await vscode.window.showInputBox({ placeHolder: 'User Name' });
+            if (!userNameTemp) {
+                return;
+            }
+            const passwordTemp = await vscode.window.showInputBox({ placeHolder: 'Password', password: true });
+            if (!passwordTemp) {
+                return;
+            }
+            newServer.apiUserName = userNameTemp;
+            newServer.apiPassword = passwordTemp;
         }
-        const newServer = { apiUrl: apiUrlTemp, apiUserName: userNameTemp, apiPassword: passwordTemp };
+        else if (authTypeSelection.value === types_1.AuthType.CUSTOM_HEADERS) {
+            // For custom headers, we still might want a display name/username for the UI
+            const displayName = await vscode.window.showInputBox({
+                placeHolder: 'Display Name (for identifying this server)',
+                value: 'Custom Auth Server'
+            });
+            if (!displayName) {
+                return;
+            }
+            newServer.apiUserName = displayName;
+            const customHeaders = await this.configureCustomHeaders();
+            if (!customHeaders) {
+                return;
+            }
+            newServer.customHeaders = customHeaders;
+        }
+        else if (authTypeSelection.value === types_1.AuthType.OAUTH2) {
+            const oauthConfig = await this.configureOAuth();
+            if (!oauthConfig) {
+                return;
+            }
+            // Merge OAuth config into newServer
+            Object.assign(newServer, oauthConfig);
+            newServer.apiUserName = 'OAuth User'; // Placeholder
+        }
         this.ServerList.push(newServer);
         this.currentServer = newServer;
         this.api = new api_1.AirflowApi(this.currentServer);
         this.saveState();
         this.refresh();
+    }
+    async configureOAuth() {
+        const clientId = await vscode.window.showInputBox({
+            prompt: 'OAuth Client ID',
+            placeHolder: 'your-client-id'
+        });
+        if (!clientId) {
+            return undefined;
+        }
+        const clientSecret = await vscode.window.showInputBox({
+            prompt: 'OAuth Client Secret (Optional)',
+            placeHolder: 'your-client-secret',
+            password: true
+        });
+        const authUrl = await vscode.window.showInputBox({
+            prompt: 'Authorization URL',
+            placeHolder: 'https://auth.example.com/oauth/authorize'
+        });
+        if (!authUrl) {
+            return undefined;
+        }
+        const tokenUrl = await vscode.window.showInputBox({
+            prompt: 'Token URL',
+            placeHolder: 'https://auth.example.com/oauth/token'
+        });
+        if (!tokenUrl) {
+            return undefined;
+        }
+        const scopesStr = await vscode.window.showInputBox({
+            prompt: 'Scopes (space separated)',
+            placeHolder: 'openid profile email'
+        });
+        const scopes = scopesStr ? scopesStr.split(' ') : [];
+        const redirectUri = await vscode.window.showInputBox({
+            prompt: 'Redirect URI (Default: http://localhost:54321/callback)',
+            value: 'http://localhost:54321/callback'
+        });
+        return {
+            oauthClientId: clientId,
+            oauthClientSecret: clientSecret,
+            oauthAuthUrl: authUrl,
+            oauthTokenUrl: tokenUrl,
+            oauthScopes: scopes,
+            oauthRedirectUri: redirectUri
+        };
+    }
+    async configureCustomHeaders() {
+        const headers = {};
+        while (true) {
+            const headerName = await vscode.window.showInputBox({
+                prompt: 'Header Name (e.g. X-API-Key). Leave empty to finish.',
+                placeHolder: 'Header Name'
+            });
+            if (!headerName) {
+                // If no headers added yet, ask if they want to cancel
+                if (Object.keys(headers).length === 0) {
+                    const proceed = await vscode.window.showQuickPick(['Yes', 'No'], { placeHolder: 'No headers added. Cancel configuration?' });
+                    if (proceed === 'Yes') {
+                        return undefined;
+                    }
+                }
+                break;
+            }
+            const headerValue = await vscode.window.showInputBox({
+                prompt: `Value for ${headerName}`,
+                placeHolder: 'Header Value',
+                password: headerName.toLowerCase().includes('key') || headerName.toLowerCase().includes('token') || headerName.toLowerCase().includes('auth')
+            });
+            if (headerValue) {
+                headers[headerName] = headerValue;
+            }
+        }
+        return headers;
     }
     async removeServer() {
         ui.logToOutput('DagTreeView.removeServer Started');
@@ -2380,10 +2502,108 @@ module.exports = require("os");
 module.exports = require("crypto");
 
 /***/ }),
-/* 10 */,
-/* 11 */,
-/* 12 */,
-/* 13 */,
+/* 10 */
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AuthType = void 0;
+var AuthType;
+(function (AuthType) {
+    AuthType["BASIC"] = "basic";
+    AuthType["JWT"] = "jwt";
+    AuthType["OAUTH2"] = "oauth2";
+    AuthType["CUSTOM_HEADERS"] = "custom_headers";
+})(AuthType = exports.AuthType || (exports.AuthType = {}));
+
+
+/***/ }),
+/* 11 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.OAuthCallbackServer = void 0;
+const http = __webpack_require__(12);
+const url = __webpack_require__(13);
+const ui = __webpack_require__(4);
+class OAuthCallbackServer {
+    constructor(port) {
+        this.port = 54321; // Default port, can be configurable
+        if (port) {
+            this.port = port;
+        }
+    }
+    async start() {
+        return new Promise((resolve, reject) => {
+            this.server = http.createServer((req, res) => {
+                try {
+                    if (!req.url) {
+                        res.writeHead(400);
+                        res.end('Invalid request');
+                        return;
+                    }
+                    const parsedUrl = url.parse(req.url, true);
+                    const query = parsedUrl.query;
+                    if (query.code) {
+                        const code = Array.isArray(query.code) ? query.code[0] : query.code;
+                        res.writeHead(200, { 'Content-Type': 'text/html' });
+                        res.end('<h1>Authentication Successful</h1><p>You can close this window and return to VS Code.</p><script>window.close()</script>');
+                        resolve(code);
+                    }
+                    else if (query.error) {
+                        res.writeHead(400, { 'Content-Type': 'text/html' });
+                        res.end(`<h1>Authentication Failed</h1><p>${query.error}</p>`);
+                        reject(new Error(query.error));
+                    }
+                    else {
+                        res.writeHead(404);
+                        res.end('Not found');
+                    }
+                }
+                catch (error) {
+                    reject(error);
+                }
+                finally {
+                    // Close the server after handling the request
+                    this.stop();
+                }
+            });
+            this.server.listen(this.port, () => {
+                ui.logToOutput(`OAuth callback server listening on port ${this.port}`);
+            });
+            this.server.on('error', (err) => {
+                reject(err);
+            });
+        });
+    }
+    stop() {
+        if (this.server) {
+            this.server.close();
+            this.server = undefined;
+        }
+    }
+}
+exports.OAuthCallbackServer = OAuthCallbackServer;
+
+
+/***/ }),
+/* 12 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("http");
+
+/***/ }),
+/* 13 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("url");
+
+/***/ }),
 /* 14 */,
 /* 15 */,
 /* 16 */,
@@ -2581,6 +2801,9 @@ exports.AirflowApi = void 0;
 const base_64_1 = __webpack_require__(32);
 const ui = __webpack_require__(4);
 const methodResult_1 = __webpack_require__(33);
+const vscode = __webpack_require__(1);
+const oauthServer_1 = __webpack_require__(11);
+const types_1 = __webpack_require__(10);
 // Wrapper for fetch to handle ESM node-fetch in CommonJS
 const fetch = async (url, init) => {
     const module = await Promise.resolve().then(() => __webpack_require__(34));
@@ -2623,21 +2846,158 @@ class AirflowApi {
         }
         return undefined;
     }
+    detectAuthType() {
+        if (this.config.authType) {
+            return this.config.authType;
+        }
+        // Auto-detection logic
+        if (this.config.customHeaders && Object.keys(this.config.customHeaders).length > 0) {
+            return types_1.AuthType.CUSTOM_HEADERS;
+        }
+        if (this.version === 'v1') {
+            return types_1.AuthType.BASIC;
+        }
+        return types_1.AuthType.JWT;
+    }
+    async getOAuthToken() {
+        // Check if token exists and is not expired
+        if (this.config.oauthAccessToken && this.config.oauthTokenExpiry) {
+            const expiry = new Date(this.config.oauthTokenExpiry);
+            if (new Date() < expiry) {
+                return this.config.oauthAccessToken;
+            }
+        }
+        // Refresh token if available
+        if (this.config.oauthRefreshToken) {
+            return await this.refreshOAuthToken();
+        }
+        // Otherwise, initiate OAuth flow
+        return await this.initiateOAuthFlow();
+    }
+    async initiateOAuthFlow() {
+        if (!this.config.oauthClientId || !this.config.oauthAuthUrl || !this.config.oauthTokenUrl) {
+            ui.showErrorMessage('Missing OAuth configuration (Client ID, Auth URL, or Token URL)');
+            return undefined;
+        }
+        try {
+            const server = new oauthServer_1.OAuthCallbackServer();
+            const redirectUri = this.config.oauthRedirectUri || 'http://localhost:54321/callback';
+            // Construct authorization URL
+            const params = new URLSearchParams({
+                client_id: this.config.oauthClientId,
+                redirect_uri: redirectUri,
+                response_type: 'code',
+                scope: (this.config.oauthScopes || []).join(' ')
+            });
+            const authUrl = `${this.config.oauthAuthUrl}?${params.toString()}`;
+            // Start server and open browser
+            const codePromise = server.start();
+            await vscode.env.openExternal(vscode.Uri.parse(authUrl));
+            // Wait for code
+            const code = await codePromise;
+            // Exchange code for token
+            const response = await fetch(this.config.oauthTokenUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    grant_type: 'authorization_code',
+                    client_id: this.config.oauthClientId,
+                    client_secret: this.config.oauthClientSecret,
+                    code: code,
+                    redirect_uri: redirectUri
+                })
+            });
+            const data = await response.json();
+            if (response.status === 200) {
+                this.config.oauthAccessToken = data.access_token;
+                this.config.oauthRefreshToken = data.refresh_token;
+                // Calculate expiry
+                if (data.expires_in) {
+                    const expiry = new Date();
+                    expiry.setSeconds(expiry.getSeconds() + data.expires_in);
+                    this.config.oauthTokenExpiry = expiry.toISOString();
+                }
+                return this.config.oauthAccessToken;
+            }
+            else {
+                ui.showApiErrorMessage('OAuth Token Exchange Error', data);
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage('OAuth Flow Error', error);
+        }
+        return undefined;
+    }
+    async refreshOAuthToken() {
+        if (!this.config.oauthRefreshToken || !this.config.oauthTokenUrl) {
+            return undefined;
+        }
+        try {
+            const response = await fetch(this.config.oauthTokenUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    grant_type: 'refresh_token',
+                    client_id: this.config.oauthClientId,
+                    client_secret: this.config.oauthClientSecret,
+                    refresh_token: this.config.oauthRefreshToken
+                })
+            });
+            const data = await response.json();
+            if (response.status === 200) {
+                this.config.oauthAccessToken = data.access_token;
+                if (data.refresh_token) {
+                    this.config.oauthRefreshToken = data.refresh_token;
+                }
+                if (data.expires_in) {
+                    const expiry = new Date();
+                    expiry.setSeconds(expiry.getSeconds() + data.expires_in);
+                    this.config.oauthTokenExpiry = expiry.toISOString();
+                }
+                return this.config.oauthAccessToken;
+            }
+            else {
+                // If refresh fails, try full flow
+                return await this.initiateOAuthFlow();
+            }
+        }
+        catch (error) {
+            ui.logToOutput('OAuth Refresh Error', error);
+            return await this.initiateOAuthFlow();
+        }
+    }
     async getHeaders() {
         const headers = {
             'Content-Type': 'application/json'
         };
-        if (this.version === 'v1') {
-            headers['Authorization'] = 'Basic ' + (0, base_64_1.encode)(`${this.config.apiUserName}:${this.config.apiPassword}`);
-        }
-        else if (this.version === 'v2') {
-            const token = await this.getJwtToken();
-            if (token) {
-                headers['Authorization'] = 'Bearer ' + token;
-            }
-            else {
-                ui.showWarningMessage('Unable to obtain JWT token for Airflow API v2.');
-            }
+        const authType = this.detectAuthType();
+        switch (authType) {
+            case types_1.AuthType.BASIC:
+                headers['Authorization'] = 'Basic ' + (0, base_64_1.encode)(`${this.config.apiUserName}:${this.config.apiPassword}`);
+                break;
+            case types_1.AuthType.JWT:
+                const jwtToken = await this.getJwtToken();
+                if (jwtToken) {
+                    headers['Authorization'] = 'Bearer ' + jwtToken;
+                }
+                else {
+                    ui.showWarningMessage('Unable to obtain JWT token for Airflow API v2.');
+                }
+                break;
+            case types_1.AuthType.CUSTOM_HEADERS:
+                if (this.config.customHeaders) {
+                    Object.assign(headers, this.config.customHeaders);
+                }
+                break;
+            case types_1.AuthType.OAUTH2:
+                const oauthToken = await this.getOAuthToken();
+                if (oauthToken) {
+                    headers['Authorization'] = 'Bearer ' + oauthToken;
+                }
+                else {
+                    ui.showWarningMessage('Unable to obtain OAuth token.');
+                }
+                break;
         }
         return headers;
     }

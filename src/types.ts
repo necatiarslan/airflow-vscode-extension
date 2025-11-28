@@ -77,8 +77,32 @@ export interface AirflowProvider {
     version: string;
 }
 
+export enum AuthType {
+    BASIC = 'basic',
+    JWT = 'jwt',
+    OAUTH2 = 'oauth2',
+    CUSTOM_HEADERS = 'custom_headers'
+}
+
 export interface ServerConfig {
     apiUrl: string;
     apiUserName: string;
     apiPassword: string;
+    
+    // Authentication type (optional, auto-detected if not specified)
+    authType?: AuthType;
+    
+    // OAuth 2.0 configuration
+    oauthClientId?: string;
+    oauthClientSecret?: string;
+    oauthAuthUrl?: string;
+    oauthTokenUrl?: string;
+    oauthScopes?: string[];
+    oauthRedirectUri?: string;
+    oauthAccessToken?: string;
+    oauthRefreshToken?: string;
+    oauthTokenExpiry?: string;
+    
+    // Custom headers configuration
+    customHeaders?: Record<string, string>;
 }
