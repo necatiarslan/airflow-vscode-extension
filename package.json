@@ -60,12 +60,12 @@
       },
       {
         "command": "dagTreeView.showOnlyActive",
-        "title": "Show Only Active",
+        "title": "Active Only",
         "icon": "$(circle-large-filled)"
       },
       {
         "command": "dagTreeView.showOnlyFavorite",
-        "title": "Show Only Favorite",
+        "title": "Favorites Only",
         "icon": "$(bookmark)"
       },
       {

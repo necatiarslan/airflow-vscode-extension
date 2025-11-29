@@ -201,7 +201,7 @@ export class DagView {
         let start_date_string:string = "";
         let duration:string = "";
         let isDagRunning:boolean = false;
-        let hasDagARun:boolean = false;
+        let hasDagRun:boolean = false;
 
         if(this.dagRunJson){
             state = this.dagRunJson.state;
@@ -212,7 +212,7 @@ export class DagView {
             start_date_string = start_date ? new Date(start_date).toLocaleString() : "";
             duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
             isDagRunning = (state === "queued" || state === "running") ? true : false;
-            hasDagARun = true;
+            hasDagRun = true;
         }
 
         let runningOrFailedTasks: string = "";
@@ -363,10 +363,10 @@ export class DagView {
                         </tr>
                         <tr>
                             <td colspan="3">
-                                <vscode-button appearance="secondary" id="run-ask-ai" ${!hasDagARun ? "disabled" : ""}>Ask AI</vscode-button>
-                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>     
-                                <vscode-button appearance="secondary" id="run-view-log" ${!hasDagARun ? "disabled" : ""}>View Log</vscode-button>  
-                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagARun ? "disabled" : ""}>More</vscode-button>
+                                <vscode-button appearance="secondary" id="run-ask-ai" ${!hasDagRun ? "disabled" : ""}>Ask AI</vscode-button>    
+                                <vscode-button appearance="secondary" id="run-view-log" ${!hasDagRun ? "disabled" : ""}>Log</vscode-button> 
+                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>  
+                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagRun ? "disabled" : ""}>More</vscode-button>
                             </td>
                         </tr>
                     </table>
@@ -380,7 +380,7 @@ export class DagView {
                         <tr>
                             <td>Date</td>
                             <td>:</td>
-                            <td><vscode-textfield size="30" id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10"></vscode-textfield></td>
+                            <td><vscode-textfield id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10" pattern="\d{4}-\d{2}-\d{2}"></vscode-textfield></td>
                         </tr>
                         <tr>
                             <td>Config</td>
@@ -525,7 +525,7 @@ export class DagView {
                             <td>Date</td>
                             <td>:</td>
                             <td>
-                            <vscode-textfield size="8" id="history_date" value="${this.dagHistorySelectedDate}" placeholder="YYYY-MM-DD" maxlength="10"></vscode-textfield>
+                            <vscode-textfield id="history_date" value="${this.dagHistorySelectedDate}" placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}" maxlength="10"></vscode-textfield>
                             </td>
                             <td><vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button></td>
                         </tr>

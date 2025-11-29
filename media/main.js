@@ -3,73 +3,107 @@ const vscode = acquireVsCodeApi();
 window.addEventListener("load", main);
 
 function main() {
-  const triggerDag = document.getElementById("run-trigger-dag");
-  triggerDag.addEventListener("click", triggerDagClick);
+  // Use event delegation for all clicks on the document body
+  // This ensures links work even after HTML is dynamically re-rendered
+  document.body.addEventListener("click", function (e) {
+    const target = e.target;
+    const targetId = target.id;
 
-  const viewLogDag = document.getElementById("run-view-log");
-  viewLogDag.addEventListener("click", viewLogDagClick);
+    // Handle button clicks
+    if (targetId === "run-trigger-dag") {
+      triggerDagClick();
+      return;
+    }
+    if (targetId === "run-view-log") {
+      viewLogDagClick();
+      return;
+    }
+    if (targetId === "run-more-dagrun-detail") {
+      runMoreDagRunDetailClick();
+      return;
+    }
+    if (targetId === "other-dag-detail") {
+      otherDagDetailClick();
+      return;
+    }
+    if (targetId === "tasks-more-detail") {
+      tasksMoreDetailClick();
+      return;
+    }
+    if (targetId === "history-load-runs") {
+      historyLoadRunsClick();
+      return;
+    }
+    if (targetId === "info-source-code") {
+      infoSourceCodeClick();
+      return;
+    }
+    if (targetId === "run-pause-dag") {
+      runPauseDagClick();
+      return;
+    }
+    if (targetId === "run-unpause-dag") {
+      runUnPauseDagClick();
+      return;
+    }
+    if (targetId === "run-ask-ai") {
+      runAskAIClick();
+      return;
+    }
+    if (targetId === "run-lastrun-check") {
+      runLastRunCheckClick();
+      return;
+    }
+    if (targetId === "run-lastrun-cancel") {
+      runLastRunCancelClick();
+      return;
+    }
+    if (targetId === "tasks-refresh") {
+      tasksRefreshClicked();
+      return;
+    }
+    if (targetId === "run-update-note") {
+      runUpdateNoteClicked(e);
+      return;
+    }
 
-  const runMoreDagRunDetail = document.getElementById("run-more-dagrun-detail");
-  runMoreDagRunDetail.addEventListener("click", runMoreDagRunDetailClick);
+    // Handle link clicks with preventDefault
+    if (target.tagName === "A") {
+      // Update note link
+      if (targetId === "run-update-note-link") {
+        e.preventDefault();
+        runUpdateNoteClicked(e);
+        return;
+      }
 
-  const otherDagDetail = document.getElementById("other-dag-detail");
-  otherDagDetail.addEventListener("click", otherDagDetailClick);
+      // History DAG run links
+      if (targetId && targetId.startsWith("history-dag-run-id")) {
+        e.preventDefault();
+        dagRunHistoryLinkClicked(e);
+        return;
+      }
 
-  const tasksMoreDetail = document.getElementById("tasks-more-detail");
-  tasksMoreDetail.addEventListener("click", tasksMoreDetailClick);
+      // Task log links
+      if (targetId && targetId.startsWith("task-log-link-")) {
+        e.preventDefault();
+        taskLogLinkClicked(e);
+        return;
+      }
 
-  const historyLoadRuns = document.getElementById("history-load-runs");
-  historyLoadRuns.addEventListener("click", historyLoadRunsClick);
+      // Task XCom links
+      if (targetId && targetId.startsWith("task-xcom-link-")) {
+        e.preventDefault();
+        taskXComLinkClicked(e);
+        return;
+      }
+    }
+  });
 
-  const infoSourceCode = document.getElementById("info-source-code");
-  infoSourceCode.addEventListener("click", infoSourceCodeClick);
-
-  const runPauseDag = document.getElementById("run-pause-dag");
-  runPauseDag.addEventListener("click", runPauseDagClick);
-
-  const runUnPauseDag = document.getElementById("run-unpause-dag");
-  runUnPauseDag.addEventListener("click", runUnPauseDagClick);
-
-  const runAskAI = document.getElementById("run-ask-ai");
-  runAskAI.addEventListener("click", runAskAIClick);
-
-  const runLastRunCheck = document.getElementById("run-lastrun-check");
-  runLastRunCheck.addEventListener("click", runLastRunCheckClick);
-
-  const runLastRunCancel = document.getElementById("run-lastrun-cancel");
-  runLastRunCancel.addEventListener("click", runLastRunCancelClick);
-
-  const tasksRefreshButton = document.getElementById("tasks-refresh");
-  tasksRefreshButton.addEventListener("click", tasksRefreshClicked);
-
-  const runUpdateNoteButton = document.getElementById("run-update-note");
-  runUpdateNoteButton.addEventListener("click", runUpdateNoteClicked);
-
-  const runUpdateNoteLink = document.getElementById("run-update-note-link");
-  if (runUpdateNoteLink) {
-    runUpdateNoteLink.addEventListener("click", runUpdateNoteClicked);
-  }
-
-  const prevRunLinkList = document.querySelectorAll("[id^='history-dag-run-id']");
-  for (let i = 0; i < prevRunLinkList.length; i++) {
-    //prevRunLinkList[i].id
-    prevRunLinkList[i].addEventListener("click", dagRunHistoryLinkClicked);
-  }
-
-  const taskLogLinkList = document.querySelectorAll("[id^='task-log-link-']");
-  for (let i = 0; i < taskLogLinkList.length; i++) {
-    //prevRunLinkList[i].id
-    taskLogLinkList[i].addEventListener("click", taskLogLinkClicked);
-  }
-
-  const taskXComLinkList = document.querySelectorAll("[id^='task-xcom-link-']");
-  for (let i = 0; i < taskXComLinkList.length; i++) {
-    taskXComLinkList[i].addEventListener("click", taskXComLinkClicked);
-  }
-
+  // Tab control still needs direct attachment as it's a custom element
   const tabControl = document.getElementById("tab-control");
-  tabControl.addEventListener("change", tabControlChanged);
-
+  if (tabControl) {
+    tabControl.addEventListener("change", tabControlChanged);
+  }
 }
 
 
@@ -168,6 +202,7 @@ function runLastRunCancelClick() {
 }
 
 function dagRunHistoryLinkClicked(e) {
+  e.preventDefault();
   vscode.postMessage({
     command: "history-dag-run-id",
     activetabid: getActiveTabId(),
@@ -182,7 +217,8 @@ function tasksRefreshClicked() {
   });
 }
 
-function runUpdateNoteClicked() {
+function runUpdateNoteClicked(e) {
+  e.preventDefault();
   vscode.postMessage({
     command: "run-update-note",
     activetabid: getActiveTabId(),
@@ -190,6 +226,7 @@ function runUpdateNoteClicked() {
 }
 
 function taskLogLinkClicked(e) {
+  e.preventDefault();
   vscode.postMessage({
     command: "task-log-link",
     activetabid: getActiveTabId(),
@@ -198,6 +235,7 @@ function taskLogLinkClicked(e) {
 }
 
 function taskXComLinkClicked(e) {
+  e.preventDefault();
   vscode.postMessage({
     command: "task-xcom-link",
     activetabid: getActiveTabId(),

@@ -26,6 +26,12 @@ Trigger DAGs, pause/unpause, explore DAG runs, view logs, browse code, and more�
   - View logs  
   - See task instances, execution durations, and statuses
 
+- **Ask AI**  
+  - Get AI-powered assistance for analyzing DAG logs and troubleshooting issues
+  - Right-click on any DAG and select "Ask AI" to get contextual help
+  - AI analyzes DAG code and logs to provide insights and recommendations
+  - Integrated with VS Code's native chat interface for seamless interaction
+
 ## 📷 Screenshots
 
 | Dag Tree | Runs | Tasks |
@@ -33,9 +39,9 @@ Trigger DAGs, pause/unpause, explore DAG runs, view logs, browse code, and more�
 | ![screenshoot](./docs/dagview-dagtree.png) | ![screenshoot](./docs/dagview-run.png) | ![screenshoot](./docs/dagview-tasks.png) |
 
 
-| Info | Run History |
-| ----------- | ----------- |
-| ![screenshoot](./docs/dagview-info.png) | ![screenshoot](./docs/dagview-prevruns.png) |
+| Info | Run History | AI |
+| ----------- | ----------- | ----------- |
+| ![screenshoot](./docs/dagview-info.png) | ![screenshoot](./docs/dagview-prevruns.png) | ![screenshoot](./docs/ai-chat.png) |
 
 
 ## ⚙️ Configuration
@@ -85,24 +91,13 @@ astro dev start     #start airflow as a docker container
 ## 📝 Roadmap
 
 ### Coming Soon
-- Run Selected Tasks
+- Airflow MCP Support
 - Hide Dags & Show Hidden Dags Filter
-- Connections, Variables, XComs
-- Hierarchical Tasks List
-- Prev Run, Date Filter
 - Task View
     - Instance Details
     - Rendered Template
-    - Log
-    - X-Com
-- Fix: not runned task duration
-- Treeview Dag hierarcy by owner, last run date, next run date, dag file folder structure, tags
-- New DAG Wizard
-- DAG Dry Run
-- Run DAG Tests
-- DAG.test() support
 - Highligt DAG and Operator Keywords
-- Server Health Check/Status
+- Fix: date input width
 
 
 ## 💖 Sponsor & Feedback
