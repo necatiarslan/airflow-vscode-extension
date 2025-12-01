@@ -329,8 +329,7 @@ export class DagTreeView {
 		const messages = [
 			vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. Here is the code for a DAG and its recent execution logs. Analyze them and explain any errors.`),
 			vscode.LanguageModelChatMessage.User(`DAG Code:\n\`\`\`python\n${aiContext.code}\n\`\`\``),
-			vscode.LanguageModelChatMessage.User(`Execution Logs:\n\`\`\`text\n${aiContext.logs}\n\`\`\``),
-			vscode.LanguageModelChatMessage.User(request.prompt || "Please analyze the error in these logs if any.")
+			vscode.LanguageModelChatMessage.User(`Execution Logs:\n\`\`\`text\n${aiContext.logs}\n\`\`\``)
 		];
 
 		if (aiContext.dag) {
@@ -348,6 +347,8 @@ export class DagTreeView {
 		if (aiContext.taskInstances) {
 			messages.push(vscode.LanguageModelChatMessage.User(`Task Instances:\n\`\`\`json\n${aiContext.taskInstances}\n\`\`\``));
 		}
+
+		messages.push(vscode.LanguageModelChatMessage.User(request.prompt || "Please analyze the error in these logs if any."));
 
 		// C. Send to VS Code's AI (Copilot)
 		try {

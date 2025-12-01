@@ -41,7 +41,7 @@ Trigger DAGs, pause/unpause, explore DAG runs, view logs, browse code, and more�
 
 | Info | Run History | AI |
 | ----------- | ----------- | ----------- |
-| ![screenshoot](./docs/dagview-info.png) | ![screenshoot](./docs/dagview-prevruns.png) | ![screenshoot](./docs/ai-chat.png) |
+| ![screenshoot](./docs/dagview-info.png) | ![screenshoot](./docs/dagview-history.png) | ![screenshoot](./docs/ai-chat.png) |
 
 
 ## ⚙️ Configuration
