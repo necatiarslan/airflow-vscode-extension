@@ -1,4 +1,12 @@
 # Change Log
+- v1.8.0 (2025-12-1)
+    - Ask AI
+    - History Date Filter
+    - Task Dependency Tree
+    - @vscode-elements/elements migration
+    - View and Update Notes
+    - Bug Fixes
+
 - v1.7.1 (2025-06-08)
     - Trigger Dag v2
     - Show Source Code fix

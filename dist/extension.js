@@ -1,2 +1,11131 @@
-/*! For license information please see extension.js.LICENSE.txt */
-(()=>{var e,t={10:function(e,t){var r;r=function(e){"use strict";const t="function"==typeof Symbol&&"symbol"==typeof Symbol.iterator?Symbol:e=>`Symbol(${e})`;function r(){}const n="undefined"!=typeof self?self:"undefined"!=typeof window?window:"undefined"!=typeof global?global:void 0;function s(e){return"object"==typeof e&&null!==e||"function"==typeof e}const o=r,a=Promise,i=Promise.prototype.then,l=Promise.resolve.bind(a),u=Promise.reject.bind(a);function c(e){return new a(e)}function d(e){return l(e)}function h(e){return u(e)}function g(e,t,r){return i.call(e,t,r)}function f(e,t,r){g(g(e,t,r),void 0,o)}function p(e,t){f(e,t)}function w(e,t){f(e,void 0,t)}function m(e,t,r){return g(e,t,r)}function b(e){g(e,void 0,o)}const y=(()=>{const e=n&&n.queueMicrotask;if("function"==typeof e)return e;const t=d(void 0);return e=>g(t,e)})();function v(e,t,r){if("function"!=typeof e)throw new TypeError("Argument is not a function");return Function.prototype.apply.call(e,t,r)}function _(e,t,r){try{return d(v(e,t,r))}catch(e){return h(e)}}class S{constructor(){this._cursor=0,this._size=0,this._front={_elements:[],_next:void 0},this._back=this._front,this._cursor=0,this._size=0}get length(){return this._size}push(e){const t=this._back;let r=t;16383===t._elements.length&&(r={_elements:[],_next:void 0}),t._elements.push(e),r!==t&&(this._back=r,t._next=r),++this._size}shift(){const e=this._front;let t=e;const r=this._cursor;let n=r+1;const s=e._elements,o=s[r];return 16384===n&&(t=e._next,n=0),--this._size,this._cursor=n,e!==t&&(this._front=t),s[r]=void 0,o}forEach(e){let t=this._cursor,r=this._front,n=r._elements;for(;!(t===n.length&&void 0===r._next||t===n.length&&(r=r._next,n=r._elements,t=0,0===n.length));)e(n[t]),++t}peek(){const e=this._front,t=this._cursor;return e._elements[t]}}function T(e,t){e._ownerReadableStream=t,t._reader=e,"readable"===t._state?P(e):"closed"===t._state?function(e){P(e),k(e)}(e):O(e,t._storedError)}function D(e,t){return vr(e._ownerReadableStream,t)}function R(e){"readable"===e._ownerReadableStream._state?I(e,new TypeError("Reader was released and can no longer be used to monitor the stream's closedness")):function(e){O(e,new TypeError("Reader was released and can no longer be used to monitor the stream's closedness"))}(e),e._ownerReadableStream._reader=void 0,e._ownerReadableStream=void 0}function C(e){return new TypeError("Cannot "+e+" a stream using a released reader")}function P(e){e._closedPromise=c(((t,r)=>{e._closedPromise_resolve=t,e._closedPromise_reject=r}))}function O(e,t){P(e),I(e,t)}function I(e,t){void 0!==e._closedPromise_reject&&(b(e._closedPromise),e._closedPromise_reject(t),e._closedPromise_resolve=void 0,e._closedPromise_reject=void 0)}function k(e){void 0!==e._closedPromise_resolve&&(e._closedPromise_resolve(void 0),e._closedPromise_resolve=void 0,e._closedPromise_reject=void 0)}const E=t("[[AbortSteps]]"),A=t("[[ErrorSteps]]"),$=t("[[CancelSteps]]"),L=t("[[PullSteps]]"),M=Number.isFinite||function(e){return"number"==typeof e&&isFinite(e)},V=Math.trunc||function(e){return e<0?Math.ceil(e):Math.floor(e)};function x(e,t){if(void 0!==e&&"object"!=typeof(r=e)&&"function"!=typeof r)throw new TypeError(`${t} is not an object.`);var r}function F(e,t){if("function"!=typeof e)throw new TypeError(`${t} is not a function.`)}function j(e,t){if(!function(e){return"object"==typeof e&&null!==e||"function"==typeof e}(e))throw new TypeError(`${t} is not an object.`)}function q(e,t,r){if(void 0===e)throw new TypeError(`Parameter ${t} is required in '${r}'.`)}function U(e,t,r){if(void 0===e)throw new TypeError(`${t} is required in '${r}'.`)}function W(e){return Number(e)}function B(e){return 0===e?0:e}function z(e,t){const r=Number.MAX_SAFE_INTEGER;let n=Number(e);if(n=B(n),!M(n))throw new TypeError(`${t} is not a finite number`);if(n=function(e){return B(V(e))}(n),n<0||n>r)throw new TypeError(`${t} is outside the accepted range of 0 to ${r}, inclusive`);return M(n)&&0!==n?n:0}function N(e,t){if(!br(e))throw new TypeError(`${t} is not a ReadableStream.`)}function H(e){return new X(e)}function J(e,t){e._reader._readRequests.push(t)}function G(e,t,r){const n=e._reader._readRequests.shift();r?n._closeSteps():n._chunkSteps(t)}function Y(e){return e._reader._readRequests.length}function Q(e){const t=e._reader;return void 0!==t&&!!Z(t)}class X{constructor(e){if(q(e,1,"ReadableStreamDefaultReader"),N(e,"First parameter"),yr(e))throw new TypeError("This stream has already been locked for exclusive reading by another reader");T(this,e),this._readRequests=new S}get closed(){return Z(this)?this._closedPromise:h(ee("closed"))}cancel(e=void 0){return Z(this)?void 0===this._ownerReadableStream?h(C("cancel")):D(this,e):h(ee("cancel"))}read(){if(!Z(this))return h(ee("read"));if(void 0===this._ownerReadableStream)return h(C("read from"));let e,t;const r=c(((r,n)=>{e=r,t=n}));return K(this,{_chunkSteps:t=>e({value:t,done:!1}),_closeSteps:()=>e({value:void 0,done:!0}),_errorSteps:e=>t(e)}),r}releaseLock(){if(!Z(this))throw ee("releaseLock");if(void 0!==this._ownerReadableStream){if(this._readRequests.length>0)throw new TypeError("Tried to release a reader lock when that reader has pending read() calls un-settled");R(this)}}}function Z(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_readRequests")&&e instanceof X}function K(e,t){const r=e._ownerReadableStream;r._disturbed=!0,"closed"===r._state?t._closeSteps():"errored"===r._state?t._errorSteps(r._storedError):r._readableStreamController[L](t)}function ee(e){return new TypeError(`ReadableStreamDefaultReader.prototype.${e} can only be used on a ReadableStreamDefaultReader`)}Object.defineProperties(X.prototype,{cancel:{enumerable:!0},read:{enumerable:!0},releaseLock:{enumerable:!0},closed:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(X.prototype,t.toStringTag,{value:"ReadableStreamDefaultReader",configurable:!0});const te=Object.getPrototypeOf(Object.getPrototypeOf((async function*(){})).prototype);class re{constructor(e,t){this._ongoingPromise=void 0,this._isFinished=!1,this._reader=e,this._preventCancel=t}next(){const e=()=>this._nextSteps();return this._ongoingPromise=this._ongoingPromise?m(this._ongoingPromise,e,e):e(),this._ongoingPromise}return(e){const t=()=>this._returnSteps(e);return this._ongoingPromise?m(this._ongoingPromise,t,t):t()}_nextSteps(){if(this._isFinished)return Promise.resolve({value:void 0,done:!0});const e=this._reader;if(void 0===e._ownerReadableStream)return h(C("iterate"));let t,r;const n=c(((e,n)=>{t=e,r=n}));return K(e,{_chunkSteps:e=>{this._ongoingPromise=void 0,y((()=>t({value:e,done:!1})))},_closeSteps:()=>{this._ongoingPromise=void 0,this._isFinished=!0,R(e),t({value:void 0,done:!0})},_errorSteps:t=>{this._ongoingPromise=void 0,this._isFinished=!0,R(e),r(t)}}),n}_returnSteps(e){if(this._isFinished)return Promise.resolve({value:e,done:!0});this._isFinished=!0;const t=this._reader;if(void 0===t._ownerReadableStream)return h(C("finish iterating"));if(!this._preventCancel){const r=D(t,e);return R(t),m(r,(()=>({value:e,done:!0})))}return R(t),d({value:e,done:!0})}}const ne={next(){return se(this)?this._asyncIteratorImpl.next():h(oe("next"))},return(e){return se(this)?this._asyncIteratorImpl.return(e):h(oe("return"))}};function se(e){if(!s(e))return!1;if(!Object.prototype.hasOwnProperty.call(e,"_asyncIteratorImpl"))return!1;try{return e._asyncIteratorImpl instanceof re}catch(e){return!1}}function oe(e){return new TypeError(`ReadableStreamAsyncIterator.${e} can only be used on a ReadableSteamAsyncIterator`)}void 0!==te&&Object.setPrototypeOf(ne,te);const ae=Number.isNaN||function(e){return e!=e};function ie(e){return e.slice()}function le(e,t,r,n,s){new Uint8Array(e).set(new Uint8Array(r,n,s),t)}function ue(e,t,r){if(e.slice)return e.slice(t,r);const n=r-t,s=new ArrayBuffer(n);return le(s,0,e,t,n),s}function ce(e){const t=ue(e.buffer,e.byteOffset,e.byteOffset+e.byteLength);return new Uint8Array(t)}function de(e){const t=e._queue.shift();return e._queueTotalSize-=t.size,e._queueTotalSize<0&&(e._queueTotalSize=0),t.value}function he(e,t,r){if("number"!=typeof(n=r)||ae(n)||n<0||r===1/0)throw new RangeError("Size must be a finite, non-NaN, non-negative number.");var n;e._queue.push({value:t,size:r}),e._queueTotalSize+=r}function ge(e){e._queue=new S,e._queueTotalSize=0}class fe{constructor(){throw new TypeError("Illegal constructor")}get view(){if(!me(this))throw je("view");return this._view}respond(e){if(!me(this))throw je("respond");if(q(e,1,"respond"),e=z(e,"First parameter"),void 0===this._associatedReadableByteStreamController)throw new TypeError("This BYOB request has been invalidated");this._view.buffer,Ve(this._associatedReadableByteStreamController,e)}respondWithNewView(e){if(!me(this))throw je("respondWithNewView");if(q(e,1,"respondWithNewView"),!ArrayBuffer.isView(e))throw new TypeError("You can only respond with array buffer views");if(void 0===this._associatedReadableByteStreamController)throw new TypeError("This BYOB request has been invalidated");e.buffer,xe(this._associatedReadableByteStreamController,e)}}Object.defineProperties(fe.prototype,{respond:{enumerable:!0},respondWithNewView:{enumerable:!0},view:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(fe.prototype,t.toStringTag,{value:"ReadableStreamBYOBRequest",configurable:!0});class pe{constructor(){throw new TypeError("Illegal constructor")}get byobRequest(){if(!we(this))throw qe("byobRequest");return Le(this)}get desiredSize(){if(!we(this))throw qe("desiredSize");return Me(this)}close(){if(!we(this))throw qe("close");if(this._closeRequested)throw new TypeError("The stream has already been closed; do not close it again!");const e=this._controlledReadableByteStream._state;if("readable"!==e)throw new TypeError(`The stream (in ${e} state) is not in the readable state and cannot be closed`);Ee(this)}enqueue(e){if(!we(this))throw qe("enqueue");if(q(e,1,"enqueue"),!ArrayBuffer.isView(e))throw new TypeError("chunk must be an array buffer view");if(0===e.byteLength)throw new TypeError("chunk must have non-zero byteLength");if(0===e.buffer.byteLength)throw new TypeError("chunk's buffer must have non-zero byteLength");if(this._closeRequested)throw new TypeError("stream is closed or draining");const t=this._controlledReadableByteStream._state;if("readable"!==t)throw new TypeError(`The stream (in ${t} state) is not in the readable state and cannot be enqueued to`);Ae(this,e)}error(e=void 0){if(!we(this))throw qe("error");$e(this,e)}[$](e){ye(this),ge(this);const t=this._cancelAlgorithm(e);return ke(this),t}[L](e){const t=this._controlledReadableByteStream;if(this._queueTotalSize>0){const t=this._queue.shift();this._queueTotalSize-=t.byteLength,Re(this);const r=new Uint8Array(t.buffer,t.byteOffset,t.byteLength);return void e._chunkSteps(r)}const r=this._autoAllocateChunkSize;if(void 0!==r){let t;try{t=new ArrayBuffer(r)}catch(t){return void e._errorSteps(t)}const n={buffer:t,bufferByteLength:r,byteOffset:0,byteLength:r,bytesFilled:0,elementSize:1,viewConstructor:Uint8Array,readerType:"default"};this._pendingPullIntos.push(n)}J(t,e),be(this)}}function we(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_controlledReadableByteStream")&&e instanceof pe}function me(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_associatedReadableByteStreamController")&&e instanceof fe}function be(e){const t=function(e){const t=e._controlledReadableByteStream;if("readable"!==t._state)return!1;if(e._closeRequested)return!1;if(!e._started)return!1;if(Q(t)&&Y(t)>0)return!0;if(ze(t)&&Be(t)>0)return!0;return Me(e)>0}(e);t&&(e._pulling?e._pullAgain=!0:(e._pulling=!0,f(e._pullAlgorithm(),(()=>{e._pulling=!1,e._pullAgain&&(e._pullAgain=!1,be(e))}),(t=>{$e(e,t)}))))}function ye(e){Ce(e),e._pendingPullIntos=new S}function ve(e,t){let r=!1;"closed"===e._state&&(r=!0);const n=_e(t);"default"===t.readerType?G(e,n,r):function(e,t,r){const n=e._reader._readIntoRequests.shift();r?n._closeSteps(t):n._chunkSteps(t)}(e,n,r)}function _e(e){const t=e.bytesFilled,r=e.elementSize;return new e.viewConstructor(e.buffer,e.byteOffset,t/r)}function Se(e,t,r,n){e._queue.push({buffer:t,byteOffset:r,byteLength:n}),e._queueTotalSize+=n}function Te(e,t){const r=t.elementSize,n=t.bytesFilled-t.bytesFilled%r,s=Math.min(e._queueTotalSize,t.byteLength-t.bytesFilled),o=t.bytesFilled+s,a=o-o%r;let i=s,l=!1;a>n&&(i=a-t.bytesFilled,l=!0);const u=e._queue;for(;i>0;){const r=u.peek(),n=Math.min(i,r.byteLength),s=t.byteOffset+t.bytesFilled;le(t.buffer,s,r.buffer,r.byteOffset,n),r.byteLength===n?u.shift():(r.byteOffset+=n,r.byteLength-=n),e._queueTotalSize-=n,De(0,n,t),i-=n}return l}function De(e,t,r){r.bytesFilled+=t}function Re(e){0===e._queueTotalSize&&e._closeRequested?(ke(e),_r(e._controlledReadableByteStream)):be(e)}function Ce(e){null!==e._byobRequest&&(e._byobRequest._associatedReadableByteStreamController=void 0,e._byobRequest._view=null,e._byobRequest=null)}function Pe(e){for(;e._pendingPullIntos.length>0;){if(0===e._queueTotalSize)return;const t=e._pendingPullIntos.peek();Te(e,t)&&(Ie(e),ve(e._controlledReadableByteStream,t))}}function Oe(e,t){const r=e._pendingPullIntos.peek();Ce(e),"closed"===e._controlledReadableByteStream._state?function(e){const t=e._controlledReadableByteStream;if(ze(t))for(;Be(t)>0;)ve(t,Ie(e))}(e):function(e,t,r){if(De(0,t,r),r.bytesFilled<r.elementSize)return;Ie(e);const n=r.bytesFilled%r.elementSize;if(n>0){const t=r.byteOffset+r.bytesFilled,s=ue(r.buffer,t-n,t);Se(e,s,0,s.byteLength)}r.bytesFilled-=n,ve(e._controlledReadableByteStream,r),Pe(e)}(e,t,r),be(e)}function Ie(e){return e._pendingPullIntos.shift()}function ke(e){e._pullAlgorithm=void 0,e._cancelAlgorithm=void 0}function Ee(e){const t=e._controlledReadableByteStream;if(!e._closeRequested&&"readable"===t._state)if(e._queueTotalSize>0)e._closeRequested=!0;else{if(e._pendingPullIntos.length>0&&e._pendingPullIntos.peek().bytesFilled>0){const t=new TypeError("Insufficient bytes to fill elements in the given buffer");throw $e(e,t),t}ke(e),_r(t)}}function Ae(e,t){const r=e._controlledReadableByteStream;if(e._closeRequested||"readable"!==r._state)return;const n=t.buffer,s=t.byteOffset,o=t.byteLength,a=n;if(e._pendingPullIntos.length>0){const t=e._pendingPullIntos.peek();t.buffer,t.buffer=t.buffer}Ce(e),Q(r)?0===Y(r)?Se(e,a,s,o):(e._pendingPullIntos.length>0&&Ie(e),G(r,new Uint8Array(a,s,o),!1)):ze(r)?(Se(e,a,s,o),Pe(e)):Se(e,a,s,o),be(e)}function $e(e,t){const r=e._controlledReadableByteStream;"readable"===r._state&&(ye(e),ge(e),ke(e),Sr(r,t))}function Le(e){if(null===e._byobRequest&&e._pendingPullIntos.length>0){const t=e._pendingPullIntos.peek(),r=new Uint8Array(t.buffer,t.byteOffset+t.bytesFilled,t.byteLength-t.bytesFilled),n=Object.create(fe.prototype);!function(e,t,r){e._associatedReadableByteStreamController=t,e._view=r}(n,e,r),e._byobRequest=n}return e._byobRequest}function Me(e){const t=e._controlledReadableByteStream._state;return"errored"===t?null:"closed"===t?0:e._strategyHWM-e._queueTotalSize}function Ve(e,t){const r=e._pendingPullIntos.peek();if("closed"===e._controlledReadableByteStream._state){if(0!==t)throw new TypeError("bytesWritten must be 0 when calling respond() on a closed stream")}else{if(0===t)throw new TypeError("bytesWritten must be greater than 0 when calling respond() on a readable stream");if(r.bytesFilled+t>r.byteLength)throw new RangeError("bytesWritten out of range")}r.buffer=r.buffer,Oe(e,t)}function xe(e,t){const r=e._pendingPullIntos.peek();if("closed"===e._controlledReadableByteStream._state){if(0!==t.byteLength)throw new TypeError("The view's length must be 0 when calling respondWithNewView() on a closed stream")}else if(0===t.byteLength)throw new TypeError("The view's length must be greater than 0 when calling respondWithNewView() on a readable stream");if(r.byteOffset+r.bytesFilled!==t.byteOffset)throw new RangeError("The region specified by view does not match byobRequest");if(r.bufferByteLength!==t.buffer.byteLength)throw new RangeError("The buffer of view has different capacity than byobRequest");if(r.bytesFilled+t.byteLength>r.byteLength)throw new RangeError("The region specified by view is larger than byobRequest");const n=t.byteLength;r.buffer=t.buffer,Oe(e,n)}function Fe(e,t,r,n,s,o,a){t._controlledReadableByteStream=e,t._pullAgain=!1,t._pulling=!1,t._byobRequest=null,t._queue=t._queueTotalSize=void 0,ge(t),t._closeRequested=!1,t._started=!1,t._strategyHWM=o,t._pullAlgorithm=n,t._cancelAlgorithm=s,t._autoAllocateChunkSize=a,t._pendingPullIntos=new S,e._readableStreamController=t,f(d(r()),(()=>{t._started=!0,be(t)}),(e=>{$e(t,e)}))}function je(e){return new TypeError(`ReadableStreamBYOBRequest.prototype.${e} can only be used on a ReadableStreamBYOBRequest`)}function qe(e){return new TypeError(`ReadableByteStreamController.prototype.${e} can only be used on a ReadableByteStreamController`)}function Ue(e){return new Ne(e)}function We(e,t){e._reader._readIntoRequests.push(t)}function Be(e){return e._reader._readIntoRequests.length}function ze(e){const t=e._reader;return void 0!==t&&!!He(t)}Object.defineProperties(pe.prototype,{close:{enumerable:!0},enqueue:{enumerable:!0},error:{enumerable:!0},byobRequest:{enumerable:!0},desiredSize:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(pe.prototype,t.toStringTag,{value:"ReadableByteStreamController",configurable:!0});class Ne{constructor(e){if(q(e,1,"ReadableStreamBYOBReader"),N(e,"First parameter"),yr(e))throw new TypeError("This stream has already been locked for exclusive reading by another reader");if(!we(e._readableStreamController))throw new TypeError("Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte source");T(this,e),this._readIntoRequests=new S}get closed(){return He(this)?this._closedPromise:h(Ge("closed"))}cancel(e=void 0){return He(this)?void 0===this._ownerReadableStream?h(C("cancel")):D(this,e):h(Ge("cancel"))}read(e){if(!He(this))return h(Ge("read"));if(!ArrayBuffer.isView(e))return h(new TypeError("view must be an array buffer view"));if(0===e.byteLength)return h(new TypeError("view must have non-zero byteLength"));if(0===e.buffer.byteLength)return h(new TypeError("view's buffer must have non-zero byteLength"));if(e.buffer,void 0===this._ownerReadableStream)return h(C("read from"));let t,r;const n=c(((e,n)=>{t=e,r=n}));return Je(this,e,{_chunkSteps:e=>t({value:e,done:!1}),_closeSteps:e=>t({value:e,done:!0}),_errorSteps:e=>r(e)}),n}releaseLock(){if(!He(this))throw Ge("releaseLock");if(void 0!==this._ownerReadableStream){if(this._readIntoRequests.length>0)throw new TypeError("Tried to release a reader lock when that reader has pending read() calls un-settled");R(this)}}}function He(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_readIntoRequests")&&e instanceof Ne}function Je(e,t,r){const n=e._ownerReadableStream;n._disturbed=!0,"errored"===n._state?r._errorSteps(n._storedError):function(e,t,r){const n=e._controlledReadableByteStream;let s=1;t.constructor!==DataView&&(s=t.constructor.BYTES_PER_ELEMENT);const o=t.constructor,a=t.buffer,i={buffer:a,bufferByteLength:a.byteLength,byteOffset:t.byteOffset,byteLength:t.byteLength,bytesFilled:0,elementSize:s,viewConstructor:o,readerType:"byob"};if(e._pendingPullIntos.length>0)return e._pendingPullIntos.push(i),void We(n,r);if("closed"!==n._state){if(e._queueTotalSize>0){if(Te(e,i)){const t=_e(i);return Re(e),void r._chunkSteps(t)}if(e._closeRequested){const t=new TypeError("Insufficient bytes to fill elements in the given buffer");return $e(e,t),void r._errorSteps(t)}}e._pendingPullIntos.push(i),We(n,r),be(e)}else{const e=new o(i.buffer,i.byteOffset,0);r._closeSteps(e)}}(n._readableStreamController,t,r)}function Ge(e){return new TypeError(`ReadableStreamBYOBReader.prototype.${e} can only be used on a ReadableStreamBYOBReader`)}function Ye(e,t){const{highWaterMark:r}=e;if(void 0===r)return t;if(ae(r)||r<0)throw new RangeError("Invalid highWaterMark");return r}function Qe(e){const{size:t}=e;return t||(()=>1)}function Xe(e,t){x(e,t);const r=null==e?void 0:e.highWaterMark,n=null==e?void 0:e.size;return{highWaterMark:void 0===r?void 0:W(r),size:void 0===n?void 0:Ze(n,`${t} has member 'size' that`)}}function Ze(e,t){return F(e,t),t=>W(e(t))}function Ke(e,t,r){return F(e,r),r=>_(e,t,[r])}function et(e,t,r){return F(e,r),()=>_(e,t,[])}function tt(e,t,r){return F(e,r),r=>v(e,t,[r])}function rt(e,t,r){return F(e,r),(r,n)=>_(e,t,[r,n])}function nt(e,t){if(!lt(e))throw new TypeError(`${t} is not a WritableStream.`)}Object.defineProperties(Ne.prototype,{cancel:{enumerable:!0},read:{enumerable:!0},releaseLock:{enumerable:!0},closed:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(Ne.prototype,t.toStringTag,{value:"ReadableStreamBYOBReader",configurable:!0});const st="function"==typeof AbortController;class ot{constructor(e={},t={}){void 0===e?e=null:j(e,"First parameter");const r=Xe(t,"Second parameter"),n=function(e,t){x(e,t);const r=null==e?void 0:e.abort,n=null==e?void 0:e.close,s=null==e?void 0:e.start,o=null==e?void 0:e.type,a=null==e?void 0:e.write;return{abort:void 0===r?void 0:Ke(r,e,`${t} has member 'abort' that`),close:void 0===n?void 0:et(n,e,`${t} has member 'close' that`),start:void 0===s?void 0:tt(s,e,`${t} has member 'start' that`),write:void 0===a?void 0:rt(a,e,`${t} has member 'write' that`),type:o}}(e,"First parameter");if(it(this),void 0!==n.type)throw new RangeError("Invalid type is specified");const s=Qe(r);!function(e,t,r,n){const s=Object.create(Rt.prototype);let o=()=>{},a=()=>d(void 0),i=()=>d(void 0),l=()=>d(void 0);void 0!==t.start&&(o=()=>t.start(s)),void 0!==t.write&&(a=e=>t.write(e,s)),void 0!==t.close&&(i=()=>t.close()),void 0!==t.abort&&(l=e=>t.abort(e)),Pt(e,s,o,a,i,l,r,n)}(this,n,Ye(r,1),s)}get locked(){if(!lt(this))throw Lt("locked");return ut(this)}abort(e=void 0){return lt(this)?ut(this)?h(new TypeError("Cannot abort a stream that already has a writer")):ct(this,e):h(Lt("abort"))}close(){return lt(this)?ut(this)?h(new TypeError("Cannot close a stream that already has a writer")):pt(this)?h(new TypeError("Cannot close an already-closing stream")):dt(this):h(Lt("close"))}getWriter(){if(!lt(this))throw Lt("getWriter");return at(this)}}function at(e){return new bt(e)}function it(e){e._state="writable",e._storedError=void 0,e._writer=void 0,e._writableStreamController=void 0,e._writeRequests=new S,e._inFlightWriteRequest=void 0,e._closeRequest=void 0,e._inFlightCloseRequest=void 0,e._pendingAbortRequest=void 0,e._backpressure=!1}function lt(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_writableStreamController")&&e instanceof ot}function ut(e){return void 0!==e._writer}function ct(e,t){var r;if("closed"===e._state||"errored"===e._state)return d(void 0);e._writableStreamController._abortReason=t,null===(r=e._writableStreamController._abortController)||void 0===r||r.abort();const n=e._state;if("closed"===n||"errored"===n)return d(void 0);if(void 0!==e._pendingAbortRequest)return e._pendingAbortRequest._promise;let s=!1;"erroring"===n&&(s=!0,t=void 0);const o=c(((r,n)=>{e._pendingAbortRequest={_promise:void 0,_resolve:r,_reject:n,_reason:t,_wasAlreadyErroring:s}}));return e._pendingAbortRequest._promise=o,s||gt(e,t),o}function dt(e){const t=e._state;if("closed"===t||"errored"===t)return h(new TypeError(`The stream (in ${t} state) is not in the writable state and cannot be closed`));const r=c(((t,r)=>{const n={_resolve:t,_reject:r};e._closeRequest=n})),n=e._writer;var s;return void 0!==n&&e._backpressure&&"writable"===t&&Ht(n),he(s=e._writableStreamController,Dt,0),kt(s),r}function ht(e,t){"writable"!==e._state?ft(e):gt(e,t)}function gt(e,t){const r=e._writableStreamController;e._state="erroring",e._storedError=t;const n=e._writer;void 0!==n&&_t(n,t),!function(e){return void 0!==e._inFlightWriteRequest||void 0!==e._inFlightCloseRequest}(e)&&r._started&&ft(e)}function ft(e){e._state="errored",e._writableStreamController[A]();const t=e._storedError;if(e._writeRequests.forEach((e=>{e._reject(t)})),e._writeRequests=new S,void 0===e._pendingAbortRequest)return void wt(e);const r=e._pendingAbortRequest;if(e._pendingAbortRequest=void 0,r._wasAlreadyErroring)return r._reject(t),void wt(e);f(e._writableStreamController[E](r._reason),(()=>{r._resolve(),wt(e)}),(t=>{r._reject(t),wt(e)}))}function pt(e){return void 0!==e._closeRequest||void 0!==e._inFlightCloseRequest}function wt(e){void 0!==e._closeRequest&&(e._closeRequest._reject(e._storedError),e._closeRequest=void 0);const t=e._writer;void 0!==t&&qt(t,e._storedError)}function mt(e,t){const r=e._writer;void 0!==r&&t!==e._backpressure&&(t?function(e){Wt(e)}(r):Ht(r)),e._backpressure=t}Object.defineProperties(ot.prototype,{abort:{enumerable:!0},close:{enumerable:!0},getWriter:{enumerable:!0},locked:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(ot.prototype,t.toStringTag,{value:"WritableStream",configurable:!0});class bt{constructor(e){if(q(e,1,"WritableStreamDefaultWriter"),nt(e,"First parameter"),ut(e))throw new TypeError("This stream has already been locked for exclusive writing by another writer");this._ownerWritableStream=e,e._writer=this;const t=e._state;if("writable"===t)!pt(e)&&e._backpressure?Wt(this):zt(this),Ft(this);else if("erroring"===t)Bt(this,e._storedError),Ft(this);else if("closed"===t)zt(this),Ft(this),Ut(this);else{const t=e._storedError;Bt(this,t),jt(this,t)}}get closed(){return yt(this)?this._closedPromise:h(Vt("closed"))}get desiredSize(){if(!yt(this))throw Vt("desiredSize");if(void 0===this._ownerWritableStream)throw xt("desiredSize");return function(e){const t=e._ownerWritableStream,r=t._state;return"errored"===r||"erroring"===r?null:"closed"===r?0:It(t._writableStreamController)}(this)}get ready(){return yt(this)?this._readyPromise:h(Vt("ready"))}abort(e=void 0){return yt(this)?void 0===this._ownerWritableStream?h(xt("abort")):function(e,t){return ct(e._ownerWritableStream,t)}(this,e):h(Vt("abort"))}close(){if(!yt(this))return h(Vt("close"));const e=this._ownerWritableStream;return void 0===e?h(xt("close")):pt(e)?h(new TypeError("Cannot close an already-closing stream")):vt(this)}releaseLock(){if(!yt(this))throw Vt("releaseLock");void 0!==this._ownerWritableStream&&St(this)}write(e=void 0){return yt(this)?void 0===this._ownerWritableStream?h(xt("write to")):Tt(this,e):h(Vt("write"))}}function yt(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_ownerWritableStream")&&e instanceof bt}function vt(e){return dt(e._ownerWritableStream)}function _t(e,t){"pending"===e._readyPromiseState?Nt(e,t):function(e,t){Bt(e,t)}(e,t)}function St(e){const t=e._ownerWritableStream,r=new TypeError("Writer was released and can no longer be used to monitor the stream's closedness");_t(e,r),function(e,t){"pending"===e._closedPromiseState?qt(e,t):function(e,t){jt(e,t)}(e,t)}(e,r),t._writer=void 0,e._ownerWritableStream=void 0}function Tt(e,t){const r=e._ownerWritableStream,n=r._writableStreamController,s=function(e,t){try{return e._strategySizeAlgorithm(t)}catch(t){return Et(e,t),1}}(n,t);if(r!==e._ownerWritableStream)return h(xt("write to"));const o=r._state;if("errored"===o)return h(r._storedError);if(pt(r)||"closed"===o)return h(new TypeError("The stream is closing or closed and cannot be written to"));if("erroring"===o)return h(r._storedError);const a=function(e){return c(((t,r)=>{const n={_resolve:t,_reject:r};e._writeRequests.push(n)}))}(r);return function(e,t,r){try{he(e,t,r)}catch(t){return void Et(e,t)}const n=e._controlledWritableStream;pt(n)||"writable"!==n._state||mt(n,At(e)),kt(e)}(n,t,s),a}Object.defineProperties(bt.prototype,{abort:{enumerable:!0},close:{enumerable:!0},releaseLock:{enumerable:!0},write:{enumerable:!0},closed:{enumerable:!0},desiredSize:{enumerable:!0},ready:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(bt.prototype,t.toStringTag,{value:"WritableStreamDefaultWriter",configurable:!0});const Dt={};class Rt{constructor(){throw new TypeError("Illegal constructor")}get abortReason(){if(!Ct(this))throw Mt("abortReason");return this._abortReason}get signal(){if(!Ct(this))throw Mt("signal");if(void 0===this._abortController)throw new TypeError("WritableStreamDefaultController.prototype.signal is not supported");return this._abortController.signal}error(e=void 0){if(!Ct(this))throw Mt("error");"writable"===this._controlledWritableStream._state&&$t(this,e)}[E](e){const t=this._abortAlgorithm(e);return Ot(this),t}[A](){ge(this)}}function Ct(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_controlledWritableStream")&&e instanceof Rt}function Pt(e,t,r,n,s,o,a,i){t._controlledWritableStream=e,e._writableStreamController=t,t._queue=void 0,t._queueTotalSize=void 0,ge(t),t._abortReason=void 0,t._abortController=function(){if(st)return new AbortController}(),t._started=!1,t._strategySizeAlgorithm=i,t._strategyHWM=a,t._writeAlgorithm=n,t._closeAlgorithm=s,t._abortAlgorithm=o;const l=At(t);mt(e,l),f(d(r()),(()=>{t._started=!0,kt(t)}),(r=>{t._started=!0,ht(e,r)}))}function Ot(e){e._writeAlgorithm=void 0,e._closeAlgorithm=void 0,e._abortAlgorithm=void 0,e._strategySizeAlgorithm=void 0}function It(e){return e._strategyHWM-e._queueTotalSize}function kt(e){const t=e._controlledWritableStream;if(!e._started)return;if(void 0!==t._inFlightWriteRequest)return;if("erroring"===t._state)return void ft(t);if(0===e._queue.length)return;const r=e._queue.peek().value;r===Dt?function(e){const t=e._controlledWritableStream;(function(e){e._inFlightCloseRequest=e._closeRequest,e._closeRequest=void 0})(t),de(e);const r=e._closeAlgorithm();Ot(e),f(r,(()=>{!function(e){e._inFlightCloseRequest._resolve(void 0),e._inFlightCloseRequest=void 0,"erroring"===e._state&&(e._storedError=void 0,void 0!==e._pendingAbortRequest&&(e._pendingAbortRequest._resolve(),e._pendingAbortRequest=void 0)),e._state="closed";const t=e._writer;void 0!==t&&Ut(t)}(t)}),(e=>{!function(e,t){e._inFlightCloseRequest._reject(t),e._inFlightCloseRequest=void 0,void 0!==e._pendingAbortRequest&&(e._pendingAbortRequest._reject(t),e._pendingAbortRequest=void 0),ht(e,t)}(t,e)}))}(e):function(e,t){const r=e._controlledWritableStream;!function(e){e._inFlightWriteRequest=e._writeRequests.shift()}(r);f(e._writeAlgorithm(t),(()=>{!function(e){e._inFlightWriteRequest._resolve(void 0),e._inFlightWriteRequest=void 0}(r);const t=r._state;if(de(e),!pt(r)&&"writable"===t){const t=At(e);mt(r,t)}kt(e)}),(t=>{"writable"===r._state&&Ot(e),function(e,t){e._inFlightWriteRequest._reject(t),e._inFlightWriteRequest=void 0,ht(e,t)}(r,t)}))}(e,r)}function Et(e,t){"writable"===e._controlledWritableStream._state&&$t(e,t)}function At(e){return It(e)<=0}function $t(e,t){const r=e._controlledWritableStream;Ot(e),gt(r,t)}function Lt(e){return new TypeError(`WritableStream.prototype.${e} can only be used on a WritableStream`)}function Mt(e){return new TypeError(`WritableStreamDefaultController.prototype.${e} can only be used on a WritableStreamDefaultController`)}function Vt(e){return new TypeError(`WritableStreamDefaultWriter.prototype.${e} can only be used on a WritableStreamDefaultWriter`)}function xt(e){return new TypeError("Cannot "+e+" a stream using a released writer")}function Ft(e){e._closedPromise=c(((t,r)=>{e._closedPromise_resolve=t,e._closedPromise_reject=r,e._closedPromiseState="pending"}))}function jt(e,t){Ft(e),qt(e,t)}function qt(e,t){void 0!==e._closedPromise_reject&&(b(e._closedPromise),e._closedPromise_reject(t),e._closedPromise_resolve=void 0,e._closedPromise_reject=void 0,e._closedPromiseState="rejected")}function Ut(e){void 0!==e._closedPromise_resolve&&(e._closedPromise_resolve(void 0),e._closedPromise_resolve=void 0,e._closedPromise_reject=void 0,e._closedPromiseState="resolved")}function Wt(e){e._readyPromise=c(((t,r)=>{e._readyPromise_resolve=t,e._readyPromise_reject=r})),e._readyPromiseState="pending"}function Bt(e,t){Wt(e),Nt(e,t)}function zt(e){Wt(e),Ht(e)}function Nt(e,t){void 0!==e._readyPromise_reject&&(b(e._readyPromise),e._readyPromise_reject(t),e._readyPromise_resolve=void 0,e._readyPromise_reject=void 0,e._readyPromiseState="rejected")}function Ht(e){void 0!==e._readyPromise_resolve&&(e._readyPromise_resolve(void 0),e._readyPromise_resolve=void 0,e._readyPromise_reject=void 0,e._readyPromiseState="fulfilled")}Object.defineProperties(Rt.prototype,{abortReason:{enumerable:!0},signal:{enumerable:!0},error:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(Rt.prototype,t.toStringTag,{value:"WritableStreamDefaultController",configurable:!0});const Jt="undefined"!=typeof DOMException?DOMException:void 0,Gt=function(e){if("function"!=typeof e&&"object"!=typeof e)return!1;try{return new e,!0}catch(e){return!1}}(Jt)?Jt:function(){const e=function(e,t){this.message=e||"",this.name=t||"Error",Error.captureStackTrace&&Error.captureStackTrace(this,this.constructor)};return e.prototype=Object.create(Error.prototype),Object.defineProperty(e.prototype,"constructor",{value:e,writable:!0,configurable:!0}),e}();function Yt(e,t,n,s,o,a){const i=H(e),l=at(t);e._disturbed=!0;let u=!1,m=d(void 0);return c(((y,v)=>{let _;if(void 0!==a){if(_=()=>{const r=new Gt("Aborted","AbortError"),n=[];s||n.push((()=>"writable"===t._state?ct(t,r):d(void 0))),o||n.push((()=>"readable"===e._state?vr(e,r):d(void 0))),O((()=>Promise.all(n.map((e=>e())))),!0,r)},a.aborted)return void _();a.addEventListener("abort",_)}var S,T,D;if(P(e,i._closedPromise,(e=>{s?I(!0,e):O((()=>ct(t,e)),!0,e)})),P(t,l._closedPromise,(t=>{o?I(!0,t):O((()=>vr(e,t)),!0,t)})),S=e,T=i._closedPromise,D=()=>{n?I():O((()=>function(e){const t=e._ownerWritableStream,r=t._state;return pt(t)||"closed"===r?d(void 0):"errored"===r?h(t._storedError):vt(e)}(l)))},"closed"===S._state?D():p(T,D),pt(t)||"closed"===t._state){const t=new TypeError("the destination writable stream closed before all data could be piped to it");o?I(!0,t):O((()=>vr(e,t)),!0,t)}function C(){const e=m;return g(m,(()=>e!==m?C():void 0))}function P(e,t,r){"errored"===e._state?r(e._storedError):w(t,r)}function O(e,r,n){function s(){f(e(),(()=>k(r,n)),(e=>k(!0,e)))}u||(u=!0,"writable"!==t._state||pt(t)?s():p(C(),s))}function I(e,r){u||(u=!0,"writable"!==t._state||pt(t)?k(e,r):p(C(),(()=>k(e,r))))}function k(e,t){St(l),R(i),void 0!==a&&a.removeEventListener("abort",_),e?v(t):y(void 0)}b(c(((e,t)=>{!function n(s){s?e():g(u?d(!0):g(l._readyPromise,(()=>c(((e,t)=>{K(i,{_chunkSteps:t=>{m=g(Tt(l,t),void 0,r),e(!1)},_closeSteps:()=>e(!0),_errorSteps:t})})))),n,t)}(!1)})))}))}class Qt{constructor(){throw new TypeError("Illegal constructor")}get desiredSize(){if(!Xt(this))throw ir("desiredSize");return sr(this)}close(){if(!Xt(this))throw ir("close");if(!or(this))throw new TypeError("The stream is not in a state that permits close");tr(this)}enqueue(e=void 0){if(!Xt(this))throw ir("enqueue");if(!or(this))throw new TypeError("The stream is not in a state that permits enqueue");return rr(this,e)}error(e=void 0){if(!Xt(this))throw ir("error");nr(this,e)}[$](e){ge(this);const t=this._cancelAlgorithm(e);return er(this),t}[L](e){const t=this._controlledReadableStream;if(this._queue.length>0){const r=de(this);this._closeRequested&&0===this._queue.length?(er(this),_r(t)):Zt(this),e._chunkSteps(r)}else J(t,e),Zt(this)}}function Xt(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_controlledReadableStream")&&e instanceof Qt}function Zt(e){Kt(e)&&(e._pulling?e._pullAgain=!0:(e._pulling=!0,f(e._pullAlgorithm(),(()=>{e._pulling=!1,e._pullAgain&&(e._pullAgain=!1,Zt(e))}),(t=>{nr(e,t)}))))}function Kt(e){const t=e._controlledReadableStream;return!!or(e)&&!!e._started&&(!!(yr(t)&&Y(t)>0)||sr(e)>0)}function er(e){e._pullAlgorithm=void 0,e._cancelAlgorithm=void 0,e._strategySizeAlgorithm=void 0}function tr(e){if(!or(e))return;const t=e._controlledReadableStream;e._closeRequested=!0,0===e._queue.length&&(er(e),_r(t))}function rr(e,t){if(!or(e))return;const r=e._controlledReadableStream;if(yr(r)&&Y(r)>0)G(r,t,!1);else{let r;try{r=e._strategySizeAlgorithm(t)}catch(t){throw nr(e,t),t}try{he(e,t,r)}catch(t){throw nr(e,t),t}}Zt(e)}function nr(e,t){const r=e._controlledReadableStream;"readable"===r._state&&(ge(e),er(e),Sr(r,t))}function sr(e){const t=e._controlledReadableStream._state;return"errored"===t?null:"closed"===t?0:e._strategyHWM-e._queueTotalSize}function or(e){const t=e._controlledReadableStream._state;return!e._closeRequested&&"readable"===t}function ar(e,t,r,n,s,o,a){t._controlledReadableStream=e,t._queue=void 0,t._queueTotalSize=void 0,ge(t),t._started=!1,t._closeRequested=!1,t._pullAgain=!1,t._pulling=!1,t._strategySizeAlgorithm=a,t._strategyHWM=o,t._pullAlgorithm=n,t._cancelAlgorithm=s,e._readableStreamController=t,f(d(r()),(()=>{t._started=!0,Zt(t)}),(e=>{nr(t,e)}))}function ir(e){return new TypeError(`ReadableStreamDefaultController.prototype.${e} can only be used on a ReadableStreamDefaultController`)}function lr(e,t,r){return F(e,r),r=>_(e,t,[r])}function ur(e,t,r){return F(e,r),r=>_(e,t,[r])}function cr(e,t,r){return F(e,r),r=>v(e,t,[r])}function dr(e,t){if("bytes"!=(e=`${e}`))throw new TypeError(`${t} '${e}' is not a valid enumeration value for ReadableStreamType`);return e}function hr(e,t){if("byob"!=(e=`${e}`))throw new TypeError(`${t} '${e}' is not a valid enumeration value for ReadableStreamReaderMode`);return e}function gr(e,t){x(e,t);const r=null==e?void 0:e.preventAbort,n=null==e?void 0:e.preventCancel,s=null==e?void 0:e.preventClose,o=null==e?void 0:e.signal;return void 0!==o&&function(e,t){if(!function(e){if("object"!=typeof e||null===e)return!1;try{return"boolean"==typeof e.aborted}catch(e){return!1}}(e))throw new TypeError(`${t} is not an AbortSignal.`)}(o,`${t} has member 'signal' that`),{preventAbort:Boolean(r),preventCancel:Boolean(n),preventClose:Boolean(s),signal:o}}Object.defineProperties(Qt.prototype,{close:{enumerable:!0},enqueue:{enumerable:!0},error:{enumerable:!0},desiredSize:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(Qt.prototype,t.toStringTag,{value:"ReadableStreamDefaultController",configurable:!0});class fr{constructor(e={},t={}){void 0===e?e=null:j(e,"First parameter");const r=Xe(t,"Second parameter"),n=function(e,t){x(e,t);const r=e,n=null==r?void 0:r.autoAllocateChunkSize,s=null==r?void 0:r.cancel,o=null==r?void 0:r.pull,a=null==r?void 0:r.start,i=null==r?void 0:r.type;return{autoAllocateChunkSize:void 0===n?void 0:z(n,`${t} has member 'autoAllocateChunkSize' that`),cancel:void 0===s?void 0:lr(s,r,`${t} has member 'cancel' that`),pull:void 0===o?void 0:ur(o,r,`${t} has member 'pull' that`),start:void 0===a?void 0:cr(a,r,`${t} has member 'start' that`),type:void 0===i?void 0:dr(i,`${t} has member 'type' that`)}}(e,"First parameter");if(mr(this),"bytes"===n.type){if(void 0!==r.size)throw new RangeError("The strategy for a byte stream cannot have a size function");!function(e,t,r){const n=Object.create(pe.prototype);let s=()=>{},o=()=>d(void 0),a=()=>d(void 0);void 0!==t.start&&(s=()=>t.start(n)),void 0!==t.pull&&(o=()=>t.pull(n)),void 0!==t.cancel&&(a=e=>t.cancel(e));const i=t.autoAllocateChunkSize;if(0===i)throw new TypeError("autoAllocateChunkSize must be greater than 0");Fe(e,n,s,o,a,r,i)}(this,n,Ye(r,0))}else{const e=Qe(r);!function(e,t,r,n){const s=Object.create(Qt.prototype);let o=()=>{},a=()=>d(void 0),i=()=>d(void 0);void 0!==t.start&&(o=()=>t.start(s)),void 0!==t.pull&&(a=()=>t.pull(s)),void 0!==t.cancel&&(i=e=>t.cancel(e)),ar(e,s,o,a,i,r,n)}(this,n,Ye(r,1),e)}}get locked(){if(!br(this))throw Tr("locked");return yr(this)}cancel(e=void 0){return br(this)?yr(this)?h(new TypeError("Cannot cancel a stream that already has a reader")):vr(this,e):h(Tr("cancel"))}getReader(e=void 0){if(!br(this))throw Tr("getReader");return void 0===function(e,t){x(e,t);const r=null==e?void 0:e.mode;return{mode:void 0===r?void 0:hr(r,`${t} has member 'mode' that`)}}(e,"First parameter").mode?H(this):Ue(this)}pipeThrough(e,t={}){if(!br(this))throw Tr("pipeThrough");q(e,1,"pipeThrough");const r=function(e,t){x(e,t);const r=null==e?void 0:e.readable;U(r,"readable","ReadableWritablePair"),N(r,`${t} has member 'readable' that`);const n=null==e?void 0:e.writable;return U(n,"writable","ReadableWritablePair"),nt(n,`${t} has member 'writable' that`),{readable:r,writable:n}}(e,"First parameter"),n=gr(t,"Second parameter");if(yr(this))throw new TypeError("ReadableStream.prototype.pipeThrough cannot be used on a locked ReadableStream");if(ut(r.writable))throw new TypeError("ReadableStream.prototype.pipeThrough cannot be used on a locked WritableStream");return b(Yt(this,r.writable,n.preventClose,n.preventAbort,n.preventCancel,n.signal)),r.readable}pipeTo(e,t={}){if(!br(this))return h(Tr("pipeTo"));if(void 0===e)return h("Parameter 1 is required in 'pipeTo'.");if(!lt(e))return h(new TypeError("ReadableStream.prototype.pipeTo's first argument must be a WritableStream"));let r;try{r=gr(t,"Second parameter")}catch(e){return h(e)}return yr(this)?h(new TypeError("ReadableStream.prototype.pipeTo cannot be used on a locked ReadableStream")):ut(e)?h(new TypeError("ReadableStream.prototype.pipeTo cannot be used on a locked WritableStream")):Yt(this,e,r.preventClose,r.preventAbort,r.preventCancel,r.signal)}tee(){if(!br(this))throw Tr("tee");return ie(we((e=this)._readableStreamController)?function(e){let t,r,n,s,o,a=H(e),i=!1,l=!1,u=!1,h=!1,g=!1;const f=c((e=>{o=e}));function p(e){w(e._closedPromise,(t=>{e===a&&($e(n._readableStreamController,t),$e(s._readableStreamController,t),h&&g||o(void 0))}))}function m(){He(a)&&(R(a),a=H(e),p(a)),K(a,{_chunkSteps:t=>{y((()=>{l=!1,u=!1;const r=t;let a=t;if(!h&&!g)try{a=ce(t)}catch(t){return $e(n._readableStreamController,t),$e(s._readableStreamController,t),void o(vr(e,t))}h||Ae(n._readableStreamController,r),g||Ae(s._readableStreamController,a),i=!1,l?v():u&&_()}))},_closeSteps:()=>{i=!1,h||Ee(n._readableStreamController),g||Ee(s._readableStreamController),n._readableStreamController._pendingPullIntos.length>0&&Ve(n._readableStreamController,0),s._readableStreamController._pendingPullIntos.length>0&&Ve(s._readableStreamController,0),h&&g||o(void 0)},_errorSteps:()=>{i=!1}})}function b(t,r){Z(a)&&(R(a),a=Ue(e),p(a));const c=r?s:n,d=r?n:s;Je(a,t,{_chunkSteps:t=>{y((()=>{l=!1,u=!1;const n=r?g:h;if(r?h:g)n||xe(c._readableStreamController,t);else{let r;try{r=ce(t)}catch(t){return $e(c._readableStreamController,t),$e(d._readableStreamController,t),void o(vr(e,t))}n||xe(c._readableStreamController,t),Ae(d._readableStreamController,r)}i=!1,l?v():u&&_()}))},_closeSteps:e=>{i=!1;const t=r?g:h,n=r?h:g;t||Ee(c._readableStreamController),n||Ee(d._readableStreamController),void 0!==e&&(t||xe(c._readableStreamController,e),!n&&d._readableStreamController._pendingPullIntos.length>0&&Ve(d._readableStreamController,0)),t&&n||o(void 0)},_errorSteps:()=>{i=!1}})}function v(){if(i)return l=!0,d(void 0);i=!0;const e=Le(n._readableStreamController);return null===e?m():b(e._view,!1),d(void 0)}function _(){if(i)return u=!0,d(void 0);i=!0;const e=Le(s._readableStreamController);return null===e?m():b(e._view,!0),d(void 0)}function S(){}return n=wr(S,v,(function(n){if(h=!0,t=n,g){const n=ie([t,r]),s=vr(e,n);o(s)}return f})),s=wr(S,_,(function(n){if(g=!0,r=n,h){const n=ie([t,r]),s=vr(e,n);o(s)}return f})),p(a),[n,s]}(e):function(e){const t=H(e);let r,n,s,o,a,i=!1,l=!1,u=!1,h=!1;const g=c((e=>{a=e}));function f(){return i?(l=!0,d(void 0)):(i=!0,K(t,{_chunkSteps:e=>{y((()=>{l=!1;const t=e,r=e;u||rr(s._readableStreamController,t),h||rr(o._readableStreamController,r),i=!1,l&&f()}))},_closeSteps:()=>{i=!1,u||tr(s._readableStreamController),h||tr(o._readableStreamController),u&&h||a(void 0)},_errorSteps:()=>{i=!1}}),d(void 0))}function p(){}return s=pr(p,f,(function(t){if(u=!0,r=t,h){const t=ie([r,n]),s=vr(e,t);a(s)}return g})),o=pr(p,f,(function(t){if(h=!0,n=t,u){const t=ie([r,n]),s=vr(e,t);a(s)}return g})),w(t._closedPromise,(e=>{nr(s._readableStreamController,e),nr(o._readableStreamController,e),u&&h||a(void 0)})),[s,o]}(e));var e}values(e=void 0){if(!br(this))throw Tr("values");return function(e,t){const r=H(e),n=new re(r,t),s=Object.create(ne);return s._asyncIteratorImpl=n,s}(this,function(e){x(e,"First parameter");const t=null==e?void 0:e.preventCancel;return{preventCancel:Boolean(t)}}(e).preventCancel)}}function pr(e,t,r,n=1,s=()=>1){const o=Object.create(fr.prototype);return mr(o),ar(o,Object.create(Qt.prototype),e,t,r,n,s),o}function wr(e,t,r){const n=Object.create(fr.prototype);return mr(n),Fe(n,Object.create(pe.prototype),e,t,r,0,void 0),n}function mr(e){e._state="readable",e._reader=void 0,e._storedError=void 0,e._disturbed=!1}function br(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_readableStreamController")&&e instanceof fr}function yr(e){return void 0!==e._reader}function vr(e,t){if(e._disturbed=!0,"closed"===e._state)return d(void 0);if("errored"===e._state)return h(e._storedError);_r(e);const n=e._reader;return void 0!==n&&He(n)&&(n._readIntoRequests.forEach((e=>{e._closeSteps(void 0)})),n._readIntoRequests=new S),m(e._readableStreamController[$](t),r)}function _r(e){e._state="closed";const t=e._reader;void 0!==t&&(k(t),Z(t)&&(t._readRequests.forEach((e=>{e._closeSteps()})),t._readRequests=new S))}function Sr(e,t){e._state="errored",e._storedError=t;const r=e._reader;void 0!==r&&(I(r,t),Z(r)?(r._readRequests.forEach((e=>{e._errorSteps(t)})),r._readRequests=new S):(r._readIntoRequests.forEach((e=>{e._errorSteps(t)})),r._readIntoRequests=new S))}function Tr(e){return new TypeError(`ReadableStream.prototype.${e} can only be used on a ReadableStream`)}function Dr(e,t){x(e,t);const r=null==e?void 0:e.highWaterMark;return U(r,"highWaterMark","QueuingStrategyInit"),{highWaterMark:W(r)}}Object.defineProperties(fr.prototype,{cancel:{enumerable:!0},getReader:{enumerable:!0},pipeThrough:{enumerable:!0},pipeTo:{enumerable:!0},tee:{enumerable:!0},values:{enumerable:!0},locked:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(fr.prototype,t.toStringTag,{value:"ReadableStream",configurable:!0}),"symbol"==typeof t.asyncIterator&&Object.defineProperty(fr.prototype,t.asyncIterator,{value:fr.prototype.values,writable:!0,configurable:!0});const Rr=e=>e.byteLength;try{Object.defineProperty(Rr,"name",{value:"size",configurable:!0})}catch(e){}class Cr{constructor(e){q(e,1,"ByteLengthQueuingStrategy"),e=Dr(e,"First parameter"),this._byteLengthQueuingStrategyHighWaterMark=e.highWaterMark}get highWaterMark(){if(!Or(this))throw Pr("highWaterMark");return this._byteLengthQueuingStrategyHighWaterMark}get size(){if(!Or(this))throw Pr("size");return Rr}}function Pr(e){return new TypeError(`ByteLengthQueuingStrategy.prototype.${e} can only be used on a ByteLengthQueuingStrategy`)}function Or(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_byteLengthQueuingStrategyHighWaterMark")&&e instanceof Cr}Object.defineProperties(Cr.prototype,{highWaterMark:{enumerable:!0},size:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(Cr.prototype,t.toStringTag,{value:"ByteLengthQueuingStrategy",configurable:!0});const Ir=()=>1;try{Object.defineProperty(Ir,"name",{value:"size",configurable:!0})}catch(e){}class kr{constructor(e){q(e,1,"CountQueuingStrategy"),e=Dr(e,"First parameter"),this._countQueuingStrategyHighWaterMark=e.highWaterMark}get highWaterMark(){if(!Ar(this))throw Er("highWaterMark");return this._countQueuingStrategyHighWaterMark}get size(){if(!Ar(this))throw Er("size");return Ir}}function Er(e){return new TypeError(`CountQueuingStrategy.prototype.${e} can only be used on a CountQueuingStrategy`)}function Ar(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_countQueuingStrategyHighWaterMark")&&e instanceof kr}function $r(e,t,r){return F(e,r),r=>_(e,t,[r])}function Lr(e,t,r){return F(e,r),r=>v(e,t,[r])}function Mr(e,t,r){return F(e,r),(r,n)=>_(e,t,[r,n])}Object.defineProperties(kr.prototype,{highWaterMark:{enumerable:!0},size:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(kr.prototype,t.toStringTag,{value:"CountQueuingStrategy",configurable:!0});class Vr{constructor(e={},t={},r={}){void 0===e&&(e=null);const n=Xe(t,"Second parameter"),s=Xe(r,"Third parameter"),o=function(e,t){x(e,t);const r=null==e?void 0:e.flush,n=null==e?void 0:e.readableType,s=null==e?void 0:e.start,o=null==e?void 0:e.transform,a=null==e?void 0:e.writableType;return{flush:void 0===r?void 0:$r(r,e,`${t} has member 'flush' that`),readableType:n,start:void 0===s?void 0:Lr(s,e,`${t} has member 'start' that`),transform:void 0===o?void 0:Mr(o,e,`${t} has member 'transform' that`),writableType:a}}(e,"First parameter");if(void 0!==o.readableType)throw new RangeError("Invalid readableType specified");if(void 0!==o.writableType)throw new RangeError("Invalid writableType specified");const a=Ye(s,0),i=Qe(s),l=Ye(n,1),u=Qe(n);let g;!function(e,t,r,n,s,o){function a(){return t}e._writable=function(e,t,r,n,s=1,o=()=>1){const a=Object.create(ot.prototype);return it(a),Pt(a,Object.create(Rt.prototype),e,t,r,n,s,o),a}(a,(function(t){return function(e,t){const r=e._transformStreamController;return e._backpressure?m(e._backpressureChangePromise,(()=>{const n=e._writable;if("erroring"===n._state)throw n._storedError;return Nr(r,t)})):Nr(r,t)}(e,t)}),(function(){return function(e){const t=e._readable,r=e._transformStreamController,n=r._flushAlgorithm();return Br(r),m(n,(()=>{if("errored"===t._state)throw t._storedError;tr(t._readableStreamController)}),(r=>{throw Fr(e,r),t._storedError}))}(e)}),(function(t){return function(e,t){return Fr(e,t),d(void 0)}(e,t)}),r,n),e._readable=pr(a,(function(){return function(e){return qr(e,!1),e._backpressureChangePromise}(e)}),(function(t){return jr(e,t),d(void 0)}),s,o),e._backpressure=void 0,e._backpressureChangePromise=void 0,e._backpressureChangePromise_resolve=void 0,qr(e,!0),e._transformStreamController=void 0}(this,c((e=>{g=e})),l,u,a,i),function(e,t){const r=Object.create(Ur.prototype);let n=e=>{try{return zr(r,e),d(void 0)}catch(e){return h(e)}},s=()=>d(void 0);void 0!==t.transform&&(n=e=>t.transform(e,r)),void 0!==t.flush&&(s=()=>t.flush(r)),function(e,t,r,n){t._controlledTransformStream=e,e._transformStreamController=t,t._transformAlgorithm=r,t._flushAlgorithm=n}(e,r,n,s)}(this,o),void 0!==o.start?g(o.start(this._transformStreamController)):g(void 0)}get readable(){if(!xr(this))throw Jr("readable");return this._readable}get writable(){if(!xr(this))throw Jr("writable");return this._writable}}function xr(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_transformStreamController")&&e instanceof Vr}function Fr(e,t){nr(e._readable._readableStreamController,t),jr(e,t)}function jr(e,t){Br(e._transformStreamController),Et(e._writable._writableStreamController,t),e._backpressure&&qr(e,!1)}function qr(e,t){void 0!==e._backpressureChangePromise&&e._backpressureChangePromise_resolve(),e._backpressureChangePromise=c((t=>{e._backpressureChangePromise_resolve=t})),e._backpressure=t}Object.defineProperties(Vr.prototype,{readable:{enumerable:!0},writable:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(Vr.prototype,t.toStringTag,{value:"TransformStream",configurable:!0});class Ur{constructor(){throw new TypeError("Illegal constructor")}get desiredSize(){if(!Wr(this))throw Hr("desiredSize");return sr(this._controlledTransformStream._readable._readableStreamController)}enqueue(e=void 0){if(!Wr(this))throw Hr("enqueue");zr(this,e)}error(e=void 0){if(!Wr(this))throw Hr("error");var t;t=e,Fr(this._controlledTransformStream,t)}terminate(){if(!Wr(this))throw Hr("terminate");!function(e){const t=e._controlledTransformStream;tr(t._readable._readableStreamController);jr(t,new TypeError("TransformStream terminated"))}(this)}}function Wr(e){return!!s(e)&&!!Object.prototype.hasOwnProperty.call(e,"_controlledTransformStream")&&e instanceof Ur}function Br(e){e._transformAlgorithm=void 0,e._flushAlgorithm=void 0}function zr(e,t){const r=e._controlledTransformStream,n=r._readable._readableStreamController;if(!or(n))throw new TypeError("Readable side is not in a state that permits enqueue");try{rr(n,t)}catch(e){throw jr(r,e),r._readable._storedError}const s=function(e){return!Kt(e)}(n);s!==r._backpressure&&qr(r,!0)}function Nr(e,t){return m(e._transformAlgorithm(t),void 0,(t=>{throw Fr(e._controlledTransformStream,t),t}))}function Hr(e){return new TypeError(`TransformStreamDefaultController.prototype.${e} can only be used on a TransformStreamDefaultController`)}function Jr(e){return new TypeError(`TransformStream.prototype.${e} can only be used on a TransformStream`)}Object.defineProperties(Ur.prototype,{enqueue:{enumerable:!0},error:{enumerable:!0},terminate:{enumerable:!0},desiredSize:{enumerable:!0}}),"symbol"==typeof t.toStringTag&&Object.defineProperty(Ur.prototype,t.toStringTag,{value:"TransformStreamDefaultController",configurable:!0}),e.ByteLengthQueuingStrategy=Cr,e.CountQueuingStrategy=kr,e.ReadableByteStreamController=pe,e.ReadableStream=fr,e.ReadableStreamBYOBReader=Ne,e.ReadableStreamBYOBRequest=fe,e.ReadableStreamDefaultController=Qt,e.ReadableStreamDefaultReader=X,e.TransformStream=Vr,e.TransformStreamDefaultController=Ur,e.WritableStream=ot,e.WritableStreamDefaultController=Rt,e.WritableStreamDefaultWriter=bt,Object.defineProperty(e,"__esModule",{value:!0})},r(t)},15:(e,t,r)=>{"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.DagTreeItem=void 0;const n=r(398);class s extends n.TreeItem{constructor(e){super(e.dag_id),this.LatestDagRunId="",this.LatestDagState="",this._IsFav=!1,this.IsFiltered=!1,this.ApiResponse=e,this.DagId=e.dag_id,this.IsActive=e.is_active,this.IsPaused=e.is_paused,this.Owners=e.owners,this.Tags=e.tags,this.FileToken=e.file_token,this.setContextValue(),this.refreshUI()}set IsFav(e){this._IsFav=e,this.setContextValue()}get IsFav(){return this._IsFav}isDagRunning(){return"queued"===this.LatestDagState||"running"===this.LatestDagState}setContextValue(){let e="#";e+=this.IsFav?"IsFav#":"!IsFav#",e+=this.IsPaused?"IsPaused#":"!IsPaused#",e+=this.IsActive?"IsActive#":"!IsActive#",e+=this.IsFiltered?"IsFiltered#":"!IsFiltered#",this.contextValue=e}refreshUI(){this.IsPaused?(this.iconPath=new n.ThemeIcon("circle-outline"),this.ApiResponse.is_paused=!0):("queued"===this.LatestDagState||"running"===this.LatestDagState?this.iconPath=new n.ThemeIcon("loading~spin"):"success"===this.LatestDagState?this.iconPath=new n.ThemeIcon("check"):"failed"===this.LatestDagState?this.iconPath=new n.ThemeIcon("error"):this.iconPath=new n.ThemeIcon("circle-filled"),this.ApiResponse.is_paused=!1)}doesFilterMatch(e){const t=e.split(","),r=[];for(const e of t)if("active"!==e||this.IsPaused)if("paused"===e&&this.IsPaused)r.push(e);else if(this.DagId.includes(e))r.push(e);else if(this.Owners.includes(e))r.push(e);else if("fav"===e&&this.IsFav)r.push(e);else for(const t of this.Tags)t.name.includes(e)&&r.push(e);else r.push(e);return this.IsFiltered=t.length===r.length,this.IsFiltered}}t.DagTreeItem=s},60:(e,t,r)=>{"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.getUri=function(e,t,r){return e.asWebviewUri(s.Uri.joinPath(t,...r))},t.showOutputMessage=function(e,t="Results are printed to OUTPUT / Airflow-Extension"){i||(i=n.window.createOutputChannel("Airflow-Extension")),i.clear(),"object"==typeof e?i.appendLine(JSON.stringify(e,null,4)):i.appendLine(e),i.show(),d(t)},t.logToOutput=c,t.showInfoMessage=d,t.showWarningMessage=function(e){n.window.showWarningMessage(e)},t.showErrorMessage=function(e,t=void 0){t?n.window.showErrorMessage(e+u+t.name+u+t.message):n.window.showErrorMessage(e)},t.showApiErrorMessage=function(e,t){let r="";t?403===t.status?(r="Permission Denied !!!",n.window.showErrorMessage(r)):401===t.status?(r="Invalid Authentication Info !!!",n.window.showErrorMessage(r)):404===t.status?(r="Resource Not Found !!!",n.window.showErrorMessage(r)):n.window.showErrorMessage(r):n.window.showErrorMessage(e)},t.getExtensionVersion=function(){const{version:e}=JSON.parse((0,o.readFileSync)((0,a.join)(__dirname,"..","package.json"),{encoding:"utf8"}));return e},t.openFile=function(e){(async()=>{try{const t=await n.workspace.openTextDocument(n.Uri.file(e));await n.window.showTextDocument(t,{viewColumn:n.ViewColumn.One,preview:!1})}catch(e){c("openFile Error",e)}})()},t.getDuration=function(e,t){return e?((!t||t<e)&&(t=new Date),g(t.valueOf()-e.valueOf())):""},t.convertMsToTime=g,t.isJsonString=function(e){try{return"object"==typeof JSON.parse(e)}catch(e){return!1}},t.isValidDate=function(e){if(!e.match(/^\d{4}-\d{2}-\d{2}$/))return!1;const t=new Date(e),r=t.getTime();return!(!r&&0!==r)&&t.toISOString().slice(0,10)===e};const n=r(398),s=r(398),o=r(896),a=r(928);let i,l;const u="\n\n";function c(e,t=void 0){const r=(new Date).toLocaleString();l||(l=n.window.createOutputChannel("Airflow-Log")),"object"==typeof e?l.appendLine("["+r+"] "+JSON.stringify(e,null,4)):l.appendLine("["+r+"] "+e),t&&(l.appendLine(t.name),l.appendLine(t.message),t.stack&&l.appendLine(t.stack))}function d(e){n.window.showInformationMessage(e)}function h(e){return e.toString().padStart(2,"0")}function g(e){let t=Math.floor(e/1e3),r=Math.floor(t/60);const n=Math.floor(r/60);return t%=60,r%=60,`${h(n)}:${h(r)}:${h(t)}`}},65:(e,t,r)=>{"use strict";r.r(t),r.d(t,{AbortError:()=>z,Blob:()=>N.YQ,FetchError:()=>g,File:()=>N.ZH,FormData:()=>d.fS,Headers:()=>I,Request:()=>W,Response:()=>$,blobFrom:()=>N.k4,blobFromSync:()=>N.F8,default:()=>J,fileFrom:()=>N.NX,fileFromSync:()=>N._M,isRedirect:()=>E});const n=require("node:http"),s=require("node:https"),o=require("node:zlib"),a=require("node:stream"),i=require("node:buffer"),l=function(e){if(!/^data:/i.test(e))throw new TypeError('`uri` does not appear to be a Data URI (must begin with "data:")');const t=(e=e.replace(/\r?\n/g,"")).indexOf(",");if(-1===t||t<=4)throw new TypeError("malformed data: URI");const r=e.substring(5,t).split(";");let n="",s=!1;const o=r[0]||"text/plain";let a=o;for(let e=1;e<r.length;e++)"base64"===r[e]?s=!0:(a+=`;${r[e]}`,0===r[e].indexOf("charset=")&&(n=r[e].substring(8)));r[0]||n.length||(a+=";charset=US-ASCII",n="US-ASCII");const i=s?"base64":"ascii",l=unescape(e.substring(t+1)),u=Buffer.from(l,i);return u.type=o,u.typeFull=a,u.charset=n,u},u=require("node:util");var c=r(720),d=r(435);class h extends Error{constructor(e,t){super(e),Error.captureStackTrace(this,this.constructor),this.type=t}get name(){return this.constructor.name}get[Symbol.toStringTag](){return this.constructor.name}}class g extends h{constructor(e,t,r){super(e,t),r&&(this.code=this.errno=r.code,this.erroredSysCall=r.syscall)}}const f=Symbol.toStringTag,p=e=>"object"==typeof e&&"function"==typeof e.append&&"function"==typeof e.delete&&"function"==typeof e.get&&"function"==typeof e.getAll&&"function"==typeof e.has&&"function"==typeof e.set&&"function"==typeof e.sort&&"URLSearchParams"===e[f],w=e=>e&&"object"==typeof e&&"function"==typeof e.arrayBuffer&&"string"==typeof e.type&&"function"==typeof e.stream&&"function"==typeof e.constructor&&/^(Blob|File)$/.test(e[f]),m=(e,t)=>{const r=new URL(t).hostname,n=new URL(e).hostname;return r===n||r.endsWith(`.${n}`)},b=(e,t)=>new URL(t).protocol===new URL(e).protocol,y=(0,u.promisify)(a.pipeline),v=Symbol("Body internals");class _{constructor(e,{size:t=0}={}){let r=null;null===e?e=null:p(e)?e=i.Buffer.from(e.toString()):w(e)||i.Buffer.isBuffer(e)||(u.types.isAnyArrayBuffer(e)?e=i.Buffer.from(e):ArrayBuffer.isView(e)?e=i.Buffer.from(e.buffer,e.byteOffset,e.byteLength):e instanceof a||(e instanceof d.fS?r=(e=(0,d.$n)(e)).type.split("=")[1]:e=i.Buffer.from(String(e))));let n=e;i.Buffer.isBuffer(e)?n=a.Readable.from(e):w(e)&&(n=a.Readable.from(e.stream())),this[v]={body:e,stream:n,boundary:r,disturbed:!1,error:null},this.size=t,e instanceof a&&e.on("error",(e=>{const t=e instanceof h?e:new g(`Invalid response body while trying to fetch ${this.url}: ${e.message}`,"system",e);this[v].error=t}))}get body(){return this[v].stream}get bodyUsed(){return this[v].disturbed}async arrayBuffer(){const{buffer:e,byteOffset:t,byteLength:r}=await S(this);return e.slice(t,t+r)}async formData(){const e=this.headers.get("content-type");if(e.startsWith("application/x-www-form-urlencoded")){const e=new d.fS,t=new URLSearchParams(await this.text());for(const[r,n]of t)e.append(r,n);return e}const{toFormData:t}=await r.e(460).then(r.bind(r,460));return t(this.body,e)}async blob(){const e=this.headers&&this.headers.get("content-type")||this[v].body&&this[v].body.type||"",t=await this.arrayBuffer();return new c.A([t],{type:e})}async json(){const e=await this.text();return JSON.parse(e)}async text(){const e=await S(this);return(new TextDecoder).decode(e)}buffer(){return S(this)}}async function S(e){if(e[v].disturbed)throw new TypeError(`body used already for: ${e.url}`);if(e[v].disturbed=!0,e[v].error)throw e[v].error;const{body:t}=e;if(null===t)return i.Buffer.alloc(0);if(!(t instanceof a))return i.Buffer.alloc(0);const r=[];let n=0;try{for await(const s of t){if(e.size>0&&n+s.length>e.size){const r=new g(`content size at ${e.url} over limit: ${e.size}`,"max-size");throw t.destroy(r),r}n+=s.length,r.push(s)}}catch(t){throw t instanceof h?t:new g(`Invalid response body while trying to fetch ${e.url}: ${t.message}`,"system",t)}if(!0!==t.readableEnded&&!0!==t._readableState.ended)throw new g(`Premature close of server response while trying to fetch ${e.url}`);try{return r.every((e=>"string"==typeof e))?i.Buffer.from(r.join("")):i.Buffer.concat(r,n)}catch(t){throw new g(`Could not create Buffer from response body for ${e.url}: ${t.message}`,"system",t)}}_.prototype.buffer=(0,u.deprecate)(_.prototype.buffer,"Please use 'response.arrayBuffer()' instead of 'response.buffer()'","node-fetch#buffer"),Object.defineProperties(_.prototype,{body:{enumerable:!0},bodyUsed:{enumerable:!0},arrayBuffer:{enumerable:!0},blob:{enumerable:!0},json:{enumerable:!0},text:{enumerable:!0},data:{get:(0,u.deprecate)((()=>{}),"data doesn't exist, use json(), text(), arrayBuffer(), or body instead","https://github.com/node-fetch/node-fetch/issues/1000 (response)")}});const T=(e,t)=>{let r,n,{body:s}=e[v];if(e.bodyUsed)throw new Error("cannot clone body after it is used");return s instanceof a&&"function"!=typeof s.getBoundary&&(r=new a.PassThrough({highWaterMark:t}),n=new a.PassThrough({highWaterMark:t}),s.pipe(r),s.pipe(n),e[v].stream=r,s=n),s},D=(0,u.deprecate)((e=>e.getBoundary()),"form-data doesn't follow the spec and requires special treatment. Use alternative package","https://github.com/node-fetch/node-fetch/issues/1167"),R=(e,t)=>null===e?null:"string"==typeof e?"text/plain;charset=UTF-8":p(e)?"application/x-www-form-urlencoded;charset=UTF-8":w(e)?e.type||null:i.Buffer.isBuffer(e)||u.types.isAnyArrayBuffer(e)||ArrayBuffer.isView(e)?null:e instanceof d.fS?`multipart/form-data; boundary=${t[v].boundary}`:e&&"function"==typeof e.getBoundary?`multipart/form-data;boundary=${D(e)}`:e instanceof a?null:"text/plain;charset=UTF-8",C=async(e,{body:t})=>{null===t?e.end():await y(t,e)},P="function"==typeof n.validateHeaderName?n.validateHeaderName:e=>{if(!/^[\^`\-\w!#$%&'*+.|~]+$/.test(e)){const t=new TypeError(`Header name must be a valid HTTP token [${e}]`);throw Object.defineProperty(t,"code",{value:"ERR_INVALID_HTTP_TOKEN"}),t}},O="function"==typeof n.validateHeaderValue?n.validateHeaderValue:(e,t)=>{if(/[^\t\u0020-\u007E\u0080-\u00FF]/.test(t)){const t=new TypeError(`Invalid character in header content ["${e}"]`);throw Object.defineProperty(t,"code",{value:"ERR_INVALID_CHAR"}),t}};class I extends URLSearchParams{constructor(e){let t=[];if(e instanceof I){const r=e.raw();for(const[e,n]of Object.entries(r))t.push(...n.map((t=>[e,t])))}else if(null==e);else{if("object"!=typeof e||u.types.isBoxedPrimitive(e))throw new TypeError("Failed to construct 'Headers': The provided value is not of type '(sequence<sequence<ByteString>> or record<ByteString, ByteString>)");{const r=e[Symbol.iterator];if(null==r)t.push(...Object.entries(e));else{if("function"!=typeof r)throw new TypeError("Header pairs must be iterable");t=[...e].map((e=>{if("object"!=typeof e||u.types.isBoxedPrimitive(e))throw new TypeError("Each header pair must be an iterable object");return[...e]})).map((e=>{if(2!==e.length)throw new TypeError("Each header pair must be a name/value tuple");return[...e]}))}}}return t=t.length>0?t.map((([e,t])=>(P(e),O(e,String(t)),[String(e).toLowerCase(),String(t)]))):void 0,super(t),new Proxy(this,{get(e,t,r){switch(t){case"append":case"set":return(r,n)=>(P(r),O(r,String(n)),URLSearchParams.prototype[t].call(e,String(r).toLowerCase(),String(n)));case"delete":case"has":case"getAll":return r=>(P(r),URLSearchParams.prototype[t].call(e,String(r).toLowerCase()));case"keys":return()=>(e.sort(),new Set(URLSearchParams.prototype.keys.call(e)).keys());default:return Reflect.get(e,t,r)}}})}get[Symbol.toStringTag](){return this.constructor.name}toString(){return Object.prototype.toString.call(this)}get(e){const t=this.getAll(e);if(0===t.length)return null;let r=t.join(", ");return/^content-encoding$/i.test(e)&&(r=r.toLowerCase()),r}forEach(e,t=void 0){for(const r of this.keys())Reflect.apply(e,t,[this.get(r),r,this])}*values(){for(const e of this.keys())yield this.get(e)}*entries(){for(const e of this.keys())yield[e,this.get(e)]}[Symbol.iterator](){return this.entries()}raw(){return[...this.keys()].reduce(((e,t)=>(e[t]=this.getAll(t),e)),{})}[Symbol.for("nodejs.util.inspect.custom")](){return[...this.keys()].reduce(((e,t)=>{const r=this.getAll(t);return e[t]="host"===t?r[0]:r.length>1?r:r[0],e}),{})}}Object.defineProperties(I.prototype,["get","entries","forEach","values"].reduce(((e,t)=>(e[t]={enumerable:!0},e)),{}));const k=new Set([301,302,303,307,308]),E=e=>k.has(e),A=Symbol("Response internals");class $ extends _{constructor(e=null,t={}){super(e,t);const r=null!=t.status?t.status:200,n=new I(t.headers);if(null!==e&&!n.has("Content-Type")){const t=R(e,this);t&&n.append("Content-Type",t)}this[A]={type:"default",url:t.url,status:r,statusText:t.statusText||"",headers:n,counter:t.counter,highWaterMark:t.highWaterMark}}get type(){return this[A].type}get url(){return this[A].url||""}get status(){return this[A].status}get ok(){return this[A].status>=200&&this[A].status<300}get redirected(){return this[A].counter>0}get statusText(){return this[A].statusText}get headers(){return this[A].headers}get highWaterMark(){return this[A].highWaterMark}clone(){return new $(T(this,this.highWaterMark),{type:this.type,url:this.url,status:this.status,statusText:this.statusText,headers:this.headers,ok:this.ok,redirected:this.redirected,size:this.size,highWaterMark:this.highWaterMark})}static redirect(e,t=302){if(!E(t))throw new RangeError('Failed to execute "redirect" on "response": Invalid status code');return new $(null,{headers:{location:new URL(e).toString()},status:t})}static error(){const e=new $(null,{status:0,statusText:""});return e[A].type="error",e}static json(e=void 0,t={}){const r=JSON.stringify(e);if(void 0===r)throw new TypeError("data is not JSON serializable");const n=new I(t&&t.headers);return n.has("content-type")||n.set("content-type","application/json"),new $(r,{...t,headers:n})}get[Symbol.toStringTag](){return"Response"}}Object.defineProperties($.prototype,{type:{enumerable:!0},url:{enumerable:!0},status:{enumerable:!0},ok:{enumerable:!0},redirected:{enumerable:!0},statusText:{enumerable:!0},headers:{enumerable:!0},clone:{enumerable:!0}});const L=require("node:url"),M=require("node:net");function V(e,t=!1){return null==e?"no-referrer":(e=new URL(e),/^(about|blob|data):$/.test(e.protocol)?"no-referrer":(e.username="",e.password="",e.hash="",t&&(e.pathname="",e.search=""),e))}const x=new Set(["","no-referrer","no-referrer-when-downgrade","same-origin","origin","strict-origin","origin-when-cross-origin","strict-origin-when-cross-origin","unsafe-url"]);function F(e){return!!/^about:(blank|srcdoc)$/.test(e)||"data:"===e.protocol||!!/^(blob|filesystem):$/.test(e.protocol)||function(e){if(/^(http|ws)s:$/.test(e.protocol))return!0;const t=e.host.replace(/(^\[)|(]$)/g,""),r=(0,M.isIP)(t);return!(4!==r||!/^127\./.test(t))||!(6!==r||!/^(((0+:){7})|(::(0+:){0,6}))0*1$/.test(t))||"localhost"!==e.host&&!e.host.endsWith(".localhost")&&"file:"===e.protocol}(e)}const j=Symbol("Request internals"),q=e=>"object"==typeof e&&"object"==typeof e[j],U=(0,u.deprecate)((()=>{}),".data is not a valid RequestInit property, use .body instead","https://github.com/node-fetch/node-fetch/issues/1000 (request)");class W extends _{constructor(e,t={}){let r;if(q(e)?r=new URL(e.url):(r=new URL(e),e={}),""!==r.username||""!==r.password)throw new TypeError(`${r} is an url with embedded credentials.`);let n=t.method||e.method||"GET";if(/^(delete|get|head|options|post|put)$/i.test(n)&&(n=n.toUpperCase()),!q(t)&&"data"in t&&U(),(null!=t.body||q(e)&&null!==e.body)&&("GET"===n||"HEAD"===n))throw new TypeError("Request with GET/HEAD method cannot have body");const s=t.body?t.body:q(e)&&null!==e.body?T(e):null;super(s,{size:t.size||e.size||0});const o=new I(t.headers||e.headers||{});if(null!==s&&!o.has("Content-Type")){const e=R(s,this);e&&o.set("Content-Type",e)}let a=q(e)?e.signal:null;if("signal"in t&&(a=t.signal),null!=a&&("object"!=typeof(i=a)||"AbortSignal"!==i[f]&&"EventTarget"!==i[f]))throw new TypeError("Expected signal to be an instanceof AbortSignal or EventTarget");var i;let l=null==t.referrer?e.referrer:t.referrer;if(""===l)l="no-referrer";else if(l){const e=new URL(l);l=/^about:(\/\/)?client$/.test(e)?"client":e}else l=void 0;this[j]={method:n,redirect:t.redirect||e.redirect||"follow",headers:o,parsedURL:r,signal:a,referrer:l},this.follow=void 0===t.follow?void 0===e.follow?20:e.follow:t.follow,this.compress=void 0===t.compress?void 0===e.compress||e.compress:t.compress,this.counter=t.counter||e.counter||0,this.agent=t.agent||e.agent,this.highWaterMark=t.highWaterMark||e.highWaterMark||16384,this.insecureHTTPParser=t.insecureHTTPParser||e.insecureHTTPParser||!1,this.referrerPolicy=t.referrerPolicy||e.referrerPolicy||""}get method(){return this[j].method}get url(){return(0,L.format)(this[j].parsedURL)}get headers(){return this[j].headers}get redirect(){return this[j].redirect}get signal(){return this[j].signal}get referrer(){return"no-referrer"===this[j].referrer?"":"client"===this[j].referrer?"about:client":this[j].referrer?this[j].referrer.toString():void 0}get referrerPolicy(){return this[j].referrerPolicy}set referrerPolicy(e){this[j].referrerPolicy=function(e){if(!x.has(e))throw new TypeError(`Invalid referrerPolicy: ${e}`);return e}(e)}clone(){return new W(this)}get[Symbol.toStringTag](){return"Request"}}Object.defineProperties(W.prototype,{method:{enumerable:!0},url:{enumerable:!0},headers:{enumerable:!0},redirect:{enumerable:!0},clone:{enumerable:!0},signal:{enumerable:!0},referrer:{enumerable:!0},referrerPolicy:{enumerable:!0}});const B=e=>{const{parsedURL:t}=e[j],r=new I(e[j].headers);r.has("Accept")||r.set("Accept","*/*");let n=null;if(null===e.body&&/^(post|put)$/i.test(e.method)&&(n="0"),null!==e.body){const t=(e=>{const{body:t}=e[v];return null===t?0:w(t)?t.size:i.Buffer.isBuffer(t)?t.length:t&&"function"==typeof t.getLengthSync&&t.hasKnownLength&&t.hasKnownLength()?t.getLengthSync():null})(e);"number"!=typeof t||Number.isNaN(t)||(n=String(t))}n&&r.set("Content-Length",n),""===e.referrerPolicy&&(e.referrerPolicy="strict-origin-when-cross-origin"),e.referrer&&"no-referrer"!==e.referrer?e[j].referrer=function(e,{referrerURLCallback:t,referrerOriginCallback:r}={}){if("no-referrer"===e.referrer||""===e.referrerPolicy)return null;const n=e.referrerPolicy;if("about:client"===e.referrer)return"no-referrer";const s=e.referrer;let o=V(s),a=V(s,!0);o.toString().length>4096&&(o=a),t&&(o=t(o)),r&&(a=r(a));const i=new URL(e.url);switch(n){case"no-referrer":return"no-referrer";case"origin":return a;case"unsafe-url":return o;case"strict-origin":return F(o)&&!F(i)?"no-referrer":a.toString();case"strict-origin-when-cross-origin":return o.origin===i.origin?o:F(o)&&!F(i)?"no-referrer":a;case"same-origin":return o.origin===i.origin?o:"no-referrer";case"origin-when-cross-origin":return o.origin===i.origin?o:a;case"no-referrer-when-downgrade":return F(o)&&!F(i)?"no-referrer":o;default:throw new TypeError(`Invalid referrerPolicy: ${n}`)}}(e):e[j].referrer="no-referrer",e[j].referrer instanceof URL&&r.set("Referer",e.referrer),r.has("User-Agent")||r.set("User-Agent","node-fetch"),e.compress&&!r.has("Accept-Encoding")&&r.set("Accept-Encoding","gzip, deflate, br");let{agent:s}=e;"function"==typeof s&&(s=s(t));const o=(e=>{if(e.search)return e.search;const t=e.href.length-1,r=e.hash||("#"===e.href[t]?"#":"");return"?"===e.href[t-r.length]?"?":""})(t);return{parsedURL:t,options:{path:t.pathname+o,method:e.method,headers:r[Symbol.for("nodejs.util.inspect.custom")](),insecureHTTPParser:e.insecureHTTPParser,agent:s}}};class z extends h{constructor(e,t="aborted"){super(e,t)}}var N=r(730);const H=new Set(["data:","http:","https:"]);async function J(e,t){return new Promise(((r,u)=>{const c=new W(e,t),{parsedURL:d,options:h}=B(c);if(!H.has(d.protocol))throw new TypeError(`node-fetch cannot load ${e}. URL scheme "${d.protocol.replace(/:$/,"")}" is not supported.`);if("data:"===d.protocol){const e=l(c.url),t=new $(e,{headers:{"Content-Type":e.typeFull}});return void r(t)}const f=("https:"===d.protocol?s:n).request,{signal:p}=c;let w=null;const y=()=>{const e=new z("The operation was aborted.");u(e),c.body&&c.body instanceof a.Readable&&c.body.destroy(e),w&&w.body&&w.body.emit("error",e)};if(p&&p.aborted)return void y();const v=()=>{y(),S()},_=f(d.toString(),h);p&&p.addEventListener("abort",v);const S=()=>{_.abort(),p&&p.removeEventListener("abort",v)};_.on("error",(e=>{u(new g(`request to ${c.url} failed, reason: ${e.message}`,"system",e)),S()})),function(e){const t=i.Buffer.from("0\r\n\r\n");let r,n=!1,s=!1;e.on("response",(e=>{const{headers:t}=e;n="chunked"===t["transfer-encoding"]&&!t["content-length"]})),e.on("socket",(o=>{const a=()=>{if(n&&!s){const e=new Error("Premature close");e.code="ERR_STREAM_PREMATURE_CLOSE",(e=>{w&&w.body&&w.body.destroy(e)})(e)}},l=e=>{s=0===i.Buffer.compare(e.slice(-5),t),!s&&r&&(s=0===i.Buffer.compare(r.slice(-3),t.slice(0,3))&&0===i.Buffer.compare(e.slice(-2),t.slice(3))),r=e};o.prependListener("close",a),o.on("data",l),e.on("close",(()=>{o.removeListener("close",a),o.removeListener("data",l)}))}))}(_),process.version<"v14"&&_.on("socket",(e=>{let t;e.prependListener("end",(()=>{t=e._eventsCount})),e.prependListener("close",(r=>{if(w&&t<e._eventsCount&&!r){const e=new Error("Premature close");e.code="ERR_STREAM_PREMATURE_CLOSE",w.body.emit("error",e)}}))})),_.on("response",(e=>{_.setTimeout(0);const n=function(e=[]){return new I(e.reduce(((e,t,r,n)=>(r%2==0&&e.push(n.slice(r,r+2)),e)),[]).filter((([e,t])=>{try{return P(e),O(e,String(t)),!0}catch{return!1}})))}(e.rawHeaders);if(E(e.statusCode)){const s=n.get("Location");let o=null;try{o=null===s?null:new URL(s,c.url)}catch{if("manual"!==c.redirect)return u(new g(`uri requested responds with an invalid redirect URL: ${s}`,"invalid-redirect")),void S()}switch(c.redirect){case"error":return u(new g(`uri requested responds with a redirect, redirect mode is set to error: ${c.url}`,"no-redirect")),void S();case"manual":break;case"follow":{if(null===o)break;if(c.counter>=c.follow)return u(new g(`maximum redirect reached at: ${c.url}`,"max-redirect")),void S();const s={headers:new I(c.headers),follow:c.follow,counter:c.counter+1,agent:c.agent,compress:c.compress,method:c.method,body:T(c),signal:c.signal,size:c.size,referrer:c.referrer,referrerPolicy:c.referrerPolicy};if(!m(c.url,o)||!b(c.url,o))for(const e of["authorization","www-authenticate","cookie","cookie2"])s.headers.delete(e);if(303!==e.statusCode&&c.body&&t.body instanceof a.Readable)return u(new g("Cannot follow redirect with body being a readable stream","unsupported-redirect")),void S();303!==e.statusCode&&(301!==e.statusCode&&302!==e.statusCode||"POST"!==c.method)||(s.method="GET",s.body=void 0,s.headers.delete("content-length"));const i=function(e){const t=(e.get("referrer-policy")||"").split(/[,\s]+/);let r="";for(const e of t)e&&x.has(e)&&(r=e);return r}(n);return i&&(s.referrerPolicy=i),r(J(new W(o,s))),void S()}default:return u(new TypeError(`Redirect option '${c.redirect}' is not a valid value of RequestRedirect`))}}p&&e.once("end",(()=>{p.removeEventListener("abort",v)}));let s=(0,a.pipeline)(e,new a.PassThrough,(e=>{e&&u(e)}));process.version<"v12.10"&&e.on("aborted",v);const i={url:c.url,status:e.statusCode,statusText:e.statusMessage,headers:n,size:c.size,counter:c.counter,highWaterMark:c.highWaterMark},l=n.get("Content-Encoding");if(!c.compress||"HEAD"===c.method||null===l||204===e.statusCode||304===e.statusCode)return w=new $(s,i),void r(w);const d={flush:o.Z_SYNC_FLUSH,finishFlush:o.Z_SYNC_FLUSH};if("gzip"===l||"x-gzip"===l)return s=(0,a.pipeline)(s,o.createGunzip(d),(e=>{e&&u(e)})),w=new $(s,i),void r(w);if("deflate"===l||"x-deflate"===l){const t=(0,a.pipeline)(e,new a.PassThrough,(e=>{e&&u(e)}));return t.once("data",(e=>{s=8==(15&e[0])?(0,a.pipeline)(s,o.createInflate(),(e=>{e&&u(e)})):(0,a.pipeline)(s,o.createInflateRaw(),(e=>{e&&u(e)})),w=new $(s,i),r(w)})),void t.once("end",(()=>{w||(w=new $(s,i),r(w))}))}if("br"===l)return s=(0,a.pipeline)(s,o.createBrotliDecompress(),(e=>{e&&u(e)})),w=new $(s,i),void r(w);w=new $(s,i),r(w)})),C(_,c).catch(u)}))}},83:(e,t,r)=>{const n=r(896),s=r(857),o=r(928),a=r(982),i={fs:n.constants,os:s.constants},l=/XXXXXX/,u=(i.O_CREAT||i.fs.O_CREAT)|(i.O_EXCL||i.fs.O_EXCL)|(i.O_RDWR||i.fs.O_RDWR),c="win32"===s.platform(),d=i.EBADF||i.os.errno.EBADF,h=i.ENOENT||i.os.errno.ENOENT,g=[],f=n.rmdirSync.bind(n);let p=!1;function w(e,t){return n.rm(e,{recursive:!0},t)}function m(e){return n.rmSync(e,{recursive:!0})}function b(e,t){const r=P(e,t),o=r[0],a=r[1];!function(e,t){!function(e,t){n.realpath(e&&e.tmpdir||s.tmpdir(),t)}(e,(function(r,n){if(r)return t(r);e.tmpdir=n;try{I(e)}catch(r){return t(r)}k("dir",e.dir,n,(function(r,s){if(r)return t(r);e.dir=C(s)?"":s,k("template",e.template,n,(function(r,n){if(r)return t(r);e.template=n,t(null,e)}))}))}))}(o,(function(e,t){if(e)return a(e);let r=t.tries;!function e(){try{const s=O(t);n.stat(s,(function(t){if(!t)return r-- >0?e():a(new Error("Could not get a unique tmp filename, max tries reached "+s));a(null,s)}))}catch(e){a(e)}}()}))}function y(e){const t=function(e){const t=e.tmpdir=L(e);I(e);const r=E("dir",e.dir,t);return e.dir=C(r)?"":r,e.template=E("template",e.template,t),e}(P(e)[0]);let r=t.tries;do{const e=O(t);try{n.statSync(e)}catch(t){return e}}while(r-- >0);throw new Error("Could not get a unique tmp filename, max tries reached")}function v(e,t){const r=function(e){if(e&&!A(e))return t(e);t()};0<=e[0]?n.close(e[0],(function(){n.unlink(e[1],r)})):n.unlink(e[1],r)}function _(e){let t=null;try{0<=e[0]&&n.closeSync(e[0])}catch(e){if(!$(e,-d,"EBADF")&&!A(e))throw e}finally{try{n.unlinkSync(e[1])}catch(e){A(e)||(t=e)}}if(null!==t)throw t}function S(e,t,r,n){const s=D(_,[t,e],n),o=D(v,[t,e],n,s);return r.keep||g.unshift(s),n?s:o}function T(e,t,r){const s=t.unsafeCleanup?w:n.rmdir.bind(n),o=D(t.unsafeCleanup?m:f,e,r),a=D(s,e,r,o);return t.keep||g.unshift(o),r?o:a}function D(e,t,r,n){let s=!1;return function o(a){if(!s){const i=n||o,l=g.indexOf(i);return l>=0&&g.splice(l,1),s=!0,r||e===f||e===m?e(t):e(t,a||function(){})}}}function R(e){let t=[],r=null;try{r=a.randomBytes(e)}catch(t){r=a.pseudoRandomBytes(e)}for(let n=0;n<e;n++)t.push("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"[r[n]%62]);return t.join("")}function C(e){return void 0===e}function P(e,t){if("function"==typeof e)return[{},e];if(C(e))return[{},t];const r={};for(const t of Object.getOwnPropertyNames(e))r[t]=e[t];return[r,t]}function O(e){const t=e.tmpdir;if(!C(e.name))return o.join(t,e.dir,e.name);if(!C(e.template))return o.join(t,e.dir,e.template).replace(l,R(6));const r=[e.prefix?e.prefix:"tmp","-",process.pid,"-",R(12),e.postfix?"-"+e.postfix:""].join("");return o.join(t,e.dir,r)}function I(e){if(!C(e.name)){const t=e.name;if(o.isAbsolute(t))throw new Error(`name option must not contain an absolute path, found "${t}".`);const r=o.basename(t);if(".."===r||"."===r||r!==t)throw new Error(`name option must not contain a path, found "${t}".`)}if(!C(e.template)&&!e.template.match(l))throw new Error(`Invalid template, found "${e.template}".`);if(!C(e.tries)&&isNaN(e.tries)||e.tries<0)throw new Error(`Invalid tries, found "${e.tries}".`);e.tries=C(e.name)?e.tries||3:1,e.keep=!!e.keep,e.detachDescriptor=!!e.detachDescriptor,e.discardDescriptor=!!e.discardDescriptor,e.unsafeCleanup=!!e.unsafeCleanup,e.prefix=C(e.prefix)?"":e.prefix,e.postfix=C(e.postfix)?"":e.postfix}function k(e,t,r,s){if(C(t))return s(null);!function(e,t,r){const s=o.isAbsolute(e)?e:o.join(t,e);n.stat(s,(function(e){e?n.realpath(o.dirname(s),(function(e,t){if(e)return r(e);r(null,o.join(t,o.basename(s)))})):n.realpath(s,r)}))}(t,r,(function(t,n){if(t)return s(t);const a=o.relative(r,n);if(!n.startsWith(r))return s(new Error(`${e} option must be relative to "${r}", found "${a}".`));s(null,a)}))}function E(e,t,r){if(C(t))return;const s=function(e,t){const r=o.isAbsolute(e)?e:o.join(t,e);try{return n.statSync(r),n.realpathSync(r)}catch(e){const t=n.realpathSync(o.dirname(r));return o.join(t,o.basename(r))}}(t,r),a=o.relative(r,s);if(!s.startsWith(r))throw new Error(`${e} option must be relative to "${r}", found "${a}".`);return a}function A(e){return $(e,-h,"ENOENT")}function $(e,t,r){return c?e.code===r:e.code===r&&e.errno===t}function L(e){return n.realpathSync(e&&e.tmpdir||s.tmpdir())}process.addListener("exit",(function(){if(p)for(;g.length;)try{g[0]()}catch(e){}})),Object.defineProperty(e.exports,"tmpdir",{enumerable:!0,configurable:!1,get:function(){return L()}}),e.exports.dir=function(e,t){const r=P(e,t),s=r[0],o=r[1];b(s,(function(e,t){if(e)return o(e);n.mkdir(t,s.mode||448,(function(e){if(e)return o(e);o(null,t,T(t,s,!1))}))}))},e.exports.dirSync=function(e){const t=P(e)[0],r=y(t);return n.mkdirSync(r,t.mode||448),{name:r,removeCallback:T(r,t,!0)}},e.exports.file=function(e,t){const r=P(e,t),s=r[0],o=r[1];b(s,(function(e,t){if(e)return o(e);n.open(t,u,s.mode||384,(function(e,r){if(e)return o(e);if(s.discardDescriptor)return n.close(r,(function(e){return o(e,t,void 0,S(t,-1,s,!1))}));{const e=s.discardDescriptor||s.detachDescriptor;o(null,t,r,S(t,e?-1:r,s,!1))}}))}))},e.exports.fileSync=function(e){const t=P(e)[0],r=t.discardDescriptor||t.detachDescriptor,s=y(t);let o=n.openSync(s,u,t.mode||384);return t.discardDescriptor&&(n.closeSync(o),o=void 0),{name:s,fd:o,removeCallback:S(s,r?-1:o,t,!0)}},e.exports.tmpName=b,e.exports.tmpNameSync=y,e.exports.setGracefulCleanup=function(){p=!0}},136:(e,t,r)=>{"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.VariablesView=void 0;const n=r(398),s=r(60);class o{constructor(e,t,r){this._disposables=[],s.logToOutput("VariablesView.constructor Started"),this.extensionUri=t,this._panel=e,this.api=r,this._panel.onDidDispose((()=>this.dispose()),null,this._disposables),this._setWebviewMessageListener(this._panel.webview),this.loadData(),s.logToOutput("VariablesView.constructor Completed")}async loadData(){s.logToOutput("VariablesView.loadData Started");const e=await this.api.getVariables();e.isSuccessful&&(this.variablesJson=e.result),await this.renderHtml()}async renderHtml(){s.logToOutput("VariablesView.renderHtml Started"),this._panel.webview.html=this._getWebviewContent(this._panel.webview,this.extensionUri),s.logToOutput("VariablesView.renderHtml Completed")}static render(e,t){if(s.logToOutput("VariablesView.render Started"),o.Current)o.Current.api=t,o.Current._panel.reveal(n.ViewColumn.Two),o.Current.loadData();else{const r=n.window.createWebviewPanel("variablesView","Variables",n.ViewColumn.Two,{enableScripts:!0});o.Current=new o(r,e,t)}}dispose(){for(s.logToOutput("VariablesView.dispose Started"),o.Current=void 0,this._panel.dispose();this._disposables.length;){const e=this._disposables.pop();e&&e.dispose()}}_getWebviewContent(e,t){return s.logToOutput("VariablesView._getWebviewContent Started"),`\n    <!DOCTYPE html>\n    <html lang="en">\n      <head>\n        <meta charset="UTF-8">\n        <meta name="viewport" content="width=device-width,initial-scale=1.0">\n        <script type="module" src="${s.getUri(e,t,["node_modules","@vscode","webview-ui-toolkit","dist","toolkit.js"])}"><\/script>\n        <script type="module" src="${s.getUri(e,t,["media","main.js"])}"><\/script>\n        <link rel="stylesheet" href="${s.getUri(e,t,["media","style.css"])}">\n        <title>Variables</title>\n      </head>\n      <body>  \n        <h2>Airflow Variables</h2>\n        <vscode-button appearance="secondary" id="refresh-variables">Refresh</vscode-button>\n        <br><br>\n        <pre>${this.variablesJson?JSON.stringify(this.variablesJson,null,4):"No variables found"}</pre>\n      </body>\n    </html>\n    `}_setWebviewMessageListener(e){s.logToOutput("VariablesView._setWebviewMessageListener Started"),e.onDidReceiveMessage((e=>{s.logToOutput("VariablesView._setWebviewMessageListener Message Received "+e.command),"refresh-variables"!==e.command||this.loadData()}),void 0,this._disposables)}}t.VariablesView=o},157:(e,t,r)=>{if(!globalThis.DOMException)try{const{MessageChannel:e}=r(167),t=(new e).port1,n=new ArrayBuffer;t.postMessage(n,[n,n])}catch(e){"DOMException"===e.constructor.name&&(globalThis.DOMException=e.constructor)}e.exports=globalThis.DOMException},167:e=>{"use strict";e.exports=require("worker_threads")},181:e=>{"use strict";e.exports=require("buffer")},288:(e,t,r)=>{"use strict";r.d(t,{A:()=>s});var n=r(720);const s=class extends n.A{#e=0;#t="";constructor(e,t,r={}){if(arguments.length<2)throw new TypeError(`Failed to construct 'File': 2 arguments required, but only ${arguments.length} present.`);super(e,r),null===r&&(r={});const n=void 0===r.lastModified?Date.now():Number(r.lastModified);Number.isNaN(n)||(this.#e=n),this.#t=String(t)}get name(){return this.#t}get lastModified(){return this.#e}get[Symbol.toStringTag](){return"File"}static[Symbol.hasInstance](e){return!!e&&e instanceof n.A&&/^(File)$/.test(e[Symbol.toStringTag])}}},300:(e,t,r)=>{"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.AirflowApi=void 0;const n=r(914),s=r(60),o=r(606),a=async(e,t)=>(await Promise.resolve().then((()=>r(65)))).default(e,t);t.AirflowApi=class{constructor(e){this.config=e}get version(){return this.config.apiUrl.includes("v1")?"v1":this.config.apiUrl.includes("v2")?"v2":"unknown"}async getJwtToken(){if(this.jwtToken)return this.jwtToken;try{const e=await a(this.config.apiUrl.replace("/api/v2","")+"/auth/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:this.config.apiUserName,password:this.config.apiPassword})}),t=await e.json();if(201===e.status||200===e.status)return this.jwtToken=t.access_token,this.jwtToken;s.logToOutput(`getJwtToken failed: ${e.status} - ${JSON.stringify(t)}`)}catch(e){s.logToOutput("getJwtToken Error",e)}}async getHeaders(){const e={"Content-Type":"application/json"};if("v1"===this.version)e.Authorization="Basic "+(0,n.encode)(`${this.config.apiUserName}:${this.config.apiPassword}`);else if("v2"===this.version){const t=await this.getJwtToken();t?e.Authorization="Bearer "+t:s.showWarningMessage("Unable to obtain JWT token for Airflow API v2.")}return e}async checkConnection(){try{const e=await this.getHeaders();return 200===(await a(`${this.config.apiUrl}/dags?limit=1`,{method:"GET",headers:e})).status}catch(e){return!1}}async getDagList(){const e=new o.MethodResult,t=[];let r=0;try{for(;;){const n=await this.getHeaders(),o=await a(`${this.config.apiUrl}/dags?limit=100&offset=${r}`,{method:"GET",headers:n}),i=await o.json();if(200!==o.status)return s.showApiErrorMessage("Api Call Error",i),e.isSuccessful=!1,e;if(t.push(...i.dags),i.dags.length<100)break;r+=100}e.result=t,e.isSuccessful=!0}catch(t){s.showErrorMessage("Cannot connect to Airflow.",t),e.isSuccessful=!1,e.error=t}return e}async triggerDag(e,t="{}",r){const n=new o.MethodResult;try{const o=await this.getHeaders();let i={conf:JSON.parse(t)};"v1"===this.version&&r?i.logical_date=r+"T00:00:00Z":"v2"===this.version&&(i.logical_date=r?r+"T00:00:00Z":(new Date).toISOString());const l=await a(`${this.config.apiUrl}/dags/${e}/dagRuns`,{method:"POST",headers:o,body:JSON.stringify(i)}),u=await l.json();200===l.status||201===l.status?(s.showInfoMessage(`${e} Triggered.`),n.result=u,n.isSuccessful=!0):(s.showApiErrorMessage(`${e} Trigger Error`,u),n.isSuccessful=!1)}catch(t){s.showErrorMessage(`${e} Trigger Error`,t),n.isSuccessful=!1,n.error=t}return n}async getDagRun(e,t){const r=new o.MethodResult;try{const n=await this.getHeaders(),s=await a(`${this.config.apiUrl}/dags/${e}/dagRuns/${t}`,{method:"GET",headers:n}),o=await s.json();200===s.status?(r.result=o,r.isSuccessful=!0):r.isSuccessful=!1}catch(e){r.isSuccessful=!1,r.error=e}return r}async getLastDagRun(e){const t=await this.getDagRunHistory(e);if(t.isSuccessful&&t.result&&t.result.dag_runs&&t.result.dag_runs.length>0)return this.getDagRun(e,t.result.dag_runs[0].dag_run_id);const r=new o.MethodResult;return r.isSuccessful=!1,r}async getDagRunHistory(e,t){const r=new o.MethodResult;try{const n=await this.getHeaders();let s=`${this.config.apiUrl}/dags/${e}/dagRuns?order_by=-start_date`;if(t){const e=`${t}T00:00:00Z`,r=`${t}T23:59:59Z`;s+=`&start_date_gte=${encodeURIComponent(e)}&start_date_lte=${encodeURIComponent(r)}`}const o=await a(s,{method:"GET",headers:n}),i=await o.json();200===o.status?(r.result=i,r.isSuccessful=!0):r.isSuccessful=!1}catch(e){r.isSuccessful=!1,r.error=e}return r}async pauseDag(e,t){const r=new o.MethodResult;try{const n=await this.getHeaders(),o=await a(`${this.config.apiUrl}/dags/${e}`,{method:"PATCH",headers:n,body:JSON.stringify({is_paused:t})}),i=await o.json();200===o.status?(s.showInfoMessage(`${e} ${t?"PAUSED":"UN-PAUSED"}`),r.result=i,r.isSuccessful=!0):(s.showApiErrorMessage(`${e} Pause Error`,i),r.isSuccessful=!1)}catch(t){s.showErrorMessage(`${e} Pause Error`,t),r.isSuccessful=!1,r.error=t}return r}async getSourceCode(e,t){const r=new o.MethodResult;try{const n=await this.getHeaders();let o="";if("v1"===this.version&&t)o=`${this.config.apiUrl}/dagSources/${t}`;else{if("v2"!==this.version)throw new Error("Unknown Airflow Version or missing file token");o=`${this.config.apiUrl}/dagSources/${e}`}const i=await a(o,{method:"GET",headers:n});if(200===i.status){if("v2"===this.version){const e=await i.json();r.result=e.content}else r.result=await i.text();r.isSuccessful=!0}else{const t=await i.json();s.showApiErrorMessage(`${e} Source Code Error`,t),r.isSuccessful=!1}}catch(t){s.showErrorMessage(`${e} Source Code Error`,t),r.isSuccessful=!1,r.error=t}return r}async getImportErrors(){const e=new o.MethodResult;try{const t=await this.getHeaders(),r=await a(`${this.config.apiUrl}/importErrors`,{method:"GET",headers:t}),n=await r.json();200===r.status?(e.result=n,e.isSuccessful=!0):e.isSuccessful=!1}catch(t){e.isSuccessful=!1,e.error=t}return e}async getLastDagRunLog(e){const t=new o.MethodResult;try{s.showInfoMessage("Fetching Latest DAG Run Logs...");const r=await this.getDagRunHistory(e);if(!r.isSuccessful||!r.result.dag_runs.length)throw new Error("No DAG runs found");const n=r.result.dag_runs[0].dag_run_id;let o=await this.getDagRunLog(e,n);if(!o.isSuccessful)return t.isSuccessful=!1,t.error=o.error,t;t.result=o.result,t.isSuccessful=!0}catch(r){s.showErrorMessage(`${e} Log Error`,r),t.isSuccessful=!1,t.error=r}return t}async getDagRunLog(e,t){const r=new o.MethodResult;s.showInfoMessage("Fetching DAG Run Logs...");try{const n=await this.getHeaders(),s=await a(`${this.config.apiUrl}/dags/${e}/dagRuns/${t}/taskInstances`,{method:"GET",headers:n}),o=await s.json();let i="###################### BEGINNING OF DAG RUN ######################\n\n";for(const r of o.task_instances||[]){const s=await a(`${this.config.apiUrl}/dags/${e}/dagRuns/${t}/taskInstances/${r.task_id}/logs/${r.try_number}`,{method:"GET",headers:n}),o=await s.text();i+="############################################################\n",i+=`Dag=${e}\nDagRun=${t}\nTaskId=${r.task_id}\nTry=${r.try_number}\n`,i+="############################################################\n\n",i+=o+"\n\n"}return i+="###################### END OF DAG RUN ######################\n",r.result=i,r.isSuccessful=!0,r}catch(t){s.showErrorMessage(`${e} Log Error`,t),r.isSuccessful=!1,r.error=t}}async getDagInfo(e){return this.genericGet(`/dags/${e}`)}async getDagTasks(e){return this.genericGet(`/dags/${e}/tasks`)}async getTaskInstances(e,t){return this.genericGet(`/dags/${e}/dagRuns/${t}/taskInstances`)}async cancelDagRun(e,t){const r=new o.MethodResult;try{const n=await this.getHeaders(),o=await a(`${this.config.apiUrl}/dags/${e}/dagRuns/${t}`,{method:"PATCH",headers:n,body:JSON.stringify({state:"failed"})}),i=await o.json();200===o.status?(r.result=i,r.isSuccessful=!0):(s.showApiErrorMessage(`${e} Cancel Error`,i),r.isSuccessful=!1)}catch(e){r.isSuccessful=!1,r.error=e}return r}async getTaskInstanceLog(e,t,r){const n=new o.MethodResult;try{s.showInfoMessage("Fetching Task Logs...");const o=await this.getHeaders(),i=await a(`${this.config.apiUrl}/dags/${e}/dagRuns/${t}/taskInstances`,{method:"GET",headers:o}),l=await i.json(),u=l.task_instances?.find((e=>e.task_id===r));if(!u)throw new Error("Task instance not found");const c=await a(`${this.config.apiUrl}/dags/${e}/dagRuns/${t}/taskInstances/${r}/logs/${u.try_number}`,{method:"GET",headers:o}),d=await c.text();let h="############################################################\n";h+=`Dag=${e}\nDagRun=${t}\nTaskId=${r}\nTry=${u.try_number}\n`,h+="############################################################\n\n",h+=d,n.result=h,n.isSuccessful=!0}catch(t){s.showErrorMessage(`${e} Log Error`,t),n.isSuccessful=!1,n.error=t}return n}async getTaskXComs(e,t,r){const n=new o.MethodResult;try{const o=await this.getHeaders(),i=await a(`${this.config.apiUrl}/dags/${e}/dagRuns/${t}/taskInstances/${r}/xcomEntries`,{method:"GET",headers:o});if(200===i.status){const e=await i.json();n.result=e,n.isSuccessful=!0}else{const e=await i.json();s.showApiErrorMessage(`XCom fetch error for ${r}`,e),n.isSuccessful=!1}}catch(e){s.showErrorMessage(`XCom fetch error for ${r}`,e),n.isSuccessful=!1,n.error=e}return n}async updateDagRunNote(e,t,r){const n=new o.MethodResult;try{const o=await this.getHeaders(),i=await a(`${this.config.apiUrl}/dags/${e}/dagRuns/${t}`,{method:"PATCH",headers:o,body:JSON.stringify({note:r})}),l=await i.json();200===i.status?(s.showInfoMessage("DAG run note updated successfully"),n.result=l,n.isSuccessful=!0):(s.showApiErrorMessage("Failed to update note",l),n.isSuccessful=!1)}catch(e){s.showErrorMessage("Failed to update note",e),n.isSuccessful=!1,n.error=e}return n}async getConnections(){return this.genericGet("/connections")}async getVariables(){return this.genericGet("/variables")}async getProviders(){return this.genericGet("/providers")}async genericGet(e){const t=new o.MethodResult;try{const r=await this.getHeaders(),n=await a(`${this.config.apiUrl}${e}`,{method:"GET",headers:r}),o=await n.json();200===n.status?(t.result=o,t.isSuccessful=!0):(s.showApiErrorMessage(`Error fetching ${e}`,o),t.isSuccessful=!1)}catch(r){s.showErrorMessage(`Error fetching ${e}`,r),t.isSuccessful=!1,t.error=r}return t}}},328:(e,t,r)=>{if(!globalThis.ReadableStream)try{const e=r(708),{emitWarning:t}=e;try{e.emitWarning=()=>{},Object.assign(globalThis,r(830)),e.emitWarning=t}catch(r){throw e.emitWarning=t,r}}catch(e){Object.assign(globalThis,r(10))}try{const{Blob:e}=r(181);e&&!e.prototype.stream&&(e.prototype.stream=function(e){let t=0;const r=this;return new ReadableStream({type:"bytes",async pull(e){const n=r.slice(t,Math.min(r.size,t+65536)),s=await n.arrayBuffer();t+=s.byteLength,e.enqueue(new Uint8Array(s)),t===r.size&&e.close()}})})}catch(e){}},398:e=>{"use strict";e.exports=require("vscode")},435:(e,t,r)=>{"use strict";r.d(t,{$n:()=>f,fS:()=>g});var n=r(720),s=r(288),{toStringTag:o,iterator:a,hasInstance:i}=Symbol,l=Math.random,u="append,set,get,getAll,delete,keys,values,entries,forEach,constructor".split(","),c=(e,t,r)=>(e+="",/^(Blob|File)$/.test(t&&t[o])?[(r=void 0!==r?r+"":"File"==t[o]?t.name:"blob",e),t.name!==r||"blob"==t[o]?new s.A([t],r,t):t]:[e,t+""]),d=(e,t)=>(t?e:e.replace(/\r?\n|\r/g,"\r\n")).replace(/\n/g,"%0A").replace(/\r/g,"%0D").replace(/"/g,"%22"),h=(e,t,r)=>{if(t.length<r)throw new TypeError(`Failed to execute '${e}' on 'FormData': ${r} arguments required, but only ${t.length} present.`)};const g=class{#r=[];constructor(...e){if(e.length)throw new TypeError("Failed to construct 'FormData': parameter 1 is not of type 'HTMLFormElement'.")}get[o](){return"FormData"}[a](){return this.entries()}static[i](e){return e&&"object"==typeof e&&"FormData"===e[o]&&!u.some((t=>"function"!=typeof e[t]))}append(...e){h("append",arguments,2),this.#r.push(c(...e))}delete(e){h("delete",arguments,1),e+="",this.#r=this.#r.filter((([t])=>t!==e))}get(e){h("get",arguments,1),e+="";for(var t=this.#r,r=t.length,n=0;n<r;n++)if(t[n][0]===e)return t[n][1];return null}getAll(e,t){return h("getAll",arguments,1),t=[],e+="",this.#r.forEach((r=>r[0]===e&&t.push(r[1]))),t}has(e){return h("has",arguments,1),e+="",this.#r.some((t=>t[0]===e))}forEach(e,t){for(var[r,n]of(h("forEach",arguments,1),this))e.call(t,n,r,this)}set(...e){h("set",arguments,2);var t=[],r=!0;e=c(...e),this.#r.forEach((n=>{n[0]===e[0]?r&&(r=!t.push(e)):t.push(n)})),r&&t.push(e),this.#r=t}*entries(){yield*this.#r}*keys(){for(var[e]of this)yield e}*values(){for(var[,e]of this)yield e}};function f(e,t=n.A){var r=`${l()}${l()}`.replace(/\./g,"").slice(-28).padStart(32,"-"),s=[],o=`--${r}\r\nContent-Disposition: form-data; name="`;return e.forEach(((e,t)=>"string"==typeof e?s.push(o+d(t)+`"\r\n\r\n${e.replace(/\r(?!\n)|(?<!\r)\n/g,"\r\n")}\r\n`):s.push(o+d(t)+`"; filename="${d(e.name,1)}"\r\nContent-Type: ${e.type||"application/octet-stream"}\r\n\r\n`,e,"\r\n"))),s.push(`--${r}--`),new t(s,{type:"multipart/form-data; boundary="+r})}},445:(e,t,r)=>{"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.DagTreeDataProvider=void 0;const n=r(398),s=r(15),o=r(537);t.DagTreeDataProvider=class{constructor(){this._onDidChangeTreeData=new n.EventEmitter,this.onDidChangeTreeData=this._onDidChangeTreeData.event,this.dagTreeItemList=[],this.visibleDagList=[]}refresh(){this._onDidChangeTreeData.fire()}loadDagTreeItemsFromApiResponse(){if(this.dagTreeItemList=[],this.dagList)for(var e of this.dagList)if(e){let t=new s.DagTreeItem(e);this.dagTreeItemList.push(t)}}getChildren(e){return e?Promise.resolve([]):(this.visibleDagList=this.getVisibleDagList(),Promise.resolve(this.visibleDagList))}getVisibleDagList(){var e=[];for(var t of this.dagTreeItemList)o.DagTreeView.Current.filterString&&!t.doesFilterMatch(o.DagTreeView.Current.filterString)||o.DagTreeView.Current.ShowOnlyActive&&t.IsPaused||o.DagTreeView.Current.ShowOnlyFavorite&&!t.IsFav||e.push(t);return e}getTreeItem(e){return e}}},459:(e,t,r)=>{"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.ProvidersView=void 0;const n=r(398),s=r(60);class o{constructor(e,t,r){this._disposables=[],s.logToOutput("ProvidersView.constructor Started"),this.extensionUri=t,this._panel=e,this.api=r,this._panel.onDidDispose((()=>this.dispose()),null,this._disposables),this._setWebviewMessageListener(this._panel.webview),this.loadData(),s.logToOutput("ProvidersView.constructor Completed")}async loadData(){s.logToOutput("ProvidersView.loadData Started");const e=await this.api.getProviders();e.isSuccessful&&(this.providersJson=e.result),await this.renderHtml()}async renderHtml(){s.logToOutput("ProvidersView.renderHtml Started"),this._panel.webview.html=this._getWebviewContent(this._panel.webview,this.extensionUri),s.logToOutput("ProvidersView.renderHtml Completed")}static render(e,t){if(s.logToOutput("ProvidersView.render Started"),o.Current)o.Current.api=t,o.Current._panel.reveal(n.ViewColumn.Two),o.Current.loadData();else{const r=n.window.createWebviewPanel("providersView","Providers",n.ViewColumn.Two,{enableScripts:!0});o.Current=new o(r,e,t)}}dispose(){for(s.logToOutput("ProvidersView.dispose Started"),o.Current=void 0,this._panel.dispose();this._disposables.length;){const e=this._disposables.pop();e&&e.dispose()}}_getWebviewContent(e,t){return s.logToOutput("ProvidersView._getWebviewContent Started"),`\n    <!DOCTYPE html>\n    <html lang="en">\n      <head>\n        <meta charset="UTF-8">\n        <meta name="viewport" content="width=device-width,initial-scale=1.0">\n        <script type="module" src="${s.getUri(e,t,["node_modules","@vscode","webview-ui-toolkit","dist","toolkit.js"])}"><\/script>\n        <script type="module" src="${s.getUri(e,t,["media","main.js"])}"><\/script>\n        <link rel="stylesheet" href="${s.getUri(e,t,["media","style.css"])}">\n        <title>Providers</title>\n      </head>\n      <body>  \n        <h2>Airflow Providers</h2>\n        <vscode-button appearance="secondary" id="refresh-providers">Refresh</vscode-button>\n        <br><br>\n        <pre>${this.providersJson?JSON.stringify(this.providersJson,null,4):"No providers found"}</pre>\n      </body>\n    </html>\n    `}_setWebviewMessageListener(e){s.logToOutput("ProvidersView._setWebviewMessageListener Started"),e.onDidReceiveMessage((e=>{s.logToOutput("ProvidersView._setWebviewMessageListener Message Received "+e.command),"refresh-providers"!==e.command||this.loadData()}),void 0,this._disposables)}}t.ProvidersView=o},537:(e,t,r)=>{"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.DagTreeView=void 0;const n=r(398),s=r(777),o=r(445),a=r(60),i=r(300);class l{constructor(e){this.filterString="",this.ShowOnlyActive=!0,this.ShowOnlyFavorite=!1,this.ServerList=[],a.logToOutput("DagTreeView.constructor Started"),this.context=e,this.treeDataProvider=new o.DagTreeDataProvider,this.view=n.window.createTreeView("dagTreeView",{treeDataProvider:this.treeDataProvider,showCollapseAll:!0}),this.loadState(),e.subscriptions.push(this.view),e.subscriptions.push({dispose:()=>this.dispose()}),l.Current=this,this.setFilterMessage(),this.refresh()}dispose(){a.logToOutput("DagTreeView.dispose Started"),this.dagStatusInterval&&clearInterval(this.dagStatusInterval)}async refresh(){if(a.logToOutput("DagTreeView.refresh Started"),!this.api)return this.treeDataProvider.dagList=[],void this.treeDataProvider.refresh();await n.window.withProgress({location:n.ProgressLocation.Window,title:"Airflow: Loading..."},(async e=>{e.report({increment:0}),await this.loadDags()})),await this.getImportErrors()}resetView(){a.logToOutput("DagTreeView.resetView Started"),this.api=void 0,this.currentServer=void 0,this.filterString="",this.treeDataProvider.dagList=void 0,this.treeDataProvider.refresh(),this.setViewTitle(),this.saveState(),this.refresh()}viewDagView(e){a.logToOutput("DagTreeView.viewDagView Started"),this.api&&s.DagView.render(this.context.extensionUri,e.DagId,this.api)}async addToFavDAG(e){a.logToOutput("DagTreeView.addToFavDAG Started"),e.IsFav=!0,this.treeDataProvider.refresh()}async deleteFromFavDAG(e){a.logToOutput("DagTreeView.deleteFromFavDAG Started"),e.IsFav=!1,this.treeDataProvider.refresh()}async triggerDag(e){if(a.logToOutput("DagTreeView.triggerDag Started"),!this.api)return;if(e.IsPaused)return void a.showWarningMessage("Dag is PAUSED !!!");if(e.isDagRunning())return void a.showWarningMessage("Dag is ALREADY RUNNING !!!");const t=await this.api.triggerDag(e.DagId);if(t.isSuccessful){const r=t.result;e.LatestDagRunId=r.dag_run_id,e.LatestDagState=r.state,e.refreshUI(),this.treeDataProvider.refresh(),this.dagStatusInterval||(this.dagStatusInterval=setInterval((()=>{this.refreshRunningDagState(this).catch((e=>a.logToOutput("refreshRunningDagState Error",e)))}),1e4))}}async refreshRunningDagState(e){if(a.logToOutput("DagTreeView.refreshRunningDagState Started"),!e.api)return;let t=!0;for(const r of e.treeDataProvider.visibleDagList){if(r.isDagRunning()){t=!1;const n=await e.api.getDagRun(r.DagId,r.LatestDagRunId);n.isSuccessful?(r.LatestDagState=n.result.state,r.refreshUI()):(r.LatestDagRunId="",r.LatestDagState="")}e.treeDataProvider.refresh()}t&&e.dagStatusInterval&&(clearInterval(e.dagStatusInterval),e.dagStatusInterval=void 0,a.showInfoMessage("All Dag Run(s) Completed"),a.logToOutput("All Dag Run(s) Completed"))}async triggerDagWConfig(e){if(a.logToOutput("DagTreeView.triggerDagWConfig Started"),!this.api)return;let t=await n.window.showInputBox({placeHolder:"Enter Configuration JSON (Optional, must be a dict object) or Press Enter"});if(t||(t="{}"),void 0!==t){const r=await this.api.triggerDag(e.DagId,t);if(r.isSuccessful){const t=r.result;e.LatestDagRunId=t.dag_run_id,e.LatestDagState=t.state,e.refreshUI(),this.treeDataProvider.refresh(),this.dagStatusInterval||(this.dagStatusInterval=setInterval((()=>{this.refreshRunningDagState(this).catch((e=>a.logToOutput("refreshRunningDagState Error",e)))}),1e4))}}}async checkAllDagsRunState(){if(a.logToOutput("DagTreeView.checkAllDagsRunState Started"),this.treeDataProvider)for(const e of this.treeDataProvider.visibleDagList)e.IsPaused||this.checkDagRunState(e)}async notifyDagStateWithDagId(e){if(a.logToOutput("DagTreeView.checDagStateWitDagId Started"),this.treeDataProvider)for(const t of this.treeDataProvider.visibleDagList)t.DagId===e&&this.checkDagRunState(t)}async checkDagRunState(e){if(a.logToOutput("DagTreeView.checkDagRunState Started"),!this.api)return;if(!e)return;if(e.IsPaused)return void a.showWarningMessage(e.DagId+"Dag is PAUSED");const t=await this.api.getLastDagRun(e.DagId);t.isSuccessful&&(e.LatestDagRunId=t.result.dag_run_id,e.LatestDagState=t.result.state,e.refreshUI(),this.treeDataProvider.refresh(),e.isDagRunning()&&(this.dagStatusInterval||(this.dagStatusInterval=setInterval((()=>{this.refreshRunningDagState(this).catch((e=>a.logToOutput("refreshRunningDagState Error",e)))}),1e4))))}async pauseDAG(e){a.logToOutput("DagTreeView.pauseDAG Started"),this.api&&(e.IsPaused?a.showWarningMessage(e.DagId+"Dag is already PAUSED"):(await this.api.pauseDag(e.DagId,!0)).isSuccessful&&(e.IsPaused=!0,e.refreshUI(),this.treeDataProvider.refresh()))}async notifyDagPaused(e){a.logToOutput("DagTreeView.notifyDagPaused Started"),this.refresh()}async notifyDagUnPaused(e){a.logToOutput("DagTreeView.notifyDagPaused Started"),this.refresh()}async unPauseDAG(e){a.logToOutput("DagTreeView.unPauseDAG Started"),this.api&&(e.IsPaused?(await this.api.pauseDag(e.DagId,!1)).isSuccessful&&(e.IsPaused=!1,e.refreshUI(),this.treeDataProvider.refresh()):a.showInfoMessage(e.DagId+"Dag is already UNPAUSED"))}async lastDAGRunLog(e){if(a.logToOutput("DagTreeView.lastDAGRunLog Started"),!this.api)return;const t=await this.api.getLastDagRunLog(e.DagId);if(t.isSuccessful){const n=r(83),s=r(896),o=n.fileSync({mode:420,prefix:e.DagId,postfix:".log"});s.appendFileSync(o.name,t.result),a.openFile(o.name)}}async dagSourceCode(e){if(a.logToOutput("DagTreeView.dagSourceCode Started"),!this.api)return;const t=await this.api.getSourceCode(e.DagId,e.FileToken);if(t.isSuccessful){const n=r(83),s=r(896),o=n.fileSync({mode:420,prefix:e.DagId,postfix:".py"});s.appendFileSync(o.name,t.result),a.openFile(o.name)}else a.logToOutput(t.result),a.showErrorMessage(t.result)}async showDagInfo(e){if(a.logToOutput("DagTreeView.showDagInfo Started"),!this.api)return;const t=await this.api.getDagInfo(e.DagId);if(t.isSuccessful){const n=r(83),s=r(896),o=n.fileSync({mode:420,prefix:e.DagId+"_info",postfix:".json"});s.appendFileSync(o.name,JSON.stringify(t.result,null,2)),a.openFile(o.name)}else a.logToOutput(t.result),a.showErrorMessage("Failed to fetch DAG info")}async aIHandler(e,t,r,s){const o=l.Current?.askAIContext;if(!o)return void r.markdown("No active DAG context found. Please use the 'Ask AI' button on a DAG item first.");const a=[n.LanguageModelChatMessage.User("You are an expert in Apache Airflow. Here is the code for a DAG and its recent execution logs. Analyze them and explain any errors."),n.LanguageModelChatMessage.User(`DAG Code:\n\`\`\`python\n${o.code}\n\`\`\``),n.LanguageModelChatMessage.User(`Execution Logs:\n\`\`\`text\n${o.logs}\n\`\`\``)];o.dag&&a.push(n.LanguageModelChatMessage.User(`DAG:\n\`\`\`json\n${o.dag}\n\`\`\``)),o.dagRun&&a.push(n.LanguageModelChatMessage.User(`DAG Run:\n\`\`\`json\n${o.dagRun}\n\`\`\``)),o.tasks&&a.push(n.LanguageModelChatMessage.User(`DAG Tasks:\n\`\`\`json\n${o.tasks}\n\`\`\``)),o.taskInstances&&a.push(n.LanguageModelChatMessage.User(`Task Instances:\n\`\`\`json\n${o.taskInstances}\n\`\`\``)),a.push(n.LanguageModelChatMessage.User(e.prompt||"Please analyze the error in these logs if any."));try{const[e]=await n.lm.selectChatModels({family:"gpt-4"});if(e){const t=await e.sendRequest(a,{},s);for await(const e of t.text)r.markdown(e)}else r.markdown("No suitable AI model found.")}catch(e){e instanceof Error?r.markdown(`I'm sorry, I couldn't connect to the AI model: ${e.message}`):r.markdown("I'm sorry, I couldn't connect to the AI model.")}}async isChatCommandAvailable(){return(await n.commands.getCommands(!0)).includes("workbench.action.chat.open")}async askAI(e){if(a.logToOutput("DagTreeView.askAI Started"),!this.api)return;if(!await this.isChatCommandAvailable())return void a.showErrorMessage("Chat command is not available. Please ensure you have access to VS Code AI features.");let t="",r="";const n=await this.api.getSourceCode(e.DagId,e.FileToken);if(!n.isSuccessful)return void a.showErrorMessage("Failed to fetch DAG source code for AI analysis.");t=n.result;const s=await this.api.getLastDagRunLog(e.DagId);s.isSuccessful?(r=s.result,await this.askAIWithContext({code:t,logs:r,dag:e.DagId,dagRun:e.LatestDagRunId,tasks:null,taskInstances:null})):a.showErrorMessage("Failed to fetch latest DAG run logs for AI analysis.")}async askAIWithContext(e){this.askAIContext=e;const t=n.env.appName;let r="";r=t.includes("Antigravity")?"antigravity.startAgentTask":(t.includes("Code - OSS")||t.includes("Visual Studio Code"),"workbench.action.chat.open"),await n.commands.executeCommand(r,{query:"@airflow Analyze the current logs"})}async filter(){a.logToOutput("DagTreeView.filter Started");const e=await n.window.showInputBox({value:this.filterString,placeHolder:"Enter your filters seperated by comma"});void 0!==e&&(this.filterString=e,this.treeDataProvider.refresh(),this.setFilterMessage(),this.saveState())}async showOnlyActive(){a.logToOutput("DagTreeView.showOnlyActive Started"),this.ShowOnlyActive=!this.ShowOnlyActive,this.treeDataProvider.refresh(),this.setFilterMessage(),this.saveState()}async showOnlyFavorite(){a.logToOutput("DagTreeView.showOnlyFavorite Started"),this.ShowOnlyFavorite=!this.ShowOnlyFavorite,this.treeDataProvider.refresh(),this.setFilterMessage(),this.saveState()}async addServer(){a.logToOutput("DagTreeView.addServer Started");const e=await n.window.showInputBox({value:"http://localhost:8080/api/v2",placeHolder:"API Full URL (Exp:http://localhost:8080/api/v1)"});if(!e)return;const t=await n.window.showInputBox({placeHolder:"User Name"});if(!t)return;const r=await n.window.showInputBox({placeHolder:"Password"});if(!r)return;const s={apiUrl:e,apiUserName:t,apiPassword:r};this.ServerList.push(s);let o=new i.AirflowApi(s);await o.checkConnection()?(this.currentServer=s,this.api=o,this.saveState(),this.refresh()):a.showErrorMessage("Failed to connect to server.")}async removeServer(){if(a.logToOutput("DagTreeView.removeServer Started"),0===this.ServerList.length)return;const e=this.ServerList.map((e=>`${e.apiUrl} - ${e.apiUserName}`)),t=await n.window.showQuickPick(e,{canPickMany:!1,placeHolder:"Select To Remove"});if(!t)return;const r=t.split(" - ");r[0]&&(this.ServerList=this.ServerList.filter((e=>!(e.apiUrl===r[0]&&e.apiUserName===r[1]))),this.currentServer&&this.currentServer.apiUrl===r[0]&&this.currentServer.apiUserName===r[1]&&(this.currentServer=void 0,this.api=void 0,this.treeDataProvider.dagList=void 0,this.treeDataProvider.refresh()),this.saveState(),a.showInfoMessage("Server removed."))}async connectServer(){if(a.logToOutput("DagTreeView.connectServer Started"),0===this.ServerList.length)return void this.addServer();const e=[];for(const t of this.ServerList)e.push(t.apiUrl+" - "+t.apiUserName);const t=await n.window.showQuickPick(e,{canPickMany:!1,placeHolder:"Select To Connect"});if(!t)return;const r=t.split(" - ");if(r[0]){const e=this.ServerList.find((e=>e.apiUrl===r[0]&&e.apiUserName===r[1]));if(e){let t=new i.AirflowApi(e);await t.checkConnection()?(this.currentServer=e,this.api=new i.AirflowApi(this.currentServer),this.saveState(),this.refresh()):a.showErrorMessage("Failed to connect to server.")}}}async clearServers(){a.logToOutput("DagTreeView.clearServers Started"),this.ServerList=[],this.currentServer=void 0,this.api=void 0,this.treeDataProvider.dagList=void 0,this.treeDataProvider.refresh(),this.saveState(),a.showInfoMessage("Server List Cleared")}async loadDags(){if(a.logToOutput("DagTreeView.loadDags Started"),!this.api)return;this.treeDataProvider.dagList=void 0;const e=await this.api.getDagList();e.isSuccessful&&(this.treeDataProvider.dagList=e.result,this.treeDataProvider.loadDagTreeItemsFromApiResponse(),await this.loadLatestRunStatusForAllDags()),this.treeDataProvider.refresh(),this.setViewTitle()}async loadLatestRunStatusForAllDags(){if(a.logToOutput("DagTreeView.loadLatestRunStatusForAllDags Started"),!this.api)return;const e=this.treeDataProvider.visibleDagList.slice(0,50);for(const t of e)if(!t.IsPaused)try{const e=await this.api.getLastDagRun(t.DagId);e.isSuccessful&&e.result&&(t.LatestDagRunId=e.result.dag_run_id,t.LatestDagState=e.result.state,t.refreshUI())}catch(e){a.logToOutput(`Failed to fetch last run for ${t.DagId}`,e)}this.treeDataProvider.refresh()}async setViewTitle(){this.currentServer?this.view.title=this.currentServer.apiUrl+" - "+this.currentServer.apiUserName:this.view.title="Airflow"}async getImportErrors(){if(a.logToOutput("DagTreeView.getImportErrors Started"),!this.api)return;const e=await this.api.getImportErrors();e.isSuccessful&&e.result.total_entries>0&&a.showOutputMessage(e.result,"Import Dag Errors! Check Output Panel")}saveState(){a.logToOutput("DagTreeView.saveState Started");try{this.currentServer?(this.context.globalState.update("apiUrl",this.currentServer.apiUrl),this.context.globalState.update("apiUserName",this.currentServer.apiUserName),this.context.globalState.update("apiPassword",this.currentServer.apiPassword)):(this.context.globalState.update("apiUrl",void 0),this.context.globalState.update("apiUserName",void 0),this.context.globalState.update("apiPassword",void 0)),this.context.globalState.update("filterString",this.filterString),this.context.globalState.update("ShowOnlyActive",this.ShowOnlyActive),this.context.globalState.update("ShowOnlyFavorite",this.ShowOnlyFavorite),this.context.globalState.update("ServerList",this.ServerList)}catch(e){a.logToOutput("dagTreeView.saveState Error !!!",e)}}setFilterMessage(){this.currentServer&&(this.view.message=this.getBoolenSign(this.ShowOnlyFavorite)+"Fav, "+this.getBoolenSign(this.ShowOnlyActive)+"Active, Filter : "+this.filterString)}getBoolenSign(e){return e?"✓":"𐄂"}loadState(){a.logToOutput("DagTreeView.loadState Started");try{const e=this.context.globalState.get("apiUrl")||"",t=this.context.globalState.get("apiUserName")||"",r=this.context.globalState.get("apiPassword")||"";e&&t&&(this.currentServer={apiUrl:e,apiUserName:t,apiPassword:r},this.api=new i.AirflowApi(this.currentServer));const n=this.context.globalState.get("filterString")||"";n&&(this.filterString=n,this.setFilterMessage());const s=this.context.globalState.get("ShowOnlyActive");void 0!==s&&(this.ShowOnlyActive=s);const o=this.context.globalState.get("ShowOnlyFavorite");void 0!==o&&(this.ShowOnlyFavorite=o);const a=this.context.globalState.get("ServerList")||[];a&&(this.ServerList=a),this.currentServer&&!this.ServerList.find((e=>e.apiUrl===this.currentServer?.apiUrl&&e.apiUserName===this.currentServer?.apiUserName))&&this.ServerList.push(this.currentServer)}catch(e){a.logToOutput("dagTreeView.loadState Error !!!",e)}}async viewConnections(){if(a.logToOutput("DagTreeView.viewConnections Started"),this.api){const{ConnectionsView:e}=await Promise.resolve().then((()=>r(980)));e.render(this.context.extensionUri,this.api)}}async viewVariables(){if(a.logToOutput("DagTreeView.viewVariables Started"),this.api){const{VariablesView:e}=await Promise.resolve().then((()=>r(136)));e.render(this.context.extensionUri,this.api)}}async viewProviders(){if(a.logToOutput("DagTreeView.viewProviders Started"),this.api){const{ProvidersView:e}=await Promise.resolve().then((()=>r(459)));e.render(this.context.extensionUri,this.api)}}}t.DagTreeView=l},606:(e,t)=>{"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.MethodResult=void 0,t.MethodResult=class{constructor(){this.result=void 0,this.isSuccessful=!1,this.error=void 0}}},708:e=>{"use strict";e.exports=require("node:process")},720:(e,t,r)=>{"use strict";async function*n(e,t=!0){for(const r of e)if("stream"in r)yield*r.stream();else if(ArrayBuffer.isView(r))if(t){let e=r.byteOffset;const t=r.byteOffset+r.byteLength;for(;e!==t;){const n=Math.min(t-e,65536),s=r.buffer.slice(e,e+n);e+=s.byteLength,yield new Uint8Array(s)}}else yield r;else{let e=0,t=r;for(;e!==t.size;){const r=t.slice(e,Math.min(t.size,e+65536)),n=await r.arrayBuffer();e+=n.byteLength,yield new Uint8Array(n)}}}r.d(t,{A:()=>o}),r(328);const s=class e{#n=[];#s="";#o=0;#a="transparent";constructor(t=[],r={}){if("object"!=typeof t||null===t)throw new TypeError("Failed to construct 'Blob': The provided value cannot be converted to a sequence.");if("function"!=typeof t[Symbol.iterator])throw new TypeError("Failed to construct 'Blob': The object must have a callable @@iterator property.");if("object"!=typeof r&&"function"!=typeof r)throw new TypeError("Failed to construct 'Blob': parameter 2 cannot convert to dictionary.");null===r&&(r={});const n=new TextEncoder;for(const r of t){let t;t=ArrayBuffer.isView(r)?new Uint8Array(r.buffer.slice(r.byteOffset,r.byteOffset+r.byteLength)):r instanceof ArrayBuffer?new Uint8Array(r.slice(0)):r instanceof e?r:n.encode(`${r}`),this.#o+=ArrayBuffer.isView(t)?t.byteLength:t.size,this.#n.push(t)}this.#a=`${void 0===r.endings?"transparent":r.endings}`;const s=void 0===r.type?"":String(r.type);this.#s=/^[\x20-\x7E]*$/.test(s)?s:""}get size(){return this.#o}get type(){return this.#s}async text(){const e=new TextDecoder;let t="";for await(const r of n(this.#n,!1))t+=e.decode(r,{stream:!0});return t+=e.decode(),t}async arrayBuffer(){const e=new Uint8Array(this.size);let t=0;for await(const r of n(this.#n,!1))e.set(r,t),t+=r.length;return e.buffer}stream(){const e=n(this.#n,!0);return new globalThis.ReadableStream({type:"bytes",async pull(t){const r=await e.next();r.done?t.close():t.enqueue(r.value)},async cancel(){await e.return()}})}slice(t=0,r=this.size,n=""){const{size:s}=this;let o=t<0?Math.max(s+t,0):Math.min(t,s),a=r<0?Math.max(s+r,0):Math.min(r,s);const i=Math.max(a-o,0),l=this.#n,u=[];let c=0;for(const e of l){if(c>=i)break;const t=ArrayBuffer.isView(e)?e.byteLength:e.size;if(o&&t<=o)o-=t,a-=t;else{let r;ArrayBuffer.isView(e)?(r=e.subarray(o,Math.min(t,a)),c+=r.byteLength):(r=e.slice(o,Math.min(t,a)),c+=r.size),a-=t,u.push(r),o=0}}const d=new e([],{type:String(n).toLowerCase()});return d.#o=i,d.#n=u,d}get[Symbol.toStringTag](){return"Blob"}static[Symbol.hasInstance](e){return e&&"object"==typeof e&&"function"==typeof e.constructor&&("function"==typeof e.stream||"function"==typeof e.arrayBuffer)&&/^(Blob|File)$/.test(e[Symbol.toStringTag])}};Object.defineProperties(s.prototype,{size:{enumerable:!0},type:{enumerable:!0},slice:{enumerable:!0}});const o=s},730:(e,t,r)=>{"use strict";r.d(t,{YQ:()=>i.A,ZH:()=>a.A,k4:()=>c,F8:()=>u,NX:()=>d,_M:()=>h});const n=require("node:fs"),s=require("node:path");var o=r(157),a=r(288),i=r(720);const{stat:l}=n.promises,u=(e,t)=>g((0,n.statSync)(e),e,t),c=(e,t)=>l(e).then((r=>g(r,e,t))),d=(e,t)=>l(e).then((r=>f(r,e,t))),h=(e,t)=>f((0,n.statSync)(e),e,t),g=(e,t,r="")=>new i.A([new p({path:t,size:e.size,lastModified:e.mtimeMs,start:0})],{type:r}),f=(e,t,r="")=>new a.A([new p({path:t,size:e.size,lastModified:e.mtimeMs,start:0})],(0,s.basename)(t),{type:r,lastModified:e.mtimeMs});class p{#i;#l;constructor(e){this.#i=e.path,this.#l=e.start,this.size=e.size,this.lastModified=e.lastModified}slice(e,t){return new p({path:this.#i,lastModified:this.lastModified,size:t-e,start:this.#l+e})}async*stream(){const{mtimeMs:e}=await l(this.#i);if(e>this.lastModified)throw new o("The requested file could not be read, typically due to permission problems that have occurred after a reference to a file was acquired.","NotReadableError");yield*(0,n.createReadStream)(this.#i,{start:this.#l,end:this.#l+this.size-1})}get[Symbol.toStringTag](){return"Blob"}}},777:(e,t,r)=>{"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.DagView=void 0;const n=r(398),s=r(60),o=r(537);class a{constructor(e,t,r,n){this._disposables=[],this.dagHistorySelectedDate=(new Date).toISOString().split("T")[0],this.activetabid="tab-1",s.logToOutput("DagView.constructor Started"),this.dagId=r,this.extensionUri=t,this.api=n,this._panel=e,this._panel.onDidDispose((()=>this.dispose()),null,this._disposables),this._setWebviewMessageListener(this._panel.webview),this.loadAllDagData(),s.logToOutput("DagView.constructor Completed")}resetDagData(){this.activetabid="tab-1",this.dagRunId=void 0,this.dagJson=void 0,this.dagRunJson=void 0,this.dagRunId=void 0,this.dagRunHistoryJson=void 0,this.dagTaskInstancesJson=void 0,this.dagTasksJson=void 0,this.stopCheckingDagRunStatus()}async loadAllDagData(){s.logToOutput("DagView.loadAllDagData Started"),await this.getDagInfo(),await this.getLastRun(),await this.getDagTasks(),await this.renderHmtl()}async loadDagDataOnly(){s.logToOutput("DagView.loadDagDataOnly Started"),await this.getDagInfo(),await this.renderHmtl()}async renderHmtl(){s.logToOutput("DagView.renderHmtl Started"),this._panel.webview.html=this._getWebviewContent(this._panel.webview,this.extensionUri),s.logToOutput("DagView.renderHmtl Completed")}static render(e,t,r){if(s.logToOutput("DagView.render Started"),a.Current)a.Current.api=r,a.Current.dagId=t,a.Current._panel.reveal(n.ViewColumn.Two),a.Current.resetDagData(),a.Current.loadAllDagData();else{const s=n.window.createWebviewPanel("dagView","Dag View",n.ViewColumn.Two,{enableScripts:!0});a.Current=new a(s,e,t,r)}}async getLastRun(){s.logToOutput("DagView.getLastRun Started");let e=await this.api.getLastDagRun(this.dagId);e.isSuccessful&&(this.dagRunJson=e.result,this.dagRunId=this.dagRunJson.dag_run_id,this.getTaskInstances(this.dagRunId),this.dagRunJson&&"running"===this.dagRunJson.state&&this.startCheckingDagRunStatus(this.dagRunId))}async getDagRun(e,t){s.logToOutput("DagView.getDagRun Started");let r=await this.api.getDagRun(e,t);r.isSuccessful&&(this.dagRunJson=r.result,this.dagRunId=this.dagRunJson.dag_run_id,this.getTaskInstances(this.dagRunId)),await this.renderHmtl()}async getRunHistory(e){s.logToOutput("DagView.getRunHistory Started");let t=await this.api.getDagRunHistory(this.dagId,e);t.isSuccessful&&(this.dagRunHistoryJson=t.result)}async getTaskInstances(e){s.logToOutput("DagView.getTaskInstances Started");let t=await this.api.getTaskInstances(this.dagId,e);t.isSuccessful&&(this.dagTaskInstancesJson=t.result)}async getDagInfo(){s.logToOutput("DagView.getDagInfo Started");let e=await this.api.getDagInfo(this.dagId);e.isSuccessful&&(this.dagJson=e.result)}async getDagTasks(){s.logToOutput("DagView.getDagTasks Started");let e=await this.api.getDagTasks(this.dagId);e.isSuccessful&&(this.dagTasksJson=e.result)}dispose(){for(s.logToOutput("DagView.dispose Started"),a.Current=void 0,this.stopCheckingDagRunStatus(),this._panel.dispose();this._disposables.length;){const e=this._disposables.pop();e&&e.dispose()}}_getWebviewContent(e,t){s.logToOutput("DagView._getWebviewContent Started");const r=s.getUri(e,t,["node_modules","@vscode-elements","elements","dist","bundled.js"]),n=s.getUri(e,t,["media","main.js"]),o=s.getUri(e,t,["media","style.css"]);let a,i,l,u="",c="",d="",h="",g=!1,f=!1;this.dagRunJson&&(u=this.dagRunJson.state,a=this.dagRunJson.logical_date,i=this.dagRunJson.start_date,l=this.dagRunJson.end_date,c=a?new Date(a).toLocaleDateString():"",d=i?new Date(i).toLocaleString():"",h=i?s.getDuration(new Date(i),l?new Date(l):new Date):"",g="queued"===u||"running"===u,f=!0);let p="";if(this.dagTaskInstancesJson)for(const e of this.dagTaskInstancesJson.task_instances)"running"!==e.state&&"failed"!==e.state&&"up_for_retry"!==e.state&&"up_for_reschedule"!==e.state&&"deferred"!==e.state||(p+=e.task_id+", ");let w=this.dagJson&&Array.isArray(this.dagJson.owners)?this.dagJson.owners.join(", "):"",m="";this.dagJson&&Array.isArray(this.dagJson.tags)&&this.dagJson.tags.forEach((e=>{m+=e.name+", "}));let b=this.dagJson&&this.dagJson.schedule_interval&&this.dagJson.schedule_interval.value?this.dagJson.schedule_interval.value:"",y=this.dagJson?this.dagJson.is_paused?"true":"false":"unknown",v="true"===y,_="";if(this.dagTaskInstancesJson)for(const e of this.dagTaskInstancesJson.task_instances.sort(((e,t)=>e.start_date>t.start_date?1:-1)))_+=`\n                <tr>\n                    <td>\n                        <div style="display: flex; align-items: center;">\n                            <div class="state-${e.state}" title="${e.state}" ></div>\n                            &nbsp; ${e.task_id} (${e.try_number})\n                        </div>\n                    </td>\n                    <td>\n                        <a href="#" id="task-log-link-${e.task_id}">Log</a> | \n                        <a href="#" id="task-xcom-link-${e.task_id}">XCom</a>\n                    </td>\n                    <td>${s.getDuration(new Date(e.start_date),new Date(e.end_date))}</td>\n                    <td>${e.operator}</td>\n                </tr>\n                `;let S="";this.dagTasksJson&&this.dagTasksJson.tasks&&this.dagTasksJson.tasks.length>0&&(S=this.buildTaskDependencyTree(this.dagTasksJson.tasks));let T="";if(this.dagRunHistoryJson)for(const e of this.dagRunHistoryJson.dag_runs)T+=`\n                <tr>\n                    <td>\n                        <div style="display: flex; align-items: center;">\n                            <div class="state-${e.state}" title="${e.state}"></div>\n                            &nbsp; ${e.state}\n                        </div>\n                    </td>\n                    <td><a href="#" id="history-dag-run-id-${e.dag_run_id}">${new Date(e.start_date).toLocaleString()}</a></td>\n                    <td>${s.getDuration(new Date(e.start_date),new Date(e.end_date))}</td>\n                    <td>${e.note}</td>\n                </tr>\n                `;let D=`\n    <!DOCTYPE html>\n    <html lang="en">\n      <head>\n        <meta charset="UTF-8">\n        <meta name="viewport" content="width=device-width,initial-scale=1.0">\n        <script type="module" src="${r}"><\/script>\n        <script type="module" src="${n}"><\/script>\n        <link rel="stylesheet" href="${o}">\n        <title>DAG</title>\n      </head>\n      <body>  \n\n\n        <div style="display: flex; align-items: center;">\n            <div class="dag-paused-${y}"></div>\n            &nbsp; &nbsp; <h2>${this.dagId}</h2>\n            <div style="visibility: ${g?"visible":"hidden"}; display: flex; align-items: center;">\n            &nbsp; &nbsp; <vscode-progress-ring></vscode-progress-ring>\n            </div>\n        </div>\n                    \n\n        <vscode-tabs id="tab-control" selected-index="${"tab-1"===this.activetabid?0:"tab-2"===this.activetabid?1:"tab-3"===this.activetabid?2:3}">\n            <vscode-tab-header slot="header">RUN</vscode-tab-header>\n            <vscode-tab-header slot="header">TASKS</vscode-tab-header>\n            <vscode-tab-header slot="header">INFO</vscode-tab-header>\n            <vscode-tab-header slot="header">HISTORY</vscode-tab-header>\n            \n            <vscode-tab-panel>\n                \n            <section>\n\n                    <table class="dag-run-details-table">\n                        <tr>\n                            <th colspan=3>Dag Run Details</th>\n                        </tr>\n                        <tr>\n                            <td>State</td>\n                            <td>:</td>\n                            <td>\n                                <div style="display: flex; align-items: center;">\n                                    <div class="state-${u}"></div> &nbsp; ${u}\n                                </div>\n                            </td>\n                        </tr>\n                        <tr>\n                            <td>Tasks</td>\n                            <td>:</td>\n                            <td>${p}</td>\n                        </tr>\n                        <tr>\n                            <td>Date</td>\n                            <td>:</td>\n                            <td>${c}</td>\n                        </tr>\n                        <tr>\n                            <td>StartDate</td>\n                            <td>:</td>\n                            <td>${d}</td>\n                        </tr>\n                        <tr>\n                            <td>Duration</td>\n                            <td>:</td>\n                            <td>${h}</td>\n                        </tr>\n                        <tr>\n                            <td>Note</td>\n                            <td>:</td>\n                            <td><a href="#" id="run-update-note-link" title="Update Note">${this.dagRunJson?.note||"(No note)"}</a></td>\n                        </tr>\n                        <tr>\n                            <td>Config</td>\n                            <td>:</td>\n                            <td>${this.dagRunJson?.conf?JSON.stringify(this.dagRunJson.conf,null,2):"(No config)"}</td>\n                        </tr>\n                        <tr>\n                            <td colspan="3">\n                                <vscode-button appearance="secondary" id="run-ask-ai" ${f?"":"disabled"}>Ask AI</vscode-button>    \n                                <vscode-button appearance="secondary" id="run-view-log" ${f?"":"disabled"}>Log</vscode-button> \n                                <vscode-button appearance="secondary" id="run-lastrun-check" ${v?"disabled":""}>Refresh</vscode-button>  \n                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${f?"":"disabled"}>More</vscode-button>\n                            </td>\n                        </tr>\n                    </table>\n            \n                    <br>\n            \n                    <table>\n                        <tr>\n                            <th colspan="3">Trigger</th>\n                        </tr>\n                        <tr>\n                            <td>Date</td>\n                            <td>:</td>\n                            <td><vscode-textfield id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10" pattern="d{4}-d{2}-d{2}"></vscode-textfield></td>\n                        </tr>\n                        <tr>\n                            <td>Config</td>\n                            <td>:</td>\n                            <td><vscode-textarea id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-textarea></td>\n                        </tr>\n                        <tr>           \n                            <td colspan="3">\n                            <vscode-button appearance="secondary" id="run-trigger-dag" ${v?"disabled":""}>Run</vscode-button>\n                            <vscode-button appearance="secondary" id="run-lastrun-cancel" ${v||!g?"disabled":""}>Cancel</vscode-button>  \n                            </td>\n                        </tr>\n                    </table>\n\n                    <br>\n\n                    <table>\n                        <tr>\n                            <th colspan="3">\n                            <vscode-button appearance="secondary" id="run-pause-dag" ${v?"disabled":""}>\n                            Pause\n                            </vscode-button>\n                            <vscode-button appearance="secondary" id="run-unpause-dag" ${v?"":"disabled"}>\n                            Un Pause\n                            </vscode-button>\n                            </th>\n                        </tr>\n                    </table>\n\n                    <br>\n                    <br>\n                    <br>\n                    \n                    <table>\n                        <tr>\n                            <td colspan="3">\n                                <a href="https://github.com/necatiarslan/airflow-vscode-extension/issues/new">Bug Report & Feature Request</a>\n                            </td>\n                        </tr>\n                    </table>\n                    <table>\n                        <tr>\n                            <td colspan="3">\n                                <a href="https://bit.ly/airflow-extension-survey">New Feature Survey</a>\n                            </td>\n                        </tr>\n                    </table>\n                    <table>\n                        <tr>\n                            <td colspan="3">\n                                <a href="https://github.com/sponsors/necatiarslan">Donate to support this extension</a>\n                            </td>\n                        </tr>\n                    </table>\n            </section>\n            </vscode-tab-panel>\n\n\n            <vscode-tab-panel>\n\n            <section>\n\n                    ${S?`\n                    <table>\n                        <tr>\n                            <th>Task Dependencies</th>\n                        </tr>\n                        <tr>\n                            <td>\n                                <vscode-tree>\n                                ${S}\n                                </vscode-tree>\n                            </td>\n                        </tr>\n                    </table>\n                    <br>\n                    `:""}\n\n                    <table>\n                        <tr>\n                            <th colspan="4">Tasks</th>\n                        </tr>\n                        <tr>\n                            <td>Task</td>\n                            <td></td>\n                            <td>Duration</td>            \n                            <td>Operator</td>\n                        </tr>\n\n                        ${_}\n\n                        <tr>          \n                            <td colspan="4">\n                                <vscode-button appearance="secondary" id="tasks-refresh">Refresh</vscode-button>\n                                <vscode-button appearance="secondary" id="tasks-more-detail" ${this.dagTaskInstancesJson?"":"disabled"}>More</vscode-button>\n                            </td>\n                        </tr>\n                    </table>\n\n            </section>\n            </vscode-tab-panel>\n            \n            <vscode-tab-panel>\n            <section>\n\n                    <table>\n                    <tr>\n                        <th colspan=3>Other</th>\n                    </tr>\n                    <tr>\n                        <td>Owners</td>\n                        <td>:</td>\n                        <td>${w}</td>\n                    </tr>\n                    <tr>\n                        <td>Tags</td>\n                        <td>:</td>\n                        <td>${m}</td>\n                    </tr>\n                    <tr>\n                        <td>Schedule</td>\n                        <td>:</td>\n                        <td>${b}</td>\n                    </tr>\n                    <tr>           \n                        <td colspan="3"><vscode-button appearance="secondary" id="info-source-code">Source Code</vscode-button> <vscode-button appearance="secondary" id="other-dag-detail">More</vscode-button></td>\n                    </tr>\n                    </table>\n\n            </section>\n            </vscode-tab-panel>\n\n            <vscode-tab-panel>\n\n            <section>\n    \n                    <table>\n                        <tr>\n                            <th colspan=4>HISTORY</th>\n                        </tr>\n                        <tr>\n                            <td>Date</td>\n                            <td>:</td>\n                            <td>\n                            <vscode-textfield id="history_date" value="${this.dagHistorySelectedDate}" placeholder="YYYY-MM-DD" pattern="d{4}-d{2}-d{2}" maxlength="10"></vscode-textfield>\n                            </td>\n                            <td><vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button></td>\n                        </tr>\n                    </table>\n\n                    <table>\n                        <tr>\n                            <th colspan=4>DAG RUNS</th>\n                        </tr>\n                        <tr>\n                            <td></td>\n                            <td>Start Time</td>            \n                            <td>Duration</td>\n                            <td>Notes</td>\n                        </tr>\n                        ${T}\n                    </table>   \n    \n            </section>\n            </vscode-tab-panel>\n\n        </vscode-tabs>\n      </body>\n    </html>\n    `;return s.logToOutput("DagView._getWebviewContent Completed"),D}_setWebviewMessageListener(e){s.logToOutput("DagView._setWebviewMessageListener Started"),e.onDidReceiveMessage((e=>{const t=e.command;let r=e.activetabid;switch(["tab-1","tab-2","tab-3","tab-4"].includes(r)&&(this.activetabid=e.activetabid),s.logToOutput("DagView._setWebviewMessageListener Message Received "+e.command),t){case"run-trigger-dag":return void this.triggerDagWConfig(e.config,e.date);case"run-view-log":return void this.showDAGRunLog();case"run-more-dagrun-detail":return void s.showOutputMessage(this.dagRunJson);case"other-dag-detail":return void s.showOutputMessage(this.dagJson);case"tasks-more-detail":return void s.showOutputMessage(this.dagTaskInstancesJson);case"history-load-runs":return void this.getRunHistoryAndRenderHtml(e.date);case"info-source-code":return void this.showSourceCode();case"run-pause-dag":return void this.pauseDAG(!0);case"run-unpause-dag":return void this.pauseDAG(!1);case"run-ask-ai":return void this.askAI();case"run-lastrun-check":return this.getLastRun(),void(this.dagRunJson&&this.startCheckingDagRunStatus(this.dagRunId));case"run-lastrun-cancel":return void(this.dagRunJson&&this.cancelDagRun(this.dagRunId));case"run-update-note":return void(this.dagRunJson&&this.updateDagRunNote(""));case"history-dag-run-id":let t=e.id;return t=t.replace("history-dag-run-id-",""),this.activetabid="tab-1",void this.getDagRun(this.dagId,t);case"task-log-link":let r=e.id;return r=r.replace("task-log-link-",""),void this.showTaskInstanceLog(this.dagId,this.dagRunId,r);case"task-xcom-link":let n=e.id;return n=n.replace("task-xcom-link-",""),void this.showTaskXComs(this.dagId,this.dagRunId,n);case"tasks-refresh":return void this.getTasksAndRenderHtml();case"tabControlChanged":return this.activetabid=e.activeid,void s.logToOutput("tab changed to "+e.activeid)}}),void 0,this._disposables)}async getTasksAndRenderHtml(){await this.getDagTasks(),await this.renderHmtl()}async cancelDagRun(e){s.logToOutput("DagView.cancelDagRun Started")}async updateDagRunNote(e){if(s.logToOutput("DagView.updateDagRunNote Started"),!this.api||!this.dagRunJson)return;const t=await n.window.showInputBox({prompt:"Enter note for this DAG run",value:this.dagRunJson.note||"",placeHolder:"Add a note for this DAG run"});void 0!==t&&(await this.api.updateDagRunNote(this.dagId,this.dagRunId,t)).isSuccessful&&await this.getDagRun(this.dagId,this.dagRunId)}async pauseDAG(e){s.logToOutput("DagTreeView.pauseDAG Started"),e&&this.dagJson.is_paused?s.showWarningMessage(this.dagId+"Dag is already PAUSED"):e||this.dagJson.is_paused?(await this.api.pauseDag(this.dagId,e)).isSuccessful&&(this.loadDagDataOnly(),e?o.DagTreeView.Current?.notifyDagPaused(this.dagId):o.DagTreeView.Current?.notifyDagUnPaused(this.dagId)):s.showWarningMessage(this.dagId+"Dag is already ACTIVE")}async askAI(){if(s.logToOutput("DagView.askAI Started"),!o.DagTreeView.Current)return void s.showErrorMessage("DagTreeView is not available");if(!this.dagJson)return void s.showErrorMessage("DAG information is not available");let e=await this.api.getSourceCode(this.dagId,this.dagJson.file_token);if(!e.isSuccessful)return void s.showErrorMessage("Failed to retrieve DAG source code for AI context");let t=await this.api.getDagRunLog(this.dagId,this.dagRunId);t.isSuccessful?await(o.DagTreeView.Current?.askAIWithContext({code:e.result,logs:t.result,dag:this.dagJson,dagRun:this.dagRunJson,tasks:this.dagTasksJson,taskInstances:this.dagTaskInstancesJson})):s.showErrorMessage("Failed to retrieve DAG logs for AI context")}async showSourceCode(){s.logToOutput("DagView.showSourceCode Started");let e=await this.api.getSourceCode(this.dagId,this.dagJson.file_token);if(e.isSuccessful){const t=r(83),n=r(896),o=t.fileSync({mode:420,prefix:this.dagId,postfix:".py"});n.appendFileSync(o.name,e.result),s.openFile(o.name)}else s.logToOutput(e.result),s.showErrorMessage(e.result)}async getRunHistoryAndRenderHtml(e){s.logToOutput("DagView.getRunHistoryAndRenderHtml Started"),this.dagHistorySelectedDate=e,await this.getRunHistory(e),await this.renderHmtl()}async showDAGRunLog(){s.logToOutput("DagView.DAGRunLog Started");let e=await this.api.getDagRunLog(this.dagId,this.dagRunId);if(e.isSuccessful){const t=r(83),n=r(896),o=t.fileSync({mode:420,prefix:this.dagId,postfix:".log"});n.appendFileSync(o.name,e.result),s.openFile(o.name)}}async showTaskInstanceLog(e,t,n){s.logToOutput("DagView.showTaskInstanceLog Started");let o=await this.api.getTaskInstanceLog(e,t,n);if(o.isSuccessful){const t=r(83),a=r(896),i=t.fileSync({mode:420,prefix:e+"-"+n,postfix:".log"});a.appendFileSync(i.name,o.result),s.openFile(i.name)}}async showTaskXComs(e,t,n){s.logToOutput("DagView.showTaskXComs Started");let o=await this.api.getTaskXComs(e,t,n);if(o.isSuccessful){const t=r(83),a=r(896),i=t.fileSync({mode:420,prefix:e+"-"+n+"_xcom",postfix:".json"});a.appendFileSync(i.name,JSON.stringify(o.result,null,2)),s.openFile(i.name)}else s.showInfoMessage(`No XCom entries found for task: ${n}`)}async triggerDagWConfig(e="",t=""){if(s.logToOutput("DagView.triggerDagWConfig Started"),!e||s.isJsonString(e))if(!t||s.isValidDate(t)){if(e||(e="{}"),void 0!==e){let r=await this.api.triggerDag(this.dagId,e,t);r.isSuccessful&&(this.startCheckingDagRunStatus(r.result.dag_run_id),o.DagTreeView.Current?.notifyDagStateWithDagId(this.dagId))}}else s.showWarningMessage("Date is not a valid DATE");else s.showWarningMessage("Config is not a valid JSON")}async startCheckingDagRunStatus(e){s.logToOutput("DagView.startCheckingDagRunStatus Started"),this.dagRunId=e,await this.refreshRunningDagState(this),this.dagStatusInterval&&clearInterval(this.dagStatusInterval),this.dagStatusInterval=setInterval((()=>{this.refreshRunningDagState(this).catch((e=>s.logToOutput("refreshRunningDagState Error",e)))}),5e3)}async stopCheckingDagRunStatus(){s.logToOutput("DagView.stopCheckingDagRunStatus Started"),this.dagStatusInterval&&clearInterval(this.dagStatusInterval)}async refreshRunningDagState(e){if(s.logToOutput("DagView.refreshRunningDagState Started"),!e.dagId||!e.dagRunId)return void e.stopCheckingDagRunStatus();let t=await this.api.getDagRun(e.dagId,e.dagRunId);if(!t.isSuccessful)return void e.stopCheckingDagRunStatus();{e.dagRunJson=t.result;let r=await this.api.getTaskInstances(e.dagId,e.dagRunId);r.isSuccessful&&(e.dagTaskInstancesJson=r.result)}let r=e.dagRunJson?e.dagRunJson.state:"";"queued"===r||"running"===r||e.stopCheckingDagRunStatus(),e.renderHmtl()}buildTaskDependencyTree(e){s.logToOutput("DagView.buildTaskDependencyTree Started");const t=new Map;e.forEach((e=>{t.set(e.task_id,e)}));const r=e.filter((e=>!e.upstream_task_ids||0===e.upstream_task_ids.length));if(0===r.length)return"No task dependencies found or circular dependencies detected.";const n=new Set;let o="";const a=e=>{if(n.has(e))return"";n.add(e);const r=t.get(e);if(!r)return"";let s="<vscode-tree-item>\n";s+=`${r.task_id} (${r.operator||""})\n`;const o=r.downstream_task_ids||[];return o.length>0&&o.forEach((e=>{s+=a(e)})),s+="</vscode-tree-item>\n",s};return r.forEach((e=>{o+=a(e.task_id)})),o||"No tasks to display."}}t.DagView=a},830:e=>{"use strict";e.exports=require("node:stream/web")},857:e=>{"use strict";e.exports=require("os")},896:e=>{"use strict";e.exports=require("fs")},914:function(e,t,r){var n;e=r.nmd(e),function(){var s=(e&&e.exports,"object"==typeof global&&global);s.global!==s&&s.window;var o=function(e){this.message=e};(o.prototype=new Error).name="InvalidCharacterError";var a=function(e){throw new o(e)},i="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/",l=/[\t\n\f\r ]/g,u={encode:function(e){e=String(e),/[^\0-\xFF]/.test(e)&&a("The string to be encoded contains characters outside of the Latin1 range.");for(var t,r,n,s,o=e.length%3,l="",u=-1,c=e.length-o;++u<c;)t=e.charCodeAt(u)<<16,r=e.charCodeAt(++u)<<8,n=e.charCodeAt(++u),l+=i.charAt((s=t+r+n)>>18&63)+i.charAt(s>>12&63)+i.charAt(s>>6&63)+i.charAt(63&s);return 2==o?(t=e.charCodeAt(u)<<8,r=e.charCodeAt(++u),l+=i.charAt((s=t+r)>>10)+i.charAt(s>>4&63)+i.charAt(s<<2&63)+"="):1==o&&(s=e.charCodeAt(u),l+=i.charAt(s>>2)+i.charAt(s<<4&63)+"=="),l},decode:function(e){var t=(e=String(e).replace(l,"")).length;t%4==0&&(t=(e=e.replace(/==?$/,"")).length),(t%4==1||/[^+a-zA-Z0-9/]/.test(e))&&a("Invalid character: the string to be decoded is not correctly encoded.");for(var r,n,s=0,o="",u=-1;++u<t;)n=i.indexOf(e.charAt(u)),r=s%4?64*r+n:n,s++%4&&(o+=String.fromCharCode(255&r>>(-2*s&6)));return o},version:"1.0.0"};void 0===(n=function(){return u}.call(t,r,t,e))||(e.exports=n)}()},928:e=>{"use strict";e.exports=require("path")},980:(e,t,r)=>{"use strict";Object.defineProperty(t,"__esModule",{value:!0}),t.ConnectionsView=void 0;const n=r(398),s=r(60);class o{constructor(e,t,r){this._disposables=[],s.logToOutput("ConnectionsView.constructor Started"),this.extensionUri=t,this._panel=e,this.api=r,this._panel.onDidDispose((()=>this.dispose()),null,this._disposables),this._setWebviewMessageListener(this._panel.webview),this.loadData(),s.logToOutput("ConnectionsView.constructor Completed")}async loadData(){s.logToOutput("ConnectionsView.loadData Started");const e=await this.api.getConnections();e.isSuccessful&&(this.connectionsJson=e.result),await this.renderHtml()}async renderHtml(){s.logToOutput("ConnectionsView.renderHtml Started"),this._panel.webview.html=this._getWebviewContent(this._panel.webview,this.extensionUri),s.logToOutput("ConnectionsView.renderHtml Completed")}static render(e,t){if(s.logToOutput("ConnectionsView.render Started"),o.Current)o.Current.api=t,o.Current._panel.reveal(n.ViewColumn.Two),o.Current.loadData();else{const r=n.window.createWebviewPanel("connectionsView","Connections",n.ViewColumn.Two,{enableScripts:!0});o.Current=new o(r,e,t)}}dispose(){for(s.logToOutput("ConnectionsView.dispose Started"),o.Current=void 0,this._panel.dispose();this._disposables.length;){const e=this._disposables.pop();e&&e.dispose()}}_getWebviewContent(e,t){return s.logToOutput("ConnectionsView._getWebviewContent Started"),`\n    <!DOCTYPE html>\n    <html lang="en">\n      <head>\n        <meta charset="UTF-8">\n        <meta name="viewport" content="width=device-width,initial-scale=1.0">\n        <script type="module" src="${s.getUri(e,t,["node_modules","@vscode","webview-ui-toolkit","dist","toolkit.js"])}"><\/script>\n        <script type="module" src="${s.getUri(e,t,["media","main.js"])}"><\/script>\n        <link rel="stylesheet" href="${s.getUri(e,t,["media","style.css"])}">\n        <title>Connections</title>\n      </head>\n      <body>  \n        <h2>Airflow Connections</h2>\n        <vscode-button appearance="secondary" id="refresh-connections">Refresh</vscode-button>\n        <br><br>\n        <pre>${this.connectionsJson?JSON.stringify(this.connectionsJson,null,4):"No connections found"}</pre>\n      </body>\n    </html>\n    `}_setWebviewMessageListener(e){s.logToOutput("ConnectionsView._setWebviewMessageListener Started"),e.onDidReceiveMessage((e=>{s.logToOutput("ConnectionsView._setWebviewMessageListener Message Received "+e.command),"refresh-connections"!==e.command||this.loadData()}),void 0,this._disposables)}}t.ConnectionsView=o},982:e=>{"use strict";e.exports=require("crypto")}},r={};function n(e){var s=r[e];if(void 0!==s)return s.exports;var o=r[e]={id:e,loaded:!1,exports:{}};return t[e].call(o.exports,o,o.exports,n),o.loaded=!0,o.exports}n.m=t,n.d=(e,t)=>{for(var r in t)n.o(t,r)&&!n.o(e,r)&&Object.defineProperty(e,r,{enumerable:!0,get:t[r]})},n.f={},n.e=e=>Promise.all(Object.keys(n.f).reduce(((t,r)=>(n.f[r](e,t),t)),[])),n.u=e=>e+".extension.js",n.o=(e,t)=>Object.prototype.hasOwnProperty.call(e,t),n.r=e=>{"undefined"!=typeof Symbol&&Symbol.toStringTag&&Object.defineProperty(e,Symbol.toStringTag,{value:"Module"}),Object.defineProperty(e,"__esModule",{value:!0})},n.nmd=e=>(e.paths=[],e.children||(e.children=[]),e),e={792:1},n.f.require=(t,r)=>{if(!e[t]){var s=require("./"+n.u(t));e[t]||(t=>{var r=t.modules,s=t.ids,o=t.runtime;for(var a in r)n.o(r,a)&&(n.m[a]=r[a]);o&&o(n);for(var i=0;i<s.length;i++)e[s[i]]=1})(s)}};var s={};(()=>{"use strict";var e=s;Object.defineProperty(e,"__esModule",{value:!0}),e.activate=function(e){o.logToOutput("Extension activation started");let n=new r.DagTreeView(e);const s=[];s.push(t.commands.registerCommand("dagTreeView.refreshServer",(()=>{n.refresh()}))),s.push(t.commands.registerCommand("dagTreeView.addServer",(()=>{n.addServer()}))),s.push(t.commands.registerCommand("dagTreeView.removeServer",(()=>{n.removeServer()}))),s.push(t.commands.registerCommand("dagTreeView.connectServer",(()=>{n.connectServer()}))),s.push(t.commands.registerCommand("dagTreeView.clearServers",(()=>{n.clearServers()}))),s.push(t.commands.registerCommand("dagTreeView.filter",(()=>{n.filter()}))),s.push(t.commands.registerCommand("dagTreeView.showOnlyActive",(()=>{n.showOnlyActive()}))),s.push(t.commands.registerCommand("dagTreeView.showOnlyFavorite",(()=>{n.showOnlyFavorite()}))),s.push(t.commands.registerCommand("dagTreeView.viewDagView",(e=>{n.viewDagView(e)}))),s.push(t.commands.registerCommand("dagTreeView.triggerDag",(e=>{n.triggerDag(e)}))),s.push(t.commands.registerCommand("dagTreeView.triggerDagWithConfig",(e=>{n.triggerDagWConfig(e)}))),s.push(t.commands.registerCommand("dagTreeView.checkDagRunState",(e=>{n.checkDagRunState(e)}))),s.push(t.commands.registerCommand("dagTreeView.checkAllDagsRunState",(()=>{n.checkAllDagsRunState()}))),s.push(t.commands.registerCommand("dagTreeView.pauseDAG",(e=>{n.pauseDAG(e)}))),s.push(t.commands.registerCommand("dagTreeView.unPauseDAG",(e=>{n.unPauseDAG(e)}))),s.push(t.commands.registerCommand("dagTreeView.lastDAGRunLog",(e=>{n.lastDAGRunLog(e)}))),s.push(t.commands.registerCommand("dagTreeView.dagSourceCode",(e=>{n.dagSourceCode(e)}))),s.push(t.commands.registerCommand("dagTreeView.showDagInfo",(e=>{n.showDagInfo(e)}))),s.push(t.commands.registerCommand("dagTreeView.addToFavDAG",(e=>{n.addToFavDAG(e)}))),s.push(t.commands.registerCommand("dagTreeView.deleteFromFavDAG",(e=>{n.deleteFromFavDAG(e)}))),s.push(t.commands.registerCommand("dagTreeView.showDagView",(e=>{n.viewDagView(e)}))),s.push(t.commands.registerCommand("dagTreeView.viewConnections",(()=>{n.viewConnections()}))),s.push(t.commands.registerCommand("dagTreeView.viewVariables",(()=>{n.viewVariables()}))),s.push(t.commands.registerCommand("dagTreeView.viewProviders",(()=>{n.viewProviders()}))),s.push(t.commands.registerCommand("dagTreeView.AskAI",(e=>{n.askAI(e)})));const a=t.chat.createChatParticipant("airflow-ext.participant",n.aIHandler.bind(n));a.iconPath=t.Uri.joinPath(e.extensionUri,"media","airflow-extension-logo.png"),e.subscriptions.push(a);for(const t of s)e.subscriptions.push(t);o.logToOutput("Extension activation completed")},e.deactivate=function(){o.logToOutput("Extension is now deactive!")};const t=n(398),r=n(537),o=n(60)})(),module.exports=s})();
+/******/ (() => { // webpackBootstrap
+/******/ 	var __webpack_modules__ = ([
+/* 0 */,
+/* 1 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("vscode");
+
+/***/ }),
+/* 2 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTreeView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const dagView_1 = __webpack_require__(3);
+const dagTreeDataProvider_1 = __webpack_require__(10);
+const ui = __webpack_require__(4);
+const api_1 = __webpack_require__(12);
+class DagTreeView {
+    constructor(context) {
+        this.filterString = '';
+        this.ShowOnlyActive = true;
+        this.ShowOnlyFavorite = false;
+        this.ServerList = [];
+        ui.logToOutput('DagTreeView.constructor Started');
+        this.context = context;
+        this.treeDataProvider = new dagTreeDataProvider_1.DagTreeDataProvider();
+        this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
+        this.loadState();
+        context.subscriptions.push(this.view);
+        context.subscriptions.push({ dispose: () => this.dispose() });
+        DagTreeView.Current = this;
+        this.setFilterMessage();
+        this.refresh();
+    }
+    dispose() {
+        ui.logToOutput('DagTreeView.dispose Started');
+        if (this.dagStatusInterval) {
+            clearInterval(this.dagStatusInterval);
+        }
+    }
+    async refresh() {
+        ui.logToOutput('DagTreeView.refresh Started');
+        if (!this.api) {
+            this.treeDataProvider.dagList = [];
+            this.treeDataProvider.refresh();
+            return;
+        }
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: "Airflow: Loading...",
+        }, async (progress) => {
+            progress.report({ increment: 0 });
+            await this.loadDags();
+        });
+        await this.getImportErrors();
+    }
+    resetView() {
+        ui.logToOutput('DagTreeView.resetView Started');
+        this.api = undefined;
+        this.currentServer = undefined;
+        this.filterString = '';
+        this.treeDataProvider.dagList = undefined;
+        this.treeDataProvider.refresh();
+        this.setViewTitle();
+        this.saveState();
+        this.refresh();
+    }
+    viewDagView(node) {
+        ui.logToOutput('DagTreeView.viewDagView Started');
+        if (this.api) {
+            dagView_1.DagView.render(this.context.extensionUri, node.DagId, this.api);
+        }
+    }
+    async addToFavDAG(node) {
+        ui.logToOutput('DagTreeView.addToFavDAG Started');
+        node.IsFav = true;
+        this.treeDataProvider.refresh();
+    }
+    async deleteFromFavDAG(node) {
+        ui.logToOutput('DagTreeView.deleteFromFavDAG Started');
+        node.IsFav = false;
+        this.treeDataProvider.refresh();
+    }
+    async triggerDag(node) {
+        ui.logToOutput('DagTreeView.triggerDag Started');
+        if (!this.api) {
+            return;
+        }
+        if (node.IsPaused) {
+            ui.showWarningMessage('Dag is PAUSED !!!');
+            return;
+        }
+        if (node.isDagRunning()) {
+            ui.showWarningMessage('Dag is ALREADY RUNNING !!!');
+            return;
+        }
+        const result = await this.api.triggerDag(node.DagId);
+        if (result.isSuccessful) {
+            const responseTrigger = result.result;
+            node.LatestDagRunId = responseTrigger['dag_run_id'];
+            node.LatestDagState = responseTrigger['state'];
+            node.refreshUI();
+            this.treeDataProvider.refresh();
+            if (!this.dagStatusInterval) {
+                this.dagStatusInterval = setInterval(() => {
+                    void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
+                }, 10 * 1000);
+            }
+        }
+    }
+    async refreshRunningDagState(dagTreeView) {
+        ui.logToOutput('DagTreeView.refreshRunningDagState Started');
+        if (!dagTreeView.api) {
+            return;
+        }
+        let noDagIsRunning = true;
+        for (const node of dagTreeView.treeDataProvider.visibleDagList) {
+            if (node.isDagRunning()) {
+                noDagIsRunning = false;
+                const result = await dagTreeView.api.getDagRun(node.DagId, node.LatestDagRunId);
+                if (result.isSuccessful) {
+                    node.LatestDagState = result.result['state'];
+                    node.refreshUI();
+                }
+                else {
+                    node.LatestDagRunId = '';
+                    node.LatestDagState = '';
+                }
+            }
+            dagTreeView.treeDataProvider.refresh();
+        }
+        if (noDagIsRunning && dagTreeView.dagStatusInterval) {
+            clearInterval(dagTreeView.dagStatusInterval);
+            dagTreeView.dagStatusInterval = undefined;
+            ui.showInfoMessage('All Dag Run(s) Completed');
+            ui.logToOutput('All Dag Run(s) Completed');
+        }
+    }
+    async triggerDagWConfig(node) {
+        ui.logToOutput('DagTreeView.triggerDagWConfig Started');
+        if (!this.api) {
+            return;
+        }
+        let triggerDagConfig = await vscode.window.showInputBox({ placeHolder: 'Enter Configuration JSON (Optional, must be a dict object) or Press Enter' });
+        if (!triggerDagConfig) {
+            triggerDagConfig = "{}";
+        }
+        if (triggerDagConfig !== undefined) {
+            const result = await this.api.triggerDag(node.DagId, triggerDagConfig);
+            if (result.isSuccessful) {
+                const responseTrigger = result.result;
+                node.LatestDagRunId = responseTrigger['dag_run_id'];
+                node.LatestDagState = responseTrigger['state'];
+                node.refreshUI();
+                this.treeDataProvider.refresh();
+                if (!this.dagStatusInterval) {
+                    this.dagStatusInterval = setInterval(() => {
+                        void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
+                    }, 10 * 1000);
+                }
+            }
+        }
+    }
+    async checkAllDagsRunState() {
+        ui.logToOutput('DagTreeView.checkAllDagsRunState Started');
+        if (!this.treeDataProvider) {
+            return;
+        }
+        for (const node of this.treeDataProvider.visibleDagList) {
+            if (!node.IsPaused) {
+                this.checkDagRunState(node);
+            }
+        }
+    }
+    async notifyDagStateWithDagId(dagId) {
+        ui.logToOutput('DagTreeView.checDagStateWitDagId Started');
+        if (!this.treeDataProvider) {
+            return;
+        }
+        for (const node of this.treeDataProvider.visibleDagList) {
+            if (node.DagId === dagId) {
+                this.checkDagRunState(node);
+            }
+        }
+    }
+    async checkDagRunState(node) {
+        ui.logToOutput('DagTreeView.checkDagRunState Started');
+        if (!this.api) {
+            return;
+        }
+        if (!node) {
+            return;
+        }
+        if (node.IsPaused) {
+            ui.showWarningMessage(node.DagId + 'Dag is PAUSED');
+            return;
+        }
+        const result = await this.api.getLastDagRun(node.DagId);
+        if (result.isSuccessful) {
+            node.LatestDagRunId = result.result.dag_run_id;
+            node.LatestDagState = result.result.state;
+            node.refreshUI();
+            this.treeDataProvider.refresh();
+            if (node.isDagRunning()) {
+                if (!this.dagStatusInterval) {
+                    this.dagStatusInterval = setInterval(() => {
+                        void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
+                    }, 10 * 1000);
+                }
+            }
+        }
+    }
+    async pauseDAG(node) {
+        ui.logToOutput('DagTreeView.pauseDAG Started');
+        if (!this.api) {
+            return;
+        }
+        if (node.IsPaused) {
+            ui.showWarningMessage(node.DagId + 'Dag is already PAUSED');
+            return;
+        }
+        const result = await this.api.pauseDag(node.DagId, true);
+        if (result.isSuccessful) {
+            node.IsPaused = true;
+            node.refreshUI();
+            this.treeDataProvider.refresh();
+        }
+    }
+    async notifyDagPaused(dagId) {
+        ui.logToOutput('DagTreeView.notifyDagPaused Started');
+        this.refresh();
+    }
+    async notifyDagUnPaused(dagId) {
+        ui.logToOutput('DagTreeView.notifyDagPaused Started');
+        this.refresh();
+    }
+    async unPauseDAG(node) {
+        ui.logToOutput('DagTreeView.unPauseDAG Started');
+        if (!this.api) {
+            return;
+        }
+        if (!node.IsPaused) {
+            ui.showInfoMessage(node.DagId + 'Dag is already UNPAUSED');
+            return;
+        }
+        const result = await this.api.pauseDag(node.DagId, false);
+        if (result.isSuccessful) {
+            node.IsPaused = false;
+            node.refreshUI();
+            this.treeDataProvider.refresh();
+        }
+    }
+    async lastDAGRunLog(node) {
+        ui.logToOutput('DagTreeView.lastDAGRunLog Started');
+        if (!this.api) {
+            return;
+        }
+        const result = await this.api.getLastDagRunLog(node.DagId);
+        if (result.isSuccessful) {
+            const tmp = __webpack_require__(7);
+            const fs = __webpack_require__(5);
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.log' });
+            fs.appendFileSync(tmpFile.name, result.result);
+            ui.openFile(tmpFile.name);
+        }
+    }
+    async dagSourceCode(node) {
+        ui.logToOutput('DagTreeView.dagSourceCode Started');
+        if (!this.api) {
+            return;
+        }
+        const result = await this.api.getSourceCode(node.DagId, node.FileToken);
+        if (result.isSuccessful) {
+            const tmp = __webpack_require__(7);
+            const fs = __webpack_require__(5);
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.py' });
+            fs.appendFileSync(tmpFile.name, result.result);
+            ui.openFile(tmpFile.name);
+        }
+        else {
+            ui.logToOutput(result.result);
+            ui.showErrorMessage(result.result);
+        }
+    }
+    async showDagInfo(node) {
+        ui.logToOutput('DagTreeView.showDagInfo Started');
+        if (!this.api) {
+            return;
+        }
+        const result = await this.api.getDagInfo(node.DagId);
+        if (result.isSuccessful) {
+            const tmp = __webpack_require__(7);
+            const fs = __webpack_require__(5);
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId + '_info', postfix: '.json' });
+            fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
+            ui.openFile(tmpFile.name);
+        }
+        else {
+            ui.logToOutput(result.result);
+            ui.showErrorMessage('Failed to fetch DAG info');
+        }
+    }
+    async aIHandler(request, context, stream, token) {
+        const aiContext = DagTreeView.Current?.askAIContext;
+        if (!aiContext) {
+            stream.markdown("No active DAG context found. Please use the 'Ask AI' button on a DAG item first.");
+            return;
+        }
+        // B. Construct the Prompt
+        const messages = [
+            vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. Here is the code for a DAG and its recent execution logs. Analyze them and explain any errors.`),
+            vscode.LanguageModelChatMessage.User(`DAG Code:\n\`\`\`python\n${aiContext.code}\n\`\`\``),
+            vscode.LanguageModelChatMessage.User(`Execution Logs:\n\`\`\`text\n${aiContext.logs}\n\`\`\``)
+        ];
+        if (aiContext.dag) {
+            messages.push(vscode.LanguageModelChatMessage.User(`DAG:\n\`\`\`json\n${aiContext.dag}\n\`\`\``));
+        }
+        if (aiContext.dagRun) {
+            messages.push(vscode.LanguageModelChatMessage.User(`DAG Run:\n\`\`\`json\n${aiContext.dagRun}\n\`\`\``));
+        }
+        if (aiContext.tasks) {
+            messages.push(vscode.LanguageModelChatMessage.User(`DAG Tasks:\n\`\`\`json\n${aiContext.tasks}\n\`\`\``));
+        }
+        if (aiContext.taskInstances) {
+            messages.push(vscode.LanguageModelChatMessage.User(`Task Instances:\n\`\`\`json\n${aiContext.taskInstances}\n\`\`\``));
+        }
+        messages.push(vscode.LanguageModelChatMessage.User(request.prompt || "Please analyze the error in these logs if any."));
+        // C. Send to VS Code's AI (Copilot)
+        try {
+            const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4' });
+            if (model) {
+                const chatResponse = await model.sendRequest(messages, {}, token);
+                for await (const fragment of chatResponse.text) {
+                    stream.markdown(fragment);
+                }
+            }
+            else {
+                stream.markdown("No suitable AI model found.");
+            }
+        }
+        catch (err) {
+            if (err instanceof Error) {
+                stream.markdown(`I'm sorry, I couldn't connect to the AI model: ${err.message}`);
+            }
+            else {
+                stream.markdown("I'm sorry, I couldn't connect to the AI model.");
+            }
+        }
+    }
+    ;
+    async isChatCommandAvailable() {
+        const commands = await vscode.commands.getCommands(true); // 'true' includes internal commands
+        return commands.includes('workbench.action.chat.open');
+    }
+    async askAI(node) {
+        ui.logToOutput('DagTreeView.askAI Started');
+        if (!this.api) {
+            return;
+        }
+        if (!await this.isChatCommandAvailable()) {
+            ui.showErrorMessage('Chat command is not available. Please ensure you have access to VS Code AI features.');
+            return;
+        }
+        let dagSourceCode = '';
+        let latestDagLogs = '';
+        // Fetch DAG Source Code
+        const sourceResult = await this.api.getSourceCode(node.DagId, node.FileToken);
+        if (sourceResult.isSuccessful) {
+            dagSourceCode = sourceResult.result;
+        }
+        else {
+            ui.showErrorMessage('Failed to fetch DAG source code for AI analysis.');
+            return;
+        }
+        // Fetch Latest DAG Run Logs
+        const logResult = await this.api.getLastDagRunLog(node.DagId);
+        if (logResult.isSuccessful) {
+            latestDagLogs = logResult.result;
+        }
+        else {
+            ui.showErrorMessage('Failed to fetch latest DAG run logs for AI analysis.');
+            return;
+        }
+        await this.askAIWithContext({ code: dagSourceCode, logs: latestDagLogs, dag: node.DagId, dagRun: node.LatestDagRunId, tasks: null, taskInstances: null });
+    }
+    async askAIWithContext(askAIContext) {
+        this.askAIContext = askAIContext;
+        const appName = vscode.env.appName;
+        let commandId = '';
+        if (appName.includes('Antigravity')) {
+            // Antigravity replaces the Chat with an Agent workflow.
+            // We must use the Agent Manager command instead.
+            // **REPLACE WITH THE ACTUAL ANTIGRAVITY AGENT COMMAND ID**
+            commandId = 'antigravity.startAgentTask';
+        }
+        else if (appName.includes('Code - OSS') || appName.includes('Visual Studio Code')) {
+            // This is standard VS Code or VSCodium. Check for the legacy Chat command.
+            commandId = 'workbench.action.chat.open';
+        }
+        else {
+            // Unknown environment, default to checking if the command exists at all.
+            commandId = 'workbench.action.chat.open';
+        }
+        await vscode.commands.executeCommand(commandId, {
+            query: '@airflow Analyze the current logs'
+        });
+    }
+    async filter() {
+        ui.logToOutput('DagTreeView.filter Started');
+        const filterStringTemp = await vscode.window.showInputBox({ value: this.filterString, placeHolder: 'Enter your filters seperated by comma' });
+        if (filterStringTemp === undefined) {
+            return;
+        }
+        this.filterString = filterStringTemp;
+        this.treeDataProvider.refresh();
+        this.setFilterMessage();
+        this.saveState();
+    }
+    async showOnlyActive() {
+        ui.logToOutput('DagTreeView.showOnlyActive Started');
+        this.ShowOnlyActive = !this.ShowOnlyActive;
+        this.treeDataProvider.refresh();
+        this.setFilterMessage();
+        this.saveState();
+    }
+    async showOnlyFavorite() {
+        ui.logToOutput('DagTreeView.showOnlyFavorite Started');
+        this.ShowOnlyFavorite = !this.ShowOnlyFavorite;
+        this.treeDataProvider.refresh();
+        this.setFilterMessage();
+        this.saveState();
+    }
+    async addServer() {
+        ui.logToOutput('DagTreeView.addServer Started');
+        const apiUrlTemp = await vscode.window.showInputBox({ value: 'http://localhost:8080/api/v2', placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
+        if (!apiUrlTemp) {
+            return;
+        }
+        const userNameTemp = await vscode.window.showInputBox({ placeHolder: 'User Name' });
+        if (!userNameTemp) {
+            return;
+        }
+        const passwordTemp = await vscode.window.showInputBox({ placeHolder: 'Password' });
+        if (!passwordTemp) {
+            return;
+        }
+        const newServer = { apiUrl: apiUrlTemp, apiUserName: userNameTemp, apiPassword: passwordTemp };
+        this.ServerList.push(newServer);
+        let api = new api_1.AirflowApi(newServer);
+        let result = await api.checkConnection();
+        if (!result) {
+            ui.showErrorMessage("Failed to connect to server.");
+            return;
+        }
+        this.currentServer = newServer;
+        this.api = api;
+        this.saveState();
+        this.refresh();
+    }
+    async removeServer() {
+        ui.logToOutput('DagTreeView.removeServer Started');
+        if (this.ServerList.length === 0) {
+            return;
+        }
+        const items = this.ServerList.map(s => `${s.apiUrl} - ${s.apiUserName}`);
+        const selected = await vscode.window.showQuickPick(items, { canPickMany: false, placeHolder: 'Select To Remove' });
+        if (!selected) {
+            return;
+        }
+        const selectedItems = selected.split(' - ');
+        if (selectedItems[0]) {
+            this.ServerList = this.ServerList.filter(item => !(item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]));
+            // If we removed the current server, reset
+            if (this.currentServer && this.currentServer.apiUrl === selectedItems[0] && this.currentServer.apiUserName === selectedItems[1]) {
+                this.currentServer = undefined;
+                this.api = undefined;
+                this.treeDataProvider.dagList = undefined;
+                this.treeDataProvider.refresh();
+            }
+            this.saveState();
+            ui.showInfoMessage("Server removed.");
+        }
+    }
+    async connectServer() {
+        ui.logToOutput('DagTreeView.connectServer Started');
+        if (this.ServerList.length === 0) {
+            this.addServer();
+            return;
+        }
+        const items = [];
+        for (const s of this.ServerList) {
+            items.push(s.apiUrl + " - " + s.apiUserName);
+        }
+        const selected = await vscode.window.showQuickPick(items, { canPickMany: false, placeHolder: 'Select To Connect' });
+        if (!selected) {
+            return;
+        }
+        const selectedItems = selected.split(' - ');
+        if (selectedItems[0]) {
+            const item = this.ServerList.find(item => item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]);
+            if (item) {
+                let api = new api_1.AirflowApi(item);
+                let result = await api.checkConnection();
+                if (result) {
+                    this.currentServer = item;
+                    this.api = new api_1.AirflowApi(this.currentServer);
+                    this.saveState();
+                    this.refresh();
+                }
+                else {
+                    ui.showErrorMessage("Failed to connect to server.");
+                }
+            }
+        }
+    }
+    async clearServers() {
+        ui.logToOutput('DagTreeView.clearServers Started');
+        this.ServerList = [];
+        this.currentServer = undefined;
+        this.api = undefined;
+        this.treeDataProvider.dagList = undefined;
+        this.treeDataProvider.refresh();
+        this.saveState();
+        ui.showInfoMessage("Server List Cleared");
+    }
+    async loadDags() {
+        ui.logToOutput('DagTreeView.loadDags Started');
+        if (!this.api) {
+            return;
+        }
+        this.treeDataProvider.dagList = undefined;
+        const result = await this.api.getDagList();
+        if (result.isSuccessful) {
+            this.treeDataProvider.dagList = result.result;
+            this.treeDataProvider.loadDagTreeItemsFromApiResponse();
+            // Fetch latest run status for each DAG
+            await this.loadLatestRunStatusForAllDags();
+        }
+        this.treeDataProvider.refresh();
+        this.setViewTitle();
+    }
+    async loadLatestRunStatusForAllDags() {
+        ui.logToOutput('DagTreeView.loadLatestRunStatusForAllDags Started');
+        if (!this.api) {
+            return;
+        }
+        // Fetch latest run status for each visible DAG (limit to avoid too many API calls)
+        const visibleDags = this.treeDataProvider.visibleDagList.slice(0, 50); // Limit to first 50 DAGs
+        for (const dagItem of visibleDags) {
+            if (!dagItem.IsPaused) {
+                try {
+                    const runResult = await this.api.getLastDagRun(dagItem.DagId);
+                    if (runResult.isSuccessful && runResult.result) {
+                        dagItem.LatestDagRunId = runResult.result.dag_run_id;
+                        dagItem.LatestDagState = runResult.result.state;
+                        dagItem.refreshUI();
+                    }
+                }
+                catch (error) {
+                    // Silently continue if a DAG's last run can't be fetched
+                    ui.logToOutput(`Failed to fetch last run for ${dagItem.DagId}`, error);
+                }
+            }
+        }
+        this.treeDataProvider.refresh();
+    }
+    async setViewTitle() {
+        if (this.currentServer) {
+            this.view.title = this.currentServer.apiUrl + " - " + this.currentServer.apiUserName;
+        }
+        else {
+            this.view.title = "Airflow";
+        }
+    }
+    async getImportErrors() {
+        ui.logToOutput('DagTreeView.getImportErrors Started');
+        if (!this.api) {
+            return;
+        }
+        const result = await this.api.getImportErrors();
+        if (result.isSuccessful) {
+            const importErrors = result.result;
+            if (importErrors.total_entries > 0) {
+                ui.showOutputMessage(result.result, "Import Dag Errors! Check Output Panel");
+            }
+        }
+    }
+    saveState() {
+        ui.logToOutput('DagTreeView.saveState Started');
+        try {
+            if (this.currentServer) {
+                this.context.globalState.update('apiUrl', this.currentServer.apiUrl);
+                this.context.globalState.update('apiUserName', this.currentServer.apiUserName);
+                this.context.globalState.update('apiPassword', this.currentServer.apiPassword);
+            }
+            else {
+                this.context.globalState.update('apiUrl', undefined);
+                this.context.globalState.update('apiUserName', undefined);
+                this.context.globalState.update('apiPassword', undefined);
+            }
+            this.context.globalState.update('filterString', this.filterString);
+            this.context.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
+            this.context.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
+            this.context.globalState.update('ServerList', this.ServerList);
+        }
+        catch (error) {
+            ui.logToOutput("dagTreeView.saveState Error !!!", error);
+        }
+    }
+    setFilterMessage() {
+        if (this.currentServer) {
+            this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, ' + this.getBoolenSign(this.ShowOnlyActive) + 'Active, Filter : ' + this.filterString;
+        }
+    }
+    getBoolenSign(variable) {
+        return variable ? "✓" : "𐄂";
+    }
+    loadState() {
+        ui.logToOutput('DagTreeView.loadState Started');
+        try {
+            const apiUrlTemp = this.context.globalState.get('apiUrl') || '';
+            const apiUserNameTemp = this.context.globalState.get('apiUserName') || '';
+            const apiPasswordTemp = this.context.globalState.get('apiPassword') || '';
+            if (apiUrlTemp && apiUserNameTemp) {
+                this.currentServer = { apiUrl: apiUrlTemp, apiUserName: apiUserNameTemp, apiPassword: apiPasswordTemp };
+                this.api = new api_1.AirflowApi(this.currentServer);
+            }
+            const filterStringTemp = this.context.globalState.get('filterString') || '';
+            if (filterStringTemp) {
+                this.filterString = filterStringTemp;
+                this.setFilterMessage();
+            }
+            const ShowOnlyActiveTemp = this.context.globalState.get('ShowOnlyActive');
+            if (ShowOnlyActiveTemp !== undefined) {
+                this.ShowOnlyActive = ShowOnlyActiveTemp;
+            }
+            const ShowOnlyFavoriteTemp = this.context.globalState.get('ShowOnlyFavorite');
+            if (ShowOnlyFavoriteTemp !== undefined) {
+                this.ShowOnlyFavorite = ShowOnlyFavoriteTemp;
+            }
+            const ServerListTemp = this.context.globalState.get('ServerList') || [];
+            if (ServerListTemp) {
+                this.ServerList = ServerListTemp;
+            }
+            // Ensure current server is in the list
+            if (this.currentServer && !this.ServerList.find(e => e.apiUrl === this.currentServer?.apiUrl && e.apiUserName === this.currentServer?.apiUserName)) {
+                this.ServerList.push(this.currentServer);
+            }
+        }
+        catch (error) {
+            ui.logToOutput("dagTreeView.loadState Error !!!", error);
+        }
+    }
+    async viewConnections() {
+        ui.logToOutput('DagTreeView.viewConnections Started');
+        if (this.api) {
+            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(49));
+            ConnectionsView.render(this.context.extensionUri, this.api);
+        }
+    }
+    async viewVariables() {
+        ui.logToOutput('DagTreeView.viewVariables Started');
+        if (this.api) {
+            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(50));
+            VariablesView.render(this.context.extensionUri, this.api);
+        }
+    }
+    async viewProviders() {
+        ui.logToOutput('DagTreeView.viewProviders Started');
+        if (this.api) {
+            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(51));
+            ProvidersView.render(this.context.extensionUri, this.api);
+        }
+    }
+}
+exports.DagTreeView = DagTreeView;
+
+
+/***/ }),
+/* 3 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(4);
+const dagTreeView_1 = __webpack_require__(2);
+class DagView {
+    constructor(panel, extensionUri, dagId, api) {
+        this._disposables = [];
+        this.dagHistorySelectedDate = new Date().toISOString().split('T')[0];
+        this.activetabid = "tab-1";
+        ui.logToOutput('DagView.constructor Started');
+        this.dagId = dagId;
+        this.extensionUri = extensionUri;
+        this.api = api;
+        this._panel = panel;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadAllDagData();
+        ui.logToOutput('DagView.constructor Completed');
+    }
+    resetDagData() {
+        this.activetabid = "tab-1";
+        this.dagRunId = undefined;
+        this.dagJson = undefined;
+        this.dagRunJson = undefined;
+        this.dagRunId = undefined;
+        this.dagRunHistoryJson = undefined;
+        this.dagTaskInstancesJson = undefined;
+        this.dagTasksJson = undefined;
+        this.stopCheckingDagRunStatus();
+    }
+    async loadAllDagData() {
+        ui.logToOutput('DagView.loadAllDagData Started');
+        await this.getDagInfo();
+        await this.getLastRun();
+        await this.getDagTasks();
+        //await this.getRunHistory();
+        await this.renderHmtl();
+    }
+    async loadDagDataOnly() {
+        ui.logToOutput('DagView.loadDagDataOnly Started');
+        await this.getDagInfo();
+        await this.renderHmtl();
+    }
+    async renderHmtl() {
+        ui.logToOutput('DagView.renderHmtl Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        //ui.showOutputMessage(this._panel.webview.html);
+        ui.logToOutput('DagView.renderHmtl Completed');
+    }
+    static render(extensionUri, dagId, api) {
+        ui.logToOutput('DagView.render Started');
+        if (DagView.Current) {
+            DagView.Current.api = api;
+            DagView.Current.dagId = dagId;
+            DagView.Current._panel.reveal(vscode.ViewColumn.Two);
+            DagView.Current.resetDagData();
+            DagView.Current.loadAllDagData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
+                enableScripts: true,
+            });
+            DagView.Current = new DagView(panel, extensionUri, dagId, api);
+        }
+    }
+    async getLastRun() {
+        ui.logToOutput('DagView.getLastRun Started');
+        let result = await this.api.getLastDagRun(this.dagId);
+        if (result.isSuccessful) {
+            this.dagRunJson = result.result;
+            this.dagRunId = this.dagRunJson.dag_run_id;
+            this.getTaskInstances(this.dagRunId);
+            if (this.dagRunJson && this.dagRunJson.state === "running") {
+                this.startCheckingDagRunStatus(this.dagRunId);
+            }
+        }
+    }
+    async getDagRun(dagId, dagRunId) {
+        ui.logToOutput('DagView.getDagRun Started');
+        let result = await this.api.getDagRun(dagId, dagRunId);
+        if (result.isSuccessful) {
+            this.dagRunJson = result.result;
+            this.dagRunId = this.dagRunJson.dag_run_id;
+            this.getTaskInstances(this.dagRunId);
+        }
+        await this.renderHmtl();
+    }
+    async getRunHistory(date) {
+        ui.logToOutput('DagView.getRunHistory Started');
+        let result = await this.api.getDagRunHistory(this.dagId, date);
+        if (result.isSuccessful) {
+            this.dagRunHistoryJson = result.result;
+        }
+    }
+    async getTaskInstances(dagRunId) {
+        ui.logToOutput('DagView.getTaskInstances Started');
+        let result = await this.api.getTaskInstances(this.dagId, dagRunId); // Note: api.getTaskInstances was not implemented in my previous step, I need to check if I missed it.
+        // Wait, I missed getTaskInstances in AirflowApi. I need to add it.
+        // I'll add it to AirflowApi later or assume I added it.
+        // Actually I should check api.ts again. I added getLastDagRunLog but maybe not getTaskInstances explicitly as public.
+        // I will add it to api.ts in a subsequent step if missing.
+        if (result.isSuccessful) {
+            this.dagTaskInstancesJson = result.result;
+        }
+    }
+    async getDagInfo() {
+        ui.logToOutput('DagView.getDagInfo Started');
+        let result = await this.api.getDagInfo(this.dagId); // Also need to check if this exists in new api.ts
+        if (result.isSuccessful) {
+            this.dagJson = result.result;
+        }
+    }
+    async getDagTasks() {
+        ui.logToOutput('DagView.getDagTasks Started');
+        let result = await this.api.getDagTasks(this.dagId); // Need to check
+        if (result.isSuccessful) {
+            this.dagTasksJson = result.result;
+        }
+    }
+    dispose() {
+        ui.logToOutput('DagView.dispose Started');
+        DagView.Current = undefined;
+        // stop any running interval checks
+        this.stopCheckingDagRunStatus();
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('DagView._getWebviewContent Started');
+        //file URIs
+        const toolkitUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode-elements",
+            "elements",
+            "dist",
+            "bundled.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        //LATEST DAG RUN
+        let state = "";
+        let logical_date = undefined;
+        let start_date = undefined;
+        let end_date = undefined;
+        let logical_date_string = "";
+        let start_date_string = "";
+        let duration = "";
+        let isDagRunning = false;
+        let hasDagRun = false;
+        if (this.dagRunJson) {
+            state = this.dagRunJson.state;
+            logical_date = this.dagRunJson.logical_date;
+            start_date = this.dagRunJson.start_date;
+            end_date = this.dagRunJson.end_date;
+            logical_date_string = logical_date ? new Date(logical_date).toLocaleDateString() : "";
+            start_date_string = start_date ? new Date(start_date).toLocaleString() : "";
+            duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
+            isDagRunning = (state === "queued" || state === "running") ? true : false;
+            hasDagRun = true;
+        }
+        let runningOrFailedTasks = "";
+        if (this.dagTaskInstancesJson) {
+            for (const t of this.dagTaskInstancesJson["task_instances"]) {
+                if (t.state === "running" || t.state === "failed" || t.state === "up_for_retry" || t.state === "up_for_reschedule" || t.state === "deferred") {
+                    runningOrFailedTasks += t.task_id + ", ";
+                }
+            }
+        }
+        //INFO TAB
+        let owners = (this.dagJson && Array.isArray(this.dagJson["owners"])) ? this.dagJson["owners"].join(", ") : "";
+        let tags = "";
+        if (this.dagJson && Array.isArray(this.dagJson["tags"])) {
+            this.dagJson["tags"].forEach((item) => { tags += item.name + ", "; });
+        }
+        let schedule_interval = (this.dagJson && this.dagJson["schedule_interval"] && this.dagJson["schedule_interval"].value) ? this.dagJson["schedule_interval"].value : "";
+        let isPausedText = (this.dagJson) ? (this.dagJson.is_paused ? "true" : "false") : "unknown";
+        let isPaused = isPausedText === "true";
+        //TASKS TAB
+        let taskRows = "";
+        if (this.dagTaskInstancesJson) {
+            for (const t of this.dagTaskInstancesJson["task_instances"].sort((a, b) => (a.start_date > b.start_date) ? 1 : -1)) {
+                taskRows += `
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center;">
+                            <div class="state-${t.state}" title="${t.state}" ></div>
+                            &nbsp; ${t.task_id} (${t.try_number})
+                        </div>
+                    </td>
+                    <td>
+                        <a href="#" id="task-log-link-${t.task_id}">Log</a> | 
+                        <a href="#" id="task-xcom-link-${t.task_id}">XCom</a>
+                    </td>
+                    <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
+                    <td>${t.operator}</td>
+                </tr>
+                `;
+            }
+        }
+        // BUILD TASK DEPENDENCY TREE
+        let taskDependencyTree = "";
+        if (this.dagTasksJson && this.dagTasksJson.tasks && this.dagTasksJson.tasks.length > 0) {
+            taskDependencyTree = this.buildTaskDependencyTree(this.dagTasksJson.tasks);
+        }
+        //HISTORY TAB
+        let runHistoryRows = "";
+        if (this.dagRunHistoryJson) {
+            for (const t of this.dagRunHistoryJson["dag_runs"]) {
+                runHistoryRows += `
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center;">
+                            <div class="state-${t.state}" title="${t.state}"></div>
+                            &nbsp; ${t.state}
+                        </div>
+                    </td>
+                    <td><a href="#" id="history-dag-run-id-${t.dag_run_id}">${new Date(t.start_date).toLocaleString()}</a></td>
+                    <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
+                    <td>${t.note}</td>
+                </tr>
+                `;
+            }
+        }
+        let result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <title>DAG</title>
+      </head>
+      <body>  
+
+
+        <div style="display: flex; align-items: center;">
+            <div class="dag-paused-${isPausedText}"></div>
+            &nbsp; &nbsp; <h2>${this.dagId}</h2>
+            <div style="visibility: ${isDagRunning ? "visible" : "hidden"}; display: flex; align-items: center;">
+            &nbsp; &nbsp; <vscode-progress-ring></vscode-progress-ring>
+            </div>
+        </div>
+                    
+
+        <vscode-tabs id="tab-control" selected-index="${this.activetabid === 'tab-1' ? 0 : this.activetabid === 'tab-2' ? 1 : this.activetabid === 'tab-3' ? 2 : 3}">
+            <vscode-tab-header slot="header">RUN</vscode-tab-header>
+            <vscode-tab-header slot="header">TASKS</vscode-tab-header>
+            <vscode-tab-header slot="header">INFO</vscode-tab-header>
+            <vscode-tab-header slot="header">HISTORY</vscode-tab-header>
+            
+            <vscode-tab-panel>
+                
+            <section>
+
+                    <table class="dag-run-details-table">
+                        <tr>
+                            <th colspan=3>Dag Run Details</th>
+                        </tr>
+                        <tr>
+                            <td>State</td>
+                            <td>:</td>
+                            <td>
+                                <div style="display: flex; align-items: center;">
+                                    <div class="state-${state}"></div> &nbsp; ${state}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Tasks</td>
+                            <td>:</td>
+                            <td>${runningOrFailedTasks}</td>
+                        </tr>
+                        <tr>
+                            <td>Date</td>
+                            <td>:</td>
+                            <td>${logical_date_string}</td>
+                        </tr>
+                        <tr>
+                            <td>StartDate</td>
+                            <td>:</td>
+                            <td>${start_date_string}</td>
+                        </tr>
+                        <tr>
+                            <td>Duration</td>
+                            <td>:</td>
+                            <td>${duration}</td>
+                        </tr>
+                        <tr>
+                            <td>Note</td>
+                            <td>:</td>
+                            <td><a href="#" id="run-update-note-link" title="Update Note">${this.dagRunJson?.note || '(No note)'}</a></td>
+                        </tr>
+                        <tr>
+                            <td>Config</td>
+                            <td>:</td>
+                            <td>${this.dagRunJson?.conf ? JSON.stringify(this.dagRunJson.conf, null, 2) : '(No config)'}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">
+                                <vscode-button appearance="secondary" id="run-ask-ai" ${!hasDagRun ? "disabled" : ""}>Ask AI</vscode-button>    
+                                <vscode-button appearance="secondary" id="run-view-log" ${!hasDagRun ? "disabled" : ""}>Log</vscode-button> 
+                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>  
+                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagRun ? "disabled" : ""}>More</vscode-button>
+                            </td>
+                        </tr>
+                    </table>
+            
+                    <br>
+            
+                    <table>
+                        <tr>
+                            <th colspan="3">Trigger</th>
+                        </tr>
+                        <tr>
+                            <td>Date</td>
+                            <td>:</td>
+                            <td><vscode-textfield id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10" pattern="\d{4}-\d{2}-\d{2}"></vscode-textfield></td>
+                        </tr>
+                        <tr>
+                            <td>Config</td>
+                            <td>:</td>
+                            <td><vscode-textarea id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-textarea></td>
+                        </tr>
+                        <tr>           
+                            <td colspan="3">
+                            <vscode-button appearance="secondary" id="run-trigger-dag" ${isPaused ? "disabled" : ""}>Run</vscode-button>
+                            <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>  
+                            </td>
+                        </tr>
+                    </table>
+
+                    <br>
+
+                    <table>
+                        <tr>
+                            <th colspan="3">
+                            <vscode-button appearance="secondary" id="run-pause-dag" ${isPaused ? "disabled" : ""}>
+                            Pause
+                            </vscode-button>
+                            <vscode-button appearance="secondary" id="run-unpause-dag" ${!isPaused ? "disabled" : ""}>
+                            Un Pause
+                            </vscode-button>
+                            </th>
+                        </tr>
+                    </table>
+
+                    <br>
+                    <br>
+                    <br>
+                    
+                    <table>
+                        <tr>
+                            <td colspan="3">
+                                <a href="https://github.com/necatiarslan/airflow-vscode-extension/issues/new">Bug Report & Feature Request</a>
+                            </td>
+                        </tr>
+                    </table>
+                    <table>
+                        <tr>
+                            <td colspan="3">
+                                <a href="https://bit.ly/airflow-extension-survey">New Feature Survey</a>
+                            </td>
+                        </tr>
+                    </table>
+                    <table>
+                        <tr>
+                            <td colspan="3">
+                                <a href="https://github.com/sponsors/necatiarslan">Donate to support this extension</a>
+                            </td>
+                        </tr>
+                    </table>
+            </section>
+            </vscode-tab-panel>
+
+
+            <vscode-tab-panel>
+
+            <section>
+
+                    ${taskDependencyTree ? `
+                    <table>
+                        <tr>
+                            <th>Task Dependencies</th>
+                        </tr>
+                        <tr>
+                            <td>
+                                <vscode-tree>
+                                ${taskDependencyTree}
+                                </vscode-tree>
+                            </td>
+                        </tr>
+                    </table>
+                    <br>
+                    ` : ''}
+
+                    <table>
+                        <tr>
+                            <th colspan="4">Tasks</th>
+                        </tr>
+                        <tr>
+                            <td>Task</td>
+                            <td></td>
+                            <td>Duration</td>            
+                            <td>Operator</td>
+                        </tr>
+
+                        ${taskRows}
+
+                        <tr>          
+                            <td colspan="4">
+                                <vscode-button appearance="secondary" id="tasks-refresh">Refresh</vscode-button>
+                                <vscode-button appearance="secondary" id="tasks-more-detail" ${!this.dagTaskInstancesJson ? "disabled" : ""}>More</vscode-button>
+                            </td>
+                        </tr>
+                    </table>
+
+            </section>
+            </vscode-tab-panel>
+            
+            <vscode-tab-panel>
+            <section>
+
+                    <table>
+                    <tr>
+                        <th colspan=3>Other</th>
+                    </tr>
+                    <tr>
+                        <td>Owners</td>
+                        <td>:</td>
+                        <td>${owners}</td>
+                    </tr>
+                    <tr>
+                        <td>Tags</td>
+                        <td>:</td>
+                        <td>${tags}</td>
+                    </tr>
+                    <tr>
+                        <td>Schedule</td>
+                        <td>:</td>
+                        <td>${schedule_interval}</td>
+                    </tr>
+                    <tr>           
+                        <td colspan="3"><vscode-button appearance="secondary" id="info-source-code">Source Code</vscode-button> <vscode-button appearance="secondary" id="other-dag-detail">More</vscode-button></td>
+                    </tr>
+                    </table>
+
+            </section>
+            </vscode-tab-panel>
+
+            <vscode-tab-panel>
+
+            <section>
+    
+                    <table>
+                        <tr>
+                            <th colspan=4>HISTORY</th>
+                        </tr>
+                        <tr>
+                            <td>Date</td>
+                            <td>:</td>
+                            <td>
+                            <vscode-textfield id="history_date" value="${this.dagHistorySelectedDate}" placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}" maxlength="10"></vscode-textfield>
+                            </td>
+                            <td><vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button></td>
+                        </tr>
+                    </table>
+
+                    <table>
+                        <tr>
+                            <th colspan=4>DAG RUNS</th>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td>Start Time</td>            
+                            <td>Duration</td>
+                            <td>Notes</td>
+                        </tr>
+                        ${runHistoryRows}
+                    </table>   
+    
+            </section>
+            </vscode-tab-panel>
+
+        </vscode-tabs>
+      </body>
+    </html>
+    `;
+        ui.logToOutput('DagView._getWebviewContent Completed');
+        return result;
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('DagView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            const command = message.command;
+            let activetabid = message.activetabid;
+            if (["tab-1", "tab-2", "tab-3", "tab-4"].includes(activetabid)) {
+                this.activetabid = message.activetabid;
+            }
+            ui.logToOutput('DagView._setWebviewMessageListener Message Received ' + message.command);
+            switch (command) {
+                case "run-trigger-dag":
+                    this.triggerDagWConfig(message.config, message.date);
+                    return;
+                case "run-view-log":
+                    this.showDAGRunLog();
+                    return;
+                case "run-more-dagrun-detail":
+                    ui.showOutputMessage(this.dagRunJson);
+                    return;
+                case "other-dag-detail":
+                    ui.showOutputMessage(this.dagJson);
+                    return;
+                case "tasks-more-detail":
+                    ui.showOutputMessage(this.dagTaskInstancesJson);
+                    return;
+                case "history-load-runs":
+                    this.getRunHistoryAndRenderHtml(message.date);
+                    return;
+                case "info-source-code":
+                    this.showSourceCode();
+                    return;
+                case "run-pause-dag":
+                    this.pauseDAG(true);
+                    return;
+                case "run-unpause-dag":
+                    this.pauseDAG(false);
+                    return;
+                case "run-ask-ai":
+                    this.askAI();
+                    return;
+                case "run-lastrun-check":
+                    this.getLastRun();
+                    if (this.dagRunJson) {
+                        this.startCheckingDagRunStatus(this.dagRunId);
+                    }
+                    return;
+                case "run-lastrun-cancel":
+                    if (this.dagRunJson) {
+                        this.cancelDagRun(this.dagRunId);
+                    }
+                    return;
+                case "run-update-note":
+                    if (this.dagRunJson) {
+                        this.updateDagRunNote("");
+                    }
+                    return;
+                case "history-dag-run-id":
+                    let dagRunId = message.id;
+                    dagRunId = dagRunId.replace("history-dag-run-id-", "");
+                    this.activetabid = "tab-1";
+                    this.getDagRun(this.dagId, dagRunId);
+                    return;
+                case "task-log-link":
+                    let taskId = message.id;
+                    taskId = taskId.replace("task-log-link-", "");
+                    this.showTaskInstanceLog(this.dagId, this.dagRunId, taskId);
+                    return;
+                case "task-xcom-link":
+                    let xcomTaskId = message.id;
+                    xcomTaskId = xcomTaskId.replace("task-xcom-link-", "");
+                    this.showTaskXComs(this.dagId, this.dagRunId, xcomTaskId);
+                    return;
+                case "tasks-refresh":
+                    this.getTasksAndRenderHtml();
+                    return;
+                case "tabControlChanged":
+                    this.activetabid = message.activeid;
+                    ui.logToOutput("tab changed to " + message.activeid);
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+    async getTasksAndRenderHtml() {
+        await this.getDagTasks();
+        await this.renderHmtl();
+    }
+    async cancelDagRun(dagRunId) {
+        ui.logToOutput('DagView.cancelDagRun Started');
+        // Note: cancelDagRun is missing in AirflowApi, need to add it.
+        // I will add it to AirflowApi in the next step.
+        // For now I will comment it out or assume it exists.
+        // let result = await this.api.cancelDagRun(this.dagId, dagRunId);
+        // if (result.isSuccessful) {
+        // }
+    }
+    async updateDagRunNote(note) {
+        ui.logToOutput('DagView.updateDagRunNote Started');
+        if (!this.api || !this.dagRunJson) {
+            return;
+        }
+        // Show input box with current note as default value
+        const newNote = await vscode.window.showInputBox({
+            prompt: 'Enter note for this DAG run',
+            value: this.dagRunJson.note || '',
+            placeHolder: 'Add a note for this DAG run'
+        });
+        // User cancelled the input
+        if (newNote === undefined) {
+            return;
+        }
+        const result = await this.api.updateDagRunNote(this.dagId, this.dagRunId, newNote);
+        if (result.isSuccessful) {
+            // Refresh the DAG run to get the updated note
+            await this.getDagRun(this.dagId, this.dagRunId);
+        }
+    }
+    async pauseDAG(is_paused) {
+        ui.logToOutput('DagTreeView.pauseDAG Started');
+        if (is_paused && this.dagJson.is_paused) {
+            ui.showWarningMessage(this.dagId + 'Dag is already PAUSED');
+            return;
+        }
+        if (!is_paused && !this.dagJson.is_paused) {
+            ui.showWarningMessage(this.dagId + 'Dag is already ACTIVE');
+            return;
+        }
+        let result = await this.api.pauseDag(this.dagId, is_paused);
+        if (result.isSuccessful) {
+            this.loadDagDataOnly();
+            is_paused ? dagTreeView_1.DagTreeView.Current?.notifyDagPaused(this.dagId) : dagTreeView_1.DagTreeView.Current?.notifyDagUnPaused(this.dagId);
+        }
+    }
+    async askAI() {
+        ui.logToOutput('DagView.askAI Started');
+        if (!dagTreeView_1.DagTreeView.Current) {
+            ui.showErrorMessage('DagTreeView is not available');
+            return;
+        }
+        if (!this.dagJson) {
+            ui.showErrorMessage('DAG information is not available');
+            return;
+        }
+        let code = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
+        if (!code.isSuccessful) {
+            ui.showErrorMessage('Failed to retrieve DAG source code for AI context');
+            return;
+        }
+        let logs = await this.api.getDagRunLog(this.dagId, this.dagRunId);
+        if (!logs.isSuccessful) {
+            ui.showErrorMessage('Failed to retrieve DAG logs for AI context');
+            return;
+        }
+        // Call the askAI function from DagTreeView
+        await dagTreeView_1.DagTreeView.Current?.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
+    }
+    async showSourceCode() {
+        ui.logToOutput('DagView.showSourceCode Started');
+        let result = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
+        if (result.isSuccessful) {
+            const tmp = __webpack_require__(7);
+            const fs = __webpack_require__(5);
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.py' });
+            fs.appendFileSync(tmpFile.name, result.result);
+            ui.openFile(tmpFile.name);
+        }
+        else {
+            ui.logToOutput(result.result);
+            ui.showErrorMessage(result.result);
+        }
+    }
+    async getRunHistoryAndRenderHtml(date) {
+        ui.logToOutput('DagView.getRunHistoryAndRenderHtml Started');
+        this.dagHistorySelectedDate = date;
+        await this.getRunHistory(date);
+        await this.renderHmtl();
+    }
+    async showDAGRunLog() {
+        ui.logToOutput('DagView.DAGRunLog Started');
+        let result = await this.api.getDagRunLog(this.dagId, this.dagRunId);
+        if (result.isSuccessful) {
+            const tmp = __webpack_require__(7);
+            const fs = __webpack_require__(5);
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.log' });
+            fs.appendFileSync(tmpFile.name, result.result);
+            ui.openFile(tmpFile.name);
+        }
+    }
+    async showTaskInstanceLog(dagId, dagRunId, taskId) {
+        ui.logToOutput('DagView.showTaskInstanceLog Started');
+        let result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
+        if (result.isSuccessful) {
+            const tmp = __webpack_require__(7);
+            const fs = __webpack_require__(5);
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId, postfix: '.log' });
+            fs.appendFileSync(tmpFile.name, result.result);
+            ui.openFile(tmpFile.name);
+        }
+    }
+    async showTaskXComs(dagId, dagRunId, taskId) {
+        ui.logToOutput('DagView.showTaskXComs Started');
+        let result = await this.api.getTaskXComs(dagId, dagRunId, taskId);
+        if (result.isSuccessful) {
+            const tmp = __webpack_require__(7);
+            const fs = __webpack_require__(5);
+            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId + '_xcom', postfix: '.json' });
+            fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
+            ui.openFile(tmpFile.name);
+        }
+        else {
+            ui.showInfoMessage(`No XCom entries found for task: ${taskId}`);
+        }
+    }
+    async triggerDagWConfig(config = "", date = "") {
+        ui.logToOutput('DagView.triggerDagWConfig Started');
+        if (config && !ui.isJsonString(config)) {
+            ui.showWarningMessage("Config is not a valid JSON");
+            return;
+        }
+        if (date && !ui.isValidDate(date)) {
+            ui.showWarningMessage("Date is not a valid DATE");
+            return;
+        }
+        if (!config) {
+            config = "{}";
+        }
+        if (config !== undefined) {
+            let result = await this.api.triggerDag(this.dagId, config, date);
+            if (result.isSuccessful) {
+                this.startCheckingDagRunStatus(result.result["dag_run_id"]);
+                dagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(this.dagId);
+            }
+        }
+    }
+    async startCheckingDagRunStatus(dagRunId) {
+        ui.logToOutput('DagView.startCheckingDagRunStatus Started');
+        this.dagRunId = dagRunId;
+        await this.refreshRunningDagState(this);
+        if (this.dagStatusInterval) {
+            clearInterval(this.dagStatusInterval); //stop prev checking
+        }
+        this.dagStatusInterval = setInterval(() => {
+            void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
+        }, 5 * 1000);
+    }
+    async stopCheckingDagRunStatus() {
+        ui.logToOutput('DagView.stopCheckingDagRunStatus Started');
+        if (this.dagStatusInterval) {
+            clearInterval(this.dagStatusInterval); //stop prev checking
+        }
+    }
+    async refreshRunningDagState(dagView) {
+        ui.logToOutput('DagView.refreshRunningDagState Started');
+        if (!dagView.dagId || !dagView.dagRunId) {
+            dagView.stopCheckingDagRunStatus();
+            return;
+        }
+        let result = await this.api.getDagRun(dagView.dagId, dagView.dagRunId);
+        if (result.isSuccessful) {
+            dagView.dagRunJson = result.result;
+            let resultTasks = await this.api.getTaskInstances(dagView.dagId, dagView.dagRunId);
+            if (resultTasks.isSuccessful) {
+                dagView.dagTaskInstancesJson = resultTasks.result;
+            }
+        }
+        else {
+            dagView.stopCheckingDagRunStatus();
+            return;
+        }
+        let state = (dagView.dagRunJson) ? dagView.dagRunJson.state : "";
+        //"queued" "running" "success" "failed"
+        if (state === "queued" || state === "running") {
+            //go on for the next check
+        }
+        else {
+            dagView.stopCheckingDagRunStatus();
+        }
+        dagView.renderHmtl();
+    }
+    buildTaskDependencyTree(tasks) {
+        ui.logToOutput('DagView.buildTaskDependencyTree Started');
+        // Create a map for quick task lookup
+        const taskMap = new Map();
+        tasks.forEach(task => {
+            taskMap.set(task.task_id, task);
+        });
+        // Find root tasks (tasks with no upstream dependencies)
+        const rootTasks = tasks.filter(task => !task.upstream_task_ids || task.upstream_task_ids.length === 0);
+        if (rootTasks.length === 0) {
+            return "No task dependencies found or circular dependencies detected.";
+        }
+        // Build tree recursively
+        const visited = new Set();
+        let treeHtml = "";
+        const buildTree = (taskId) => {
+            if (visited.has(taskId)) {
+                return ""; // Prevent infinite loops and duplicates in this spanning tree view
+            }
+            visited.add(taskId);
+            const task = taskMap.get(taskId);
+            if (!task) {
+                return "";
+            }
+            let itemHtml = `<vscode-tree-item>\n`;
+            itemHtml += `${task.task_id} (${task.operator || ''})\n`;
+            // Get downstream tasks
+            const downstreamIds = task.downstream_task_ids || [];
+            if (downstreamIds.length > 0) {
+                downstreamIds.forEach((downstreamId) => {
+                    itemHtml += buildTree(downstreamId);
+                });
+            }
+            itemHtml += `</vscode-tree-item>\n`;
+            return itemHtml;
+        };
+        // Build tree for each root task
+        rootTasks.forEach((rootTask) => {
+            treeHtml += buildTree(rootTask.task_id);
+        });
+        return treeHtml || "No tasks to display.";
+    }
+}
+exports.DagView = DagView;
+
+
+/***/ }),
+/* 4 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getUri = getUri;
+exports.showOutputMessage = showOutputMessage;
+exports.logToOutput = logToOutput;
+exports.showInfoMessage = showInfoMessage;
+exports.showWarningMessage = showWarningMessage;
+exports.showErrorMessage = showErrorMessage;
+exports.showApiErrorMessage = showApiErrorMessage;
+exports.getExtensionVersion = getExtensionVersion;
+exports.openFile = openFile;
+exports.getDuration = getDuration;
+exports.convertMsToTime = convertMsToTime;
+exports.isJsonString = isJsonString;
+exports.isValidDate = isValidDate;
+const vscode = __webpack_require__(1);
+const vscode_1 = __webpack_require__(1);
+const fs_1 = __webpack_require__(5);
+const path_1 = __webpack_require__(6);
+let outputChannel;
+let logsOutputChannel;
+const NEW_LINE = "\n\n";
+function getUri(webview, extensionUri, pathList) {
+    return webview.asWebviewUri(vscode_1.Uri.joinPath(extensionUri, ...pathList));
+}
+function showOutputMessage(message, popupMessage = "Results are printed to OUTPUT / Airflow-Extension") {
+    if (!outputChannel) {
+        outputChannel = vscode.window.createOutputChannel("Airflow-Extension");
+    }
+    outputChannel.clear();
+    if (typeof message === "object") {
+        outputChannel.appendLine(JSON.stringify(message, null, 4));
+    }
+    else {
+        outputChannel.appendLine(message);
+    }
+    outputChannel.show();
+    showInfoMessage(popupMessage);
+}
+function logToOutput(message, error = undefined) {
+    const now = new Date().toLocaleString();
+    if (!logsOutputChannel) {
+        logsOutputChannel = vscode.window.createOutputChannel("Airflow-Log");
+    }
+    if (typeof message === "object") {
+        logsOutputChannel.appendLine("[" + now + "] " + JSON.stringify(message, null, 4));
+    }
+    else {
+        logsOutputChannel.appendLine("[" + now + "] " + message);
+    }
+    if (error) {
+        logsOutputChannel.appendLine(error.name);
+        logsOutputChannel.appendLine(error.message);
+        if (error.stack) {
+            logsOutputChannel.appendLine(error.stack);
+        }
+    }
+}
+function showInfoMessage(message) {
+    vscode.window.showInformationMessage(message);
+}
+function showWarningMessage(message) {
+    vscode.window.showWarningMessage(message);
+}
+function showErrorMessage(message, error = undefined) {
+    if (error) {
+        vscode.window.showErrorMessage(message + NEW_LINE + error.name + NEW_LINE + error.message);
+    }
+    else {
+        vscode.window.showErrorMessage(message);
+    }
+}
+function showApiErrorMessage(message, jsonResult) {
+    let preText = "";
+    if (jsonResult) {
+        if (jsonResult.status === 403) {
+            preText = "Permission Denied !!!";
+            vscode.window.showErrorMessage(preText);
+        }
+        else if (jsonResult.status === 401) {
+            preText = "Invalid Authentication Info !!!";
+            vscode.window.showErrorMessage(preText);
+        }
+        else if (jsonResult.status === 404) {
+            preText = "Resource Not Found !!!";
+            vscode.window.showErrorMessage(preText);
+        }
+        else {
+            vscode.window.showErrorMessage(preText);
+        }
+    }
+    else {
+        vscode.window.showErrorMessage(message);
+    }
+}
+function getExtensionVersion() {
+    const { version: extVersion } = JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(__dirname, '..', 'package.json'), { encoding: 'utf8' }));
+    return extVersion;
+}
+function openFile(file) {
+    // Use workspace API to open file in editor and show it in column one
+    (async () => {
+        try {
+            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+            await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.One, preview: false });
+        }
+        catch (err) {
+            logToOutput('openFile Error', err);
+        }
+    })();
+}
+function padTo2Digits(num) {
+    return num.toString().padStart(2, '0');
+}
+function getDuration(startDate, endDate) {
+    if (!startDate) {
+        return "";
+    }
+    if (!endDate || endDate < startDate) {
+        endDate = new Date(); //now
+    }
+    const duration = endDate.valueOf() - startDate.valueOf();
+    return (convertMsToTime(duration));
+}
+function convertMsToTime(milliseconds) {
+    let seconds = Math.floor(milliseconds / 1000);
+    let minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    seconds = seconds % 60;
+    minutes = minutes % 60;
+    return `${padTo2Digits(hours)}:${padTo2Digits(minutes)}:${padTo2Digits(seconds)}`;
+}
+function isJsonString(jsonString) {
+    try {
+        const json = JSON.parse(jsonString);
+        return (typeof json === 'object');
+    }
+    catch (e) {
+        return false;
+    }
+}
+function isValidDate(dateString) {
+    const regEx = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateString.match(regEx)) {
+        return false; // Invalid format
+    }
+    const d = new Date(dateString);
+    const dNum = d.getTime();
+    if (!dNum && dNum !== 0) {
+        return false; // NaN value, Invalid date
+    }
+    return d.toISOString().slice(0, 10) === dateString;
+}
+
+
+/***/ }),
+/* 5 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("fs");
+
+/***/ }),
+/* 6 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("path");
+
+/***/ }),
+/* 7 */
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+/*!
+ * Tmp
+ *
+ * Copyright (c) 2011-2017 KARASZI Istvan <github@spam.raszi.hu>
+ *
+ * MIT Licensed
+ */
+
+/*
+ * Module dependencies.
+ */
+const fs = __webpack_require__(5);
+const os = __webpack_require__(8);
+const path = __webpack_require__(6);
+const crypto = __webpack_require__(9);
+const _c = { fs: fs.constants, os: os.constants };
+
+/*
+ * The working inner variables.
+ */
+const // the random characters to choose from
+  RANDOM_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
+  TEMPLATE_PATTERN = /XXXXXX/,
+  DEFAULT_TRIES = 3,
+  CREATE_FLAGS = (_c.O_CREAT || _c.fs.O_CREAT) | (_c.O_EXCL || _c.fs.O_EXCL) | (_c.O_RDWR || _c.fs.O_RDWR),
+  // constants are off on the windows platform and will not match the actual errno codes
+  IS_WIN32 = os.platform() === 'win32',
+  EBADF = _c.EBADF || _c.os.errno.EBADF,
+  ENOENT = _c.ENOENT || _c.os.errno.ENOENT,
+  DIR_MODE = 0o700 /* 448 */,
+  FILE_MODE = 0o600 /* 384 */,
+  EXIT = 'exit',
+  // this will hold the objects need to be removed on exit
+  _removeObjects = [],
+  // API change in fs.rmdirSync leads to error when passing in a second parameter, e.g. the callback
+  FN_RMDIR_SYNC = fs.rmdirSync.bind(fs);
+
+let _gracefulCleanup = false;
+
+/**
+ * Recursively remove a directory and its contents.
+ *
+ * @param {string} dirPath path of directory to remove
+ * @param {Function} callback
+ * @private
+ */
+function rimraf(dirPath, callback) {
+  return fs.rm(dirPath, { recursive: true }, callback);
+}
+
+/**
+ * Recursively remove a directory and its contents, synchronously.
+ *
+ * @param {string} dirPath path of directory to remove
+ * @private
+ */
+function FN_RIMRAF_SYNC(dirPath) {
+  return fs.rmSync(dirPath, { recursive: true });
+}
+
+/**
+ * Gets a temporary file name.
+ *
+ * @param {(Options|tmpNameCallback)} options options or callback
+ * @param {?tmpNameCallback} callback the callback function
+ */
+function tmpName(options, callback) {
+  const args = _parseArguments(options, callback),
+    opts = args[0],
+    cb = args[1];
+
+  _assertAndSanitizeOptions(opts, function (err, sanitizedOptions) {
+    if (err) return cb(err);
+
+    let tries = sanitizedOptions.tries;
+    (function _getUniqueName() {
+      try {
+        const name = _generateTmpName(sanitizedOptions);
+
+        // check whether the path exists then retry if needed
+        fs.stat(name, function (err) {
+          /* istanbul ignore else */
+          if (!err) {
+            /* istanbul ignore else */
+            if (tries-- > 0) return _getUniqueName();
+
+            return cb(new Error('Could not get a unique tmp filename, max tries reached ' + name));
+          }
+
+          cb(null, name);
+        });
+      } catch (err) {
+        cb(err);
+      }
+    })();
+  });
+}
+
+/**
+ * Synchronous version of tmpName.
+ *
+ * @param {Object} options
+ * @returns {string} the generated random name
+ * @throws {Error} if the options are invalid or could not generate a filename
+ */
+function tmpNameSync(options) {
+  const args = _parseArguments(options),
+    opts = args[0];
+
+  const sanitizedOptions = _assertAndSanitizeOptionsSync(opts);
+
+  let tries = sanitizedOptions.tries;
+  do {
+    const name = _generateTmpName(sanitizedOptions);
+    try {
+      fs.statSync(name);
+    } catch (e) {
+      return name;
+    }
+  } while (tries-- > 0);
+
+  throw new Error('Could not get a unique tmp filename, max tries reached');
+}
+
+/**
+ * Creates and opens a temporary file.
+ *
+ * @param {(Options|null|undefined|fileCallback)} options the config options or the callback function or null or undefined
+ * @param {?fileCallback} callback
+ */
+function file(options, callback) {
+  const args = _parseArguments(options, callback),
+    opts = args[0],
+    cb = args[1];
+
+  // gets a temporary filename
+  tmpName(opts, function _tmpNameCreated(err, name) {
+    /* istanbul ignore else */
+    if (err) return cb(err);
+
+    // create and open the file
+    fs.open(name, CREATE_FLAGS, opts.mode || FILE_MODE, function _fileCreated(err, fd) {
+      /* istanbu ignore else */
+      if (err) return cb(err);
+
+      if (opts.discardDescriptor) {
+        return fs.close(fd, function _discardCallback(possibleErr) {
+          // the chance of getting an error on close here is rather low and might occur in the most edgiest cases only
+          return cb(possibleErr, name, undefined, _prepareTmpFileRemoveCallback(name, -1, opts, false));
+        });
+      } else {
+        // detachDescriptor passes the descriptor whereas discardDescriptor closes it, either way, we no longer care
+        // about the descriptor
+        const discardOrDetachDescriptor = opts.discardDescriptor || opts.detachDescriptor;
+        cb(null, name, fd, _prepareTmpFileRemoveCallback(name, discardOrDetachDescriptor ? -1 : fd, opts, false));
+      }
+    });
+  });
+}
+
+/**
+ * Synchronous version of file.
+ *
+ * @param {Options} options
+ * @returns {FileSyncObject} object consists of name, fd and removeCallback
+ * @throws {Error} if cannot create a file
+ */
+function fileSync(options) {
+  const args = _parseArguments(options),
+    opts = args[0];
+
+  const discardOrDetachDescriptor = opts.discardDescriptor || opts.detachDescriptor;
+  const name = tmpNameSync(opts);
+  let fd = fs.openSync(name, CREATE_FLAGS, opts.mode || FILE_MODE);
+  /* istanbul ignore else */
+  if (opts.discardDescriptor) {
+    fs.closeSync(fd);
+    fd = undefined;
+  }
+
+  return {
+    name: name,
+    fd: fd,
+    removeCallback: _prepareTmpFileRemoveCallback(name, discardOrDetachDescriptor ? -1 : fd, opts, true)
+  };
+}
+
+/**
+ * Creates a temporary directory.
+ *
+ * @param {(Options|dirCallback)} options the options or the callback function
+ * @param {?dirCallback} callback
+ */
+function dir(options, callback) {
+  const args = _parseArguments(options, callback),
+    opts = args[0],
+    cb = args[1];
+
+  // gets a temporary filename
+  tmpName(opts, function _tmpNameCreated(err, name) {
+    /* istanbul ignore else */
+    if (err) return cb(err);
+
+    // create the directory
+    fs.mkdir(name, opts.mode || DIR_MODE, function _dirCreated(err) {
+      /* istanbul ignore else */
+      if (err) return cb(err);
+
+      cb(null, name, _prepareTmpDirRemoveCallback(name, opts, false));
+    });
+  });
+}
+
+/**
+ * Synchronous version of dir.
+ *
+ * @param {Options} options
+ * @returns {DirSyncObject} object consists of name and removeCallback
+ * @throws {Error} if it cannot create a directory
+ */
+function dirSync(options) {
+  const args = _parseArguments(options),
+    opts = args[0];
+
+  const name = tmpNameSync(opts);
+  fs.mkdirSync(name, opts.mode || DIR_MODE);
+
+  return {
+    name: name,
+    removeCallback: _prepareTmpDirRemoveCallback(name, opts, true)
+  };
+}
+
+/**
+ * Removes files asynchronously.
+ *
+ * @param {Object} fdPath
+ * @param {Function} next
+ * @private
+ */
+function _removeFileAsync(fdPath, next) {
+  const _handler = function (err) {
+    if (err && !_isENOENT(err)) {
+      // reraise any unanticipated error
+      return next(err);
+    }
+    next();
+  };
+
+  if (0 <= fdPath[0])
+    fs.close(fdPath[0], function () {
+      fs.unlink(fdPath[1], _handler);
+    });
+  else fs.unlink(fdPath[1], _handler);
+}
+
+/**
+ * Removes files synchronously.
+ *
+ * @param {Object} fdPath
+ * @private
+ */
+function _removeFileSync(fdPath) {
+  let rethrownException = null;
+  try {
+    if (0 <= fdPath[0]) fs.closeSync(fdPath[0]);
+  } catch (e) {
+    // reraise any unanticipated error
+    if (!_isEBADF(e) && !_isENOENT(e)) throw e;
+  } finally {
+    try {
+      fs.unlinkSync(fdPath[1]);
+    } catch (e) {
+      // reraise any unanticipated error
+      if (!_isENOENT(e)) rethrownException = e;
+    }
+  }
+  if (rethrownException !== null) {
+    throw rethrownException;
+  }
+}
+
+/**
+ * Prepares the callback for removal of the temporary file.
+ *
+ * Returns either a sync callback or a async callback depending on whether
+ * fileSync or file was called, which is expressed by the sync parameter.
+ *
+ * @param {string} name the path of the file
+ * @param {number} fd file descriptor
+ * @param {Object} opts
+ * @param {boolean} sync
+ * @returns {fileCallback | fileCallbackSync}
+ * @private
+ */
+function _prepareTmpFileRemoveCallback(name, fd, opts, sync) {
+  const removeCallbackSync = _prepareRemoveCallback(_removeFileSync, [fd, name], sync);
+  const removeCallback = _prepareRemoveCallback(_removeFileAsync, [fd, name], sync, removeCallbackSync);
+
+  if (!opts.keep) _removeObjects.unshift(removeCallbackSync);
+
+  return sync ? removeCallbackSync : removeCallback;
+}
+
+/**
+ * Prepares the callback for removal of the temporary directory.
+ *
+ * Returns either a sync callback or a async callback depending on whether
+ * tmpFileSync or tmpFile was called, which is expressed by the sync parameter.
+ *
+ * @param {string} name
+ * @param {Object} opts
+ * @param {boolean} sync
+ * @returns {Function} the callback
+ * @private
+ */
+function _prepareTmpDirRemoveCallback(name, opts, sync) {
+  const removeFunction = opts.unsafeCleanup ? rimraf : fs.rmdir.bind(fs);
+  const removeFunctionSync = opts.unsafeCleanup ? FN_RIMRAF_SYNC : FN_RMDIR_SYNC;
+  const removeCallbackSync = _prepareRemoveCallback(removeFunctionSync, name, sync);
+  const removeCallback = _prepareRemoveCallback(removeFunction, name, sync, removeCallbackSync);
+  if (!opts.keep) _removeObjects.unshift(removeCallbackSync);
+
+  return sync ? removeCallbackSync : removeCallback;
+}
+
+/**
+ * Creates a guarded function wrapping the removeFunction call.
+ *
+ * The cleanup callback is save to be called multiple times.
+ * Subsequent invocations will be ignored.
+ *
+ * @param {Function} removeFunction
+ * @param {string} fileOrDirName
+ * @param {boolean} sync
+ * @param {cleanupCallbackSync?} cleanupCallbackSync
+ * @returns {cleanupCallback | cleanupCallbackSync}
+ * @private
+ */
+function _prepareRemoveCallback(removeFunction, fileOrDirName, sync, cleanupCallbackSync) {
+  let called = false;
+
+  // if sync is true, the next parameter will be ignored
+  return function _cleanupCallback(next) {
+    /* istanbul ignore else */
+    if (!called) {
+      // remove cleanupCallback from cache
+      const toRemove = cleanupCallbackSync || _cleanupCallback;
+      const index = _removeObjects.indexOf(toRemove);
+      /* istanbul ignore else */
+      if (index >= 0) _removeObjects.splice(index, 1);
+
+      called = true;
+      if (sync || removeFunction === FN_RMDIR_SYNC || removeFunction === FN_RIMRAF_SYNC) {
+        return removeFunction(fileOrDirName);
+      } else {
+        return removeFunction(fileOrDirName, next || function () {});
+      }
+    }
+  };
+}
+
+/**
+ * The garbage collector.
+ *
+ * @private
+ */
+function _garbageCollector() {
+  /* istanbul ignore else */
+  if (!_gracefulCleanup) return;
+
+  // the function being called removes itself from _removeObjects,
+  // loop until _removeObjects is empty
+  while (_removeObjects.length) {
+    try {
+      _removeObjects[0]();
+    } catch (e) {
+      // already removed?
+    }
+  }
+}
+
+/**
+ * Random name generator based on crypto.
+ * Adapted from http://blog.tompawlak.org/how-to-generate-random-values-nodejs-javascript
+ *
+ * @param {number} howMany
+ * @returns {string} the generated random name
+ * @private
+ */
+function _randomChars(howMany) {
+  let value = [],
+    rnd = null;
+
+  // make sure that we do not fail because we ran out of entropy
+  try {
+    rnd = crypto.randomBytes(howMany);
+  } catch (e) {
+    rnd = crypto.pseudoRandomBytes(howMany);
+  }
+
+  for (let i = 0; i < howMany; i++) {
+    value.push(RANDOM_CHARS[rnd[i] % RANDOM_CHARS.length]);
+  }
+
+  return value.join('');
+}
+
+/**
+ * Checks whether the `obj` parameter is defined or not.
+ *
+ * @param {Object} obj
+ * @returns {boolean} true if the object is undefined
+ * @private
+ */
+function _isUndefined(obj) {
+  return typeof obj === 'undefined';
+}
+
+/**
+ * Parses the function arguments.
+ *
+ * This function helps to have optional arguments.
+ *
+ * @param {(Options|null|undefined|Function)} options
+ * @param {?Function} callback
+ * @returns {Array} parsed arguments
+ * @private
+ */
+function _parseArguments(options, callback) {
+  /* istanbul ignore else */
+  if (typeof options === 'function') {
+    return [{}, options];
+  }
+
+  /* istanbul ignore else */
+  if (_isUndefined(options)) {
+    return [{}, callback];
+  }
+
+  // copy options so we do not leak the changes we make internally
+  const actualOptions = {};
+  for (const key of Object.getOwnPropertyNames(options)) {
+    actualOptions[key] = options[key];
+  }
+
+  return [actualOptions, callback];
+}
+
+/**
+ * Resolve the specified path name in respect to tmpDir.
+ *
+ * The specified name might include relative path components, e.g. ../
+ * so we need to resolve in order to be sure that is is located inside tmpDir
+ *
+ * @private
+ */
+function _resolvePath(name, tmpDir, cb) {
+  const pathToResolve = path.isAbsolute(name) ? name : path.join(tmpDir, name);
+
+  fs.stat(pathToResolve, function (err) {
+    if (err) {
+      fs.realpath(path.dirname(pathToResolve), function (err, parentDir) {
+        if (err) return cb(err);
+
+        cb(null, path.join(parentDir, path.basename(pathToResolve)));
+      });
+    } else {
+      fs.realpath(pathToResolve, cb);
+    }
+  });
+}
+
+/**
+ * Resolve the specified path name in respect to tmpDir.
+ *
+ * The specified name might include relative path components, e.g. ../
+ * so we need to resolve in order to be sure that is is located inside tmpDir
+ *
+ * @private
+ */
+function _resolvePathSync(name, tmpDir) {
+  const pathToResolve = path.isAbsolute(name) ? name : path.join(tmpDir, name);
+
+  try {
+    fs.statSync(pathToResolve);
+    return fs.realpathSync(pathToResolve);
+  } catch (_err) {
+    const parentDir = fs.realpathSync(path.dirname(pathToResolve));
+
+    return path.join(parentDir, path.basename(pathToResolve));
+  }
+}
+
+/**
+ * Generates a new temporary name.
+ *
+ * @param {Object} opts
+ * @returns {string} the new random name according to opts
+ * @private
+ */
+function _generateTmpName(opts) {
+  const tmpDir = opts.tmpdir;
+
+  /* istanbul ignore else */
+  if (!_isUndefined(opts.name)) {
+    return path.join(tmpDir, opts.dir, opts.name);
+  }
+
+  /* istanbul ignore else */
+  if (!_isUndefined(opts.template)) {
+    return path.join(tmpDir, opts.dir, opts.template).replace(TEMPLATE_PATTERN, _randomChars(6));
+  }
+
+  // prefix and postfix
+  const name = [
+    opts.prefix ? opts.prefix : 'tmp',
+    '-',
+    process.pid,
+    '-',
+    _randomChars(12),
+    opts.postfix ? '-' + opts.postfix : ''
+  ].join('');
+
+  return path.join(tmpDir, opts.dir, name);
+}
+
+/**
+ * Asserts and sanitizes the basic options.
+ *
+ * @private
+ */
+function _assertOptionsBase(options) {
+  if (!_isUndefined(options.name)) {
+    const name = options.name;
+
+    // assert that name is not absolute and does not contain a path
+    if (path.isAbsolute(name)) throw new Error(`name option must not contain an absolute path, found "${name}".`);
+
+    // must not fail on valid .<name> or ..<name> or similar such constructs
+    const basename = path.basename(name);
+    if (basename === '..' || basename === '.' || basename !== name)
+      throw new Error(`name option must not contain a path, found "${name}".`);
+  }
+
+  /* istanbul ignore else */
+  if (!_isUndefined(options.template) && !options.template.match(TEMPLATE_PATTERN)) {
+    throw new Error(`Invalid template, found "${options.template}".`);
+  }
+
+  /* istanbul ignore else */
+  if ((!_isUndefined(options.tries) && isNaN(options.tries)) || options.tries < 0) {
+    throw new Error(`Invalid tries, found "${options.tries}".`);
+  }
+
+  // if a name was specified we will try once
+  options.tries = _isUndefined(options.name) ? options.tries || DEFAULT_TRIES : 1;
+  options.keep = !!options.keep;
+  options.detachDescriptor = !!options.detachDescriptor;
+  options.discardDescriptor = !!options.discardDescriptor;
+  options.unsafeCleanup = !!options.unsafeCleanup;
+
+  // for completeness' sake only, also keep (multiple) blanks if the user, purportedly sane, requests us to
+  options.prefix = _isUndefined(options.prefix) ? '' : options.prefix;
+  options.postfix = _isUndefined(options.postfix) ? '' : options.postfix;
+}
+
+/**
+ * Gets the relative directory to tmpDir.
+ *
+ * @private
+ */
+function _getRelativePath(option, name, tmpDir, cb) {
+  if (_isUndefined(name)) return cb(null);
+
+  _resolvePath(name, tmpDir, function (err, resolvedPath) {
+    if (err) return cb(err);
+
+    const relativePath = path.relative(tmpDir, resolvedPath);
+
+    if (!resolvedPath.startsWith(tmpDir)) {
+      return cb(new Error(`${option} option must be relative to "${tmpDir}", found "${relativePath}".`));
+    }
+
+    cb(null, relativePath);
+  });
+}
+
+/**
+ * Gets the relative path to tmpDir.
+ *
+ * @private
+ */
+function _getRelativePathSync(option, name, tmpDir) {
+  if (_isUndefined(name)) return;
+
+  const resolvedPath = _resolvePathSync(name, tmpDir);
+  const relativePath = path.relative(tmpDir, resolvedPath);
+
+  if (!resolvedPath.startsWith(tmpDir)) {
+    throw new Error(`${option} option must be relative to "${tmpDir}", found "${relativePath}".`);
+  }
+
+  return relativePath;
+}
+
+/**
+ * Asserts whether the specified options are valid, also sanitizes options and provides sane defaults for missing
+ * options.
+ *
+ * @private
+ */
+function _assertAndSanitizeOptions(options, cb) {
+  _getTmpDir(options, function (err, tmpDir) {
+    if (err) return cb(err);
+
+    options.tmpdir = tmpDir;
+
+    try {
+      _assertOptionsBase(options, tmpDir);
+    } catch (err) {
+      return cb(err);
+    }
+
+    // sanitize dir, also keep (multiple) blanks if the user, purportedly sane, requests us to
+    _getRelativePath('dir', options.dir, tmpDir, function (err, dir) {
+      if (err) return cb(err);
+
+      options.dir = _isUndefined(dir) ? '' : dir;
+
+      // sanitize further if template is relative to options.dir
+      _getRelativePath('template', options.template, tmpDir, function (err, template) {
+        if (err) return cb(err);
+
+        options.template = template;
+
+        cb(null, options);
+      });
+    });
+  });
+}
+
+/**
+ * Asserts whether the specified options are valid, also sanitizes options and provides sane defaults for missing
+ * options.
+ *
+ * @private
+ */
+function _assertAndSanitizeOptionsSync(options) {
+  const tmpDir = (options.tmpdir = _getTmpDirSync(options));
+
+  _assertOptionsBase(options, tmpDir);
+
+  const dir = _getRelativePathSync('dir', options.dir, tmpDir);
+  options.dir = _isUndefined(dir) ? '' : dir;
+
+  options.template = _getRelativePathSync('template', options.template, tmpDir);
+
+  return options;
+}
+
+/**
+ * Helper for testing against EBADF to compensate changes made to Node 7.x under Windows.
+ *
+ * @private
+ */
+function _isEBADF(error) {
+  return _isExpectedError(error, -EBADF, 'EBADF');
+}
+
+/**
+ * Helper for testing against ENOENT to compensate changes made to Node 7.x under Windows.
+ *
+ * @private
+ */
+function _isENOENT(error) {
+  return _isExpectedError(error, -ENOENT, 'ENOENT');
+}
+
+/**
+ * Helper to determine whether the expected error code matches the actual code and errno,
+ * which will differ between the supported node versions.
+ *
+ * - Node >= 7.0:
+ *   error.code {string}
+ *   error.errno {number} any numerical value will be negated
+ *
+ * CAVEAT
+ *
+ * On windows, the errno for EBADF is -4083 but os.constants.errno.EBADF is different and we must assume that ENOENT
+ * is no different here.
+ *
+ * @param {SystemError} error
+ * @param {number} errno
+ * @param {string} code
+ * @private
+ */
+function _isExpectedError(error, errno, code) {
+  return IS_WIN32 ? error.code === code : error.code === code && error.errno === errno;
+}
+
+/**
+ * Sets the graceful cleanup.
+ *
+ * If graceful cleanup is set, tmp will remove all controlled temporary objects on process exit, otherwise the
+ * temporary objects will remain in place, waiting to be cleaned up on system restart or otherwise scheduled temporary
+ * object removals.
+ */
+function setGracefulCleanup() {
+  _gracefulCleanup = true;
+}
+
+/**
+ * Returns the currently configured tmp dir from os.tmpdir().
+ *
+ * @private
+ */
+function _getTmpDir(options, cb) {
+  return fs.realpath((options && options.tmpdir) || os.tmpdir(), cb);
+}
+
+/**
+ * Returns the currently configured tmp dir from os.tmpdir().
+ *
+ * @private
+ */
+function _getTmpDirSync(options) {
+  return fs.realpathSync((options && options.tmpdir) || os.tmpdir());
+}
+
+// Install process exit listener
+process.addListener(EXIT, _garbageCollector);
+
+/**
+ * Configuration options.
+ *
+ * @typedef {Object} Options
+ * @property {?boolean} keep the temporary object (file or dir) will not be garbage collected
+ * @property {?number} tries the number of tries before give up the name generation
+ * @property (?int) mode the access mode, defaults are 0o700 for directories and 0o600 for files
+ * @property {?string} template the "mkstemp" like filename template
+ * @property {?string} name fixed name relative to tmpdir or the specified dir option
+ * @property {?string} dir tmp directory relative to the root tmp directory in use
+ * @property {?string} prefix prefix for the generated name
+ * @property {?string} postfix postfix for the generated name
+ * @property {?string} tmpdir the root tmp directory which overrides the os tmpdir
+ * @property {?boolean} unsafeCleanup recursively removes the created temporary directory, even when it's not empty
+ * @property {?boolean} detachDescriptor detaches the file descriptor, caller is responsible for closing the file, tmp will no longer try closing the file during garbage collection
+ * @property {?boolean} discardDescriptor discards the file descriptor (closes file, fd is -1), tmp will no longer try closing the file during garbage collection
+ */
+
+/**
+ * @typedef {Object} FileSyncObject
+ * @property {string} name the name of the file
+ * @property {string} fd the file descriptor or -1 if the fd has been discarded
+ * @property {fileCallback} removeCallback the callback function to remove the file
+ */
+
+/**
+ * @typedef {Object} DirSyncObject
+ * @property {string} name the name of the directory
+ * @property {fileCallback} removeCallback the callback function to remove the directory
+ */
+
+/**
+ * @callback tmpNameCallback
+ * @param {?Error} err the error object if anything goes wrong
+ * @param {string} name the temporary file name
+ */
+
+/**
+ * @callback fileCallback
+ * @param {?Error} err the error object if anything goes wrong
+ * @param {string} name the temporary file name
+ * @param {number} fd the file descriptor or -1 if the fd had been discarded
+ * @param {cleanupCallback} fn the cleanup callback function
+ */
+
+/**
+ * @callback fileCallbackSync
+ * @param {?Error} err the error object if anything goes wrong
+ * @param {string} name the temporary file name
+ * @param {number} fd the file descriptor or -1 if the fd had been discarded
+ * @param {cleanupCallbackSync} fn the cleanup callback function
+ */
+
+/**
+ * @callback dirCallback
+ * @param {?Error} err the error object if anything goes wrong
+ * @param {string} name the temporary file name
+ * @param {cleanupCallback} fn the cleanup callback function
+ */
+
+/**
+ * @callback dirCallbackSync
+ * @param {?Error} err the error object if anything goes wrong
+ * @param {string} name the temporary file name
+ * @param {cleanupCallbackSync} fn the cleanup callback function
+ */
+
+/**
+ * Removes the temporary created file or directory.
+ *
+ * @callback cleanupCallback
+ * @param {simpleCallback} [next] function to call whenever the tmp object needs to be removed
+ */
+
+/**
+ * Removes the temporary created file or directory.
+ *
+ * @callback cleanupCallbackSync
+ */
+
+/**
+ * Callback function for function composition.
+ * @see {@link https://github.com/raszi/node-tmp/issues/57|raszi/node-tmp#57}
+ *
+ * @callback simpleCallback
+ */
+
+// exporting all the needed methods
+
+// evaluate _getTmpDir() lazily, mainly for simplifying testing but it also will
+// allow users to reconfigure the temporary directory
+Object.defineProperty(module.exports, "tmpdir", ({
+  enumerable: true,
+  configurable: false,
+  get: function () {
+    return _getTmpDirSync();
+  }
+}));
+
+module.exports.dir = dir;
+module.exports.dirSync = dirSync;
+
+module.exports.file = file;
+module.exports.fileSync = fileSync;
+
+module.exports.tmpName = tmpName;
+module.exports.tmpNameSync = tmpNameSync;
+
+module.exports.setGracefulCleanup = setGracefulCleanup;
+
+
+/***/ }),
+/* 8 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("os");
+
+/***/ }),
+/* 9 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("crypto");
+
+/***/ }),
+/* 10 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTreeDataProvider = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const dagTreeItem_1 = __webpack_require__(11);
+const dagTreeView_1 = __webpack_require__(2);
+class DagTreeDataProvider {
+    constructor() {
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+        this.dagTreeItemList = [];
+        this.visibleDagList = [];
+    }
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+    loadDagTreeItemsFromApiResponse() {
+        this.dagTreeItemList = [];
+        if (this.dagList) {
+            for (var dag of this.dagList) {
+                if (dag) {
+                    let treeItem = new dagTreeItem_1.DagTreeItem(dag);
+                    this.dagTreeItemList.push(treeItem);
+                }
+            }
+        }
+    }
+    getChildren(element) {
+        if (!element) {
+            this.visibleDagList = this.getVisibleDagList();
+            return Promise.resolve(this.visibleDagList);
+        }
+        return Promise.resolve([]);
+    }
+    getVisibleDagList() {
+        var result = [];
+        for (var node of this.dagTreeItemList) {
+            if (dagTreeView_1.DagTreeView.Current.filterString && !node.doesFilterMatch(dagTreeView_1.DagTreeView.Current.filterString)) {
+                continue;
+            }
+            if (dagTreeView_1.DagTreeView.Current.ShowOnlyActive && node.IsPaused) {
+                continue;
+            }
+            if (dagTreeView_1.DagTreeView.Current.ShowOnlyFavorite && !node.IsFav) {
+                continue;
+            }
+            result.push(node);
+        }
+        return result;
+    }
+    getTreeItem(element) {
+        return element;
+    }
+}
+exports.DagTreeDataProvider = DagTreeDataProvider;
+
+
+/***/ }),
+/* 11 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTreeItem = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+class DagTreeItem extends vscode.TreeItem {
+    constructor(apiResponse) {
+        super(apiResponse.dag_id);
+        this.LatestDagRunId = '';
+        this.LatestDagState = '';
+        this._IsFav = false;
+        this.IsFiltered = false;
+        this.ApiResponse = apiResponse;
+        this.DagId = apiResponse.dag_id;
+        this.IsActive = apiResponse.is_active;
+        this.IsPaused = apiResponse.is_paused;
+        this.Owners = apiResponse.owners;
+        this.Tags = apiResponse.tags;
+        this.FileToken = apiResponse.file_token;
+        this.setContextValue();
+        this.refreshUI();
+    }
+    set IsFav(value) {
+        this._IsFav = value;
+        this.setContextValue();
+    }
+    get IsFav() {
+        return this._IsFav;
+    }
+    isDagRunning() {
+        return (this.LatestDagState === 'queued' || this.LatestDagState === 'running');
+    }
+    setContextValue() {
+        let contextValue = "#";
+        contextValue += this.IsFav ? "IsFav#" : "!IsFav#";
+        contextValue += this.IsPaused ? "IsPaused#" : "!IsPaused#";
+        contextValue += this.IsActive ? "IsActive#" : "!IsActive#";
+        contextValue += this.IsFiltered ? "IsFiltered#" : "!IsFiltered#";
+        this.contextValue = contextValue;
+    }
+    refreshUI() {
+        if (this.IsPaused) {
+            this.iconPath = new vscode.ThemeIcon('circle-outline');
+            this.ApiResponse.is_paused = true;
+        }
+        else {
+            //"queued" "running" "success" "failed"
+            if (this.LatestDagState === 'queued') {
+                this.iconPath = new vscode.ThemeIcon('loading~spin');
+            }
+            else if (this.LatestDagState === 'running') {
+                this.iconPath = new vscode.ThemeIcon('loading~spin');
+            }
+            else if (this.LatestDagState === 'success') {
+                this.iconPath = new vscode.ThemeIcon('check');
+            }
+            else if (this.LatestDagState === 'failed') {
+                this.iconPath = new vscode.ThemeIcon('error');
+            }
+            else {
+                this.iconPath = new vscode.ThemeIcon('circle-filled');
+            }
+            this.ApiResponse.is_paused = false;
+        }
+    }
+    doesFilterMatch(filterString) {
+        const words = filterString.split(',');
+        const matchingWords = [];
+        for (const word of words) {
+            if (word === 'active' && !this.IsPaused) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (word === 'paused' && this.IsPaused) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (this.DagId.includes(word)) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (this.Owners.includes(word)) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (word === 'fav' && this.IsFav) {
+                matchingWords.push(word);
+                continue;
+            }
+            for (const t of this.Tags) {
+                if (t.name.includes(word)) {
+                    matchingWords.push(word);
+                    continue;
+                }
+            }
+        }
+        this.IsFiltered = (words.length === matchingWords.length);
+        return this.IsFiltered;
+    }
+}
+exports.DagTreeItem = DagTreeItem;
+
+
+/***/ }),
+/* 12 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AirflowApi = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const base_64_1 = __webpack_require__(13);
+const ui = __webpack_require__(4);
+const methodResult_1 = __webpack_require__(14);
+// Wrapper for fetch to handle ESM node-fetch in CommonJS
+const fetch = async (url, init) => {
+    const module = await Promise.resolve().then(() => __webpack_require__(15));
+    return module.default(url, init);
+};
+class AirflowApi {
+    constructor(config) {
+        this.config = config;
+    }
+    get version() {
+        if (this.config.apiUrl.includes('v1')) {
+            return 'v1';
+        }
+        if (this.config.apiUrl.includes('v2')) {
+            return 'v2';
+        }
+        return 'unknown';
+    }
+    async getJwtToken() {
+        if (this.jwtToken) {
+            return this.jwtToken;
+        }
+        try {
+            const response = await fetch(this.config.apiUrl.replace("/api/v2", "") + '/auth/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: this.config.apiUserName, password: this.config.apiPassword }),
+            });
+            const result = await response.json();
+            if (response.status === 201 || response.status === 200) {
+                this.jwtToken = result['access_token'];
+                return this.jwtToken;
+            }
+            else {
+                ui.logToOutput(`getJwtToken failed: ${response.status} - ${JSON.stringify(result)}`);
+            }
+        }
+        catch (error) {
+            ui.logToOutput("getJwtToken Error", error);
+        }
+        return undefined;
+    }
+    async getHeaders() {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (this.version === 'v1') {
+            headers['Authorization'] = 'Basic ' + (0, base_64_1.encode)(`${this.config.apiUserName}:${this.config.apiPassword}`);
+        }
+        else if (this.version === 'v2') {
+            const token = await this.getJwtToken();
+            if (token) {
+                headers['Authorization'] = 'Bearer ' + token;
+            }
+            else {
+                ui.showWarningMessage('Unable to obtain JWT token for Airflow API v2.');
+            }
+        }
+        return headers;
+    }
+    async checkConnection() {
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/dags?limit=1`, { method: 'GET', headers });
+            return response.status === 200;
+        }
+        catch (e) {
+            return false;
+        }
+    }
+    async getDagList() {
+        const result = new methodResult_1.MethodResult();
+        const allDags = [];
+        let offset = 0;
+        const limit = 100;
+        try {
+            while (true) {
+                const headers = await this.getHeaders();
+                const response = await fetch(`${this.config.apiUrl}/dags?limit=${limit}&offset=${offset}`, { method: 'GET', headers });
+                const data = await response.json();
+                if (response.status === 200) {
+                    allDags.push(...data["dags"]);
+                    if (data["dags"].length < limit) {
+                        break;
+                    }
+                    offset += limit;
+                }
+                else {
+                    ui.showApiErrorMessage('Api Call Error', data);
+                    result.isSuccessful = false;
+                    return result;
+                }
+            }
+            result.result = allDags;
+            result.isSuccessful = true;
+        }
+        catch (error) {
+            ui.showErrorMessage('Cannot connect to Airflow.', error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async triggerDag(dagId, config = "{}", date) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            const headers = await this.getHeaders();
+            let body = { conf: JSON.parse(config) };
+            if (this.version === 'v1' && date) {
+                body.logical_date = date + "T00:00:00Z";
+            }
+            else if (this.version === 'v2') {
+                body.logical_date = date ? (date + "T00:00:00Z") : new Date().toISOString();
+            }
+            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(body),
+            });
+            const data = await response.json();
+            if (response.status === 200 || response.status === 201) { // 201 Created is typical for POST
+                ui.showInfoMessage(`${dagId} Triggered.`);
+                result.result = data;
+                result.isSuccessful = true;
+            }
+            else {
+                ui.showApiErrorMessage(`${dagId} Trigger Error`, data);
+                result.isSuccessful = false;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage(`${dagId} Trigger Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getDagRun(dagId, dagRunId) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, { method: 'GET', headers });
+            const data = await response.json();
+            if (response.status === 200) {
+                result.result = data;
+                result.isSuccessful = true;
+            }
+            else {
+                result.isSuccessful = false;
+            }
+        }
+        catch (error) {
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getLastDagRun(dagId) {
+        const history = await this.getDagRunHistory(dagId);
+        if (history.isSuccessful && history.result && history.result.dag_runs && history.result.dag_runs.length > 0) {
+            return this.getDagRun(dagId, history.result.dag_runs[0].dag_run_id);
+        }
+        const res = new methodResult_1.MethodResult();
+        res.isSuccessful = false;
+        return res;
+    }
+    async getDagRunHistory(dagId, date) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            const headers = await this.getHeaders();
+            let url = `${this.config.apiUrl}/dags/${dagId}/dagRuns?order_by=-start_date`;
+            // If date is provided, filter runs for that specific day
+            if (date) {
+                const startDate = `${date}T00:00:00Z`;
+                const endDate = `${date}T23:59:59Z`;
+                url += `&start_date_gte=${encodeURIComponent(startDate)}&start_date_lte=${encodeURIComponent(endDate)}`;
+            }
+            const response = await fetch(url, { method: 'GET', headers });
+            const data = await response.json();
+            if (response.status === 200) {
+                result.result = data;
+                result.isSuccessful = true;
+            }
+            else {
+                result.isSuccessful = false;
+            }
+        }
+        catch (error) {
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async pauseDag(dagId, isPaused) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({ is_paused: isPaused })
+            });
+            const data = await response.json();
+            if (response.status === 200) {
+                ui.showInfoMessage(`${dagId} ${isPaused ? "PAUSED" : "UN-PAUSED"}`);
+                result.result = data;
+                result.isSuccessful = true;
+            }
+            else {
+                ui.showApiErrorMessage(`${dagId} Pause Error`, data);
+                result.isSuccessful = false;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage(`${dagId} Pause Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getSourceCode(dagId, fileToken) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            const headers = await this.getHeaders();
+            let url = "";
+            if (this.version === 'v1' && fileToken) {
+                url = `${this.config.apiUrl}/dagSources/${fileToken}`;
+            }
+            else if (this.version === 'v2') {
+                url = `${this.config.apiUrl}/dagSources/${dagId}`;
+            }
+            else {
+                throw new Error("Unknown Airflow Version or missing file token");
+            }
+            const response = await fetch(url, { method: 'GET', headers });
+            if (response.status === 200) {
+                if (this.version === 'v2') {
+                    const json = await response.json();
+                    result.result = json.content;
+                }
+                else {
+                    result.result = await response.text();
+                }
+                result.isSuccessful = true;
+            }
+            else {
+                const data = await response.json();
+                ui.showApiErrorMessage(`${dagId} Source Code Error`, data);
+                result.isSuccessful = false;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage(`${dagId} Source Code Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getImportErrors() {
+        const result = new methodResult_1.MethodResult();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/importErrors`, { method: 'GET', headers });
+            const data = await response.json();
+            if (response.status === 200) {
+                result.result = data;
+                result.isSuccessful = true;
+            }
+            else {
+                result.isSuccessful = false;
+            }
+        }
+        catch (error) {
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getLastDagRunLog(dagId) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            ui.showInfoMessage('Fetching Latest DAG Run Logs...');
+            const history = await this.getDagRunHistory(dagId);
+            if (!history.isSuccessful || !history.result.dag_runs.length) {
+                throw new Error("No DAG runs found");
+            }
+            const dagRunId = history.result.dag_runs[0].dag_run_id;
+            let logContent = await this.getDagRunLog(dagId, dagRunId);
+            if (!logContent.isSuccessful) {
+                result.isSuccessful = false;
+                result.error = logContent.error;
+                return result;
+            }
+            result.result = logContent.result;
+            result.isSuccessful = true;
+        }
+        catch (error) {
+            ui.showErrorMessage(`${dagId} Log Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getDagRunLog(dagId, dagRunId) {
+        const result = new methodResult_1.MethodResult();
+        ui.showInfoMessage('Fetching DAG Run Logs...');
+        try {
+            const headers = await this.getHeaders();
+            const tasksResponse = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`, { method: 'GET', headers });
+            const tasksData = await tasksResponse.json();
+            let logContent = '###################### BEGINNING OF DAG RUN ######################\n\n';
+            for (const task of tasksData.task_instances || []) {
+                const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${task.task_id}/logs/${task.try_number}`, { method: 'GET', headers });
+                const logText = await logRes.text();
+                logContent += `############################################################\n`;
+                logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${task.task_id}\nTry=${task.try_number}\n`;
+                logContent += `############################################################\n\n`;
+                logContent += logText + "\n\n";
+            }
+            logContent += '###################### END OF DAG RUN ######################\n';
+            result.result = logContent;
+            result.isSuccessful = true;
+            return result;
+        }
+        catch (error) {
+            ui.showErrorMessage(`${dagId} Log Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+    }
+    async getDagInfo(dagId) {
+        return this.genericGet(`/dags/${dagId}`);
+    }
+    async getDagTasks(dagId) {
+        return this.genericGet(`/dags/${dagId}/tasks`);
+    }
+    async getTaskInstances(dagId, dagRunId) {
+        return this.genericGet(`/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`);
+    }
+    async cancelDagRun(dagId, dagRunId) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({ state: 'failed' })
+            });
+            const data = await response.json();
+            if (response.status === 200) {
+                result.result = data;
+                result.isSuccessful = true;
+            }
+            else {
+                ui.showApiErrorMessage(`${dagId} Cancel Error`, data);
+                result.isSuccessful = false;
+            }
+        }
+        catch (error) {
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getTaskInstanceLog(dagId, dagRunId, taskId) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            ui.showInfoMessage('Fetching Task Logs...');
+            const headers = await this.getHeaders();
+            // First get the try number from task instance details
+            // Or just try fetching logs for try 1, 2, etc?
+            // The original code fetched all task instances to find the try number.
+            const tasksResponse = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`, { method: 'GET', headers });
+            const tasksData = await tasksResponse.json();
+            const taskInstance = tasksData.task_instances?.find((t) => t.task_id === taskId);
+            if (!taskInstance) {
+                throw new Error("Task instance not found");
+            }
+            const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${taskId}/logs/${taskInstance.try_number}`, { method: 'GET', headers });
+            const logText = await logRes.text();
+            let logContent = `############################################################\n`;
+            logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${taskId}\nTry=${taskInstance.try_number}\n`;
+            logContent += `############################################################\n\n`;
+            logContent += logText;
+            result.result = logContent;
+            result.isSuccessful = true;
+        }
+        catch (error) {
+            ui.showErrorMessage(`${dagId} Log Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getTaskXComs(dagId, dagRunId, taskId) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${taskId}/xcomEntries`, { method: 'GET', headers });
+            if (response.status === 200) {
+                const data = await response.json();
+                result.result = data;
+                result.isSuccessful = true;
+            }
+            else {
+                const data = await response.json();
+                ui.showApiErrorMessage(`XCom fetch error for ${taskId}`, data);
+                result.isSuccessful = false;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage(`XCom fetch error for ${taskId}`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async updateDagRunNote(dagId, dagRunId, note) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({ note: note })
+            });
+            const data = await response.json();
+            if (response.status === 200) {
+                ui.showInfoMessage('DAG run note updated successfully');
+                result.result = data;
+                result.isSuccessful = true;
+            }
+            else {
+                ui.showApiErrorMessage(`Failed to update note`, data);
+                result.isSuccessful = false;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage(`Failed to update note`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    // Add other methods as needed (getConnections, getVariables, getProviders)
+    async getConnections() {
+        return this.genericGet('/connections');
+    }
+    async getVariables() {
+        return this.genericGet('/variables');
+    }
+    async getProviders() {
+        return this.genericGet('/providers');
+    }
+    async genericGet(endpoint) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}${endpoint}`, { method: 'GET', headers });
+            const data = await response.json();
+            if (response.status === 200) {
+                result.result = data;
+                result.isSuccessful = true;
+            }
+            else {
+                ui.showApiErrorMessage(`Error fetching ${endpoint}`, data);
+                result.isSuccessful = false;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage(`Error fetching ${endpoint}`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+}
+exports.AirflowApi = AirflowApi;
+
+
+/***/ }),
+/* 13 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* module decorator */ module = __webpack_require__.nmd(module);
+var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/base64 v1.0.0 by @mathias | MIT license */
+;(function(root) {
+
+	// Detect free variables `exports`.
+	var freeExports =  true && exports;
+
+	// Detect free variable `module`.
+	var freeModule =  true && module &&
+		module.exports == freeExports && module;
+
+	// Detect free variable `global`, from Node.js or Browserified code, and use
+	// it as `root`.
+	var freeGlobal = typeof global == 'object' && global;
+	if (freeGlobal.global === freeGlobal || freeGlobal.window === freeGlobal) {
+		root = freeGlobal;
+	}
+
+	/*--------------------------------------------------------------------------*/
+
+	var InvalidCharacterError = function(message) {
+		this.message = message;
+	};
+	InvalidCharacterError.prototype = new Error;
+	InvalidCharacterError.prototype.name = 'InvalidCharacterError';
+
+	var error = function(message) {
+		// Note: the error messages used throughout this file match those used by
+		// the native `atob`/`btoa` implementation in Chromium.
+		throw new InvalidCharacterError(message);
+	};
+
+	var TABLE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+	// http://whatwg.org/html/common-microsyntaxes.html#space-character
+	var REGEX_SPACE_CHARACTERS = /[\t\n\f\r ]/g;
+
+	// `decode` is designed to be fully compatible with `atob` as described in the
+	// HTML Standard. http://whatwg.org/html/webappapis.html#dom-windowbase64-atob
+	// The optimized base64-decoding algorithm used is based on @atk’s excellent
+	// implementation. https://gist.github.com/atk/1020396
+	var decode = function(input) {
+		input = String(input)
+			.replace(REGEX_SPACE_CHARACTERS, '');
+		var length = input.length;
+		if (length % 4 == 0) {
+			input = input.replace(/==?$/, '');
+			length = input.length;
+		}
+		if (
+			length % 4 == 1 ||
+			// http://whatwg.org/C#alphanumeric-ascii-characters
+			/[^+a-zA-Z0-9/]/.test(input)
+		) {
+			error(
+				'Invalid character: the string to be decoded is not correctly encoded.'
+			);
+		}
+		var bitCounter = 0;
+		var bitStorage;
+		var buffer;
+		var output = '';
+		var position = -1;
+		while (++position < length) {
+			buffer = TABLE.indexOf(input.charAt(position));
+			bitStorage = bitCounter % 4 ? bitStorage * 64 + buffer : buffer;
+			// Unless this is the first of a group of 4 characters…
+			if (bitCounter++ % 4) {
+				// …convert the first 8 bits to a single ASCII character.
+				output += String.fromCharCode(
+					0xFF & bitStorage >> (-2 * bitCounter & 6)
+				);
+			}
+		}
+		return output;
+	};
+
+	// `encode` is designed to be fully compatible with `btoa` as described in the
+	// HTML Standard: http://whatwg.org/html/webappapis.html#dom-windowbase64-btoa
+	var encode = function(input) {
+		input = String(input);
+		if (/[^\0-\xFF]/.test(input)) {
+			// Note: no need to special-case astral symbols here, as surrogates are
+			// matched, and the input is supposed to only contain ASCII anyway.
+			error(
+				'The string to be encoded contains characters outside of the ' +
+				'Latin1 range.'
+			);
+		}
+		var padding = input.length % 3;
+		var output = '';
+		var position = -1;
+		var a;
+		var b;
+		var c;
+		var buffer;
+		// Make sure any padding is handled outside of the loop.
+		var length = input.length - padding;
+
+		while (++position < length) {
+			// Read three bytes, i.e. 24 bits.
+			a = input.charCodeAt(position) << 16;
+			b = input.charCodeAt(++position) << 8;
+			c = input.charCodeAt(++position);
+			buffer = a + b + c;
+			// Turn the 24 bits into four chunks of 6 bits each, and append the
+			// matching character for each of them to the output.
+			output += (
+				TABLE.charAt(buffer >> 18 & 0x3F) +
+				TABLE.charAt(buffer >> 12 & 0x3F) +
+				TABLE.charAt(buffer >> 6 & 0x3F) +
+				TABLE.charAt(buffer & 0x3F)
+			);
+		}
+
+		if (padding == 2) {
+			a = input.charCodeAt(position) << 8;
+			b = input.charCodeAt(++position);
+			buffer = a + b;
+			output += (
+				TABLE.charAt(buffer >> 10) +
+				TABLE.charAt((buffer >> 4) & 0x3F) +
+				TABLE.charAt((buffer << 2) & 0x3F) +
+				'='
+			);
+		} else if (padding == 1) {
+			buffer = input.charCodeAt(position);
+			output += (
+				TABLE.charAt(buffer >> 2) +
+				TABLE.charAt((buffer << 4) & 0x3F) +
+				'=='
+			);
+		}
+
+		return output;
+	};
+
+	var base64 = {
+		'encode': encode,
+		'decode': decode,
+		'version': '1.0.0'
+	};
+
+	// Some AMD build optimizers, like r.js, check for specific condition patterns
+	// like the following:
+	if (
+		true
+	) {
+		!(__WEBPACK_AMD_DEFINE_RESULT__ = (function() {
+			return base64;
+		}).call(exports, __webpack_require__, exports, module),
+		__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	}	else // removed by dead control flow
+{ var key; }
+
+}(this));
+
+
+/***/ }),
+/* 14 */
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+/* eslint-disable @typescript-eslint/naming-convention */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.MethodResult = void 0;
+class MethodResult {
+    constructor() {
+        this.result = undefined;
+        this.isSuccessful = false;
+        this.error = undefined;
+    }
+}
+exports.MethodResult = MethodResult;
+
+
+/***/ }),
+/* 15 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   AbortError: () => (/* reexport safe */ _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_11__.AbortError),
+/* harmony export */   Blob: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.Blob),
+/* harmony export */   FetchError: () => (/* reexport safe */ _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__.FetchError),
+/* harmony export */   File: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.File),
+/* harmony export */   FormData: () => (/* reexport safe */ formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_13__.FormData),
+/* harmony export */   Headers: () => (/* reexport safe */ _headers_js__WEBPACK_IMPORTED_MODULE_8__["default"]),
+/* harmony export */   Request: () => (/* reexport safe */ _request_js__WEBPACK_IMPORTED_MODULE_9__["default"]),
+/* harmony export */   Response: () => (/* reexport safe */ _response_js__WEBPACK_IMPORTED_MODULE_7__["default"]),
+/* harmony export */   blobFrom: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.blobFrom),
+/* harmony export */   blobFromSync: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.blobFromSync),
+/* harmony export */   "default": () => (/* binding */ fetch),
+/* harmony export */   fileFrom: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.fileFrom),
+/* harmony export */   fileFromSync: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.fileFromSync),
+/* harmony export */   isRedirect: () => (/* reexport safe */ _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__.isRedirect)
+/* harmony export */ });
+/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(16);
+/* harmony import */ var node_https__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(17);
+/* harmony import */ var node_zlib__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(18);
+/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(19);
+/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(20);
+/* harmony import */ var data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(21);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(22);
+/* harmony import */ var _response_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(35);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(36);
+/* harmony import */ var _request_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(38);
+/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(32);
+/* harmony import */ var _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(43);
+/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(37);
+/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(30);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(34);
+/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(41);
+/* harmony import */ var fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(44);
+/**
+ * Index.js
+ *
+ * a request API compatible with window.fetch
+ *
+ * All spec algorithm step numbers are based on https://fetch.spec.whatwg.org/commit-snapshots/ae716822cb3a61843226cd090eefc6589446c1d2/.
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const supportedSchemas = new Set(['data:', 'http:', 'https:']);
+
+/**
+ * Fetch function
+ *
+ * @param   {string | URL | import('./request').default} url - Absolute url or Request instance
+ * @param   {*} [options_] - Fetch options
+ * @return  {Promise<import('./response').default>}
+ */
+async function fetch(url, options_) {
+	return new Promise((resolve, reject) => {
+		// Build request object
+		const request = new _request_js__WEBPACK_IMPORTED_MODULE_9__["default"](url, options_);
+		const {parsedURL, options} = (0,_request_js__WEBPACK_IMPORTED_MODULE_9__.getNodeRequestOptions)(request);
+		if (!supportedSchemas.has(parsedURL.protocol)) {
+			throw new TypeError(`node-fetch cannot load ${url}. URL scheme "${parsedURL.protocol.replace(/:$/, '')}" is not supported.`);
+		}
+
+		if (parsedURL.protocol === 'data:') {
+			const data = (0,data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__["default"])(request.url);
+			const response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](data, {headers: {'Content-Type': data.typeFull}});
+			resolve(response);
+			return;
+		}
+
+		// Wrap http.request into fetch
+		const send = (parsedURL.protocol === 'https:' ? node_https__WEBPACK_IMPORTED_MODULE_1__ : node_http__WEBPACK_IMPORTED_MODULE_0__).request;
+		const {signal} = request;
+		let response = null;
+
+		const abort = () => {
+			const error = new _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_11__.AbortError('The operation was aborted.');
+			reject(error);
+			if (request.body && request.body instanceof node_stream__WEBPACK_IMPORTED_MODULE_3__.Readable) {
+				request.body.destroy(error);
+			}
+
+			if (!response || !response.body) {
+				return;
+			}
+
+			response.body.emit('error', error);
+		};
+
+		if (signal && signal.aborted) {
+			abort();
+			return;
+		}
+
+		const abortAndFinalize = () => {
+			abort();
+			finalize();
+		};
+
+		// Send request
+		const request_ = send(parsedURL.toString(), options);
+
+		if (signal) {
+			signal.addEventListener('abort', abortAndFinalize);
+		}
+
+		const finalize = () => {
+			request_.abort();
+			if (signal) {
+				signal.removeEventListener('abort', abortAndFinalize);
+			}
+		};
+
+		request_.on('error', error => {
+			reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__.FetchError(`request to ${request.url} failed, reason: ${error.message}`, 'system', error));
+			finalize();
+		});
+
+		fixResponseChunkedTransferBadEnding(request_, error => {
+			if (response && response.body) {
+				response.body.destroy(error);
+			}
+		});
+
+		/* c8 ignore next 18 */
+		if (process.version < 'v14') {
+			// Before Node.js 14, pipeline() does not fully support async iterators and does not always
+			// properly handle when the socket close/end events are out of order.
+			request_.on('socket', s => {
+				let endedWithEventsCount;
+				s.prependListener('end', () => {
+					endedWithEventsCount = s._eventsCount;
+				});
+				s.prependListener('close', hadError => {
+					// if end happened before close but the socket didn't emit an error, do it now
+					if (response && endedWithEventsCount < s._eventsCount && !hadError) {
+						const error = new Error('Premature close');
+						error.code = 'ERR_STREAM_PREMATURE_CLOSE';
+						response.body.emit('error', error);
+					}
+				});
+			});
+		}
+
+		request_.on('response', response_ => {
+			request_.setTimeout(0);
+			const headers = (0,_headers_js__WEBPACK_IMPORTED_MODULE_8__.fromRawHeaders)(response_.rawHeaders);
+
+			// HTTP fetch step 5
+			if ((0,_utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__.isRedirect)(response_.statusCode)) {
+				// HTTP fetch step 5.2
+				const location = headers.get('Location');
+
+				// HTTP fetch step 5.3
+				let locationURL = null;
+				try {
+					locationURL = location === null ? null : new URL(location, request.url);
+				} catch {
+					// error here can only be invalid URL in Location: header
+					// do not throw when options.redirect == manual
+					// let the user extract the errorneous redirect URL
+					if (request.redirect !== 'manual') {
+						reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__.FetchError(`uri requested responds with an invalid redirect URL: ${location}`, 'invalid-redirect'));
+						finalize();
+						return;
+					}
+				}
+
+				// HTTP fetch step 5.5
+				switch (request.redirect) {
+					case 'error':
+						reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__.FetchError(`uri requested responds with a redirect, redirect mode is set to error: ${request.url}`, 'no-redirect'));
+						finalize();
+						return;
+					case 'manual':
+						// Nothing to do
+						break;
+					case 'follow': {
+						// HTTP-redirect fetch step 2
+						if (locationURL === null) {
+							break;
+						}
+
+						// HTTP-redirect fetch step 5
+						if (request.counter >= request.follow) {
+							reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__.FetchError(`maximum redirect reached at: ${request.url}`, 'max-redirect'));
+							finalize();
+							return;
+						}
+
+						// HTTP-redirect fetch step 6 (counter increment)
+						// Create a new Request object.
+						const requestOptions = {
+							headers: new _headers_js__WEBPACK_IMPORTED_MODULE_8__["default"](request.headers),
+							follow: request.follow,
+							counter: request.counter + 1,
+							agent: request.agent,
+							compress: request.compress,
+							method: request.method,
+							body: (0,_body_js__WEBPACK_IMPORTED_MODULE_6__.clone)(request),
+							signal: request.signal,
+							size: request.size,
+							referrer: request.referrer,
+							referrerPolicy: request.referrerPolicy
+						};
+
+						// when forwarding sensitive headers like "Authorization",
+						// "WWW-Authenticate", and "Cookie" to untrusted targets,
+						// headers will be ignored when following a redirect to a domain
+						// that is not a subdomain match or exact match of the initial domain.
+						// For example, a redirect from "foo.com" to either "foo.com" or "sub.foo.com"
+						// will forward the sensitive headers, but a redirect to "bar.com" will not.
+						// headers will also be ignored when following a redirect to a domain using
+						// a different protocol. For example, a redirect from "https://foo.com" to "http://foo.com"
+						// will not forward the sensitive headers
+						if (!(0,_utils_is_js__WEBPACK_IMPORTED_MODULE_14__.isDomainOrSubdomain)(request.url, locationURL) || !(0,_utils_is_js__WEBPACK_IMPORTED_MODULE_14__.isSameProtocol)(request.url, locationURL)) {
+							for (const name of ['authorization', 'www-authenticate', 'cookie', 'cookie2']) {
+								requestOptions.headers.delete(name);
+							}
+						}
+
+						// HTTP-redirect fetch step 9
+						if (response_.statusCode !== 303 && request.body && options_.body instanceof node_stream__WEBPACK_IMPORTED_MODULE_3__.Readable) {
+							reject(new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__.FetchError('Cannot follow redirect with body being a readable stream', 'unsupported-redirect'));
+							finalize();
+							return;
+						}
+
+						// HTTP-redirect fetch step 11
+						if (response_.statusCode === 303 || ((response_.statusCode === 301 || response_.statusCode === 302) && request.method === 'POST')) {
+							requestOptions.method = 'GET';
+							requestOptions.body = undefined;
+							requestOptions.headers.delete('content-length');
+						}
+
+						// HTTP-redirect fetch step 14
+						const responseReferrerPolicy = (0,_utils_referrer_js__WEBPACK_IMPORTED_MODULE_15__.parseReferrerPolicyFromHeader)(headers);
+						if (responseReferrerPolicy) {
+							requestOptions.referrerPolicy = responseReferrerPolicy;
+						}
+
+						// HTTP-redirect fetch step 15
+						resolve(fetch(new _request_js__WEBPACK_IMPORTED_MODULE_9__["default"](locationURL, requestOptions)));
+						finalize();
+						return;
+					}
+
+					default:
+						return reject(new TypeError(`Redirect option '${request.redirect}' is not a valid value of RequestRedirect`));
+				}
+			}
+
+			// Prepare response
+			if (signal) {
+				response_.once('end', () => {
+					signal.removeEventListener('abort', abortAndFinalize);
+				});
+			}
+
+			let body = (0,node_stream__WEBPACK_IMPORTED_MODULE_3__.pipeline)(response_, new node_stream__WEBPACK_IMPORTED_MODULE_3__.PassThrough(), error => {
+				if (error) {
+					reject(error);
+				}
+			});
+			// see https://github.com/nodejs/node/pull/29376
+			/* c8 ignore next 3 */
+			if (process.version < 'v12.10') {
+				response_.on('aborted', abortAndFinalize);
+			}
+
+			const responseOptions = {
+				url: request.url,
+				status: response_.statusCode,
+				statusText: response_.statusMessage,
+				headers,
+				size: request.size,
+				counter: request.counter,
+				highWaterMark: request.highWaterMark
+			};
+
+			// HTTP-network fetch step 12.1.1.3
+			const codings = headers.get('Content-Encoding');
+
+			// HTTP-network fetch step 12.1.1.4: handle content codings
+
+			// in following scenarios we ignore compression support
+			// 1. compression support is disabled
+			// 2. HEAD request
+			// 3. no Content-Encoding header
+			// 4. no content response (204)
+			// 5. content not modified response (304)
+			if (!request.compress || request.method === 'HEAD' || codings === null || response_.statusCode === 204 || response_.statusCode === 304) {
+				response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](body, responseOptions);
+				resolve(response);
+				return;
+			}
+
+			// For Node v6+
+			// Be less strict when decoding compressed responses, since sometimes
+			// servers send slightly invalid responses that are still accepted
+			// by common browsers.
+			// Always using Z_SYNC_FLUSH is what cURL does.
+			const zlibOptions = {
+				flush: node_zlib__WEBPACK_IMPORTED_MODULE_2__.Z_SYNC_FLUSH,
+				finishFlush: node_zlib__WEBPACK_IMPORTED_MODULE_2__.Z_SYNC_FLUSH
+			};
+
+			// For gzip
+			if (codings === 'gzip' || codings === 'x-gzip') {
+				body = (0,node_stream__WEBPACK_IMPORTED_MODULE_3__.pipeline)(body, node_zlib__WEBPACK_IMPORTED_MODULE_2__.createGunzip(zlibOptions), error => {
+					if (error) {
+						reject(error);
+					}
+				});
+				response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](body, responseOptions);
+				resolve(response);
+				return;
+			}
+
+			// For deflate
+			if (codings === 'deflate' || codings === 'x-deflate') {
+				// Handle the infamous raw deflate response from old servers
+				// a hack for old IIS and Apache servers
+				const raw = (0,node_stream__WEBPACK_IMPORTED_MODULE_3__.pipeline)(response_, new node_stream__WEBPACK_IMPORTED_MODULE_3__.PassThrough(), error => {
+					if (error) {
+						reject(error);
+					}
+				});
+				raw.once('data', chunk => {
+					// See http://stackoverflow.com/questions/37519828
+					if ((chunk[0] & 0x0F) === 0x08) {
+						body = (0,node_stream__WEBPACK_IMPORTED_MODULE_3__.pipeline)(body, node_zlib__WEBPACK_IMPORTED_MODULE_2__.createInflate(), error => {
+							if (error) {
+								reject(error);
+							}
+						});
+					} else {
+						body = (0,node_stream__WEBPACK_IMPORTED_MODULE_3__.pipeline)(body, node_zlib__WEBPACK_IMPORTED_MODULE_2__.createInflateRaw(), error => {
+							if (error) {
+								reject(error);
+							}
+						});
+					}
+
+					response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](body, responseOptions);
+					resolve(response);
+				});
+				raw.once('end', () => {
+					// Some old IIS servers return zero-length OK deflate responses, so
+					// 'data' is never emitted. See https://github.com/node-fetch/node-fetch/pull/903
+					if (!response) {
+						response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](body, responseOptions);
+						resolve(response);
+					}
+				});
+				return;
+			}
+
+			// For br
+			if (codings === 'br') {
+				body = (0,node_stream__WEBPACK_IMPORTED_MODULE_3__.pipeline)(body, node_zlib__WEBPACK_IMPORTED_MODULE_2__.createBrotliDecompress(), error => {
+					if (error) {
+						reject(error);
+					}
+				});
+				response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](body, responseOptions);
+				resolve(response);
+				return;
+			}
+
+			// Otherwise, use response as-is
+			response = new _response_js__WEBPACK_IMPORTED_MODULE_7__["default"](body, responseOptions);
+			resolve(response);
+		});
+
+		// eslint-disable-next-line promise/prefer-await-to-then
+		(0,_body_js__WEBPACK_IMPORTED_MODULE_6__.writeToStream)(request_, request).catch(reject);
+	});
+}
+
+function fixResponseChunkedTransferBadEnding(request, errorCallback) {
+	const LAST_CHUNK = node_buffer__WEBPACK_IMPORTED_MODULE_4__.Buffer.from('0\r\n\r\n');
+
+	let isChunkedTransfer = false;
+	let properLastChunkReceived = false;
+	let previousChunk;
+
+	request.on('response', response => {
+		const {headers} = response;
+		isChunkedTransfer = headers['transfer-encoding'] === 'chunked' && !headers['content-length'];
+	});
+
+	request.on('socket', socket => {
+		const onSocketClose = () => {
+			if (isChunkedTransfer && !properLastChunkReceived) {
+				const error = new Error('Premature close');
+				error.code = 'ERR_STREAM_PREMATURE_CLOSE';
+				errorCallback(error);
+			}
+		};
+
+		const onData = buf => {
+			properLastChunkReceived = node_buffer__WEBPACK_IMPORTED_MODULE_4__.Buffer.compare(buf.slice(-5), LAST_CHUNK) === 0;
+
+			// Sometimes final 0-length chunk and end of message code are in separate packets
+			if (!properLastChunkReceived && previousChunk) {
+				properLastChunkReceived = (
+					node_buffer__WEBPACK_IMPORTED_MODULE_4__.Buffer.compare(previousChunk.slice(-3), LAST_CHUNK.slice(0, 3)) === 0 &&
+					node_buffer__WEBPACK_IMPORTED_MODULE_4__.Buffer.compare(buf.slice(-2), LAST_CHUNK.slice(3)) === 0
+				);
+			}
+
+			previousChunk = buf;
+		};
+
+		socket.prependListener('close', onSocketClose);
+		socket.on('data', onData);
+
+		request.on('close', () => {
+			socket.removeListener('close', onSocketClose);
+			socket.removeListener('data', onData);
+		});
+	});
+}
+
+
+/***/ }),
+/* 16 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:http");
+
+/***/ }),
+/* 17 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:https");
+
+/***/ }),
+/* 18 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:zlib");
+
+/***/ }),
+/* 19 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:stream");
+
+/***/ }),
+/* 20 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:buffer");
+
+/***/ }),
+/* 21 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   dataUriToBuffer: () => (/* binding */ dataUriToBuffer),
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/**
+ * Returns a `Buffer` instance from the given data URI `uri`.
+ *
+ * @param {String} uri Data URI to turn into a Buffer instance
+ * @returns {Buffer} Buffer instance from Data URI
+ * @api public
+ */
+function dataUriToBuffer(uri) {
+    if (!/^data:/i.test(uri)) {
+        throw new TypeError('`uri` does not appear to be a Data URI (must begin with "data:")');
+    }
+    // strip newlines
+    uri = uri.replace(/\r?\n/g, '');
+    // split the URI up into the "metadata" and the "data" portions
+    const firstComma = uri.indexOf(',');
+    if (firstComma === -1 || firstComma <= 4) {
+        throw new TypeError('malformed data: URI');
+    }
+    // remove the "data:" scheme and parse the metadata
+    const meta = uri.substring(5, firstComma).split(';');
+    let charset = '';
+    let base64 = false;
+    const type = meta[0] || 'text/plain';
+    let typeFull = type;
+    for (let i = 1; i < meta.length; i++) {
+        if (meta[i] === 'base64') {
+            base64 = true;
+        }
+        else {
+            typeFull += `;${meta[i]}`;
+            if (meta[i].indexOf('charset=') === 0) {
+                charset = meta[i].substring(8);
+            }
+        }
+    }
+    // defaults to US-ASCII only if type is not provided
+    if (!meta[0] && !charset.length) {
+        typeFull += ';charset=US-ASCII';
+        charset = 'US-ASCII';
+    }
+    // get the encoded data portion and decode URI-encoded chars
+    const encoding = base64 ? 'base64' : 'ascii';
+    const data = unescape(uri.substring(firstComma + 1));
+    const buffer = Buffer.from(data, encoding);
+    // set `.type` and `.typeFull` properties to MIME type
+    buffer.type = type;
+    buffer.typeFull = typeFull;
+    // set the `.charset` property
+    buffer.charset = charset;
+    return buffer;
+}
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (dataUriToBuffer);
+//# sourceMappingURL=index.js.map
+
+/***/ }),
+/* 22 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   clone: () => (/* binding */ clone),
+/* harmony export */   "default": () => (/* binding */ Body),
+/* harmony export */   extractContentType: () => (/* binding */ extractContentType),
+/* harmony export */   getTotalBytes: () => (/* binding */ getTotalBytes),
+/* harmony export */   writeToStream: () => (/* binding */ writeToStream)
+/* harmony export */ });
+/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(19);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(23);
+/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(20);
+/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(24);
+/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(30);
+/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(32);
+/* harmony import */ var _errors_base_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(33);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(34);
+
+/**
+ * Body.js
+ *
+ * Body interface provides common methods for Request and Response
+ */
+
+
+
+
+
+
+
+
+
+
+
+
+const pipeline = (0,node_util__WEBPACK_IMPORTED_MODULE_1__.promisify)(node_stream__WEBPACK_IMPORTED_MODULE_0__.pipeline);
+const INTERNALS = Symbol('Body internals');
+
+/**
+ * Body mixin
+ *
+ * Ref: https://fetch.spec.whatwg.org/#body
+ *
+ * @param   Stream  body  Readable stream
+ * @param   Object  opts  Response options
+ * @return  Void
+ */
+class Body {
+	constructor(body, {
+		size = 0
+	} = {}) {
+		let boundary = null;
+
+		if (body === null) {
+			// Body is undefined or null
+			body = null;
+		} else if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_7__.isURLSearchParameters)(body)) {
+			// Body is a URLSearchParams
+			body = node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.from(body.toString());
+		} else if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_7__.isBlob)(body)) {
+			// Body is blob
+		} else if (node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.isBuffer(body)) {
+			// Body is Buffer
+		} else if (node_util__WEBPACK_IMPORTED_MODULE_1__.types.isAnyArrayBuffer(body)) {
+			// Body is ArrayBuffer
+			body = node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.from(body);
+		} else if (ArrayBuffer.isView(body)) {
+			// Body is ArrayBufferView
+			body = node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.from(body.buffer, body.byteOffset, body.byteLength);
+		} else if (body instanceof node_stream__WEBPACK_IMPORTED_MODULE_0__) {
+			// Body is stream
+		} else if (body instanceof formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__.FormData) {
+			// Body is FormData
+			body = (0,formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__.formDataToBlob)(body);
+			boundary = body.type.split('=')[1];
+		} else {
+			// None of the above
+			// coerce to string then buffer
+			body = node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.from(String(body));
+		}
+
+		let stream = body;
+
+		if (node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.isBuffer(body)) {
+			stream = node_stream__WEBPACK_IMPORTED_MODULE_0__.Readable.from(body);
+		} else if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_7__.isBlob)(body)) {
+			stream = node_stream__WEBPACK_IMPORTED_MODULE_0__.Readable.from(body.stream());
+		}
+
+		this[INTERNALS] = {
+			body,
+			stream,
+			boundary,
+			disturbed: false,
+			error: null
+		};
+		this.size = size;
+
+		if (body instanceof node_stream__WEBPACK_IMPORTED_MODULE_0__) {
+			body.on('error', error_ => {
+				const error = error_ instanceof _errors_base_js__WEBPACK_IMPORTED_MODULE_6__.FetchBaseError ?
+					error_ :
+					new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__.FetchError(`Invalid response body while trying to fetch ${this.url}: ${error_.message}`, 'system', error_);
+				this[INTERNALS].error = error;
+			});
+		}
+	}
+
+	get body() {
+		return this[INTERNALS].stream;
+	}
+
+	get bodyUsed() {
+		return this[INTERNALS].disturbed;
+	}
+
+	/**
+	 * Decode response as ArrayBuffer
+	 *
+	 * @return  Promise
+	 */
+	async arrayBuffer() {
+		const {buffer, byteOffset, byteLength} = await consumeBody(this);
+		return buffer.slice(byteOffset, byteOffset + byteLength);
+	}
+
+	async formData() {
+		const ct = this.headers.get('content-type');
+
+		if (ct.startsWith('application/x-www-form-urlencoded')) {
+			const formData = new formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__.FormData();
+			const parameters = new URLSearchParams(await this.text());
+
+			for (const [name, value] of parameters) {
+				formData.append(name, value);
+			}
+
+			return formData;
+		}
+
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 52));
+		return toFormData(this.body, ct);
+	}
+
+	/**
+	 * Return raw response as Blob
+	 *
+	 * @return Promise
+	 */
+	async blob() {
+		const ct = (this.headers && this.headers.get('content-type')) || (this[INTERNALS].body && this[INTERNALS].body.type) || '';
+		const buf = await this.arrayBuffer();
+
+		return new fetch_blob__WEBPACK_IMPORTED_MODULE_3__["default"]([buf], {
+			type: ct
+		});
+	}
+
+	/**
+	 * Decode response as json
+	 *
+	 * @return  Promise
+	 */
+	async json() {
+		const text = await this.text();
+		return JSON.parse(text);
+	}
+
+	/**
+	 * Decode response as text
+	 *
+	 * @return  Promise
+	 */
+	async text() {
+		const buffer = await consumeBody(this);
+		return new TextDecoder().decode(buffer);
+	}
+
+	/**
+	 * Decode response as buffer (non-spec api)
+	 *
+	 * @return  Promise
+	 */
+	buffer() {
+		return consumeBody(this);
+	}
+}
+
+Body.prototype.buffer = (0,node_util__WEBPACK_IMPORTED_MODULE_1__.deprecate)(Body.prototype.buffer, 'Please use \'response.arrayBuffer()\' instead of \'response.buffer()\'', 'node-fetch#buffer');
+
+// In browsers, all properties are enumerable.
+Object.defineProperties(Body.prototype, {
+	body: {enumerable: true},
+	bodyUsed: {enumerable: true},
+	arrayBuffer: {enumerable: true},
+	blob: {enumerable: true},
+	json: {enumerable: true},
+	text: {enumerable: true},
+	data: {get: (0,node_util__WEBPACK_IMPORTED_MODULE_1__.deprecate)(() => {},
+		'data doesn\'t exist, use json(), text(), arrayBuffer(), or body instead',
+		'https://github.com/node-fetch/node-fetch/issues/1000 (response)')}
+});
+
+/**
+ * Consume and convert an entire Body to a Buffer.
+ *
+ * Ref: https://fetch.spec.whatwg.org/#concept-body-consume-body
+ *
+ * @return Promise
+ */
+async function consumeBody(data) {
+	if (data[INTERNALS].disturbed) {
+		throw new TypeError(`body used already for: ${data.url}`);
+	}
+
+	data[INTERNALS].disturbed = true;
+
+	if (data[INTERNALS].error) {
+		throw data[INTERNALS].error;
+	}
+
+	const {body} = data;
+
+	// Body is null
+	if (body === null) {
+		return node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.alloc(0);
+	}
+
+	/* c8 ignore next 3 */
+	if (!(body instanceof node_stream__WEBPACK_IMPORTED_MODULE_0__)) {
+		return node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.alloc(0);
+	}
+
+	// Body is stream
+	// get ready to actually consume the body
+	const accum = [];
+	let accumBytes = 0;
+
+	try {
+		for await (const chunk of body) {
+			if (data.size > 0 && accumBytes + chunk.length > data.size) {
+				const error = new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__.FetchError(`content size at ${data.url} over limit: ${data.size}`, 'max-size');
+				body.destroy(error);
+				throw error;
+			}
+
+			accumBytes += chunk.length;
+			accum.push(chunk);
+		}
+	} catch (error) {
+		const error_ = error instanceof _errors_base_js__WEBPACK_IMPORTED_MODULE_6__.FetchBaseError ? error : new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__.FetchError(`Invalid response body while trying to fetch ${data.url}: ${error.message}`, 'system', error);
+		throw error_;
+	}
+
+	if (body.readableEnded === true || body._readableState.ended === true) {
+		try {
+			if (accum.every(c => typeof c === 'string')) {
+				return node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.from(accum.join(''));
+			}
+
+			return node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.concat(accum, accumBytes);
+		} catch (error) {
+			throw new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__.FetchError(`Could not create Buffer from response body for ${data.url}: ${error.message}`, 'system', error);
+		}
+	} else {
+		throw new _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__.FetchError(`Premature close of server response while trying to fetch ${data.url}`);
+	}
+}
+
+/**
+ * Clone body given Res/Req instance
+ *
+ * @param   Mixed   instance       Response or Request instance
+ * @param   String  highWaterMark  highWaterMark for both PassThrough body streams
+ * @return  Mixed
+ */
+const clone = (instance, highWaterMark) => {
+	let p1;
+	let p2;
+	let {body} = instance[INTERNALS];
+
+	// Don't allow cloning a used body
+	if (instance.bodyUsed) {
+		throw new Error('cannot clone body after it is used');
+	}
+
+	// Check that body is a stream and not form-data object
+	// note: we can't clone the form-data object without having it as a dependency
+	if ((body instanceof node_stream__WEBPACK_IMPORTED_MODULE_0__) && (typeof body.getBoundary !== 'function')) {
+		// Tee instance body
+		p1 = new node_stream__WEBPACK_IMPORTED_MODULE_0__.PassThrough({highWaterMark});
+		p2 = new node_stream__WEBPACK_IMPORTED_MODULE_0__.PassThrough({highWaterMark});
+		body.pipe(p1);
+		body.pipe(p2);
+		// Set instance body to teed body and return the other teed body
+		instance[INTERNALS].stream = p1;
+		body = p2;
+	}
+
+	return body;
+};
+
+const getNonSpecFormDataBoundary = (0,node_util__WEBPACK_IMPORTED_MODULE_1__.deprecate)(
+	body => body.getBoundary(),
+	'form-data doesn\'t follow the spec and requires special treatment. Use alternative package',
+	'https://github.com/node-fetch/node-fetch/issues/1167'
+);
+
+/**
+ * Performs the operation "extract a `Content-Type` value from |object|" as
+ * specified in the specification:
+ * https://fetch.spec.whatwg.org/#concept-bodyinit-extract
+ *
+ * This function assumes that instance.body is present.
+ *
+ * @param {any} body Any options.body input
+ * @returns {string | null}
+ */
+const extractContentType = (body, request) => {
+	// Body is null or undefined
+	if (body === null) {
+		return null;
+	}
+
+	// Body is string
+	if (typeof body === 'string') {
+		return 'text/plain;charset=UTF-8';
+	}
+
+	// Body is a URLSearchParams
+	if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_7__.isURLSearchParameters)(body)) {
+		return 'application/x-www-form-urlencoded;charset=UTF-8';
+	}
+
+	// Body is blob
+	if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_7__.isBlob)(body)) {
+		return body.type || null;
+	}
+
+	// Body is a Buffer (Buffer, ArrayBuffer or ArrayBufferView)
+	if (node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.isBuffer(body) || node_util__WEBPACK_IMPORTED_MODULE_1__.types.isAnyArrayBuffer(body) || ArrayBuffer.isView(body)) {
+		return null;
+	}
+
+	if (body instanceof formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__.FormData) {
+		return `multipart/form-data; boundary=${request[INTERNALS].boundary}`;
+	}
+
+	// Detect form data input from form-data module
+	if (body && typeof body.getBoundary === 'function') {
+		return `multipart/form-data;boundary=${getNonSpecFormDataBoundary(body)}`;
+	}
+
+	// Body is stream - can't really do much about this
+	if (body instanceof node_stream__WEBPACK_IMPORTED_MODULE_0__) {
+		return null;
+	}
+
+	// Body constructor defaults other things to string
+	return 'text/plain;charset=UTF-8';
+};
+
+/**
+ * The Fetch Standard treats this as if "total bytes" is a property on the body.
+ * For us, we have to explicitly get it with a function.
+ *
+ * ref: https://fetch.spec.whatwg.org/#concept-body-total-bytes
+ *
+ * @param {any} obj.body Body object from the Body instance.
+ * @returns {number | null}
+ */
+const getTotalBytes = request => {
+	const {body} = request[INTERNALS];
+
+	// Body is null or undefined
+	if (body === null) {
+		return 0;
+	}
+
+	// Body is Blob
+	if ((0,_utils_is_js__WEBPACK_IMPORTED_MODULE_7__.isBlob)(body)) {
+		return body.size;
+	}
+
+	// Body is Buffer
+	if (node_buffer__WEBPACK_IMPORTED_MODULE_2__.Buffer.isBuffer(body)) {
+		return body.length;
+	}
+
+	// Detect form data input from form-data module
+	if (body && typeof body.getLengthSync === 'function') {
+		return body.hasKnownLength && body.hasKnownLength() ? body.getLengthSync() : null;
+	}
+
+	// Body is stream
+	return null;
+};
+
+/**
+ * Write a Body to a Node.js WritableStream (e.g. http.Request) object.
+ *
+ * @param {Stream.Writable} dest The stream to write to.
+ * @param obj.body Body object from the Body instance.
+ * @returns {Promise<void>}
+ */
+const writeToStream = async (dest, {body}) => {
+	if (body === null) {
+		// Body is null
+		dest.end();
+	} else {
+		// Body is stream
+		await pipeline(body, dest);
+	}
+};
+
+
+/***/ }),
+/* 23 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:util");
+
+/***/ }),
+/* 24 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Blob: () => (/* binding */ Blob),
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _streams_cjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(25);
+/*! fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
+
+// TODO (jimmywarting): in the feature use conditional loading with top level await (requires 14.x)
+// Node has recently added whatwg stream into core
+
+
+
+// 64 KiB (same size chrome slice theirs blob into Uint8array's)
+const POOL_SIZE = 65536
+
+/** @param {(Blob | Uint8Array)[]} parts */
+async function * toIterator (parts, clone = true) {
+  for (const part of parts) {
+    if ('stream' in part) {
+      yield * (/** @type {AsyncIterableIterator<Uint8Array>} */ (part.stream()))
+    } else if (ArrayBuffer.isView(part)) {
+      if (clone) {
+        let position = part.byteOffset
+        const end = part.byteOffset + part.byteLength
+        while (position !== end) {
+          const size = Math.min(end - position, POOL_SIZE)
+          const chunk = part.buffer.slice(position, position + size)
+          position += chunk.byteLength
+          yield new Uint8Array(chunk)
+        }
+      } else {
+        yield part
+      }
+    /* c8 ignore next 10 */
+    } else {
+      // For blobs that have arrayBuffer but no stream method (nodes buffer.Blob)
+      let position = 0, b = (/** @type {Blob} */ (part))
+      while (position !== b.size) {
+        const chunk = b.slice(position, Math.min(b.size, position + POOL_SIZE))
+        const buffer = await chunk.arrayBuffer()
+        position += buffer.byteLength
+        yield new Uint8Array(buffer)
+      }
+    }
+  }
+}
+
+const _Blob = class Blob {
+  /** @type {Array.<(Blob|Uint8Array)>} */
+  #parts = []
+  #type = ''
+  #size = 0
+  #endings = 'transparent'
+
+  /**
+   * The Blob() constructor returns a new Blob object. The content
+   * of the blob consists of the concatenation of the values given
+   * in the parameter array.
+   *
+   * @param {*} blobParts
+   * @param {{ type?: string, endings?: string }} [options]
+   */
+  constructor (blobParts = [], options = {}) {
+    if (typeof blobParts !== 'object' || blobParts === null) {
+      throw new TypeError('Failed to construct \'Blob\': The provided value cannot be converted to a sequence.')
+    }
+
+    if (typeof blobParts[Symbol.iterator] !== 'function') {
+      throw new TypeError('Failed to construct \'Blob\': The object must have a callable @@iterator property.')
+    }
+
+    if (typeof options !== 'object' && typeof options !== 'function') {
+      throw new TypeError('Failed to construct \'Blob\': parameter 2 cannot convert to dictionary.')
+    }
+
+    if (options === null) options = {}
+
+    const encoder = new TextEncoder()
+    for (const element of blobParts) {
+      let part
+      if (ArrayBuffer.isView(element)) {
+        part = new Uint8Array(element.buffer.slice(element.byteOffset, element.byteOffset + element.byteLength))
+      } else if (element instanceof ArrayBuffer) {
+        part = new Uint8Array(element.slice(0))
+      } else if (element instanceof Blob) {
+        part = element
+      } else {
+        part = encoder.encode(`${element}`)
+      }
+
+      this.#size += ArrayBuffer.isView(part) ? part.byteLength : part.size
+      this.#parts.push(part)
+    }
+
+    this.#endings = `${options.endings === undefined ? 'transparent' : options.endings}`
+    const type = options.type === undefined ? '' : String(options.type)
+    this.#type = /^[\x20-\x7E]*$/.test(type) ? type : ''
+  }
+
+  /**
+   * The Blob interface's size property returns the
+   * size of the Blob in bytes.
+   */
+  get size () {
+    return this.#size
+  }
+
+  /**
+   * The type property of a Blob object returns the MIME type of the file.
+   */
+  get type () {
+    return this.#type
+  }
+
+  /**
+   * The text() method in the Blob interface returns a Promise
+   * that resolves with a string containing the contents of
+   * the blob, interpreted as UTF-8.
+   *
+   * @return {Promise<string>}
+   */
+  async text () {
+    // More optimized than using this.arrayBuffer()
+    // that requires twice as much ram
+    const decoder = new TextDecoder()
+    let str = ''
+    for await (const part of toIterator(this.#parts, false)) {
+      str += decoder.decode(part, { stream: true })
+    }
+    // Remaining
+    str += decoder.decode()
+    return str
+  }
+
+  /**
+   * The arrayBuffer() method in the Blob interface returns a
+   * Promise that resolves with the contents of the blob as
+   * binary data contained in an ArrayBuffer.
+   *
+   * @return {Promise<ArrayBuffer>}
+   */
+  async arrayBuffer () {
+    // Easier way... Just a unnecessary overhead
+    // const view = new Uint8Array(this.size);
+    // await this.stream().getReader({mode: 'byob'}).read(view);
+    // return view.buffer;
+
+    const data = new Uint8Array(this.size)
+    let offset = 0
+    for await (const chunk of toIterator(this.#parts, false)) {
+      data.set(chunk, offset)
+      offset += chunk.length
+    }
+
+    return data.buffer
+  }
+
+  stream () {
+    const it = toIterator(this.#parts, true)
+
+    return new globalThis.ReadableStream({
+      // @ts-ignore
+      type: 'bytes',
+      async pull (ctrl) {
+        const chunk = await it.next()
+        chunk.done ? ctrl.close() : ctrl.enqueue(chunk.value)
+      },
+
+      async cancel () {
+        await it.return()
+      }
+    })
+  }
+
+  /**
+   * The Blob interface's slice() method creates and returns a
+   * new Blob object which contains data from a subset of the
+   * blob on which it's called.
+   *
+   * @param {number} [start]
+   * @param {number} [end]
+   * @param {string} [type]
+   */
+  slice (start = 0, end = this.size, type = '') {
+    const { size } = this
+
+    let relativeStart = start < 0 ? Math.max(size + start, 0) : Math.min(start, size)
+    let relativeEnd = end < 0 ? Math.max(size + end, 0) : Math.min(end, size)
+
+    const span = Math.max(relativeEnd - relativeStart, 0)
+    const parts = this.#parts
+    const blobParts = []
+    let added = 0
+
+    for (const part of parts) {
+      // don't add the overflow to new blobParts
+      if (added >= span) {
+        break
+      }
+
+      const size = ArrayBuffer.isView(part) ? part.byteLength : part.size
+      if (relativeStart && size <= relativeStart) {
+        // Skip the beginning and change the relative
+        // start & end position as we skip the unwanted parts
+        relativeStart -= size
+        relativeEnd -= size
+      } else {
+        let chunk
+        if (ArrayBuffer.isView(part)) {
+          chunk = part.subarray(relativeStart, Math.min(size, relativeEnd))
+          added += chunk.byteLength
+        } else {
+          chunk = part.slice(relativeStart, Math.min(size, relativeEnd))
+          added += chunk.size
+        }
+        relativeEnd -= size
+        blobParts.push(chunk)
+        relativeStart = 0 // All next sequential parts should start at 0
+      }
+    }
+
+    const blob = new Blob([], { type: String(type).toLowerCase() })
+    blob.#size = span
+    blob.#parts = blobParts
+
+    return blob
+  }
+
+  get [Symbol.toStringTag] () {
+    return 'Blob'
+  }
+
+  static [Symbol.hasInstance] (object) {
+    return (
+      object &&
+      typeof object === 'object' &&
+      typeof object.constructor === 'function' &&
+      (
+        typeof object.stream === 'function' ||
+        typeof object.arrayBuffer === 'function'
+      ) &&
+      /^(Blob|File)$/.test(object[Symbol.toStringTag])
+    )
+  }
+}
+
+Object.defineProperties(_Blob.prototype, {
+  size: { enumerable: true },
+  type: { enumerable: true },
+  slice: { enumerable: true }
+})
+
+/** @type {typeof globalThis.Blob} */
+const Blob = _Blob
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (Blob);
+
+
+/***/ }),
+/* 25 */
+/***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
+
+/* c8 ignore start */
+// 64 KiB (same size chrome slice theirs blob into Uint8array's)
+const POOL_SIZE = 65536
+
+if (!globalThis.ReadableStream) {
+  // `node:stream/web` got introduced in v16.5.0 as experimental
+  // and it's preferred over the polyfilled version. So we also
+  // suppress the warning that gets emitted by NodeJS for using it.
+  try {
+    const process = __webpack_require__(26)
+    const { emitWarning } = process
+    try {
+      process.emitWarning = () => {}
+      Object.assign(globalThis, __webpack_require__(27))
+      process.emitWarning = emitWarning
+    } catch (error) {
+      process.emitWarning = emitWarning
+      throw error
+    }
+  } catch (error) {
+    // fallback to polyfill implementation
+    Object.assign(globalThis, __webpack_require__(28))
+  }
+}
+
+try {
+  // Don't use node: prefix for this, require+node: is not supported until node v14.14
+  // Only `import()` can use prefix in 12.20 and later
+  const { Blob } = __webpack_require__(29)
+  if (Blob && !Blob.prototype.stream) {
+    Blob.prototype.stream = function name (params) {
+      let position = 0
+      const blob = this
+
+      return new ReadableStream({
+        type: 'bytes',
+        async pull (ctrl) {
+          const chunk = blob.slice(position, Math.min(blob.size, position + POOL_SIZE))
+          const buffer = await chunk.arrayBuffer()
+          position += buffer.byteLength
+          ctrl.enqueue(new Uint8Array(buffer))
+
+          if (position === blob.size) {
+            ctrl.close()
+          }
+        }
+      })
+    }
+  }
+} catch (error) {}
+/* c8 ignore end */
+
+
+/***/ }),
+/* 26 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:process");
+
+/***/ }),
+/* 27 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:stream/web");
+
+/***/ }),
+/* 28 */
+/***/ (function(__unused_webpack_module, exports) {
+
+/**
+ * web-streams-polyfill v3.2.1
+ */
+(function (global, factory) {
+     true ? factory(exports) :
+    0;
+}(this, (function (exports) { 'use strict';
+
+    /// <reference lib="es2015.symbol" />
+    const SymbolPolyfill = typeof Symbol === 'function' && typeof Symbol.iterator === 'symbol' ?
+        Symbol :
+        description => `Symbol(${description})`;
+
+    /// <reference lib="dom" />
+    function noop() {
+        return undefined;
+    }
+    function getGlobals() {
+        if (typeof self !== 'undefined') {
+            return self;
+        }
+        else if (typeof window !== 'undefined') {
+            return window;
+        }
+        else if (typeof global !== 'undefined') {
+            return global;
+        }
+        return undefined;
+    }
+    const globals = getGlobals();
+
+    function typeIsObject(x) {
+        return (typeof x === 'object' && x !== null) || typeof x === 'function';
+    }
+    const rethrowAssertionErrorRejection = noop;
+
+    const originalPromise = Promise;
+    const originalPromiseThen = Promise.prototype.then;
+    const originalPromiseResolve = Promise.resolve.bind(originalPromise);
+    const originalPromiseReject = Promise.reject.bind(originalPromise);
+    function newPromise(executor) {
+        return new originalPromise(executor);
+    }
+    function promiseResolvedWith(value) {
+        return originalPromiseResolve(value);
+    }
+    function promiseRejectedWith(reason) {
+        return originalPromiseReject(reason);
+    }
+    function PerformPromiseThen(promise, onFulfilled, onRejected) {
+        // There doesn't appear to be any way to correctly emulate the behaviour from JavaScript, so this is just an
+        // approximation.
+        return originalPromiseThen.call(promise, onFulfilled, onRejected);
+    }
+    function uponPromise(promise, onFulfilled, onRejected) {
+        PerformPromiseThen(PerformPromiseThen(promise, onFulfilled, onRejected), undefined, rethrowAssertionErrorRejection);
+    }
+    function uponFulfillment(promise, onFulfilled) {
+        uponPromise(promise, onFulfilled);
+    }
+    function uponRejection(promise, onRejected) {
+        uponPromise(promise, undefined, onRejected);
+    }
+    function transformPromiseWith(promise, fulfillmentHandler, rejectionHandler) {
+        return PerformPromiseThen(promise, fulfillmentHandler, rejectionHandler);
+    }
+    function setPromiseIsHandledToTrue(promise) {
+        PerformPromiseThen(promise, undefined, rethrowAssertionErrorRejection);
+    }
+    const queueMicrotask = (() => {
+        const globalQueueMicrotask = globals && globals.queueMicrotask;
+        if (typeof globalQueueMicrotask === 'function') {
+            return globalQueueMicrotask;
+        }
+        const resolvedPromise = promiseResolvedWith(undefined);
+        return (fn) => PerformPromiseThen(resolvedPromise, fn);
+    })();
+    function reflectCall(F, V, args) {
+        if (typeof F !== 'function') {
+            throw new TypeError('Argument is not a function');
+        }
+        return Function.prototype.apply.call(F, V, args);
+    }
+    function promiseCall(F, V, args) {
+        try {
+            return promiseResolvedWith(reflectCall(F, V, args));
+        }
+        catch (value) {
+            return promiseRejectedWith(value);
+        }
+    }
+
+    // Original from Chromium
+    // https://chromium.googlesource.com/chromium/src/+/0aee4434a4dba42a42abaea9bfbc0cd196a63bc1/third_party/blink/renderer/core/streams/SimpleQueue.js
+    const QUEUE_MAX_ARRAY_SIZE = 16384;
+    /**
+     * Simple queue structure.
+     *
+     * Avoids scalability issues with using a packed array directly by using
+     * multiple arrays in a linked list and keeping the array size bounded.
+     */
+    class SimpleQueue {
+        constructor() {
+            this._cursor = 0;
+            this._size = 0;
+            // _front and _back are always defined.
+            this._front = {
+                _elements: [],
+                _next: undefined
+            };
+            this._back = this._front;
+            // The cursor is used to avoid calling Array.shift().
+            // It contains the index of the front element of the array inside the
+            // front-most node. It is always in the range [0, QUEUE_MAX_ARRAY_SIZE).
+            this._cursor = 0;
+            // When there is only one node, size === elements.length - cursor.
+            this._size = 0;
+        }
+        get length() {
+            return this._size;
+        }
+        // For exception safety, this method is structured in order:
+        // 1. Read state
+        // 2. Calculate required state mutations
+        // 3. Perform state mutations
+        push(element) {
+            const oldBack = this._back;
+            let newBack = oldBack;
+            if (oldBack._elements.length === QUEUE_MAX_ARRAY_SIZE - 1) {
+                newBack = {
+                    _elements: [],
+                    _next: undefined
+                };
+            }
+            // push() is the mutation most likely to throw an exception, so it
+            // goes first.
+            oldBack._elements.push(element);
+            if (newBack !== oldBack) {
+                this._back = newBack;
+                oldBack._next = newBack;
+            }
+            ++this._size;
+        }
+        // Like push(), shift() follows the read -> calculate -> mutate pattern for
+        // exception safety.
+        shift() { // must not be called on an empty queue
+            const oldFront = this._front;
+            let newFront = oldFront;
+            const oldCursor = this._cursor;
+            let newCursor = oldCursor + 1;
+            const elements = oldFront._elements;
+            const element = elements[oldCursor];
+            if (newCursor === QUEUE_MAX_ARRAY_SIZE) {
+                newFront = oldFront._next;
+                newCursor = 0;
+            }
+            // No mutations before this point.
+            --this._size;
+            this._cursor = newCursor;
+            if (oldFront !== newFront) {
+                this._front = newFront;
+            }
+            // Permit shifted element to be garbage collected.
+            elements[oldCursor] = undefined;
+            return element;
+        }
+        // The tricky thing about forEach() is that it can be called
+        // re-entrantly. The queue may be mutated inside the callback. It is easy to
+        // see that push() within the callback has no negative effects since the end
+        // of the queue is checked for on every iteration. If shift() is called
+        // repeatedly within the callback then the next iteration may return an
+        // element that has been removed. In this case the callback will be called
+        // with undefined values until we either "catch up" with elements that still
+        // exist or reach the back of the queue.
+        forEach(callback) {
+            let i = this._cursor;
+            let node = this._front;
+            let elements = node._elements;
+            while (i !== elements.length || node._next !== undefined) {
+                if (i === elements.length) {
+                    node = node._next;
+                    elements = node._elements;
+                    i = 0;
+                    if (elements.length === 0) {
+                        break;
+                    }
+                }
+                callback(elements[i]);
+                ++i;
+            }
+        }
+        // Return the element that would be returned if shift() was called now,
+        // without modifying the queue.
+        peek() { // must not be called on an empty queue
+            const front = this._front;
+            const cursor = this._cursor;
+            return front._elements[cursor];
+        }
+    }
+
+    function ReadableStreamReaderGenericInitialize(reader, stream) {
+        reader._ownerReadableStream = stream;
+        stream._reader = reader;
+        if (stream._state === 'readable') {
+            defaultReaderClosedPromiseInitialize(reader);
+        }
+        else if (stream._state === 'closed') {
+            defaultReaderClosedPromiseInitializeAsResolved(reader);
+        }
+        else {
+            defaultReaderClosedPromiseInitializeAsRejected(reader, stream._storedError);
+        }
+    }
+    // A client of ReadableStreamDefaultReader and ReadableStreamBYOBReader may use these functions directly to bypass state
+    // check.
+    function ReadableStreamReaderGenericCancel(reader, reason) {
+        const stream = reader._ownerReadableStream;
+        return ReadableStreamCancel(stream, reason);
+    }
+    function ReadableStreamReaderGenericRelease(reader) {
+        if (reader._ownerReadableStream._state === 'readable') {
+            defaultReaderClosedPromiseReject(reader, new TypeError(`Reader was released and can no longer be used to monitor the stream's closedness`));
+        }
+        else {
+            defaultReaderClosedPromiseResetToRejected(reader, new TypeError(`Reader was released and can no longer be used to monitor the stream's closedness`));
+        }
+        reader._ownerReadableStream._reader = undefined;
+        reader._ownerReadableStream = undefined;
+    }
+    // Helper functions for the readers.
+    function readerLockException(name) {
+        return new TypeError('Cannot ' + name + ' a stream using a released reader');
+    }
+    // Helper functions for the ReadableStreamDefaultReader.
+    function defaultReaderClosedPromiseInitialize(reader) {
+        reader._closedPromise = newPromise((resolve, reject) => {
+            reader._closedPromise_resolve = resolve;
+            reader._closedPromise_reject = reject;
+        });
+    }
+    function defaultReaderClosedPromiseInitializeAsRejected(reader, reason) {
+        defaultReaderClosedPromiseInitialize(reader);
+        defaultReaderClosedPromiseReject(reader, reason);
+    }
+    function defaultReaderClosedPromiseInitializeAsResolved(reader) {
+        defaultReaderClosedPromiseInitialize(reader);
+        defaultReaderClosedPromiseResolve(reader);
+    }
+    function defaultReaderClosedPromiseReject(reader, reason) {
+        if (reader._closedPromise_reject === undefined) {
+            return;
+        }
+        setPromiseIsHandledToTrue(reader._closedPromise);
+        reader._closedPromise_reject(reason);
+        reader._closedPromise_resolve = undefined;
+        reader._closedPromise_reject = undefined;
+    }
+    function defaultReaderClosedPromiseResetToRejected(reader, reason) {
+        defaultReaderClosedPromiseInitializeAsRejected(reader, reason);
+    }
+    function defaultReaderClosedPromiseResolve(reader) {
+        if (reader._closedPromise_resolve === undefined) {
+            return;
+        }
+        reader._closedPromise_resolve(undefined);
+        reader._closedPromise_resolve = undefined;
+        reader._closedPromise_reject = undefined;
+    }
+
+    const AbortSteps = SymbolPolyfill('[[AbortSteps]]');
+    const ErrorSteps = SymbolPolyfill('[[ErrorSteps]]');
+    const CancelSteps = SymbolPolyfill('[[CancelSteps]]');
+    const PullSteps = SymbolPolyfill('[[PullSteps]]');
+
+    /// <reference lib="es2015.core" />
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isFinite#Polyfill
+    const NumberIsFinite = Number.isFinite || function (x) {
+        return typeof x === 'number' && isFinite(x);
+    };
+
+    /// <reference lib="es2015.core" />
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/trunc#Polyfill
+    const MathTrunc = Math.trunc || function (v) {
+        return v < 0 ? Math.ceil(v) : Math.floor(v);
+    };
+
+    // https://heycam.github.io/webidl/#idl-dictionaries
+    function isDictionary(x) {
+        return typeof x === 'object' || typeof x === 'function';
+    }
+    function assertDictionary(obj, context) {
+        if (obj !== undefined && !isDictionary(obj)) {
+            throw new TypeError(`${context} is not an object.`);
+        }
+    }
+    // https://heycam.github.io/webidl/#idl-callback-functions
+    function assertFunction(x, context) {
+        if (typeof x !== 'function') {
+            throw new TypeError(`${context} is not a function.`);
+        }
+    }
+    // https://heycam.github.io/webidl/#idl-object
+    function isObject(x) {
+        return (typeof x === 'object' && x !== null) || typeof x === 'function';
+    }
+    function assertObject(x, context) {
+        if (!isObject(x)) {
+            throw new TypeError(`${context} is not an object.`);
+        }
+    }
+    function assertRequiredArgument(x, position, context) {
+        if (x === undefined) {
+            throw new TypeError(`Parameter ${position} is required in '${context}'.`);
+        }
+    }
+    function assertRequiredField(x, field, context) {
+        if (x === undefined) {
+            throw new TypeError(`${field} is required in '${context}'.`);
+        }
+    }
+    // https://heycam.github.io/webidl/#idl-unrestricted-double
+    function convertUnrestrictedDouble(value) {
+        return Number(value);
+    }
+    function censorNegativeZero(x) {
+        return x === 0 ? 0 : x;
+    }
+    function integerPart(x) {
+        return censorNegativeZero(MathTrunc(x));
+    }
+    // https://heycam.github.io/webidl/#idl-unsigned-long-long
+    function convertUnsignedLongLongWithEnforceRange(value, context) {
+        const lowerBound = 0;
+        const upperBound = Number.MAX_SAFE_INTEGER;
+        let x = Number(value);
+        x = censorNegativeZero(x);
+        if (!NumberIsFinite(x)) {
+            throw new TypeError(`${context} is not a finite number`);
+        }
+        x = integerPart(x);
+        if (x < lowerBound || x > upperBound) {
+            throw new TypeError(`${context} is outside the accepted range of ${lowerBound} to ${upperBound}, inclusive`);
+        }
+        if (!NumberIsFinite(x) || x === 0) {
+            return 0;
+        }
+        // TODO Use BigInt if supported?
+        // let xBigInt = BigInt(integerPart(x));
+        // xBigInt = BigInt.asUintN(64, xBigInt);
+        // return Number(xBigInt);
+        return x;
+    }
+
+    function assertReadableStream(x, context) {
+        if (!IsReadableStream(x)) {
+            throw new TypeError(`${context} is not a ReadableStream.`);
+        }
+    }
+
+    // Abstract operations for the ReadableStream.
+    function AcquireReadableStreamDefaultReader(stream) {
+        return new ReadableStreamDefaultReader(stream);
+    }
+    // ReadableStream API exposed for controllers.
+    function ReadableStreamAddReadRequest(stream, readRequest) {
+        stream._reader._readRequests.push(readRequest);
+    }
+    function ReadableStreamFulfillReadRequest(stream, chunk, done) {
+        const reader = stream._reader;
+        const readRequest = reader._readRequests.shift();
+        if (done) {
+            readRequest._closeSteps();
+        }
+        else {
+            readRequest._chunkSteps(chunk);
+        }
+    }
+    function ReadableStreamGetNumReadRequests(stream) {
+        return stream._reader._readRequests.length;
+    }
+    function ReadableStreamHasDefaultReader(stream) {
+        const reader = stream._reader;
+        if (reader === undefined) {
+            return false;
+        }
+        if (!IsReadableStreamDefaultReader(reader)) {
+            return false;
+        }
+        return true;
+    }
+    /**
+     * A default reader vended by a {@link ReadableStream}.
+     *
+     * @public
+     */
+    class ReadableStreamDefaultReader {
+        constructor(stream) {
+            assertRequiredArgument(stream, 1, 'ReadableStreamDefaultReader');
+            assertReadableStream(stream, 'First parameter');
+            if (IsReadableStreamLocked(stream)) {
+                throw new TypeError('This stream has already been locked for exclusive reading by another reader');
+            }
+            ReadableStreamReaderGenericInitialize(this, stream);
+            this._readRequests = new SimpleQueue();
+        }
+        /**
+         * Returns a promise that will be fulfilled when the stream becomes closed,
+         * or rejected if the stream ever errors or the reader's lock is released before the stream finishes closing.
+         */
+        get closed() {
+            if (!IsReadableStreamDefaultReader(this)) {
+                return promiseRejectedWith(defaultReaderBrandCheckException('closed'));
+            }
+            return this._closedPromise;
+        }
+        /**
+         * If the reader is active, behaves the same as {@link ReadableStream.cancel | stream.cancel(reason)}.
+         */
+        cancel(reason = undefined) {
+            if (!IsReadableStreamDefaultReader(this)) {
+                return promiseRejectedWith(defaultReaderBrandCheckException('cancel'));
+            }
+            if (this._ownerReadableStream === undefined) {
+                return promiseRejectedWith(readerLockException('cancel'));
+            }
+            return ReadableStreamReaderGenericCancel(this, reason);
+        }
+        /**
+         * Returns a promise that allows access to the next chunk from the stream's internal queue, if available.
+         *
+         * If reading a chunk causes the queue to become empty, more data will be pulled from the underlying source.
+         */
+        read() {
+            if (!IsReadableStreamDefaultReader(this)) {
+                return promiseRejectedWith(defaultReaderBrandCheckException('read'));
+            }
+            if (this._ownerReadableStream === undefined) {
+                return promiseRejectedWith(readerLockException('read from'));
+            }
+            let resolvePromise;
+            let rejectPromise;
+            const promise = newPromise((resolve, reject) => {
+                resolvePromise = resolve;
+                rejectPromise = reject;
+            });
+            const readRequest = {
+                _chunkSteps: chunk => resolvePromise({ value: chunk, done: false }),
+                _closeSteps: () => resolvePromise({ value: undefined, done: true }),
+                _errorSteps: e => rejectPromise(e)
+            };
+            ReadableStreamDefaultReaderRead(this, readRequest);
+            return promise;
+        }
+        /**
+         * Releases the reader's lock on the corresponding stream. After the lock is released, the reader is no longer active.
+         * If the associated stream is errored when the lock is released, the reader will appear errored in the same way
+         * from now on; otherwise, the reader will appear closed.
+         *
+         * A reader's lock cannot be released while it still has a pending read request, i.e., if a promise returned by
+         * the reader's {@link ReadableStreamDefaultReader.read | read()} method has not yet been settled. Attempting to
+         * do so will throw a `TypeError` and leave the reader locked to the stream.
+         */
+        releaseLock() {
+            if (!IsReadableStreamDefaultReader(this)) {
+                throw defaultReaderBrandCheckException('releaseLock');
+            }
+            if (this._ownerReadableStream === undefined) {
+                return;
+            }
+            if (this._readRequests.length > 0) {
+                throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
+            }
+            ReadableStreamReaderGenericRelease(this);
+        }
+    }
+    Object.defineProperties(ReadableStreamDefaultReader.prototype, {
+        cancel: { enumerable: true },
+        read: { enumerable: true },
+        releaseLock: { enumerable: true },
+        closed: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(ReadableStreamDefaultReader.prototype, SymbolPolyfill.toStringTag, {
+            value: 'ReadableStreamDefaultReader',
+            configurable: true
+        });
+    }
+    // Abstract operations for the readers.
+    function IsReadableStreamDefaultReader(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_readRequests')) {
+            return false;
+        }
+        return x instanceof ReadableStreamDefaultReader;
+    }
+    function ReadableStreamDefaultReaderRead(reader, readRequest) {
+        const stream = reader._ownerReadableStream;
+        stream._disturbed = true;
+        if (stream._state === 'closed') {
+            readRequest._closeSteps();
+        }
+        else if (stream._state === 'errored') {
+            readRequest._errorSteps(stream._storedError);
+        }
+        else {
+            stream._readableStreamController[PullSteps](readRequest);
+        }
+    }
+    // Helper functions for the ReadableStreamDefaultReader.
+    function defaultReaderBrandCheckException(name) {
+        return new TypeError(`ReadableStreamDefaultReader.prototype.${name} can only be used on a ReadableStreamDefaultReader`);
+    }
+
+    /// <reference lib="es2018.asynciterable" />
+    /* eslint-disable @typescript-eslint/no-empty-function */
+    const AsyncIteratorPrototype = Object.getPrototypeOf(Object.getPrototypeOf(async function* () { }).prototype);
+
+    /// <reference lib="es2018.asynciterable" />
+    class ReadableStreamAsyncIteratorImpl {
+        constructor(reader, preventCancel) {
+            this._ongoingPromise = undefined;
+            this._isFinished = false;
+            this._reader = reader;
+            this._preventCancel = preventCancel;
+        }
+        next() {
+            const nextSteps = () => this._nextSteps();
+            this._ongoingPromise = this._ongoingPromise ?
+                transformPromiseWith(this._ongoingPromise, nextSteps, nextSteps) :
+                nextSteps();
+            return this._ongoingPromise;
+        }
+        return(value) {
+            const returnSteps = () => this._returnSteps(value);
+            return this._ongoingPromise ?
+                transformPromiseWith(this._ongoingPromise, returnSteps, returnSteps) :
+                returnSteps();
+        }
+        _nextSteps() {
+            if (this._isFinished) {
+                return Promise.resolve({ value: undefined, done: true });
+            }
+            const reader = this._reader;
+            if (reader._ownerReadableStream === undefined) {
+                return promiseRejectedWith(readerLockException('iterate'));
+            }
+            let resolvePromise;
+            let rejectPromise;
+            const promise = newPromise((resolve, reject) => {
+                resolvePromise = resolve;
+                rejectPromise = reject;
+            });
+            const readRequest = {
+                _chunkSteps: chunk => {
+                    this._ongoingPromise = undefined;
+                    // This needs to be delayed by one microtask, otherwise we stop pulling too early which breaks a test.
+                    // FIXME Is this a bug in the specification, or in the test?
+                    queueMicrotask(() => resolvePromise({ value: chunk, done: false }));
+                },
+                _closeSteps: () => {
+                    this._ongoingPromise = undefined;
+                    this._isFinished = true;
+                    ReadableStreamReaderGenericRelease(reader);
+                    resolvePromise({ value: undefined, done: true });
+                },
+                _errorSteps: reason => {
+                    this._ongoingPromise = undefined;
+                    this._isFinished = true;
+                    ReadableStreamReaderGenericRelease(reader);
+                    rejectPromise(reason);
+                }
+            };
+            ReadableStreamDefaultReaderRead(reader, readRequest);
+            return promise;
+        }
+        _returnSteps(value) {
+            if (this._isFinished) {
+                return Promise.resolve({ value, done: true });
+            }
+            this._isFinished = true;
+            const reader = this._reader;
+            if (reader._ownerReadableStream === undefined) {
+                return promiseRejectedWith(readerLockException('finish iterating'));
+            }
+            if (!this._preventCancel) {
+                const result = ReadableStreamReaderGenericCancel(reader, value);
+                ReadableStreamReaderGenericRelease(reader);
+                return transformPromiseWith(result, () => ({ value, done: true }));
+            }
+            ReadableStreamReaderGenericRelease(reader);
+            return promiseResolvedWith({ value, done: true });
+        }
+    }
+    const ReadableStreamAsyncIteratorPrototype = {
+        next() {
+            if (!IsReadableStreamAsyncIterator(this)) {
+                return promiseRejectedWith(streamAsyncIteratorBrandCheckException('next'));
+            }
+            return this._asyncIteratorImpl.next();
+        },
+        return(value) {
+            if (!IsReadableStreamAsyncIterator(this)) {
+                return promiseRejectedWith(streamAsyncIteratorBrandCheckException('return'));
+            }
+            return this._asyncIteratorImpl.return(value);
+        }
+    };
+    if (AsyncIteratorPrototype !== undefined) {
+        Object.setPrototypeOf(ReadableStreamAsyncIteratorPrototype, AsyncIteratorPrototype);
+    }
+    // Abstract operations for the ReadableStream.
+    function AcquireReadableStreamAsyncIterator(stream, preventCancel) {
+        const reader = AcquireReadableStreamDefaultReader(stream);
+        const impl = new ReadableStreamAsyncIteratorImpl(reader, preventCancel);
+        const iterator = Object.create(ReadableStreamAsyncIteratorPrototype);
+        iterator._asyncIteratorImpl = impl;
+        return iterator;
+    }
+    function IsReadableStreamAsyncIterator(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_asyncIteratorImpl')) {
+            return false;
+        }
+        try {
+            // noinspection SuspiciousTypeOfGuard
+            return x._asyncIteratorImpl instanceof
+                ReadableStreamAsyncIteratorImpl;
+        }
+        catch (_a) {
+            return false;
+        }
+    }
+    // Helper functions for the ReadableStream.
+    function streamAsyncIteratorBrandCheckException(name) {
+        return new TypeError(`ReadableStreamAsyncIterator.${name} can only be used on a ReadableSteamAsyncIterator`);
+    }
+
+    /// <reference lib="es2015.core" />
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isNaN#Polyfill
+    const NumberIsNaN = Number.isNaN || function (x) {
+        // eslint-disable-next-line no-self-compare
+        return x !== x;
+    };
+
+    function CreateArrayFromList(elements) {
+        // We use arrays to represent lists, so this is basically a no-op.
+        // Do a slice though just in case we happen to depend on the unique-ness.
+        return elements.slice();
+    }
+    function CopyDataBlockBytes(dest, destOffset, src, srcOffset, n) {
+        new Uint8Array(dest).set(new Uint8Array(src, srcOffset, n), destOffset);
+    }
+    // Not implemented correctly
+    function TransferArrayBuffer(O) {
+        return O;
+    }
+    // Not implemented correctly
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    function IsDetachedBuffer(O) {
+        return false;
+    }
+    function ArrayBufferSlice(buffer, begin, end) {
+        // ArrayBuffer.prototype.slice is not available on IE10
+        // https://www.caniuse.com/mdn-javascript_builtins_arraybuffer_slice
+        if (buffer.slice) {
+            return buffer.slice(begin, end);
+        }
+        const length = end - begin;
+        const slice = new ArrayBuffer(length);
+        CopyDataBlockBytes(slice, 0, buffer, begin, length);
+        return slice;
+    }
+
+    function IsNonNegativeNumber(v) {
+        if (typeof v !== 'number') {
+            return false;
+        }
+        if (NumberIsNaN(v)) {
+            return false;
+        }
+        if (v < 0) {
+            return false;
+        }
+        return true;
+    }
+    function CloneAsUint8Array(O) {
+        const buffer = ArrayBufferSlice(O.buffer, O.byteOffset, O.byteOffset + O.byteLength);
+        return new Uint8Array(buffer);
+    }
+
+    function DequeueValue(container) {
+        const pair = container._queue.shift();
+        container._queueTotalSize -= pair.size;
+        if (container._queueTotalSize < 0) {
+            container._queueTotalSize = 0;
+        }
+        return pair.value;
+    }
+    function EnqueueValueWithSize(container, value, size) {
+        if (!IsNonNegativeNumber(size) || size === Infinity) {
+            throw new RangeError('Size must be a finite, non-NaN, non-negative number.');
+        }
+        container._queue.push({ value, size });
+        container._queueTotalSize += size;
+    }
+    function PeekQueueValue(container) {
+        const pair = container._queue.peek();
+        return pair.value;
+    }
+    function ResetQueue(container) {
+        container._queue = new SimpleQueue();
+        container._queueTotalSize = 0;
+    }
+
+    /**
+     * A pull-into request in a {@link ReadableByteStreamController}.
+     *
+     * @public
+     */
+    class ReadableStreamBYOBRequest {
+        constructor() {
+            throw new TypeError('Illegal constructor');
+        }
+        /**
+         * Returns the view for writing in to, or `null` if the BYOB request has already been responded to.
+         */
+        get view() {
+            if (!IsReadableStreamBYOBRequest(this)) {
+                throw byobRequestBrandCheckException('view');
+            }
+            return this._view;
+        }
+        respond(bytesWritten) {
+            if (!IsReadableStreamBYOBRequest(this)) {
+                throw byobRequestBrandCheckException('respond');
+            }
+            assertRequiredArgument(bytesWritten, 1, 'respond');
+            bytesWritten = convertUnsignedLongLongWithEnforceRange(bytesWritten, 'First parameter');
+            if (this._associatedReadableByteStreamController === undefined) {
+                throw new TypeError('This BYOB request has been invalidated');
+            }
+            if (IsDetachedBuffer(this._view.buffer)) ;
+            ReadableByteStreamControllerRespond(this._associatedReadableByteStreamController, bytesWritten);
+        }
+        respondWithNewView(view) {
+            if (!IsReadableStreamBYOBRequest(this)) {
+                throw byobRequestBrandCheckException('respondWithNewView');
+            }
+            assertRequiredArgument(view, 1, 'respondWithNewView');
+            if (!ArrayBuffer.isView(view)) {
+                throw new TypeError('You can only respond with array buffer views');
+            }
+            if (this._associatedReadableByteStreamController === undefined) {
+                throw new TypeError('This BYOB request has been invalidated');
+            }
+            if (IsDetachedBuffer(view.buffer)) ;
+            ReadableByteStreamControllerRespondWithNewView(this._associatedReadableByteStreamController, view);
+        }
+    }
+    Object.defineProperties(ReadableStreamBYOBRequest.prototype, {
+        respond: { enumerable: true },
+        respondWithNewView: { enumerable: true },
+        view: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(ReadableStreamBYOBRequest.prototype, SymbolPolyfill.toStringTag, {
+            value: 'ReadableStreamBYOBRequest',
+            configurable: true
+        });
+    }
+    /**
+     * Allows control of a {@link ReadableStream | readable byte stream}'s state and internal queue.
+     *
+     * @public
+     */
+    class ReadableByteStreamController {
+        constructor() {
+            throw new TypeError('Illegal constructor');
+        }
+        /**
+         * Returns the current BYOB pull request, or `null` if there isn't one.
+         */
+        get byobRequest() {
+            if (!IsReadableByteStreamController(this)) {
+                throw byteStreamControllerBrandCheckException('byobRequest');
+            }
+            return ReadableByteStreamControllerGetBYOBRequest(this);
+        }
+        /**
+         * Returns the desired size to fill the controlled stream's internal queue. It can be negative, if the queue is
+         * over-full. An underlying byte source ought to use this information to determine when and how to apply backpressure.
+         */
+        get desiredSize() {
+            if (!IsReadableByteStreamController(this)) {
+                throw byteStreamControllerBrandCheckException('desiredSize');
+            }
+            return ReadableByteStreamControllerGetDesiredSize(this);
+        }
+        /**
+         * Closes the controlled readable stream. Consumers will still be able to read any previously-enqueued chunks from
+         * the stream, but once those are read, the stream will become closed.
+         */
+        close() {
+            if (!IsReadableByteStreamController(this)) {
+                throw byteStreamControllerBrandCheckException('close');
+            }
+            if (this._closeRequested) {
+                throw new TypeError('The stream has already been closed; do not close it again!');
+            }
+            const state = this._controlledReadableByteStream._state;
+            if (state !== 'readable') {
+                throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be closed`);
+            }
+            ReadableByteStreamControllerClose(this);
+        }
+        enqueue(chunk) {
+            if (!IsReadableByteStreamController(this)) {
+                throw byteStreamControllerBrandCheckException('enqueue');
+            }
+            assertRequiredArgument(chunk, 1, 'enqueue');
+            if (!ArrayBuffer.isView(chunk)) {
+                throw new TypeError('chunk must be an array buffer view');
+            }
+            if (chunk.byteLength === 0) {
+                throw new TypeError('chunk must have non-zero byteLength');
+            }
+            if (chunk.buffer.byteLength === 0) {
+                throw new TypeError(`chunk's buffer must have non-zero byteLength`);
+            }
+            if (this._closeRequested) {
+                throw new TypeError('stream is closed or draining');
+            }
+            const state = this._controlledReadableByteStream._state;
+            if (state !== 'readable') {
+                throw new TypeError(`The stream (in ${state} state) is not in the readable state and cannot be enqueued to`);
+            }
+            ReadableByteStreamControllerEnqueue(this, chunk);
+        }
+        /**
+         * Errors the controlled readable stream, making all future interactions with it fail with the given error `e`.
+         */
+        error(e = undefined) {
+            if (!IsReadableByteStreamController(this)) {
+                throw byteStreamControllerBrandCheckException('error');
+            }
+            ReadableByteStreamControllerError(this, e);
+        }
+        /** @internal */
+        [CancelSteps](reason) {
+            ReadableByteStreamControllerClearPendingPullIntos(this);
+            ResetQueue(this);
+            const result = this._cancelAlgorithm(reason);
+            ReadableByteStreamControllerClearAlgorithms(this);
+            return result;
+        }
+        /** @internal */
+        [PullSteps](readRequest) {
+            const stream = this._controlledReadableByteStream;
+            if (this._queueTotalSize > 0) {
+                const entry = this._queue.shift();
+                this._queueTotalSize -= entry.byteLength;
+                ReadableByteStreamControllerHandleQueueDrain(this);
+                const view = new Uint8Array(entry.buffer, entry.byteOffset, entry.byteLength);
+                readRequest._chunkSteps(view);
+                return;
+            }
+            const autoAllocateChunkSize = this._autoAllocateChunkSize;
+            if (autoAllocateChunkSize !== undefined) {
+                let buffer;
+                try {
+                    buffer = new ArrayBuffer(autoAllocateChunkSize);
+                }
+                catch (bufferE) {
+                    readRequest._errorSteps(bufferE);
+                    return;
+                }
+                const pullIntoDescriptor = {
+                    buffer,
+                    bufferByteLength: autoAllocateChunkSize,
+                    byteOffset: 0,
+                    byteLength: autoAllocateChunkSize,
+                    bytesFilled: 0,
+                    elementSize: 1,
+                    viewConstructor: Uint8Array,
+                    readerType: 'default'
+                };
+                this._pendingPullIntos.push(pullIntoDescriptor);
+            }
+            ReadableStreamAddReadRequest(stream, readRequest);
+            ReadableByteStreamControllerCallPullIfNeeded(this);
+        }
+    }
+    Object.defineProperties(ReadableByteStreamController.prototype, {
+        close: { enumerable: true },
+        enqueue: { enumerable: true },
+        error: { enumerable: true },
+        byobRequest: { enumerable: true },
+        desiredSize: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(ReadableByteStreamController.prototype, SymbolPolyfill.toStringTag, {
+            value: 'ReadableByteStreamController',
+            configurable: true
+        });
+    }
+    // Abstract operations for the ReadableByteStreamController.
+    function IsReadableByteStreamController(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_controlledReadableByteStream')) {
+            return false;
+        }
+        return x instanceof ReadableByteStreamController;
+    }
+    function IsReadableStreamBYOBRequest(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_associatedReadableByteStreamController')) {
+            return false;
+        }
+        return x instanceof ReadableStreamBYOBRequest;
+    }
+    function ReadableByteStreamControllerCallPullIfNeeded(controller) {
+        const shouldPull = ReadableByteStreamControllerShouldCallPull(controller);
+        if (!shouldPull) {
+            return;
+        }
+        if (controller._pulling) {
+            controller._pullAgain = true;
+            return;
+        }
+        controller._pulling = true;
+        // TODO: Test controller argument
+        const pullPromise = controller._pullAlgorithm();
+        uponPromise(pullPromise, () => {
+            controller._pulling = false;
+            if (controller._pullAgain) {
+                controller._pullAgain = false;
+                ReadableByteStreamControllerCallPullIfNeeded(controller);
+            }
+        }, e => {
+            ReadableByteStreamControllerError(controller, e);
+        });
+    }
+    function ReadableByteStreamControllerClearPendingPullIntos(controller) {
+        ReadableByteStreamControllerInvalidateBYOBRequest(controller);
+        controller._pendingPullIntos = new SimpleQueue();
+    }
+    function ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDescriptor) {
+        let done = false;
+        if (stream._state === 'closed') {
+            done = true;
+        }
+        const filledView = ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor);
+        if (pullIntoDescriptor.readerType === 'default') {
+            ReadableStreamFulfillReadRequest(stream, filledView, done);
+        }
+        else {
+            ReadableStreamFulfillReadIntoRequest(stream, filledView, done);
+        }
+    }
+    function ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor) {
+        const bytesFilled = pullIntoDescriptor.bytesFilled;
+        const elementSize = pullIntoDescriptor.elementSize;
+        return new pullIntoDescriptor.viewConstructor(pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, bytesFilled / elementSize);
+    }
+    function ReadableByteStreamControllerEnqueueChunkToQueue(controller, buffer, byteOffset, byteLength) {
+        controller._queue.push({ buffer, byteOffset, byteLength });
+        controller._queueTotalSize += byteLength;
+    }
+    function ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor) {
+        const elementSize = pullIntoDescriptor.elementSize;
+        const currentAlignedBytes = pullIntoDescriptor.bytesFilled - pullIntoDescriptor.bytesFilled % elementSize;
+        const maxBytesToCopy = Math.min(controller._queueTotalSize, pullIntoDescriptor.byteLength - pullIntoDescriptor.bytesFilled);
+        const maxBytesFilled = pullIntoDescriptor.bytesFilled + maxBytesToCopy;
+        const maxAlignedBytes = maxBytesFilled - maxBytesFilled % elementSize;
+        let totalBytesToCopyRemaining = maxBytesToCopy;
+        let ready = false;
+        if (maxAlignedBytes > currentAlignedBytes) {
+            totalBytesToCopyRemaining = maxAlignedBytes - pullIntoDescriptor.bytesFilled;
+            ready = true;
+        }
+        const queue = controller._queue;
+        while (totalBytesToCopyRemaining > 0) {
+            const headOfQueue = queue.peek();
+            const bytesToCopy = Math.min(totalBytesToCopyRemaining, headOfQueue.byteLength);
+            const destStart = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
+            CopyDataBlockBytes(pullIntoDescriptor.buffer, destStart, headOfQueue.buffer, headOfQueue.byteOffset, bytesToCopy);
+            if (headOfQueue.byteLength === bytesToCopy) {
+                queue.shift();
+            }
+            else {
+                headOfQueue.byteOffset += bytesToCopy;
+                headOfQueue.byteLength -= bytesToCopy;
+            }
+            controller._queueTotalSize -= bytesToCopy;
+            ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesToCopy, pullIntoDescriptor);
+            totalBytesToCopyRemaining -= bytesToCopy;
+        }
+        return ready;
+    }
+    function ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, size, pullIntoDescriptor) {
+        pullIntoDescriptor.bytesFilled += size;
+    }
+    function ReadableByteStreamControllerHandleQueueDrain(controller) {
+        if (controller._queueTotalSize === 0 && controller._closeRequested) {
+            ReadableByteStreamControllerClearAlgorithms(controller);
+            ReadableStreamClose(controller._controlledReadableByteStream);
+        }
+        else {
+            ReadableByteStreamControllerCallPullIfNeeded(controller);
+        }
+    }
+    function ReadableByteStreamControllerInvalidateBYOBRequest(controller) {
+        if (controller._byobRequest === null) {
+            return;
+        }
+        controller._byobRequest._associatedReadableByteStreamController = undefined;
+        controller._byobRequest._view = null;
+        controller._byobRequest = null;
+    }
+    function ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller) {
+        while (controller._pendingPullIntos.length > 0) {
+            if (controller._queueTotalSize === 0) {
+                return;
+            }
+            const pullIntoDescriptor = controller._pendingPullIntos.peek();
+            if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor)) {
+                ReadableByteStreamControllerShiftPendingPullInto(controller);
+                ReadableByteStreamControllerCommitPullIntoDescriptor(controller._controlledReadableByteStream, pullIntoDescriptor);
+            }
+        }
+    }
+    function ReadableByteStreamControllerPullInto(controller, view, readIntoRequest) {
+        const stream = controller._controlledReadableByteStream;
+        let elementSize = 1;
+        if (view.constructor !== DataView) {
+            elementSize = view.constructor.BYTES_PER_ELEMENT;
+        }
+        const ctor = view.constructor;
+        // try {
+        const buffer = TransferArrayBuffer(view.buffer);
+        // } catch (e) {
+        //   readIntoRequest._errorSteps(e);
+        //   return;
+        // }
+        const pullIntoDescriptor = {
+            buffer,
+            bufferByteLength: buffer.byteLength,
+            byteOffset: view.byteOffset,
+            byteLength: view.byteLength,
+            bytesFilled: 0,
+            elementSize,
+            viewConstructor: ctor,
+            readerType: 'byob'
+        };
+        if (controller._pendingPullIntos.length > 0) {
+            controller._pendingPullIntos.push(pullIntoDescriptor);
+            // No ReadableByteStreamControllerCallPullIfNeeded() call since:
+            // - No change happens on desiredSize
+            // - The source has already been notified of that there's at least 1 pending read(view)
+            ReadableStreamAddReadIntoRequest(stream, readIntoRequest);
+            return;
+        }
+        if (stream._state === 'closed') {
+            const emptyView = new ctor(pullIntoDescriptor.buffer, pullIntoDescriptor.byteOffset, 0);
+            readIntoRequest._closeSteps(emptyView);
+            return;
+        }
+        if (controller._queueTotalSize > 0) {
+            if (ReadableByteStreamControllerFillPullIntoDescriptorFromQueue(controller, pullIntoDescriptor)) {
+                const filledView = ReadableByteStreamControllerConvertPullIntoDescriptor(pullIntoDescriptor);
+                ReadableByteStreamControllerHandleQueueDrain(controller);
+                readIntoRequest._chunkSteps(filledView);
+                return;
+            }
+            if (controller._closeRequested) {
+                const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
+                ReadableByteStreamControllerError(controller, e);
+                readIntoRequest._errorSteps(e);
+                return;
+            }
+        }
+        controller._pendingPullIntos.push(pullIntoDescriptor);
+        ReadableStreamAddReadIntoRequest(stream, readIntoRequest);
+        ReadableByteStreamControllerCallPullIfNeeded(controller);
+    }
+    function ReadableByteStreamControllerRespondInClosedState(controller, firstDescriptor) {
+        const stream = controller._controlledReadableByteStream;
+        if (ReadableStreamHasBYOBReader(stream)) {
+            while (ReadableStreamGetNumReadIntoRequests(stream) > 0) {
+                const pullIntoDescriptor = ReadableByteStreamControllerShiftPendingPullInto(controller);
+                ReadableByteStreamControllerCommitPullIntoDescriptor(stream, pullIntoDescriptor);
+            }
+        }
+    }
+    function ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, pullIntoDescriptor) {
+        ReadableByteStreamControllerFillHeadPullIntoDescriptor(controller, bytesWritten, pullIntoDescriptor);
+        if (pullIntoDescriptor.bytesFilled < pullIntoDescriptor.elementSize) {
+            return;
+        }
+        ReadableByteStreamControllerShiftPendingPullInto(controller);
+        const remainderSize = pullIntoDescriptor.bytesFilled % pullIntoDescriptor.elementSize;
+        if (remainderSize > 0) {
+            const end = pullIntoDescriptor.byteOffset + pullIntoDescriptor.bytesFilled;
+            const remainder = ArrayBufferSlice(pullIntoDescriptor.buffer, end - remainderSize, end);
+            ReadableByteStreamControllerEnqueueChunkToQueue(controller, remainder, 0, remainder.byteLength);
+        }
+        pullIntoDescriptor.bytesFilled -= remainderSize;
+        ReadableByteStreamControllerCommitPullIntoDescriptor(controller._controlledReadableByteStream, pullIntoDescriptor);
+        ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
+    }
+    function ReadableByteStreamControllerRespondInternal(controller, bytesWritten) {
+        const firstDescriptor = controller._pendingPullIntos.peek();
+        ReadableByteStreamControllerInvalidateBYOBRequest(controller);
+        const state = controller._controlledReadableByteStream._state;
+        if (state === 'closed') {
+            ReadableByteStreamControllerRespondInClosedState(controller);
+        }
+        else {
+            ReadableByteStreamControllerRespondInReadableState(controller, bytesWritten, firstDescriptor);
+        }
+        ReadableByteStreamControllerCallPullIfNeeded(controller);
+    }
+    function ReadableByteStreamControllerShiftPendingPullInto(controller) {
+        const descriptor = controller._pendingPullIntos.shift();
+        return descriptor;
+    }
+    function ReadableByteStreamControllerShouldCallPull(controller) {
+        const stream = controller._controlledReadableByteStream;
+        if (stream._state !== 'readable') {
+            return false;
+        }
+        if (controller._closeRequested) {
+            return false;
+        }
+        if (!controller._started) {
+            return false;
+        }
+        if (ReadableStreamHasDefaultReader(stream) && ReadableStreamGetNumReadRequests(stream) > 0) {
+            return true;
+        }
+        if (ReadableStreamHasBYOBReader(stream) && ReadableStreamGetNumReadIntoRequests(stream) > 0) {
+            return true;
+        }
+        const desiredSize = ReadableByteStreamControllerGetDesiredSize(controller);
+        if (desiredSize > 0) {
+            return true;
+        }
+        return false;
+    }
+    function ReadableByteStreamControllerClearAlgorithms(controller) {
+        controller._pullAlgorithm = undefined;
+        controller._cancelAlgorithm = undefined;
+    }
+    // A client of ReadableByteStreamController may use these functions directly to bypass state check.
+    function ReadableByteStreamControllerClose(controller) {
+        const stream = controller._controlledReadableByteStream;
+        if (controller._closeRequested || stream._state !== 'readable') {
+            return;
+        }
+        if (controller._queueTotalSize > 0) {
+            controller._closeRequested = true;
+            return;
+        }
+        if (controller._pendingPullIntos.length > 0) {
+            const firstPendingPullInto = controller._pendingPullIntos.peek();
+            if (firstPendingPullInto.bytesFilled > 0) {
+                const e = new TypeError('Insufficient bytes to fill elements in the given buffer');
+                ReadableByteStreamControllerError(controller, e);
+                throw e;
+            }
+        }
+        ReadableByteStreamControllerClearAlgorithms(controller);
+        ReadableStreamClose(stream);
+    }
+    function ReadableByteStreamControllerEnqueue(controller, chunk) {
+        const stream = controller._controlledReadableByteStream;
+        if (controller._closeRequested || stream._state !== 'readable') {
+            return;
+        }
+        const buffer = chunk.buffer;
+        const byteOffset = chunk.byteOffset;
+        const byteLength = chunk.byteLength;
+        const transferredBuffer = TransferArrayBuffer(buffer);
+        if (controller._pendingPullIntos.length > 0) {
+            const firstPendingPullInto = controller._pendingPullIntos.peek();
+            if (IsDetachedBuffer(firstPendingPullInto.buffer)) ;
+            firstPendingPullInto.buffer = TransferArrayBuffer(firstPendingPullInto.buffer);
+        }
+        ReadableByteStreamControllerInvalidateBYOBRequest(controller);
+        if (ReadableStreamHasDefaultReader(stream)) {
+            if (ReadableStreamGetNumReadRequests(stream) === 0) {
+                ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
+            }
+            else {
+                if (controller._pendingPullIntos.length > 0) {
+                    ReadableByteStreamControllerShiftPendingPullInto(controller);
+                }
+                const transferredView = new Uint8Array(transferredBuffer, byteOffset, byteLength);
+                ReadableStreamFulfillReadRequest(stream, transferredView, false);
+            }
+        }
+        else if (ReadableStreamHasBYOBReader(stream)) {
+            // TODO: Ideally in this branch detaching should happen only if the buffer is not consumed fully.
+            ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
+            ReadableByteStreamControllerProcessPullIntoDescriptorsUsingQueue(controller);
+        }
+        else {
+            ReadableByteStreamControllerEnqueueChunkToQueue(controller, transferredBuffer, byteOffset, byteLength);
+        }
+        ReadableByteStreamControllerCallPullIfNeeded(controller);
+    }
+    function ReadableByteStreamControllerError(controller, e) {
+        const stream = controller._controlledReadableByteStream;
+        if (stream._state !== 'readable') {
+            return;
+        }
+        ReadableByteStreamControllerClearPendingPullIntos(controller);
+        ResetQueue(controller);
+        ReadableByteStreamControllerClearAlgorithms(controller);
+        ReadableStreamError(stream, e);
+    }
+    function ReadableByteStreamControllerGetBYOBRequest(controller) {
+        if (controller._byobRequest === null && controller._pendingPullIntos.length > 0) {
+            const firstDescriptor = controller._pendingPullIntos.peek();
+            const view = new Uint8Array(firstDescriptor.buffer, firstDescriptor.byteOffset + firstDescriptor.bytesFilled, firstDescriptor.byteLength - firstDescriptor.bytesFilled);
+            const byobRequest = Object.create(ReadableStreamBYOBRequest.prototype);
+            SetUpReadableStreamBYOBRequest(byobRequest, controller, view);
+            controller._byobRequest = byobRequest;
+        }
+        return controller._byobRequest;
+    }
+    function ReadableByteStreamControllerGetDesiredSize(controller) {
+        const state = controller._controlledReadableByteStream._state;
+        if (state === 'errored') {
+            return null;
+        }
+        if (state === 'closed') {
+            return 0;
+        }
+        return controller._strategyHWM - controller._queueTotalSize;
+    }
+    function ReadableByteStreamControllerRespond(controller, bytesWritten) {
+        const firstDescriptor = controller._pendingPullIntos.peek();
+        const state = controller._controlledReadableByteStream._state;
+        if (state === 'closed') {
+            if (bytesWritten !== 0) {
+                throw new TypeError('bytesWritten must be 0 when calling respond() on a closed stream');
+            }
+        }
+        else {
+            if (bytesWritten === 0) {
+                throw new TypeError('bytesWritten must be greater than 0 when calling respond() on a readable stream');
+            }
+            if (firstDescriptor.bytesFilled + bytesWritten > firstDescriptor.byteLength) {
+                throw new RangeError('bytesWritten out of range');
+            }
+        }
+        firstDescriptor.buffer = TransferArrayBuffer(firstDescriptor.buffer);
+        ReadableByteStreamControllerRespondInternal(controller, bytesWritten);
+    }
+    function ReadableByteStreamControllerRespondWithNewView(controller, view) {
+        const firstDescriptor = controller._pendingPullIntos.peek();
+        const state = controller._controlledReadableByteStream._state;
+        if (state === 'closed') {
+            if (view.byteLength !== 0) {
+                throw new TypeError('The view\'s length must be 0 when calling respondWithNewView() on a closed stream');
+            }
+        }
+        else {
+            if (view.byteLength === 0) {
+                throw new TypeError('The view\'s length must be greater than 0 when calling respondWithNewView() on a readable stream');
+            }
+        }
+        if (firstDescriptor.byteOffset + firstDescriptor.bytesFilled !== view.byteOffset) {
+            throw new RangeError('The region specified by view does not match byobRequest');
+        }
+        if (firstDescriptor.bufferByteLength !== view.buffer.byteLength) {
+            throw new RangeError('The buffer of view has different capacity than byobRequest');
+        }
+        if (firstDescriptor.bytesFilled + view.byteLength > firstDescriptor.byteLength) {
+            throw new RangeError('The region specified by view is larger than byobRequest');
+        }
+        const viewByteLength = view.byteLength;
+        firstDescriptor.buffer = TransferArrayBuffer(view.buffer);
+        ReadableByteStreamControllerRespondInternal(controller, viewByteLength);
+    }
+    function SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, autoAllocateChunkSize) {
+        controller._controlledReadableByteStream = stream;
+        controller._pullAgain = false;
+        controller._pulling = false;
+        controller._byobRequest = null;
+        // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
+        controller._queue = controller._queueTotalSize = undefined;
+        ResetQueue(controller);
+        controller._closeRequested = false;
+        controller._started = false;
+        controller._strategyHWM = highWaterMark;
+        controller._pullAlgorithm = pullAlgorithm;
+        controller._cancelAlgorithm = cancelAlgorithm;
+        controller._autoAllocateChunkSize = autoAllocateChunkSize;
+        controller._pendingPullIntos = new SimpleQueue();
+        stream._readableStreamController = controller;
+        const startResult = startAlgorithm();
+        uponPromise(promiseResolvedWith(startResult), () => {
+            controller._started = true;
+            ReadableByteStreamControllerCallPullIfNeeded(controller);
+        }, r => {
+            ReadableByteStreamControllerError(controller, r);
+        });
+    }
+    function SetUpReadableByteStreamControllerFromUnderlyingSource(stream, underlyingByteSource, highWaterMark) {
+        const controller = Object.create(ReadableByteStreamController.prototype);
+        let startAlgorithm = () => undefined;
+        let pullAlgorithm = () => promiseResolvedWith(undefined);
+        let cancelAlgorithm = () => promiseResolvedWith(undefined);
+        if (underlyingByteSource.start !== undefined) {
+            startAlgorithm = () => underlyingByteSource.start(controller);
+        }
+        if (underlyingByteSource.pull !== undefined) {
+            pullAlgorithm = () => underlyingByteSource.pull(controller);
+        }
+        if (underlyingByteSource.cancel !== undefined) {
+            cancelAlgorithm = reason => underlyingByteSource.cancel(reason);
+        }
+        const autoAllocateChunkSize = underlyingByteSource.autoAllocateChunkSize;
+        if (autoAllocateChunkSize === 0) {
+            throw new TypeError('autoAllocateChunkSize must be greater than 0');
+        }
+        SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, autoAllocateChunkSize);
+    }
+    function SetUpReadableStreamBYOBRequest(request, controller, view) {
+        request._associatedReadableByteStreamController = controller;
+        request._view = view;
+    }
+    // Helper functions for the ReadableStreamBYOBRequest.
+    function byobRequestBrandCheckException(name) {
+        return new TypeError(`ReadableStreamBYOBRequest.prototype.${name} can only be used on a ReadableStreamBYOBRequest`);
+    }
+    // Helper functions for the ReadableByteStreamController.
+    function byteStreamControllerBrandCheckException(name) {
+        return new TypeError(`ReadableByteStreamController.prototype.${name} can only be used on a ReadableByteStreamController`);
+    }
+
+    // Abstract operations for the ReadableStream.
+    function AcquireReadableStreamBYOBReader(stream) {
+        return new ReadableStreamBYOBReader(stream);
+    }
+    // ReadableStream API exposed for controllers.
+    function ReadableStreamAddReadIntoRequest(stream, readIntoRequest) {
+        stream._reader._readIntoRequests.push(readIntoRequest);
+    }
+    function ReadableStreamFulfillReadIntoRequest(stream, chunk, done) {
+        const reader = stream._reader;
+        const readIntoRequest = reader._readIntoRequests.shift();
+        if (done) {
+            readIntoRequest._closeSteps(chunk);
+        }
+        else {
+            readIntoRequest._chunkSteps(chunk);
+        }
+    }
+    function ReadableStreamGetNumReadIntoRequests(stream) {
+        return stream._reader._readIntoRequests.length;
+    }
+    function ReadableStreamHasBYOBReader(stream) {
+        const reader = stream._reader;
+        if (reader === undefined) {
+            return false;
+        }
+        if (!IsReadableStreamBYOBReader(reader)) {
+            return false;
+        }
+        return true;
+    }
+    /**
+     * A BYOB reader vended by a {@link ReadableStream}.
+     *
+     * @public
+     */
+    class ReadableStreamBYOBReader {
+        constructor(stream) {
+            assertRequiredArgument(stream, 1, 'ReadableStreamBYOBReader');
+            assertReadableStream(stream, 'First parameter');
+            if (IsReadableStreamLocked(stream)) {
+                throw new TypeError('This stream has already been locked for exclusive reading by another reader');
+            }
+            if (!IsReadableByteStreamController(stream._readableStreamController)) {
+                throw new TypeError('Cannot construct a ReadableStreamBYOBReader for a stream not constructed with a byte ' +
+                    'source');
+            }
+            ReadableStreamReaderGenericInitialize(this, stream);
+            this._readIntoRequests = new SimpleQueue();
+        }
+        /**
+         * Returns a promise that will be fulfilled when the stream becomes closed, or rejected if the stream ever errors or
+         * the reader's lock is released before the stream finishes closing.
+         */
+        get closed() {
+            if (!IsReadableStreamBYOBReader(this)) {
+                return promiseRejectedWith(byobReaderBrandCheckException('closed'));
+            }
+            return this._closedPromise;
+        }
+        /**
+         * If the reader is active, behaves the same as {@link ReadableStream.cancel | stream.cancel(reason)}.
+         */
+        cancel(reason = undefined) {
+            if (!IsReadableStreamBYOBReader(this)) {
+                return promiseRejectedWith(byobReaderBrandCheckException('cancel'));
+            }
+            if (this._ownerReadableStream === undefined) {
+                return promiseRejectedWith(readerLockException('cancel'));
+            }
+            return ReadableStreamReaderGenericCancel(this, reason);
+        }
+        /**
+         * Attempts to reads bytes into view, and returns a promise resolved with the result.
+         *
+         * If reading a chunk causes the queue to become empty, more data will be pulled from the underlying source.
+         */
+        read(view) {
+            if (!IsReadableStreamBYOBReader(this)) {
+                return promiseRejectedWith(byobReaderBrandCheckException('read'));
+            }
+            if (!ArrayBuffer.isView(view)) {
+                return promiseRejectedWith(new TypeError('view must be an array buffer view'));
+            }
+            if (view.byteLength === 0) {
+                return promiseRejectedWith(new TypeError('view must have non-zero byteLength'));
+            }
+            if (view.buffer.byteLength === 0) {
+                return promiseRejectedWith(new TypeError(`view's buffer must have non-zero byteLength`));
+            }
+            if (IsDetachedBuffer(view.buffer)) ;
+            if (this._ownerReadableStream === undefined) {
+                return promiseRejectedWith(readerLockException('read from'));
+            }
+            let resolvePromise;
+            let rejectPromise;
+            const promise = newPromise((resolve, reject) => {
+                resolvePromise = resolve;
+                rejectPromise = reject;
+            });
+            const readIntoRequest = {
+                _chunkSteps: chunk => resolvePromise({ value: chunk, done: false }),
+                _closeSteps: chunk => resolvePromise({ value: chunk, done: true }),
+                _errorSteps: e => rejectPromise(e)
+            };
+            ReadableStreamBYOBReaderRead(this, view, readIntoRequest);
+            return promise;
+        }
+        /**
+         * Releases the reader's lock on the corresponding stream. After the lock is released, the reader is no longer active.
+         * If the associated stream is errored when the lock is released, the reader will appear errored in the same way
+         * from now on; otherwise, the reader will appear closed.
+         *
+         * A reader's lock cannot be released while it still has a pending read request, i.e., if a promise returned by
+         * the reader's {@link ReadableStreamBYOBReader.read | read()} method has not yet been settled. Attempting to
+         * do so will throw a `TypeError` and leave the reader locked to the stream.
+         */
+        releaseLock() {
+            if (!IsReadableStreamBYOBReader(this)) {
+                throw byobReaderBrandCheckException('releaseLock');
+            }
+            if (this._ownerReadableStream === undefined) {
+                return;
+            }
+            if (this._readIntoRequests.length > 0) {
+                throw new TypeError('Tried to release a reader lock when that reader has pending read() calls un-settled');
+            }
+            ReadableStreamReaderGenericRelease(this);
+        }
+    }
+    Object.defineProperties(ReadableStreamBYOBReader.prototype, {
+        cancel: { enumerable: true },
+        read: { enumerable: true },
+        releaseLock: { enumerable: true },
+        closed: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(ReadableStreamBYOBReader.prototype, SymbolPolyfill.toStringTag, {
+            value: 'ReadableStreamBYOBReader',
+            configurable: true
+        });
+    }
+    // Abstract operations for the readers.
+    function IsReadableStreamBYOBReader(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_readIntoRequests')) {
+            return false;
+        }
+        return x instanceof ReadableStreamBYOBReader;
+    }
+    function ReadableStreamBYOBReaderRead(reader, view, readIntoRequest) {
+        const stream = reader._ownerReadableStream;
+        stream._disturbed = true;
+        if (stream._state === 'errored') {
+            readIntoRequest._errorSteps(stream._storedError);
+        }
+        else {
+            ReadableByteStreamControllerPullInto(stream._readableStreamController, view, readIntoRequest);
+        }
+    }
+    // Helper functions for the ReadableStreamBYOBReader.
+    function byobReaderBrandCheckException(name) {
+        return new TypeError(`ReadableStreamBYOBReader.prototype.${name} can only be used on a ReadableStreamBYOBReader`);
+    }
+
+    function ExtractHighWaterMark(strategy, defaultHWM) {
+        const { highWaterMark } = strategy;
+        if (highWaterMark === undefined) {
+            return defaultHWM;
+        }
+        if (NumberIsNaN(highWaterMark) || highWaterMark < 0) {
+            throw new RangeError('Invalid highWaterMark');
+        }
+        return highWaterMark;
+    }
+    function ExtractSizeAlgorithm(strategy) {
+        const { size } = strategy;
+        if (!size) {
+            return () => 1;
+        }
+        return size;
+    }
+
+    function convertQueuingStrategy(init, context) {
+        assertDictionary(init, context);
+        const highWaterMark = init === null || init === void 0 ? void 0 : init.highWaterMark;
+        const size = init === null || init === void 0 ? void 0 : init.size;
+        return {
+            highWaterMark: highWaterMark === undefined ? undefined : convertUnrestrictedDouble(highWaterMark),
+            size: size === undefined ? undefined : convertQueuingStrategySize(size, `${context} has member 'size' that`)
+        };
+    }
+    function convertQueuingStrategySize(fn, context) {
+        assertFunction(fn, context);
+        return chunk => convertUnrestrictedDouble(fn(chunk));
+    }
+
+    function convertUnderlyingSink(original, context) {
+        assertDictionary(original, context);
+        const abort = original === null || original === void 0 ? void 0 : original.abort;
+        const close = original === null || original === void 0 ? void 0 : original.close;
+        const start = original === null || original === void 0 ? void 0 : original.start;
+        const type = original === null || original === void 0 ? void 0 : original.type;
+        const write = original === null || original === void 0 ? void 0 : original.write;
+        return {
+            abort: abort === undefined ?
+                undefined :
+                convertUnderlyingSinkAbortCallback(abort, original, `${context} has member 'abort' that`),
+            close: close === undefined ?
+                undefined :
+                convertUnderlyingSinkCloseCallback(close, original, `${context} has member 'close' that`),
+            start: start === undefined ?
+                undefined :
+                convertUnderlyingSinkStartCallback(start, original, `${context} has member 'start' that`),
+            write: write === undefined ?
+                undefined :
+                convertUnderlyingSinkWriteCallback(write, original, `${context} has member 'write' that`),
+            type
+        };
+    }
+    function convertUnderlyingSinkAbortCallback(fn, original, context) {
+        assertFunction(fn, context);
+        return (reason) => promiseCall(fn, original, [reason]);
+    }
+    function convertUnderlyingSinkCloseCallback(fn, original, context) {
+        assertFunction(fn, context);
+        return () => promiseCall(fn, original, []);
+    }
+    function convertUnderlyingSinkStartCallback(fn, original, context) {
+        assertFunction(fn, context);
+        return (controller) => reflectCall(fn, original, [controller]);
+    }
+    function convertUnderlyingSinkWriteCallback(fn, original, context) {
+        assertFunction(fn, context);
+        return (chunk, controller) => promiseCall(fn, original, [chunk, controller]);
+    }
+
+    function assertWritableStream(x, context) {
+        if (!IsWritableStream(x)) {
+            throw new TypeError(`${context} is not a WritableStream.`);
+        }
+    }
+
+    function isAbortSignal(value) {
+        if (typeof value !== 'object' || value === null) {
+            return false;
+        }
+        try {
+            return typeof value.aborted === 'boolean';
+        }
+        catch (_a) {
+            // AbortSignal.prototype.aborted throws if its brand check fails
+            return false;
+        }
+    }
+    const supportsAbortController = typeof AbortController === 'function';
+    /**
+     * Construct a new AbortController, if supported by the platform.
+     *
+     * @internal
+     */
+    function createAbortController() {
+        if (supportsAbortController) {
+            return new AbortController();
+        }
+        return undefined;
+    }
+
+    /**
+     * A writable stream represents a destination for data, into which you can write.
+     *
+     * @public
+     */
+    class WritableStream {
+        constructor(rawUnderlyingSink = {}, rawStrategy = {}) {
+            if (rawUnderlyingSink === undefined) {
+                rawUnderlyingSink = null;
+            }
+            else {
+                assertObject(rawUnderlyingSink, 'First parameter');
+            }
+            const strategy = convertQueuingStrategy(rawStrategy, 'Second parameter');
+            const underlyingSink = convertUnderlyingSink(rawUnderlyingSink, 'First parameter');
+            InitializeWritableStream(this);
+            const type = underlyingSink.type;
+            if (type !== undefined) {
+                throw new RangeError('Invalid type is specified');
+            }
+            const sizeAlgorithm = ExtractSizeAlgorithm(strategy);
+            const highWaterMark = ExtractHighWaterMark(strategy, 1);
+            SetUpWritableStreamDefaultControllerFromUnderlyingSink(this, underlyingSink, highWaterMark, sizeAlgorithm);
+        }
+        /**
+         * Returns whether or not the writable stream is locked to a writer.
+         */
+        get locked() {
+            if (!IsWritableStream(this)) {
+                throw streamBrandCheckException$2('locked');
+            }
+            return IsWritableStreamLocked(this);
+        }
+        /**
+         * Aborts the stream, signaling that the producer can no longer successfully write to the stream and it is to be
+         * immediately moved to an errored state, with any queued-up writes discarded. This will also execute any abort
+         * mechanism of the underlying sink.
+         *
+         * The returned promise will fulfill if the stream shuts down successfully, or reject if the underlying sink signaled
+         * that there was an error doing so. Additionally, it will reject with a `TypeError` (without attempting to cancel
+         * the stream) if the stream is currently locked.
+         */
+        abort(reason = undefined) {
+            if (!IsWritableStream(this)) {
+                return promiseRejectedWith(streamBrandCheckException$2('abort'));
+            }
+            if (IsWritableStreamLocked(this)) {
+                return promiseRejectedWith(new TypeError('Cannot abort a stream that already has a writer'));
+            }
+            return WritableStreamAbort(this, reason);
+        }
+        /**
+         * Closes the stream. The underlying sink will finish processing any previously-written chunks, before invoking its
+         * close behavior. During this time any further attempts to write will fail (without erroring the stream).
+         *
+         * The method returns a promise that will fulfill if all remaining chunks are successfully written and the stream
+         * successfully closes, or rejects if an error is encountered during this process. Additionally, it will reject with
+         * a `TypeError` (without attempting to cancel the stream) if the stream is currently locked.
+         */
+        close() {
+            if (!IsWritableStream(this)) {
+                return promiseRejectedWith(streamBrandCheckException$2('close'));
+            }
+            if (IsWritableStreamLocked(this)) {
+                return promiseRejectedWith(new TypeError('Cannot close a stream that already has a writer'));
+            }
+            if (WritableStreamCloseQueuedOrInFlight(this)) {
+                return promiseRejectedWith(new TypeError('Cannot close an already-closing stream'));
+            }
+            return WritableStreamClose(this);
+        }
+        /**
+         * Creates a {@link WritableStreamDefaultWriter | writer} and locks the stream to the new writer. While the stream
+         * is locked, no other writer can be acquired until this one is released.
+         *
+         * This functionality is especially useful for creating abstractions that desire the ability to write to a stream
+         * without interruption or interleaving. By getting a writer for the stream, you can ensure nobody else can write at
+         * the same time, which would cause the resulting written data to be unpredictable and probably useless.
+         */
+        getWriter() {
+            if (!IsWritableStream(this)) {
+                throw streamBrandCheckException$2('getWriter');
+            }
+            return AcquireWritableStreamDefaultWriter(this);
+        }
+    }
+    Object.defineProperties(WritableStream.prototype, {
+        abort: { enumerable: true },
+        close: { enumerable: true },
+        getWriter: { enumerable: true },
+        locked: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(WritableStream.prototype, SymbolPolyfill.toStringTag, {
+            value: 'WritableStream',
+            configurable: true
+        });
+    }
+    // Abstract operations for the WritableStream.
+    function AcquireWritableStreamDefaultWriter(stream) {
+        return new WritableStreamDefaultWriter(stream);
+    }
+    // Throws if and only if startAlgorithm throws.
+    function CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark = 1, sizeAlgorithm = () => 1) {
+        const stream = Object.create(WritableStream.prototype);
+        InitializeWritableStream(stream);
+        const controller = Object.create(WritableStreamDefaultController.prototype);
+        SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark, sizeAlgorithm);
+        return stream;
+    }
+    function InitializeWritableStream(stream) {
+        stream._state = 'writable';
+        // The error that will be reported by new method calls once the state becomes errored. Only set when [[state]] is
+        // 'erroring' or 'errored'. May be set to an undefined value.
+        stream._storedError = undefined;
+        stream._writer = undefined;
+        // Initialize to undefined first because the constructor of the controller checks this
+        // variable to validate the caller.
+        stream._writableStreamController = undefined;
+        // This queue is placed here instead of the writer class in order to allow for passing a writer to the next data
+        // producer without waiting for the queued writes to finish.
+        stream._writeRequests = new SimpleQueue();
+        // Write requests are removed from _writeRequests when write() is called on the underlying sink. This prevents
+        // them from being erroneously rejected on error. If a write() call is in-flight, the request is stored here.
+        stream._inFlightWriteRequest = undefined;
+        // The promise that was returned from writer.close(). Stored here because it may be fulfilled after the writer
+        // has been detached.
+        stream._closeRequest = undefined;
+        // Close request is removed from _closeRequest when close() is called on the underlying sink. This prevents it
+        // from being erroneously rejected on error. If a close() call is in-flight, the request is stored here.
+        stream._inFlightCloseRequest = undefined;
+        // The promise that was returned from writer.abort(). This may also be fulfilled after the writer has detached.
+        stream._pendingAbortRequest = undefined;
+        // The backpressure signal set by the controller.
+        stream._backpressure = false;
+    }
+    function IsWritableStream(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_writableStreamController')) {
+            return false;
+        }
+        return x instanceof WritableStream;
+    }
+    function IsWritableStreamLocked(stream) {
+        if (stream._writer === undefined) {
+            return false;
+        }
+        return true;
+    }
+    function WritableStreamAbort(stream, reason) {
+        var _a;
+        if (stream._state === 'closed' || stream._state === 'errored') {
+            return promiseResolvedWith(undefined);
+        }
+        stream._writableStreamController._abortReason = reason;
+        (_a = stream._writableStreamController._abortController) === null || _a === void 0 ? void 0 : _a.abort();
+        // TypeScript narrows the type of `stream._state` down to 'writable' | 'erroring',
+        // but it doesn't know that signaling abort runs author code that might have changed the state.
+        // Widen the type again by casting to WritableStreamState.
+        const state = stream._state;
+        if (state === 'closed' || state === 'errored') {
+            return promiseResolvedWith(undefined);
+        }
+        if (stream._pendingAbortRequest !== undefined) {
+            return stream._pendingAbortRequest._promise;
+        }
+        let wasAlreadyErroring = false;
+        if (state === 'erroring') {
+            wasAlreadyErroring = true;
+            // reason will not be used, so don't keep a reference to it.
+            reason = undefined;
+        }
+        const promise = newPromise((resolve, reject) => {
+            stream._pendingAbortRequest = {
+                _promise: undefined,
+                _resolve: resolve,
+                _reject: reject,
+                _reason: reason,
+                _wasAlreadyErroring: wasAlreadyErroring
+            };
+        });
+        stream._pendingAbortRequest._promise = promise;
+        if (!wasAlreadyErroring) {
+            WritableStreamStartErroring(stream, reason);
+        }
+        return promise;
+    }
+    function WritableStreamClose(stream) {
+        const state = stream._state;
+        if (state === 'closed' || state === 'errored') {
+            return promiseRejectedWith(new TypeError(`The stream (in ${state} state) is not in the writable state and cannot be closed`));
+        }
+        const promise = newPromise((resolve, reject) => {
+            const closeRequest = {
+                _resolve: resolve,
+                _reject: reject
+            };
+            stream._closeRequest = closeRequest;
+        });
+        const writer = stream._writer;
+        if (writer !== undefined && stream._backpressure && state === 'writable') {
+            defaultWriterReadyPromiseResolve(writer);
+        }
+        WritableStreamDefaultControllerClose(stream._writableStreamController);
+        return promise;
+    }
+    // WritableStream API exposed for controllers.
+    function WritableStreamAddWriteRequest(stream) {
+        const promise = newPromise((resolve, reject) => {
+            const writeRequest = {
+                _resolve: resolve,
+                _reject: reject
+            };
+            stream._writeRequests.push(writeRequest);
+        });
+        return promise;
+    }
+    function WritableStreamDealWithRejection(stream, error) {
+        const state = stream._state;
+        if (state === 'writable') {
+            WritableStreamStartErroring(stream, error);
+            return;
+        }
+        WritableStreamFinishErroring(stream);
+    }
+    function WritableStreamStartErroring(stream, reason) {
+        const controller = stream._writableStreamController;
+        stream._state = 'erroring';
+        stream._storedError = reason;
+        const writer = stream._writer;
+        if (writer !== undefined) {
+            WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, reason);
+        }
+        if (!WritableStreamHasOperationMarkedInFlight(stream) && controller._started) {
+            WritableStreamFinishErroring(stream);
+        }
+    }
+    function WritableStreamFinishErroring(stream) {
+        stream._state = 'errored';
+        stream._writableStreamController[ErrorSteps]();
+        const storedError = stream._storedError;
+        stream._writeRequests.forEach(writeRequest => {
+            writeRequest._reject(storedError);
+        });
+        stream._writeRequests = new SimpleQueue();
+        if (stream._pendingAbortRequest === undefined) {
+            WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
+            return;
+        }
+        const abortRequest = stream._pendingAbortRequest;
+        stream._pendingAbortRequest = undefined;
+        if (abortRequest._wasAlreadyErroring) {
+            abortRequest._reject(storedError);
+            WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
+            return;
+        }
+        const promise = stream._writableStreamController[AbortSteps](abortRequest._reason);
+        uponPromise(promise, () => {
+            abortRequest._resolve();
+            WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
+        }, (reason) => {
+            abortRequest._reject(reason);
+            WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream);
+        });
+    }
+    function WritableStreamFinishInFlightWrite(stream) {
+        stream._inFlightWriteRequest._resolve(undefined);
+        stream._inFlightWriteRequest = undefined;
+    }
+    function WritableStreamFinishInFlightWriteWithError(stream, error) {
+        stream._inFlightWriteRequest._reject(error);
+        stream._inFlightWriteRequest = undefined;
+        WritableStreamDealWithRejection(stream, error);
+    }
+    function WritableStreamFinishInFlightClose(stream) {
+        stream._inFlightCloseRequest._resolve(undefined);
+        stream._inFlightCloseRequest = undefined;
+        const state = stream._state;
+        if (state === 'erroring') {
+            // The error was too late to do anything, so it is ignored.
+            stream._storedError = undefined;
+            if (stream._pendingAbortRequest !== undefined) {
+                stream._pendingAbortRequest._resolve();
+                stream._pendingAbortRequest = undefined;
+            }
+        }
+        stream._state = 'closed';
+        const writer = stream._writer;
+        if (writer !== undefined) {
+            defaultWriterClosedPromiseResolve(writer);
+        }
+    }
+    function WritableStreamFinishInFlightCloseWithError(stream, error) {
+        stream._inFlightCloseRequest._reject(error);
+        stream._inFlightCloseRequest = undefined;
+        // Never execute sink abort() after sink close().
+        if (stream._pendingAbortRequest !== undefined) {
+            stream._pendingAbortRequest._reject(error);
+            stream._pendingAbortRequest = undefined;
+        }
+        WritableStreamDealWithRejection(stream, error);
+    }
+    // TODO(ricea): Fix alphabetical order.
+    function WritableStreamCloseQueuedOrInFlight(stream) {
+        if (stream._closeRequest === undefined && stream._inFlightCloseRequest === undefined) {
+            return false;
+        }
+        return true;
+    }
+    function WritableStreamHasOperationMarkedInFlight(stream) {
+        if (stream._inFlightWriteRequest === undefined && stream._inFlightCloseRequest === undefined) {
+            return false;
+        }
+        return true;
+    }
+    function WritableStreamMarkCloseRequestInFlight(stream) {
+        stream._inFlightCloseRequest = stream._closeRequest;
+        stream._closeRequest = undefined;
+    }
+    function WritableStreamMarkFirstWriteRequestInFlight(stream) {
+        stream._inFlightWriteRequest = stream._writeRequests.shift();
+    }
+    function WritableStreamRejectCloseAndClosedPromiseIfNeeded(stream) {
+        if (stream._closeRequest !== undefined) {
+            stream._closeRequest._reject(stream._storedError);
+            stream._closeRequest = undefined;
+        }
+        const writer = stream._writer;
+        if (writer !== undefined) {
+            defaultWriterClosedPromiseReject(writer, stream._storedError);
+        }
+    }
+    function WritableStreamUpdateBackpressure(stream, backpressure) {
+        const writer = stream._writer;
+        if (writer !== undefined && backpressure !== stream._backpressure) {
+            if (backpressure) {
+                defaultWriterReadyPromiseReset(writer);
+            }
+            else {
+                defaultWriterReadyPromiseResolve(writer);
+            }
+        }
+        stream._backpressure = backpressure;
+    }
+    /**
+     * A default writer vended by a {@link WritableStream}.
+     *
+     * @public
+     */
+    class WritableStreamDefaultWriter {
+        constructor(stream) {
+            assertRequiredArgument(stream, 1, 'WritableStreamDefaultWriter');
+            assertWritableStream(stream, 'First parameter');
+            if (IsWritableStreamLocked(stream)) {
+                throw new TypeError('This stream has already been locked for exclusive writing by another writer');
+            }
+            this._ownerWritableStream = stream;
+            stream._writer = this;
+            const state = stream._state;
+            if (state === 'writable') {
+                if (!WritableStreamCloseQueuedOrInFlight(stream) && stream._backpressure) {
+                    defaultWriterReadyPromiseInitialize(this);
+                }
+                else {
+                    defaultWriterReadyPromiseInitializeAsResolved(this);
+                }
+                defaultWriterClosedPromiseInitialize(this);
+            }
+            else if (state === 'erroring') {
+                defaultWriterReadyPromiseInitializeAsRejected(this, stream._storedError);
+                defaultWriterClosedPromiseInitialize(this);
+            }
+            else if (state === 'closed') {
+                defaultWriterReadyPromiseInitializeAsResolved(this);
+                defaultWriterClosedPromiseInitializeAsResolved(this);
+            }
+            else {
+                const storedError = stream._storedError;
+                defaultWriterReadyPromiseInitializeAsRejected(this, storedError);
+                defaultWriterClosedPromiseInitializeAsRejected(this, storedError);
+            }
+        }
+        /**
+         * Returns a promise that will be fulfilled when the stream becomes closed, or rejected if the stream ever errors or
+         * the writer’s lock is released before the stream finishes closing.
+         */
+        get closed() {
+            if (!IsWritableStreamDefaultWriter(this)) {
+                return promiseRejectedWith(defaultWriterBrandCheckException('closed'));
+            }
+            return this._closedPromise;
+        }
+        /**
+         * Returns the desired size to fill the stream’s internal queue. It can be negative, if the queue is over-full.
+         * A producer can use this information to determine the right amount of data to write.
+         *
+         * It will be `null` if the stream cannot be successfully written to (due to either being errored, or having an abort
+         * queued up). It will return zero if the stream is closed. And the getter will throw an exception if invoked when
+         * the writer’s lock is released.
+         */
+        get desiredSize() {
+            if (!IsWritableStreamDefaultWriter(this)) {
+                throw defaultWriterBrandCheckException('desiredSize');
+            }
+            if (this._ownerWritableStream === undefined) {
+                throw defaultWriterLockException('desiredSize');
+            }
+            return WritableStreamDefaultWriterGetDesiredSize(this);
+        }
+        /**
+         * Returns a promise that will be fulfilled when the desired size to fill the stream’s internal queue transitions
+         * from non-positive to positive, signaling that it is no longer applying backpressure. Once the desired size dips
+         * back to zero or below, the getter will return a new promise that stays pending until the next transition.
+         *
+         * If the stream becomes errored or aborted, or the writer’s lock is released, the returned promise will become
+         * rejected.
+         */
+        get ready() {
+            if (!IsWritableStreamDefaultWriter(this)) {
+                return promiseRejectedWith(defaultWriterBrandCheckException('ready'));
+            }
+            return this._readyPromise;
+        }
+        /**
+         * If the reader is active, behaves the same as {@link WritableStream.abort | stream.abort(reason)}.
+         */
+        abort(reason = undefined) {
+            if (!IsWritableStreamDefaultWriter(this)) {
+                return promiseRejectedWith(defaultWriterBrandCheckException('abort'));
+            }
+            if (this._ownerWritableStream === undefined) {
+                return promiseRejectedWith(defaultWriterLockException('abort'));
+            }
+            return WritableStreamDefaultWriterAbort(this, reason);
+        }
+        /**
+         * If the reader is active, behaves the same as {@link WritableStream.close | stream.close()}.
+         */
+        close() {
+            if (!IsWritableStreamDefaultWriter(this)) {
+                return promiseRejectedWith(defaultWriterBrandCheckException('close'));
+            }
+            const stream = this._ownerWritableStream;
+            if (stream === undefined) {
+                return promiseRejectedWith(defaultWriterLockException('close'));
+            }
+            if (WritableStreamCloseQueuedOrInFlight(stream)) {
+                return promiseRejectedWith(new TypeError('Cannot close an already-closing stream'));
+            }
+            return WritableStreamDefaultWriterClose(this);
+        }
+        /**
+         * Releases the writer’s lock on the corresponding stream. After the lock is released, the writer is no longer active.
+         * If the associated stream is errored when the lock is released, the writer will appear errored in the same way from
+         * now on; otherwise, the writer will appear closed.
+         *
+         * Note that the lock can still be released even if some ongoing writes have not yet finished (i.e. even if the
+         * promises returned from previous calls to {@link WritableStreamDefaultWriter.write | write()} have not yet settled).
+         * It’s not necessary to hold the lock on the writer for the duration of the write; the lock instead simply prevents
+         * other producers from writing in an interleaved manner.
+         */
+        releaseLock() {
+            if (!IsWritableStreamDefaultWriter(this)) {
+                throw defaultWriterBrandCheckException('releaseLock');
+            }
+            const stream = this._ownerWritableStream;
+            if (stream === undefined) {
+                return;
+            }
+            WritableStreamDefaultWriterRelease(this);
+        }
+        write(chunk = undefined) {
+            if (!IsWritableStreamDefaultWriter(this)) {
+                return promiseRejectedWith(defaultWriterBrandCheckException('write'));
+            }
+            if (this._ownerWritableStream === undefined) {
+                return promiseRejectedWith(defaultWriterLockException('write to'));
+            }
+            return WritableStreamDefaultWriterWrite(this, chunk);
+        }
+    }
+    Object.defineProperties(WritableStreamDefaultWriter.prototype, {
+        abort: { enumerable: true },
+        close: { enumerable: true },
+        releaseLock: { enumerable: true },
+        write: { enumerable: true },
+        closed: { enumerable: true },
+        desiredSize: { enumerable: true },
+        ready: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(WritableStreamDefaultWriter.prototype, SymbolPolyfill.toStringTag, {
+            value: 'WritableStreamDefaultWriter',
+            configurable: true
+        });
+    }
+    // Abstract operations for the WritableStreamDefaultWriter.
+    function IsWritableStreamDefaultWriter(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_ownerWritableStream')) {
+            return false;
+        }
+        return x instanceof WritableStreamDefaultWriter;
+    }
+    // A client of WritableStreamDefaultWriter may use these functions directly to bypass state check.
+    function WritableStreamDefaultWriterAbort(writer, reason) {
+        const stream = writer._ownerWritableStream;
+        return WritableStreamAbort(stream, reason);
+    }
+    function WritableStreamDefaultWriterClose(writer) {
+        const stream = writer._ownerWritableStream;
+        return WritableStreamClose(stream);
+    }
+    function WritableStreamDefaultWriterCloseWithErrorPropagation(writer) {
+        const stream = writer._ownerWritableStream;
+        const state = stream._state;
+        if (WritableStreamCloseQueuedOrInFlight(stream) || state === 'closed') {
+            return promiseResolvedWith(undefined);
+        }
+        if (state === 'errored') {
+            return promiseRejectedWith(stream._storedError);
+        }
+        return WritableStreamDefaultWriterClose(writer);
+    }
+    function WritableStreamDefaultWriterEnsureClosedPromiseRejected(writer, error) {
+        if (writer._closedPromiseState === 'pending') {
+            defaultWriterClosedPromiseReject(writer, error);
+        }
+        else {
+            defaultWriterClosedPromiseResetToRejected(writer, error);
+        }
+    }
+    function WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, error) {
+        if (writer._readyPromiseState === 'pending') {
+            defaultWriterReadyPromiseReject(writer, error);
+        }
+        else {
+            defaultWriterReadyPromiseResetToRejected(writer, error);
+        }
+    }
+    function WritableStreamDefaultWriterGetDesiredSize(writer) {
+        const stream = writer._ownerWritableStream;
+        const state = stream._state;
+        if (state === 'errored' || state === 'erroring') {
+            return null;
+        }
+        if (state === 'closed') {
+            return 0;
+        }
+        return WritableStreamDefaultControllerGetDesiredSize(stream._writableStreamController);
+    }
+    function WritableStreamDefaultWriterRelease(writer) {
+        const stream = writer._ownerWritableStream;
+        const releasedError = new TypeError(`Writer was released and can no longer be used to monitor the stream's closedness`);
+        WritableStreamDefaultWriterEnsureReadyPromiseRejected(writer, releasedError);
+        // The state transitions to "errored" before the sink abort() method runs, but the writer.closed promise is not
+        // rejected until afterwards. This means that simply testing state will not work.
+        WritableStreamDefaultWriterEnsureClosedPromiseRejected(writer, releasedError);
+        stream._writer = undefined;
+        writer._ownerWritableStream = undefined;
+    }
+    function WritableStreamDefaultWriterWrite(writer, chunk) {
+        const stream = writer._ownerWritableStream;
+        const controller = stream._writableStreamController;
+        const chunkSize = WritableStreamDefaultControllerGetChunkSize(controller, chunk);
+        if (stream !== writer._ownerWritableStream) {
+            return promiseRejectedWith(defaultWriterLockException('write to'));
+        }
+        const state = stream._state;
+        if (state === 'errored') {
+            return promiseRejectedWith(stream._storedError);
+        }
+        if (WritableStreamCloseQueuedOrInFlight(stream) || state === 'closed') {
+            return promiseRejectedWith(new TypeError('The stream is closing or closed and cannot be written to'));
+        }
+        if (state === 'erroring') {
+            return promiseRejectedWith(stream._storedError);
+        }
+        const promise = WritableStreamAddWriteRequest(stream);
+        WritableStreamDefaultControllerWrite(controller, chunk, chunkSize);
+        return promise;
+    }
+    const closeSentinel = {};
+    /**
+     * Allows control of a {@link WritableStream | writable stream}'s state and internal queue.
+     *
+     * @public
+     */
+    class WritableStreamDefaultController {
+        constructor() {
+            throw new TypeError('Illegal constructor');
+        }
+        /**
+         * The reason which was passed to `WritableStream.abort(reason)` when the stream was aborted.
+         *
+         * @deprecated
+         *  This property has been removed from the specification, see https://github.com/whatwg/streams/pull/1177.
+         *  Use {@link WritableStreamDefaultController.signal}'s `reason` instead.
+         */
+        get abortReason() {
+            if (!IsWritableStreamDefaultController(this)) {
+                throw defaultControllerBrandCheckException$2('abortReason');
+            }
+            return this._abortReason;
+        }
+        /**
+         * An `AbortSignal` that can be used to abort the pending write or close operation when the stream is aborted.
+         */
+        get signal() {
+            if (!IsWritableStreamDefaultController(this)) {
+                throw defaultControllerBrandCheckException$2('signal');
+            }
+            if (this._abortController === undefined) {
+                // Older browsers or older Node versions may not support `AbortController` or `AbortSignal`.
+                // We don't want to bundle and ship an `AbortController` polyfill together with our polyfill,
+                // so instead we only implement support for `signal` if we find a global `AbortController` constructor.
+                throw new TypeError('WritableStreamDefaultController.prototype.signal is not supported');
+            }
+            return this._abortController.signal;
+        }
+        /**
+         * Closes the controlled writable stream, making all future interactions with it fail with the given error `e`.
+         *
+         * This method is rarely used, since usually it suffices to return a rejected promise from one of the underlying
+         * sink's methods. However, it can be useful for suddenly shutting down a stream in response to an event outside the
+         * normal lifecycle of interactions with the underlying sink.
+         */
+        error(e = undefined) {
+            if (!IsWritableStreamDefaultController(this)) {
+                throw defaultControllerBrandCheckException$2('error');
+            }
+            const state = this._controlledWritableStream._state;
+            if (state !== 'writable') {
+                // The stream is closed, errored or will be soon. The sink can't do anything useful if it gets an error here, so
+                // just treat it as a no-op.
+                return;
+            }
+            WritableStreamDefaultControllerError(this, e);
+        }
+        /** @internal */
+        [AbortSteps](reason) {
+            const result = this._abortAlgorithm(reason);
+            WritableStreamDefaultControllerClearAlgorithms(this);
+            return result;
+        }
+        /** @internal */
+        [ErrorSteps]() {
+            ResetQueue(this);
+        }
+    }
+    Object.defineProperties(WritableStreamDefaultController.prototype, {
+        abortReason: { enumerable: true },
+        signal: { enumerable: true },
+        error: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(WritableStreamDefaultController.prototype, SymbolPolyfill.toStringTag, {
+            value: 'WritableStreamDefaultController',
+            configurable: true
+        });
+    }
+    // Abstract operations implementing interface required by the WritableStream.
+    function IsWritableStreamDefaultController(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_controlledWritableStream')) {
+            return false;
+        }
+        return x instanceof WritableStreamDefaultController;
+    }
+    function SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark, sizeAlgorithm) {
+        controller._controlledWritableStream = stream;
+        stream._writableStreamController = controller;
+        // Need to set the slots so that the assert doesn't fire. In the spec the slots already exist implicitly.
+        controller._queue = undefined;
+        controller._queueTotalSize = undefined;
+        ResetQueue(controller);
+        controller._abortReason = undefined;
+        controller._abortController = createAbortController();
+        controller._started = false;
+        controller._strategySizeAlgorithm = sizeAlgorithm;
+        controller._strategyHWM = highWaterMark;
+        controller._writeAlgorithm = writeAlgorithm;
+        controller._closeAlgorithm = closeAlgorithm;
+        controller._abortAlgorithm = abortAlgorithm;
+        const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
+        WritableStreamUpdateBackpressure(stream, backpressure);
+        const startResult = startAlgorithm();
+        const startPromise = promiseResolvedWith(startResult);
+        uponPromise(startPromise, () => {
+            controller._started = true;
+            WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
+        }, r => {
+            controller._started = true;
+            WritableStreamDealWithRejection(stream, r);
+        });
+    }
+    function SetUpWritableStreamDefaultControllerFromUnderlyingSink(stream, underlyingSink, highWaterMark, sizeAlgorithm) {
+        const controller = Object.create(WritableStreamDefaultController.prototype);
+        let startAlgorithm = () => undefined;
+        let writeAlgorithm = () => promiseResolvedWith(undefined);
+        let closeAlgorithm = () => promiseResolvedWith(undefined);
+        let abortAlgorithm = () => promiseResolvedWith(undefined);
+        if (underlyingSink.start !== undefined) {
+            startAlgorithm = () => underlyingSink.start(controller);
+        }
+        if (underlyingSink.write !== undefined) {
+            writeAlgorithm = chunk => underlyingSink.write(chunk, controller);
+        }
+        if (underlyingSink.close !== undefined) {
+            closeAlgorithm = () => underlyingSink.close();
+        }
+        if (underlyingSink.abort !== undefined) {
+            abortAlgorithm = reason => underlyingSink.abort(reason);
+        }
+        SetUpWritableStreamDefaultController(stream, controller, startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, highWaterMark, sizeAlgorithm);
+    }
+    // ClearAlgorithms may be called twice. Erroring the same stream in multiple ways will often result in redundant calls.
+    function WritableStreamDefaultControllerClearAlgorithms(controller) {
+        controller._writeAlgorithm = undefined;
+        controller._closeAlgorithm = undefined;
+        controller._abortAlgorithm = undefined;
+        controller._strategySizeAlgorithm = undefined;
+    }
+    function WritableStreamDefaultControllerClose(controller) {
+        EnqueueValueWithSize(controller, closeSentinel, 0);
+        WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
+    }
+    function WritableStreamDefaultControllerGetChunkSize(controller, chunk) {
+        try {
+            return controller._strategySizeAlgorithm(chunk);
+        }
+        catch (chunkSizeE) {
+            WritableStreamDefaultControllerErrorIfNeeded(controller, chunkSizeE);
+            return 1;
+        }
+    }
+    function WritableStreamDefaultControllerGetDesiredSize(controller) {
+        return controller._strategyHWM - controller._queueTotalSize;
+    }
+    function WritableStreamDefaultControllerWrite(controller, chunk, chunkSize) {
+        try {
+            EnqueueValueWithSize(controller, chunk, chunkSize);
+        }
+        catch (enqueueE) {
+            WritableStreamDefaultControllerErrorIfNeeded(controller, enqueueE);
+            return;
+        }
+        const stream = controller._controlledWritableStream;
+        if (!WritableStreamCloseQueuedOrInFlight(stream) && stream._state === 'writable') {
+            const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
+            WritableStreamUpdateBackpressure(stream, backpressure);
+        }
+        WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
+    }
+    // Abstract operations for the WritableStreamDefaultController.
+    function WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller) {
+        const stream = controller._controlledWritableStream;
+        if (!controller._started) {
+            return;
+        }
+        if (stream._inFlightWriteRequest !== undefined) {
+            return;
+        }
+        const state = stream._state;
+        if (state === 'erroring') {
+            WritableStreamFinishErroring(stream);
+            return;
+        }
+        if (controller._queue.length === 0) {
+            return;
+        }
+        const value = PeekQueueValue(controller);
+        if (value === closeSentinel) {
+            WritableStreamDefaultControllerProcessClose(controller);
+        }
+        else {
+            WritableStreamDefaultControllerProcessWrite(controller, value);
+        }
+    }
+    function WritableStreamDefaultControllerErrorIfNeeded(controller, error) {
+        if (controller._controlledWritableStream._state === 'writable') {
+            WritableStreamDefaultControllerError(controller, error);
+        }
+    }
+    function WritableStreamDefaultControllerProcessClose(controller) {
+        const stream = controller._controlledWritableStream;
+        WritableStreamMarkCloseRequestInFlight(stream);
+        DequeueValue(controller);
+        const sinkClosePromise = controller._closeAlgorithm();
+        WritableStreamDefaultControllerClearAlgorithms(controller);
+        uponPromise(sinkClosePromise, () => {
+            WritableStreamFinishInFlightClose(stream);
+        }, reason => {
+            WritableStreamFinishInFlightCloseWithError(stream, reason);
+        });
+    }
+    function WritableStreamDefaultControllerProcessWrite(controller, chunk) {
+        const stream = controller._controlledWritableStream;
+        WritableStreamMarkFirstWriteRequestInFlight(stream);
+        const sinkWritePromise = controller._writeAlgorithm(chunk);
+        uponPromise(sinkWritePromise, () => {
+            WritableStreamFinishInFlightWrite(stream);
+            const state = stream._state;
+            DequeueValue(controller);
+            if (!WritableStreamCloseQueuedOrInFlight(stream) && state === 'writable') {
+                const backpressure = WritableStreamDefaultControllerGetBackpressure(controller);
+                WritableStreamUpdateBackpressure(stream, backpressure);
+            }
+            WritableStreamDefaultControllerAdvanceQueueIfNeeded(controller);
+        }, reason => {
+            if (stream._state === 'writable') {
+                WritableStreamDefaultControllerClearAlgorithms(controller);
+            }
+            WritableStreamFinishInFlightWriteWithError(stream, reason);
+        });
+    }
+    function WritableStreamDefaultControllerGetBackpressure(controller) {
+        const desiredSize = WritableStreamDefaultControllerGetDesiredSize(controller);
+        return desiredSize <= 0;
+    }
+    // A client of WritableStreamDefaultController may use these functions directly to bypass state check.
+    function WritableStreamDefaultControllerError(controller, error) {
+        const stream = controller._controlledWritableStream;
+        WritableStreamDefaultControllerClearAlgorithms(controller);
+        WritableStreamStartErroring(stream, error);
+    }
+    // Helper functions for the WritableStream.
+    function streamBrandCheckException$2(name) {
+        return new TypeError(`WritableStream.prototype.${name} can only be used on a WritableStream`);
+    }
+    // Helper functions for the WritableStreamDefaultController.
+    function defaultControllerBrandCheckException$2(name) {
+        return new TypeError(`WritableStreamDefaultController.prototype.${name} can only be used on a WritableStreamDefaultController`);
+    }
+    // Helper functions for the WritableStreamDefaultWriter.
+    function defaultWriterBrandCheckException(name) {
+        return new TypeError(`WritableStreamDefaultWriter.prototype.${name} can only be used on a WritableStreamDefaultWriter`);
+    }
+    function defaultWriterLockException(name) {
+        return new TypeError('Cannot ' + name + ' a stream using a released writer');
+    }
+    function defaultWriterClosedPromiseInitialize(writer) {
+        writer._closedPromise = newPromise((resolve, reject) => {
+            writer._closedPromise_resolve = resolve;
+            writer._closedPromise_reject = reject;
+            writer._closedPromiseState = 'pending';
+        });
+    }
+    function defaultWriterClosedPromiseInitializeAsRejected(writer, reason) {
+        defaultWriterClosedPromiseInitialize(writer);
+        defaultWriterClosedPromiseReject(writer, reason);
+    }
+    function defaultWriterClosedPromiseInitializeAsResolved(writer) {
+        defaultWriterClosedPromiseInitialize(writer);
+        defaultWriterClosedPromiseResolve(writer);
+    }
+    function defaultWriterClosedPromiseReject(writer, reason) {
+        if (writer._closedPromise_reject === undefined) {
+            return;
+        }
+        setPromiseIsHandledToTrue(writer._closedPromise);
+        writer._closedPromise_reject(reason);
+        writer._closedPromise_resolve = undefined;
+        writer._closedPromise_reject = undefined;
+        writer._closedPromiseState = 'rejected';
+    }
+    function defaultWriterClosedPromiseResetToRejected(writer, reason) {
+        defaultWriterClosedPromiseInitializeAsRejected(writer, reason);
+    }
+    function defaultWriterClosedPromiseResolve(writer) {
+        if (writer._closedPromise_resolve === undefined) {
+            return;
+        }
+        writer._closedPromise_resolve(undefined);
+        writer._closedPromise_resolve = undefined;
+        writer._closedPromise_reject = undefined;
+        writer._closedPromiseState = 'resolved';
+    }
+    function defaultWriterReadyPromiseInitialize(writer) {
+        writer._readyPromise = newPromise((resolve, reject) => {
+            writer._readyPromise_resolve = resolve;
+            writer._readyPromise_reject = reject;
+        });
+        writer._readyPromiseState = 'pending';
+    }
+    function defaultWriterReadyPromiseInitializeAsRejected(writer, reason) {
+        defaultWriterReadyPromiseInitialize(writer);
+        defaultWriterReadyPromiseReject(writer, reason);
+    }
+    function defaultWriterReadyPromiseInitializeAsResolved(writer) {
+        defaultWriterReadyPromiseInitialize(writer);
+        defaultWriterReadyPromiseResolve(writer);
+    }
+    function defaultWriterReadyPromiseReject(writer, reason) {
+        if (writer._readyPromise_reject === undefined) {
+            return;
+        }
+        setPromiseIsHandledToTrue(writer._readyPromise);
+        writer._readyPromise_reject(reason);
+        writer._readyPromise_resolve = undefined;
+        writer._readyPromise_reject = undefined;
+        writer._readyPromiseState = 'rejected';
+    }
+    function defaultWriterReadyPromiseReset(writer) {
+        defaultWriterReadyPromiseInitialize(writer);
+    }
+    function defaultWriterReadyPromiseResetToRejected(writer, reason) {
+        defaultWriterReadyPromiseInitializeAsRejected(writer, reason);
+    }
+    function defaultWriterReadyPromiseResolve(writer) {
+        if (writer._readyPromise_resolve === undefined) {
+            return;
+        }
+        writer._readyPromise_resolve(undefined);
+        writer._readyPromise_resolve = undefined;
+        writer._readyPromise_reject = undefined;
+        writer._readyPromiseState = 'fulfilled';
+    }
+
+    /// <reference lib="dom" />
+    const NativeDOMException = typeof DOMException !== 'undefined' ? DOMException : undefined;
+
+    /// <reference types="node" />
+    function isDOMExceptionConstructor(ctor) {
+        if (!(typeof ctor === 'function' || typeof ctor === 'object')) {
+            return false;
+        }
+        try {
+            new ctor();
+            return true;
+        }
+        catch (_a) {
+            return false;
+        }
+    }
+    function createDOMExceptionPolyfill() {
+        // eslint-disable-next-line no-shadow
+        const ctor = function DOMException(message, name) {
+            this.message = message || '';
+            this.name = name || 'Error';
+            if (Error.captureStackTrace) {
+                Error.captureStackTrace(this, this.constructor);
+            }
+        };
+        ctor.prototype = Object.create(Error.prototype);
+        Object.defineProperty(ctor.prototype, 'constructor', { value: ctor, writable: true, configurable: true });
+        return ctor;
+    }
+    // eslint-disable-next-line no-redeclare
+    const DOMException$1 = isDOMExceptionConstructor(NativeDOMException) ? NativeDOMException : createDOMExceptionPolyfill();
+
+    function ReadableStreamPipeTo(source, dest, preventClose, preventAbort, preventCancel, signal) {
+        const reader = AcquireReadableStreamDefaultReader(source);
+        const writer = AcquireWritableStreamDefaultWriter(dest);
+        source._disturbed = true;
+        let shuttingDown = false;
+        // This is used to keep track of the spec's requirement that we wait for ongoing writes during shutdown.
+        let currentWrite = promiseResolvedWith(undefined);
+        return newPromise((resolve, reject) => {
+            let abortAlgorithm;
+            if (signal !== undefined) {
+                abortAlgorithm = () => {
+                    const error = new DOMException$1('Aborted', 'AbortError');
+                    const actions = [];
+                    if (!preventAbort) {
+                        actions.push(() => {
+                            if (dest._state === 'writable') {
+                                return WritableStreamAbort(dest, error);
+                            }
+                            return promiseResolvedWith(undefined);
+                        });
+                    }
+                    if (!preventCancel) {
+                        actions.push(() => {
+                            if (source._state === 'readable') {
+                                return ReadableStreamCancel(source, error);
+                            }
+                            return promiseResolvedWith(undefined);
+                        });
+                    }
+                    shutdownWithAction(() => Promise.all(actions.map(action => action())), true, error);
+                };
+                if (signal.aborted) {
+                    abortAlgorithm();
+                    return;
+                }
+                signal.addEventListener('abort', abortAlgorithm);
+            }
+            // Using reader and writer, read all chunks from this and write them to dest
+            // - Backpressure must be enforced
+            // - Shutdown must stop all activity
+            function pipeLoop() {
+                return newPromise((resolveLoop, rejectLoop) => {
+                    function next(done) {
+                        if (done) {
+                            resolveLoop();
+                        }
+                        else {
+                            // Use `PerformPromiseThen` instead of `uponPromise` to avoid
+                            // adding unnecessary `.catch(rethrowAssertionErrorRejection)` handlers
+                            PerformPromiseThen(pipeStep(), next, rejectLoop);
+                        }
+                    }
+                    next(false);
+                });
+            }
+            function pipeStep() {
+                if (shuttingDown) {
+                    return promiseResolvedWith(true);
+                }
+                return PerformPromiseThen(writer._readyPromise, () => {
+                    return newPromise((resolveRead, rejectRead) => {
+                        ReadableStreamDefaultReaderRead(reader, {
+                            _chunkSteps: chunk => {
+                                currentWrite = PerformPromiseThen(WritableStreamDefaultWriterWrite(writer, chunk), undefined, noop);
+                                resolveRead(false);
+                            },
+                            _closeSteps: () => resolveRead(true),
+                            _errorSteps: rejectRead
+                        });
+                    });
+                });
+            }
+            // Errors must be propagated forward
+            isOrBecomesErrored(source, reader._closedPromise, storedError => {
+                if (!preventAbort) {
+                    shutdownWithAction(() => WritableStreamAbort(dest, storedError), true, storedError);
+                }
+                else {
+                    shutdown(true, storedError);
+                }
+            });
+            // Errors must be propagated backward
+            isOrBecomesErrored(dest, writer._closedPromise, storedError => {
+                if (!preventCancel) {
+                    shutdownWithAction(() => ReadableStreamCancel(source, storedError), true, storedError);
+                }
+                else {
+                    shutdown(true, storedError);
+                }
+            });
+            // Closing must be propagated forward
+            isOrBecomesClosed(source, reader._closedPromise, () => {
+                if (!preventClose) {
+                    shutdownWithAction(() => WritableStreamDefaultWriterCloseWithErrorPropagation(writer));
+                }
+                else {
+                    shutdown();
+                }
+            });
+            // Closing must be propagated backward
+            if (WritableStreamCloseQueuedOrInFlight(dest) || dest._state === 'closed') {
+                const destClosed = new TypeError('the destination writable stream closed before all data could be piped to it');
+                if (!preventCancel) {
+                    shutdownWithAction(() => ReadableStreamCancel(source, destClosed), true, destClosed);
+                }
+                else {
+                    shutdown(true, destClosed);
+                }
+            }
+            setPromiseIsHandledToTrue(pipeLoop());
+            function waitForWritesToFinish() {
+                // Another write may have started while we were waiting on this currentWrite, so we have to be sure to wait
+                // for that too.
+                const oldCurrentWrite = currentWrite;
+                return PerformPromiseThen(currentWrite, () => oldCurrentWrite !== currentWrite ? waitForWritesToFinish() : undefined);
+            }
+            function isOrBecomesErrored(stream, promise, action) {
+                if (stream._state === 'errored') {
+                    action(stream._storedError);
+                }
+                else {
+                    uponRejection(promise, action);
+                }
+            }
+            function isOrBecomesClosed(stream, promise, action) {
+                if (stream._state === 'closed') {
+                    action();
+                }
+                else {
+                    uponFulfillment(promise, action);
+                }
+            }
+            function shutdownWithAction(action, originalIsError, originalError) {
+                if (shuttingDown) {
+                    return;
+                }
+                shuttingDown = true;
+                if (dest._state === 'writable' && !WritableStreamCloseQueuedOrInFlight(dest)) {
+                    uponFulfillment(waitForWritesToFinish(), doTheRest);
+                }
+                else {
+                    doTheRest();
+                }
+                function doTheRest() {
+                    uponPromise(action(), () => finalize(originalIsError, originalError), newError => finalize(true, newError));
+                }
+            }
+            function shutdown(isError, error) {
+                if (shuttingDown) {
+                    return;
+                }
+                shuttingDown = true;
+                if (dest._state === 'writable' && !WritableStreamCloseQueuedOrInFlight(dest)) {
+                    uponFulfillment(waitForWritesToFinish(), () => finalize(isError, error));
+                }
+                else {
+                    finalize(isError, error);
+                }
+            }
+            function finalize(isError, error) {
+                WritableStreamDefaultWriterRelease(writer);
+                ReadableStreamReaderGenericRelease(reader);
+                if (signal !== undefined) {
+                    signal.removeEventListener('abort', abortAlgorithm);
+                }
+                if (isError) {
+                    reject(error);
+                }
+                else {
+                    resolve(undefined);
+                }
+            }
+        });
+    }
+
+    /**
+     * Allows control of a {@link ReadableStream | readable stream}'s state and internal queue.
+     *
+     * @public
+     */
+    class ReadableStreamDefaultController {
+        constructor() {
+            throw new TypeError('Illegal constructor');
+        }
+        /**
+         * Returns the desired size to fill the controlled stream's internal queue. It can be negative, if the queue is
+         * over-full. An underlying source ought to use this information to determine when and how to apply backpressure.
+         */
+        get desiredSize() {
+            if (!IsReadableStreamDefaultController(this)) {
+                throw defaultControllerBrandCheckException$1('desiredSize');
+            }
+            return ReadableStreamDefaultControllerGetDesiredSize(this);
+        }
+        /**
+         * Closes the controlled readable stream. Consumers will still be able to read any previously-enqueued chunks from
+         * the stream, but once those are read, the stream will become closed.
+         */
+        close() {
+            if (!IsReadableStreamDefaultController(this)) {
+                throw defaultControllerBrandCheckException$1('close');
+            }
+            if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(this)) {
+                throw new TypeError('The stream is not in a state that permits close');
+            }
+            ReadableStreamDefaultControllerClose(this);
+        }
+        enqueue(chunk = undefined) {
+            if (!IsReadableStreamDefaultController(this)) {
+                throw defaultControllerBrandCheckException$1('enqueue');
+            }
+            if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(this)) {
+                throw new TypeError('The stream is not in a state that permits enqueue');
+            }
+            return ReadableStreamDefaultControllerEnqueue(this, chunk);
+        }
+        /**
+         * Errors the controlled readable stream, making all future interactions with it fail with the given error `e`.
+         */
+        error(e = undefined) {
+            if (!IsReadableStreamDefaultController(this)) {
+                throw defaultControllerBrandCheckException$1('error');
+            }
+            ReadableStreamDefaultControllerError(this, e);
+        }
+        /** @internal */
+        [CancelSteps](reason) {
+            ResetQueue(this);
+            const result = this._cancelAlgorithm(reason);
+            ReadableStreamDefaultControllerClearAlgorithms(this);
+            return result;
+        }
+        /** @internal */
+        [PullSteps](readRequest) {
+            const stream = this._controlledReadableStream;
+            if (this._queue.length > 0) {
+                const chunk = DequeueValue(this);
+                if (this._closeRequested && this._queue.length === 0) {
+                    ReadableStreamDefaultControllerClearAlgorithms(this);
+                    ReadableStreamClose(stream);
+                }
+                else {
+                    ReadableStreamDefaultControllerCallPullIfNeeded(this);
+                }
+                readRequest._chunkSteps(chunk);
+            }
+            else {
+                ReadableStreamAddReadRequest(stream, readRequest);
+                ReadableStreamDefaultControllerCallPullIfNeeded(this);
+            }
+        }
+    }
+    Object.defineProperties(ReadableStreamDefaultController.prototype, {
+        close: { enumerable: true },
+        enqueue: { enumerable: true },
+        error: { enumerable: true },
+        desiredSize: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(ReadableStreamDefaultController.prototype, SymbolPolyfill.toStringTag, {
+            value: 'ReadableStreamDefaultController',
+            configurable: true
+        });
+    }
+    // Abstract operations for the ReadableStreamDefaultController.
+    function IsReadableStreamDefaultController(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_controlledReadableStream')) {
+            return false;
+        }
+        return x instanceof ReadableStreamDefaultController;
+    }
+    function ReadableStreamDefaultControllerCallPullIfNeeded(controller) {
+        const shouldPull = ReadableStreamDefaultControllerShouldCallPull(controller);
+        if (!shouldPull) {
+            return;
+        }
+        if (controller._pulling) {
+            controller._pullAgain = true;
+            return;
+        }
+        controller._pulling = true;
+        const pullPromise = controller._pullAlgorithm();
+        uponPromise(pullPromise, () => {
+            controller._pulling = false;
+            if (controller._pullAgain) {
+                controller._pullAgain = false;
+                ReadableStreamDefaultControllerCallPullIfNeeded(controller);
+            }
+        }, e => {
+            ReadableStreamDefaultControllerError(controller, e);
+        });
+    }
+    function ReadableStreamDefaultControllerShouldCallPull(controller) {
+        const stream = controller._controlledReadableStream;
+        if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(controller)) {
+            return false;
+        }
+        if (!controller._started) {
+            return false;
+        }
+        if (IsReadableStreamLocked(stream) && ReadableStreamGetNumReadRequests(stream) > 0) {
+            return true;
+        }
+        const desiredSize = ReadableStreamDefaultControllerGetDesiredSize(controller);
+        if (desiredSize > 0) {
+            return true;
+        }
+        return false;
+    }
+    function ReadableStreamDefaultControllerClearAlgorithms(controller) {
+        controller._pullAlgorithm = undefined;
+        controller._cancelAlgorithm = undefined;
+        controller._strategySizeAlgorithm = undefined;
+    }
+    // A client of ReadableStreamDefaultController may use these functions directly to bypass state check.
+    function ReadableStreamDefaultControllerClose(controller) {
+        if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(controller)) {
+            return;
+        }
+        const stream = controller._controlledReadableStream;
+        controller._closeRequested = true;
+        if (controller._queue.length === 0) {
+            ReadableStreamDefaultControllerClearAlgorithms(controller);
+            ReadableStreamClose(stream);
+        }
+    }
+    function ReadableStreamDefaultControllerEnqueue(controller, chunk) {
+        if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(controller)) {
+            return;
+        }
+        const stream = controller._controlledReadableStream;
+        if (IsReadableStreamLocked(stream) && ReadableStreamGetNumReadRequests(stream) > 0) {
+            ReadableStreamFulfillReadRequest(stream, chunk, false);
+        }
+        else {
+            let chunkSize;
+            try {
+                chunkSize = controller._strategySizeAlgorithm(chunk);
+            }
+            catch (chunkSizeE) {
+                ReadableStreamDefaultControllerError(controller, chunkSizeE);
+                throw chunkSizeE;
+            }
+            try {
+                EnqueueValueWithSize(controller, chunk, chunkSize);
+            }
+            catch (enqueueE) {
+                ReadableStreamDefaultControllerError(controller, enqueueE);
+                throw enqueueE;
+            }
+        }
+        ReadableStreamDefaultControllerCallPullIfNeeded(controller);
+    }
+    function ReadableStreamDefaultControllerError(controller, e) {
+        const stream = controller._controlledReadableStream;
+        if (stream._state !== 'readable') {
+            return;
+        }
+        ResetQueue(controller);
+        ReadableStreamDefaultControllerClearAlgorithms(controller);
+        ReadableStreamError(stream, e);
+    }
+    function ReadableStreamDefaultControllerGetDesiredSize(controller) {
+        const state = controller._controlledReadableStream._state;
+        if (state === 'errored') {
+            return null;
+        }
+        if (state === 'closed') {
+            return 0;
+        }
+        return controller._strategyHWM - controller._queueTotalSize;
+    }
+    // This is used in the implementation of TransformStream.
+    function ReadableStreamDefaultControllerHasBackpressure(controller) {
+        if (ReadableStreamDefaultControllerShouldCallPull(controller)) {
+            return false;
+        }
+        return true;
+    }
+    function ReadableStreamDefaultControllerCanCloseOrEnqueue(controller) {
+        const state = controller._controlledReadableStream._state;
+        if (!controller._closeRequested && state === 'readable') {
+            return true;
+        }
+        return false;
+    }
+    function SetUpReadableStreamDefaultController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm) {
+        controller._controlledReadableStream = stream;
+        controller._queue = undefined;
+        controller._queueTotalSize = undefined;
+        ResetQueue(controller);
+        controller._started = false;
+        controller._closeRequested = false;
+        controller._pullAgain = false;
+        controller._pulling = false;
+        controller._strategySizeAlgorithm = sizeAlgorithm;
+        controller._strategyHWM = highWaterMark;
+        controller._pullAlgorithm = pullAlgorithm;
+        controller._cancelAlgorithm = cancelAlgorithm;
+        stream._readableStreamController = controller;
+        const startResult = startAlgorithm();
+        uponPromise(promiseResolvedWith(startResult), () => {
+            controller._started = true;
+            ReadableStreamDefaultControllerCallPullIfNeeded(controller);
+        }, r => {
+            ReadableStreamDefaultControllerError(controller, r);
+        });
+    }
+    function SetUpReadableStreamDefaultControllerFromUnderlyingSource(stream, underlyingSource, highWaterMark, sizeAlgorithm) {
+        const controller = Object.create(ReadableStreamDefaultController.prototype);
+        let startAlgorithm = () => undefined;
+        let pullAlgorithm = () => promiseResolvedWith(undefined);
+        let cancelAlgorithm = () => promiseResolvedWith(undefined);
+        if (underlyingSource.start !== undefined) {
+            startAlgorithm = () => underlyingSource.start(controller);
+        }
+        if (underlyingSource.pull !== undefined) {
+            pullAlgorithm = () => underlyingSource.pull(controller);
+        }
+        if (underlyingSource.cancel !== undefined) {
+            cancelAlgorithm = reason => underlyingSource.cancel(reason);
+        }
+        SetUpReadableStreamDefaultController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm);
+    }
+    // Helper functions for the ReadableStreamDefaultController.
+    function defaultControllerBrandCheckException$1(name) {
+        return new TypeError(`ReadableStreamDefaultController.prototype.${name} can only be used on a ReadableStreamDefaultController`);
+    }
+
+    function ReadableStreamTee(stream, cloneForBranch2) {
+        if (IsReadableByteStreamController(stream._readableStreamController)) {
+            return ReadableByteStreamTee(stream);
+        }
+        return ReadableStreamDefaultTee(stream);
+    }
+    function ReadableStreamDefaultTee(stream, cloneForBranch2) {
+        const reader = AcquireReadableStreamDefaultReader(stream);
+        let reading = false;
+        let readAgain = false;
+        let canceled1 = false;
+        let canceled2 = false;
+        let reason1;
+        let reason2;
+        let branch1;
+        let branch2;
+        let resolveCancelPromise;
+        const cancelPromise = newPromise(resolve => {
+            resolveCancelPromise = resolve;
+        });
+        function pullAlgorithm() {
+            if (reading) {
+                readAgain = true;
+                return promiseResolvedWith(undefined);
+            }
+            reading = true;
+            const readRequest = {
+                _chunkSteps: chunk => {
+                    // This needs to be delayed a microtask because it takes at least a microtask to detect errors (using
+                    // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
+                    // successful synchronously-available reads get ahead of asynchronously-available errors.
+                    queueMicrotask(() => {
+                        readAgain = false;
+                        const chunk1 = chunk;
+                        const chunk2 = chunk;
+                        // There is no way to access the cloning code right now in the reference implementation.
+                        // If we add one then we'll need an implementation for serializable objects.
+                        // if (!canceled2 && cloneForBranch2) {
+                        //   chunk2 = StructuredDeserialize(StructuredSerialize(chunk2));
+                        // }
+                        if (!canceled1) {
+                            ReadableStreamDefaultControllerEnqueue(branch1._readableStreamController, chunk1);
+                        }
+                        if (!canceled2) {
+                            ReadableStreamDefaultControllerEnqueue(branch2._readableStreamController, chunk2);
+                        }
+                        reading = false;
+                        if (readAgain) {
+                            pullAlgorithm();
+                        }
+                    });
+                },
+                _closeSteps: () => {
+                    reading = false;
+                    if (!canceled1) {
+                        ReadableStreamDefaultControllerClose(branch1._readableStreamController);
+                    }
+                    if (!canceled2) {
+                        ReadableStreamDefaultControllerClose(branch2._readableStreamController);
+                    }
+                    if (!canceled1 || !canceled2) {
+                        resolveCancelPromise(undefined);
+                    }
+                },
+                _errorSteps: () => {
+                    reading = false;
+                }
+            };
+            ReadableStreamDefaultReaderRead(reader, readRequest);
+            return promiseResolvedWith(undefined);
+        }
+        function cancel1Algorithm(reason) {
+            canceled1 = true;
+            reason1 = reason;
+            if (canceled2) {
+                const compositeReason = CreateArrayFromList([reason1, reason2]);
+                const cancelResult = ReadableStreamCancel(stream, compositeReason);
+                resolveCancelPromise(cancelResult);
+            }
+            return cancelPromise;
+        }
+        function cancel2Algorithm(reason) {
+            canceled2 = true;
+            reason2 = reason;
+            if (canceled1) {
+                const compositeReason = CreateArrayFromList([reason1, reason2]);
+                const cancelResult = ReadableStreamCancel(stream, compositeReason);
+                resolveCancelPromise(cancelResult);
+            }
+            return cancelPromise;
+        }
+        function startAlgorithm() {
+            // do nothing
+        }
+        branch1 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel1Algorithm);
+        branch2 = CreateReadableStream(startAlgorithm, pullAlgorithm, cancel2Algorithm);
+        uponRejection(reader._closedPromise, (r) => {
+            ReadableStreamDefaultControllerError(branch1._readableStreamController, r);
+            ReadableStreamDefaultControllerError(branch2._readableStreamController, r);
+            if (!canceled1 || !canceled2) {
+                resolveCancelPromise(undefined);
+            }
+        });
+        return [branch1, branch2];
+    }
+    function ReadableByteStreamTee(stream) {
+        let reader = AcquireReadableStreamDefaultReader(stream);
+        let reading = false;
+        let readAgainForBranch1 = false;
+        let readAgainForBranch2 = false;
+        let canceled1 = false;
+        let canceled2 = false;
+        let reason1;
+        let reason2;
+        let branch1;
+        let branch2;
+        let resolveCancelPromise;
+        const cancelPromise = newPromise(resolve => {
+            resolveCancelPromise = resolve;
+        });
+        function forwardReaderError(thisReader) {
+            uponRejection(thisReader._closedPromise, r => {
+                if (thisReader !== reader) {
+                    return;
+                }
+                ReadableByteStreamControllerError(branch1._readableStreamController, r);
+                ReadableByteStreamControllerError(branch2._readableStreamController, r);
+                if (!canceled1 || !canceled2) {
+                    resolveCancelPromise(undefined);
+                }
+            });
+        }
+        function pullWithDefaultReader() {
+            if (IsReadableStreamBYOBReader(reader)) {
+                ReadableStreamReaderGenericRelease(reader);
+                reader = AcquireReadableStreamDefaultReader(stream);
+                forwardReaderError(reader);
+            }
+            const readRequest = {
+                _chunkSteps: chunk => {
+                    // This needs to be delayed a microtask because it takes at least a microtask to detect errors (using
+                    // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
+                    // successful synchronously-available reads get ahead of asynchronously-available errors.
+                    queueMicrotask(() => {
+                        readAgainForBranch1 = false;
+                        readAgainForBranch2 = false;
+                        const chunk1 = chunk;
+                        let chunk2 = chunk;
+                        if (!canceled1 && !canceled2) {
+                            try {
+                                chunk2 = CloneAsUint8Array(chunk);
+                            }
+                            catch (cloneE) {
+                                ReadableByteStreamControllerError(branch1._readableStreamController, cloneE);
+                                ReadableByteStreamControllerError(branch2._readableStreamController, cloneE);
+                                resolveCancelPromise(ReadableStreamCancel(stream, cloneE));
+                                return;
+                            }
+                        }
+                        if (!canceled1) {
+                            ReadableByteStreamControllerEnqueue(branch1._readableStreamController, chunk1);
+                        }
+                        if (!canceled2) {
+                            ReadableByteStreamControllerEnqueue(branch2._readableStreamController, chunk2);
+                        }
+                        reading = false;
+                        if (readAgainForBranch1) {
+                            pull1Algorithm();
+                        }
+                        else if (readAgainForBranch2) {
+                            pull2Algorithm();
+                        }
+                    });
+                },
+                _closeSteps: () => {
+                    reading = false;
+                    if (!canceled1) {
+                        ReadableByteStreamControllerClose(branch1._readableStreamController);
+                    }
+                    if (!canceled2) {
+                        ReadableByteStreamControllerClose(branch2._readableStreamController);
+                    }
+                    if (branch1._readableStreamController._pendingPullIntos.length > 0) {
+                        ReadableByteStreamControllerRespond(branch1._readableStreamController, 0);
+                    }
+                    if (branch2._readableStreamController._pendingPullIntos.length > 0) {
+                        ReadableByteStreamControllerRespond(branch2._readableStreamController, 0);
+                    }
+                    if (!canceled1 || !canceled2) {
+                        resolveCancelPromise(undefined);
+                    }
+                },
+                _errorSteps: () => {
+                    reading = false;
+                }
+            };
+            ReadableStreamDefaultReaderRead(reader, readRequest);
+        }
+        function pullWithBYOBReader(view, forBranch2) {
+            if (IsReadableStreamDefaultReader(reader)) {
+                ReadableStreamReaderGenericRelease(reader);
+                reader = AcquireReadableStreamBYOBReader(stream);
+                forwardReaderError(reader);
+            }
+            const byobBranch = forBranch2 ? branch2 : branch1;
+            const otherBranch = forBranch2 ? branch1 : branch2;
+            const readIntoRequest = {
+                _chunkSteps: chunk => {
+                    // This needs to be delayed a microtask because it takes at least a microtask to detect errors (using
+                    // reader._closedPromise below), and we want errors in stream to error both branches immediately. We cannot let
+                    // successful synchronously-available reads get ahead of asynchronously-available errors.
+                    queueMicrotask(() => {
+                        readAgainForBranch1 = false;
+                        readAgainForBranch2 = false;
+                        const byobCanceled = forBranch2 ? canceled2 : canceled1;
+                        const otherCanceled = forBranch2 ? canceled1 : canceled2;
+                        if (!otherCanceled) {
+                            let clonedChunk;
+                            try {
+                                clonedChunk = CloneAsUint8Array(chunk);
+                            }
+                            catch (cloneE) {
+                                ReadableByteStreamControllerError(byobBranch._readableStreamController, cloneE);
+                                ReadableByteStreamControllerError(otherBranch._readableStreamController, cloneE);
+                                resolveCancelPromise(ReadableStreamCancel(stream, cloneE));
+                                return;
+                            }
+                            if (!byobCanceled) {
+                                ReadableByteStreamControllerRespondWithNewView(byobBranch._readableStreamController, chunk);
+                            }
+                            ReadableByteStreamControllerEnqueue(otherBranch._readableStreamController, clonedChunk);
+                        }
+                        else if (!byobCanceled) {
+                            ReadableByteStreamControllerRespondWithNewView(byobBranch._readableStreamController, chunk);
+                        }
+                        reading = false;
+                        if (readAgainForBranch1) {
+                            pull1Algorithm();
+                        }
+                        else if (readAgainForBranch2) {
+                            pull2Algorithm();
+                        }
+                    });
+                },
+                _closeSteps: chunk => {
+                    reading = false;
+                    const byobCanceled = forBranch2 ? canceled2 : canceled1;
+                    const otherCanceled = forBranch2 ? canceled1 : canceled2;
+                    if (!byobCanceled) {
+                        ReadableByteStreamControllerClose(byobBranch._readableStreamController);
+                    }
+                    if (!otherCanceled) {
+                        ReadableByteStreamControllerClose(otherBranch._readableStreamController);
+                    }
+                    if (chunk !== undefined) {
+                        if (!byobCanceled) {
+                            ReadableByteStreamControllerRespondWithNewView(byobBranch._readableStreamController, chunk);
+                        }
+                        if (!otherCanceled && otherBranch._readableStreamController._pendingPullIntos.length > 0) {
+                            ReadableByteStreamControllerRespond(otherBranch._readableStreamController, 0);
+                        }
+                    }
+                    if (!byobCanceled || !otherCanceled) {
+                        resolveCancelPromise(undefined);
+                    }
+                },
+                _errorSteps: () => {
+                    reading = false;
+                }
+            };
+            ReadableStreamBYOBReaderRead(reader, view, readIntoRequest);
+        }
+        function pull1Algorithm() {
+            if (reading) {
+                readAgainForBranch1 = true;
+                return promiseResolvedWith(undefined);
+            }
+            reading = true;
+            const byobRequest = ReadableByteStreamControllerGetBYOBRequest(branch1._readableStreamController);
+            if (byobRequest === null) {
+                pullWithDefaultReader();
+            }
+            else {
+                pullWithBYOBReader(byobRequest._view, false);
+            }
+            return promiseResolvedWith(undefined);
+        }
+        function pull2Algorithm() {
+            if (reading) {
+                readAgainForBranch2 = true;
+                return promiseResolvedWith(undefined);
+            }
+            reading = true;
+            const byobRequest = ReadableByteStreamControllerGetBYOBRequest(branch2._readableStreamController);
+            if (byobRequest === null) {
+                pullWithDefaultReader();
+            }
+            else {
+                pullWithBYOBReader(byobRequest._view, true);
+            }
+            return promiseResolvedWith(undefined);
+        }
+        function cancel1Algorithm(reason) {
+            canceled1 = true;
+            reason1 = reason;
+            if (canceled2) {
+                const compositeReason = CreateArrayFromList([reason1, reason2]);
+                const cancelResult = ReadableStreamCancel(stream, compositeReason);
+                resolveCancelPromise(cancelResult);
+            }
+            return cancelPromise;
+        }
+        function cancel2Algorithm(reason) {
+            canceled2 = true;
+            reason2 = reason;
+            if (canceled1) {
+                const compositeReason = CreateArrayFromList([reason1, reason2]);
+                const cancelResult = ReadableStreamCancel(stream, compositeReason);
+                resolveCancelPromise(cancelResult);
+            }
+            return cancelPromise;
+        }
+        function startAlgorithm() {
+            return;
+        }
+        branch1 = CreateReadableByteStream(startAlgorithm, pull1Algorithm, cancel1Algorithm);
+        branch2 = CreateReadableByteStream(startAlgorithm, pull2Algorithm, cancel2Algorithm);
+        forwardReaderError(reader);
+        return [branch1, branch2];
+    }
+
+    function convertUnderlyingDefaultOrByteSource(source, context) {
+        assertDictionary(source, context);
+        const original = source;
+        const autoAllocateChunkSize = original === null || original === void 0 ? void 0 : original.autoAllocateChunkSize;
+        const cancel = original === null || original === void 0 ? void 0 : original.cancel;
+        const pull = original === null || original === void 0 ? void 0 : original.pull;
+        const start = original === null || original === void 0 ? void 0 : original.start;
+        const type = original === null || original === void 0 ? void 0 : original.type;
+        return {
+            autoAllocateChunkSize: autoAllocateChunkSize === undefined ?
+                undefined :
+                convertUnsignedLongLongWithEnforceRange(autoAllocateChunkSize, `${context} has member 'autoAllocateChunkSize' that`),
+            cancel: cancel === undefined ?
+                undefined :
+                convertUnderlyingSourceCancelCallback(cancel, original, `${context} has member 'cancel' that`),
+            pull: pull === undefined ?
+                undefined :
+                convertUnderlyingSourcePullCallback(pull, original, `${context} has member 'pull' that`),
+            start: start === undefined ?
+                undefined :
+                convertUnderlyingSourceStartCallback(start, original, `${context} has member 'start' that`),
+            type: type === undefined ? undefined : convertReadableStreamType(type, `${context} has member 'type' that`)
+        };
+    }
+    function convertUnderlyingSourceCancelCallback(fn, original, context) {
+        assertFunction(fn, context);
+        return (reason) => promiseCall(fn, original, [reason]);
+    }
+    function convertUnderlyingSourcePullCallback(fn, original, context) {
+        assertFunction(fn, context);
+        return (controller) => promiseCall(fn, original, [controller]);
+    }
+    function convertUnderlyingSourceStartCallback(fn, original, context) {
+        assertFunction(fn, context);
+        return (controller) => reflectCall(fn, original, [controller]);
+    }
+    function convertReadableStreamType(type, context) {
+        type = `${type}`;
+        if (type !== 'bytes') {
+            throw new TypeError(`${context} '${type}' is not a valid enumeration value for ReadableStreamType`);
+        }
+        return type;
+    }
+
+    function convertReaderOptions(options, context) {
+        assertDictionary(options, context);
+        const mode = options === null || options === void 0 ? void 0 : options.mode;
+        return {
+            mode: mode === undefined ? undefined : convertReadableStreamReaderMode(mode, `${context} has member 'mode' that`)
+        };
+    }
+    function convertReadableStreamReaderMode(mode, context) {
+        mode = `${mode}`;
+        if (mode !== 'byob') {
+            throw new TypeError(`${context} '${mode}' is not a valid enumeration value for ReadableStreamReaderMode`);
+        }
+        return mode;
+    }
+
+    function convertIteratorOptions(options, context) {
+        assertDictionary(options, context);
+        const preventCancel = options === null || options === void 0 ? void 0 : options.preventCancel;
+        return { preventCancel: Boolean(preventCancel) };
+    }
+
+    function convertPipeOptions(options, context) {
+        assertDictionary(options, context);
+        const preventAbort = options === null || options === void 0 ? void 0 : options.preventAbort;
+        const preventCancel = options === null || options === void 0 ? void 0 : options.preventCancel;
+        const preventClose = options === null || options === void 0 ? void 0 : options.preventClose;
+        const signal = options === null || options === void 0 ? void 0 : options.signal;
+        if (signal !== undefined) {
+            assertAbortSignal(signal, `${context} has member 'signal' that`);
+        }
+        return {
+            preventAbort: Boolean(preventAbort),
+            preventCancel: Boolean(preventCancel),
+            preventClose: Boolean(preventClose),
+            signal
+        };
+    }
+    function assertAbortSignal(signal, context) {
+        if (!isAbortSignal(signal)) {
+            throw new TypeError(`${context} is not an AbortSignal.`);
+        }
+    }
+
+    function convertReadableWritablePair(pair, context) {
+        assertDictionary(pair, context);
+        const readable = pair === null || pair === void 0 ? void 0 : pair.readable;
+        assertRequiredField(readable, 'readable', 'ReadableWritablePair');
+        assertReadableStream(readable, `${context} has member 'readable' that`);
+        const writable = pair === null || pair === void 0 ? void 0 : pair.writable;
+        assertRequiredField(writable, 'writable', 'ReadableWritablePair');
+        assertWritableStream(writable, `${context} has member 'writable' that`);
+        return { readable, writable };
+    }
+
+    /**
+     * A readable stream represents a source of data, from which you can read.
+     *
+     * @public
+     */
+    class ReadableStream {
+        constructor(rawUnderlyingSource = {}, rawStrategy = {}) {
+            if (rawUnderlyingSource === undefined) {
+                rawUnderlyingSource = null;
+            }
+            else {
+                assertObject(rawUnderlyingSource, 'First parameter');
+            }
+            const strategy = convertQueuingStrategy(rawStrategy, 'Second parameter');
+            const underlyingSource = convertUnderlyingDefaultOrByteSource(rawUnderlyingSource, 'First parameter');
+            InitializeReadableStream(this);
+            if (underlyingSource.type === 'bytes') {
+                if (strategy.size !== undefined) {
+                    throw new RangeError('The strategy for a byte stream cannot have a size function');
+                }
+                const highWaterMark = ExtractHighWaterMark(strategy, 0);
+                SetUpReadableByteStreamControllerFromUnderlyingSource(this, underlyingSource, highWaterMark);
+            }
+            else {
+                const sizeAlgorithm = ExtractSizeAlgorithm(strategy);
+                const highWaterMark = ExtractHighWaterMark(strategy, 1);
+                SetUpReadableStreamDefaultControllerFromUnderlyingSource(this, underlyingSource, highWaterMark, sizeAlgorithm);
+            }
+        }
+        /**
+         * Whether or not the readable stream is locked to a {@link ReadableStreamDefaultReader | reader}.
+         */
+        get locked() {
+            if (!IsReadableStream(this)) {
+                throw streamBrandCheckException$1('locked');
+            }
+            return IsReadableStreamLocked(this);
+        }
+        /**
+         * Cancels the stream, signaling a loss of interest in the stream by a consumer.
+         *
+         * The supplied `reason` argument will be given to the underlying source's {@link UnderlyingSource.cancel | cancel()}
+         * method, which might or might not use it.
+         */
+        cancel(reason = undefined) {
+            if (!IsReadableStream(this)) {
+                return promiseRejectedWith(streamBrandCheckException$1('cancel'));
+            }
+            if (IsReadableStreamLocked(this)) {
+                return promiseRejectedWith(new TypeError('Cannot cancel a stream that already has a reader'));
+            }
+            return ReadableStreamCancel(this, reason);
+        }
+        getReader(rawOptions = undefined) {
+            if (!IsReadableStream(this)) {
+                throw streamBrandCheckException$1('getReader');
+            }
+            const options = convertReaderOptions(rawOptions, 'First parameter');
+            if (options.mode === undefined) {
+                return AcquireReadableStreamDefaultReader(this);
+            }
+            return AcquireReadableStreamBYOBReader(this);
+        }
+        pipeThrough(rawTransform, rawOptions = {}) {
+            if (!IsReadableStream(this)) {
+                throw streamBrandCheckException$1('pipeThrough');
+            }
+            assertRequiredArgument(rawTransform, 1, 'pipeThrough');
+            const transform = convertReadableWritablePair(rawTransform, 'First parameter');
+            const options = convertPipeOptions(rawOptions, 'Second parameter');
+            if (IsReadableStreamLocked(this)) {
+                throw new TypeError('ReadableStream.prototype.pipeThrough cannot be used on a locked ReadableStream');
+            }
+            if (IsWritableStreamLocked(transform.writable)) {
+                throw new TypeError('ReadableStream.prototype.pipeThrough cannot be used on a locked WritableStream');
+            }
+            const promise = ReadableStreamPipeTo(this, transform.writable, options.preventClose, options.preventAbort, options.preventCancel, options.signal);
+            setPromiseIsHandledToTrue(promise);
+            return transform.readable;
+        }
+        pipeTo(destination, rawOptions = {}) {
+            if (!IsReadableStream(this)) {
+                return promiseRejectedWith(streamBrandCheckException$1('pipeTo'));
+            }
+            if (destination === undefined) {
+                return promiseRejectedWith(`Parameter 1 is required in 'pipeTo'.`);
+            }
+            if (!IsWritableStream(destination)) {
+                return promiseRejectedWith(new TypeError(`ReadableStream.prototype.pipeTo's first argument must be a WritableStream`));
+            }
+            let options;
+            try {
+                options = convertPipeOptions(rawOptions, 'Second parameter');
+            }
+            catch (e) {
+                return promiseRejectedWith(e);
+            }
+            if (IsReadableStreamLocked(this)) {
+                return promiseRejectedWith(new TypeError('ReadableStream.prototype.pipeTo cannot be used on a locked ReadableStream'));
+            }
+            if (IsWritableStreamLocked(destination)) {
+                return promiseRejectedWith(new TypeError('ReadableStream.prototype.pipeTo cannot be used on a locked WritableStream'));
+            }
+            return ReadableStreamPipeTo(this, destination, options.preventClose, options.preventAbort, options.preventCancel, options.signal);
+        }
+        /**
+         * Tees this readable stream, returning a two-element array containing the two resulting branches as
+         * new {@link ReadableStream} instances.
+         *
+         * Teeing a stream will lock it, preventing any other consumer from acquiring a reader.
+         * To cancel the stream, cancel both of the resulting branches; a composite cancellation reason will then be
+         * propagated to the stream's underlying source.
+         *
+         * Note that the chunks seen in each branch will be the same object. If the chunks are not immutable,
+         * this could allow interference between the two branches.
+         */
+        tee() {
+            if (!IsReadableStream(this)) {
+                throw streamBrandCheckException$1('tee');
+            }
+            const branches = ReadableStreamTee(this);
+            return CreateArrayFromList(branches);
+        }
+        values(rawOptions = undefined) {
+            if (!IsReadableStream(this)) {
+                throw streamBrandCheckException$1('values');
+            }
+            const options = convertIteratorOptions(rawOptions, 'First parameter');
+            return AcquireReadableStreamAsyncIterator(this, options.preventCancel);
+        }
+    }
+    Object.defineProperties(ReadableStream.prototype, {
+        cancel: { enumerable: true },
+        getReader: { enumerable: true },
+        pipeThrough: { enumerable: true },
+        pipeTo: { enumerable: true },
+        tee: { enumerable: true },
+        values: { enumerable: true },
+        locked: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(ReadableStream.prototype, SymbolPolyfill.toStringTag, {
+            value: 'ReadableStream',
+            configurable: true
+        });
+    }
+    if (typeof SymbolPolyfill.asyncIterator === 'symbol') {
+        Object.defineProperty(ReadableStream.prototype, SymbolPolyfill.asyncIterator, {
+            value: ReadableStream.prototype.values,
+            writable: true,
+            configurable: true
+        });
+    }
+    // Abstract operations for the ReadableStream.
+    // Throws if and only if startAlgorithm throws.
+    function CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark = 1, sizeAlgorithm = () => 1) {
+        const stream = Object.create(ReadableStream.prototype);
+        InitializeReadableStream(stream);
+        const controller = Object.create(ReadableStreamDefaultController.prototype);
+        SetUpReadableStreamDefaultController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, highWaterMark, sizeAlgorithm);
+        return stream;
+    }
+    // Throws if and only if startAlgorithm throws.
+    function CreateReadableByteStream(startAlgorithm, pullAlgorithm, cancelAlgorithm) {
+        const stream = Object.create(ReadableStream.prototype);
+        InitializeReadableStream(stream);
+        const controller = Object.create(ReadableByteStreamController.prototype);
+        SetUpReadableByteStreamController(stream, controller, startAlgorithm, pullAlgorithm, cancelAlgorithm, 0, undefined);
+        return stream;
+    }
+    function InitializeReadableStream(stream) {
+        stream._state = 'readable';
+        stream._reader = undefined;
+        stream._storedError = undefined;
+        stream._disturbed = false;
+    }
+    function IsReadableStream(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_readableStreamController')) {
+            return false;
+        }
+        return x instanceof ReadableStream;
+    }
+    function IsReadableStreamLocked(stream) {
+        if (stream._reader === undefined) {
+            return false;
+        }
+        return true;
+    }
+    // ReadableStream API exposed for controllers.
+    function ReadableStreamCancel(stream, reason) {
+        stream._disturbed = true;
+        if (stream._state === 'closed') {
+            return promiseResolvedWith(undefined);
+        }
+        if (stream._state === 'errored') {
+            return promiseRejectedWith(stream._storedError);
+        }
+        ReadableStreamClose(stream);
+        const reader = stream._reader;
+        if (reader !== undefined && IsReadableStreamBYOBReader(reader)) {
+            reader._readIntoRequests.forEach(readIntoRequest => {
+                readIntoRequest._closeSteps(undefined);
+            });
+            reader._readIntoRequests = new SimpleQueue();
+        }
+        const sourceCancelPromise = stream._readableStreamController[CancelSteps](reason);
+        return transformPromiseWith(sourceCancelPromise, noop);
+    }
+    function ReadableStreamClose(stream) {
+        stream._state = 'closed';
+        const reader = stream._reader;
+        if (reader === undefined) {
+            return;
+        }
+        defaultReaderClosedPromiseResolve(reader);
+        if (IsReadableStreamDefaultReader(reader)) {
+            reader._readRequests.forEach(readRequest => {
+                readRequest._closeSteps();
+            });
+            reader._readRequests = new SimpleQueue();
+        }
+    }
+    function ReadableStreamError(stream, e) {
+        stream._state = 'errored';
+        stream._storedError = e;
+        const reader = stream._reader;
+        if (reader === undefined) {
+            return;
+        }
+        defaultReaderClosedPromiseReject(reader, e);
+        if (IsReadableStreamDefaultReader(reader)) {
+            reader._readRequests.forEach(readRequest => {
+                readRequest._errorSteps(e);
+            });
+            reader._readRequests = new SimpleQueue();
+        }
+        else {
+            reader._readIntoRequests.forEach(readIntoRequest => {
+                readIntoRequest._errorSteps(e);
+            });
+            reader._readIntoRequests = new SimpleQueue();
+        }
+    }
+    // Helper functions for the ReadableStream.
+    function streamBrandCheckException$1(name) {
+        return new TypeError(`ReadableStream.prototype.${name} can only be used on a ReadableStream`);
+    }
+
+    function convertQueuingStrategyInit(init, context) {
+        assertDictionary(init, context);
+        const highWaterMark = init === null || init === void 0 ? void 0 : init.highWaterMark;
+        assertRequiredField(highWaterMark, 'highWaterMark', 'QueuingStrategyInit');
+        return {
+            highWaterMark: convertUnrestrictedDouble(highWaterMark)
+        };
+    }
+
+    // The size function must not have a prototype property nor be a constructor
+    const byteLengthSizeFunction = (chunk) => {
+        return chunk.byteLength;
+    };
+    try {
+        Object.defineProperty(byteLengthSizeFunction, 'name', {
+            value: 'size',
+            configurable: true
+        });
+    }
+    catch (_a) {
+        // This property is non-configurable in older browsers, so ignore if this throws.
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/name#browser_compatibility
+    }
+    /**
+     * A queuing strategy that counts the number of bytes in each chunk.
+     *
+     * @public
+     */
+    class ByteLengthQueuingStrategy {
+        constructor(options) {
+            assertRequiredArgument(options, 1, 'ByteLengthQueuingStrategy');
+            options = convertQueuingStrategyInit(options, 'First parameter');
+            this._byteLengthQueuingStrategyHighWaterMark = options.highWaterMark;
+        }
+        /**
+         * Returns the high water mark provided to the constructor.
+         */
+        get highWaterMark() {
+            if (!IsByteLengthQueuingStrategy(this)) {
+                throw byteLengthBrandCheckException('highWaterMark');
+            }
+            return this._byteLengthQueuingStrategyHighWaterMark;
+        }
+        /**
+         * Measures the size of `chunk` by returning the value of its `byteLength` property.
+         */
+        get size() {
+            if (!IsByteLengthQueuingStrategy(this)) {
+                throw byteLengthBrandCheckException('size');
+            }
+            return byteLengthSizeFunction;
+        }
+    }
+    Object.defineProperties(ByteLengthQueuingStrategy.prototype, {
+        highWaterMark: { enumerable: true },
+        size: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(ByteLengthQueuingStrategy.prototype, SymbolPolyfill.toStringTag, {
+            value: 'ByteLengthQueuingStrategy',
+            configurable: true
+        });
+    }
+    // Helper functions for the ByteLengthQueuingStrategy.
+    function byteLengthBrandCheckException(name) {
+        return new TypeError(`ByteLengthQueuingStrategy.prototype.${name} can only be used on a ByteLengthQueuingStrategy`);
+    }
+    function IsByteLengthQueuingStrategy(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_byteLengthQueuingStrategyHighWaterMark')) {
+            return false;
+        }
+        return x instanceof ByteLengthQueuingStrategy;
+    }
+
+    // The size function must not have a prototype property nor be a constructor
+    const countSizeFunction = () => {
+        return 1;
+    };
+    try {
+        Object.defineProperty(countSizeFunction, 'name', {
+            value: 'size',
+            configurable: true
+        });
+    }
+    catch (_a) {
+        // This property is non-configurable in older browsers, so ignore if this throws.
+        // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function/name#browser_compatibility
+    }
+    /**
+     * A queuing strategy that counts the number of chunks.
+     *
+     * @public
+     */
+    class CountQueuingStrategy {
+        constructor(options) {
+            assertRequiredArgument(options, 1, 'CountQueuingStrategy');
+            options = convertQueuingStrategyInit(options, 'First parameter');
+            this._countQueuingStrategyHighWaterMark = options.highWaterMark;
+        }
+        /**
+         * Returns the high water mark provided to the constructor.
+         */
+        get highWaterMark() {
+            if (!IsCountQueuingStrategy(this)) {
+                throw countBrandCheckException('highWaterMark');
+            }
+            return this._countQueuingStrategyHighWaterMark;
+        }
+        /**
+         * Measures the size of `chunk` by always returning 1.
+         * This ensures that the total queue size is a count of the number of chunks in the queue.
+         */
+        get size() {
+            if (!IsCountQueuingStrategy(this)) {
+                throw countBrandCheckException('size');
+            }
+            return countSizeFunction;
+        }
+    }
+    Object.defineProperties(CountQueuingStrategy.prototype, {
+        highWaterMark: { enumerable: true },
+        size: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(CountQueuingStrategy.prototype, SymbolPolyfill.toStringTag, {
+            value: 'CountQueuingStrategy',
+            configurable: true
+        });
+    }
+    // Helper functions for the CountQueuingStrategy.
+    function countBrandCheckException(name) {
+        return new TypeError(`CountQueuingStrategy.prototype.${name} can only be used on a CountQueuingStrategy`);
+    }
+    function IsCountQueuingStrategy(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_countQueuingStrategyHighWaterMark')) {
+            return false;
+        }
+        return x instanceof CountQueuingStrategy;
+    }
+
+    function convertTransformer(original, context) {
+        assertDictionary(original, context);
+        const flush = original === null || original === void 0 ? void 0 : original.flush;
+        const readableType = original === null || original === void 0 ? void 0 : original.readableType;
+        const start = original === null || original === void 0 ? void 0 : original.start;
+        const transform = original === null || original === void 0 ? void 0 : original.transform;
+        const writableType = original === null || original === void 0 ? void 0 : original.writableType;
+        return {
+            flush: flush === undefined ?
+                undefined :
+                convertTransformerFlushCallback(flush, original, `${context} has member 'flush' that`),
+            readableType,
+            start: start === undefined ?
+                undefined :
+                convertTransformerStartCallback(start, original, `${context} has member 'start' that`),
+            transform: transform === undefined ?
+                undefined :
+                convertTransformerTransformCallback(transform, original, `${context} has member 'transform' that`),
+            writableType
+        };
+    }
+    function convertTransformerFlushCallback(fn, original, context) {
+        assertFunction(fn, context);
+        return (controller) => promiseCall(fn, original, [controller]);
+    }
+    function convertTransformerStartCallback(fn, original, context) {
+        assertFunction(fn, context);
+        return (controller) => reflectCall(fn, original, [controller]);
+    }
+    function convertTransformerTransformCallback(fn, original, context) {
+        assertFunction(fn, context);
+        return (chunk, controller) => promiseCall(fn, original, [chunk, controller]);
+    }
+
+    // Class TransformStream
+    /**
+     * A transform stream consists of a pair of streams: a {@link WritableStream | writable stream},
+     * known as its writable side, and a {@link ReadableStream | readable stream}, known as its readable side.
+     * In a manner specific to the transform stream in question, writes to the writable side result in new data being
+     * made available for reading from the readable side.
+     *
+     * @public
+     */
+    class TransformStream {
+        constructor(rawTransformer = {}, rawWritableStrategy = {}, rawReadableStrategy = {}) {
+            if (rawTransformer === undefined) {
+                rawTransformer = null;
+            }
+            const writableStrategy = convertQueuingStrategy(rawWritableStrategy, 'Second parameter');
+            const readableStrategy = convertQueuingStrategy(rawReadableStrategy, 'Third parameter');
+            const transformer = convertTransformer(rawTransformer, 'First parameter');
+            if (transformer.readableType !== undefined) {
+                throw new RangeError('Invalid readableType specified');
+            }
+            if (transformer.writableType !== undefined) {
+                throw new RangeError('Invalid writableType specified');
+            }
+            const readableHighWaterMark = ExtractHighWaterMark(readableStrategy, 0);
+            const readableSizeAlgorithm = ExtractSizeAlgorithm(readableStrategy);
+            const writableHighWaterMark = ExtractHighWaterMark(writableStrategy, 1);
+            const writableSizeAlgorithm = ExtractSizeAlgorithm(writableStrategy);
+            let startPromise_resolve;
+            const startPromise = newPromise(resolve => {
+                startPromise_resolve = resolve;
+            });
+            InitializeTransformStream(this, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark, readableSizeAlgorithm);
+            SetUpTransformStreamDefaultControllerFromTransformer(this, transformer);
+            if (transformer.start !== undefined) {
+                startPromise_resolve(transformer.start(this._transformStreamController));
+            }
+            else {
+                startPromise_resolve(undefined);
+            }
+        }
+        /**
+         * The readable side of the transform stream.
+         */
+        get readable() {
+            if (!IsTransformStream(this)) {
+                throw streamBrandCheckException('readable');
+            }
+            return this._readable;
+        }
+        /**
+         * The writable side of the transform stream.
+         */
+        get writable() {
+            if (!IsTransformStream(this)) {
+                throw streamBrandCheckException('writable');
+            }
+            return this._writable;
+        }
+    }
+    Object.defineProperties(TransformStream.prototype, {
+        readable: { enumerable: true },
+        writable: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(TransformStream.prototype, SymbolPolyfill.toStringTag, {
+            value: 'TransformStream',
+            configurable: true
+        });
+    }
+    function InitializeTransformStream(stream, startPromise, writableHighWaterMark, writableSizeAlgorithm, readableHighWaterMark, readableSizeAlgorithm) {
+        function startAlgorithm() {
+            return startPromise;
+        }
+        function writeAlgorithm(chunk) {
+            return TransformStreamDefaultSinkWriteAlgorithm(stream, chunk);
+        }
+        function abortAlgorithm(reason) {
+            return TransformStreamDefaultSinkAbortAlgorithm(stream, reason);
+        }
+        function closeAlgorithm() {
+            return TransformStreamDefaultSinkCloseAlgorithm(stream);
+        }
+        stream._writable = CreateWritableStream(startAlgorithm, writeAlgorithm, closeAlgorithm, abortAlgorithm, writableHighWaterMark, writableSizeAlgorithm);
+        function pullAlgorithm() {
+            return TransformStreamDefaultSourcePullAlgorithm(stream);
+        }
+        function cancelAlgorithm(reason) {
+            TransformStreamErrorWritableAndUnblockWrite(stream, reason);
+            return promiseResolvedWith(undefined);
+        }
+        stream._readable = CreateReadableStream(startAlgorithm, pullAlgorithm, cancelAlgorithm, readableHighWaterMark, readableSizeAlgorithm);
+        // The [[backpressure]] slot is set to undefined so that it can be initialised by TransformStreamSetBackpressure.
+        stream._backpressure = undefined;
+        stream._backpressureChangePromise = undefined;
+        stream._backpressureChangePromise_resolve = undefined;
+        TransformStreamSetBackpressure(stream, true);
+        stream._transformStreamController = undefined;
+    }
+    function IsTransformStream(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_transformStreamController')) {
+            return false;
+        }
+        return x instanceof TransformStream;
+    }
+    // This is a no-op if both sides are already errored.
+    function TransformStreamError(stream, e) {
+        ReadableStreamDefaultControllerError(stream._readable._readableStreamController, e);
+        TransformStreamErrorWritableAndUnblockWrite(stream, e);
+    }
+    function TransformStreamErrorWritableAndUnblockWrite(stream, e) {
+        TransformStreamDefaultControllerClearAlgorithms(stream._transformStreamController);
+        WritableStreamDefaultControllerErrorIfNeeded(stream._writable._writableStreamController, e);
+        if (stream._backpressure) {
+            // Pretend that pull() was called to permit any pending write() calls to complete. TransformStreamSetBackpressure()
+            // cannot be called from enqueue() or pull() once the ReadableStream is errored, so this will will be the final time
+            // _backpressure is set.
+            TransformStreamSetBackpressure(stream, false);
+        }
+    }
+    function TransformStreamSetBackpressure(stream, backpressure) {
+        // Passes also when called during construction.
+        if (stream._backpressureChangePromise !== undefined) {
+            stream._backpressureChangePromise_resolve();
+        }
+        stream._backpressureChangePromise = newPromise(resolve => {
+            stream._backpressureChangePromise_resolve = resolve;
+        });
+        stream._backpressure = backpressure;
+    }
+    // Class TransformStreamDefaultController
+    /**
+     * Allows control of the {@link ReadableStream} and {@link WritableStream} of the associated {@link TransformStream}.
+     *
+     * @public
+     */
+    class TransformStreamDefaultController {
+        constructor() {
+            throw new TypeError('Illegal constructor');
+        }
+        /**
+         * Returns the desired size to fill the readable side’s internal queue. It can be negative, if the queue is over-full.
+         */
+        get desiredSize() {
+            if (!IsTransformStreamDefaultController(this)) {
+                throw defaultControllerBrandCheckException('desiredSize');
+            }
+            const readableController = this._controlledTransformStream._readable._readableStreamController;
+            return ReadableStreamDefaultControllerGetDesiredSize(readableController);
+        }
+        enqueue(chunk = undefined) {
+            if (!IsTransformStreamDefaultController(this)) {
+                throw defaultControllerBrandCheckException('enqueue');
+            }
+            TransformStreamDefaultControllerEnqueue(this, chunk);
+        }
+        /**
+         * Errors both the readable side and the writable side of the controlled transform stream, making all future
+         * interactions with it fail with the given error `e`. Any chunks queued for transformation will be discarded.
+         */
+        error(reason = undefined) {
+            if (!IsTransformStreamDefaultController(this)) {
+                throw defaultControllerBrandCheckException('error');
+            }
+            TransformStreamDefaultControllerError(this, reason);
+        }
+        /**
+         * Closes the readable side and errors the writable side of the controlled transform stream. This is useful when the
+         * transformer only needs to consume a portion of the chunks written to the writable side.
+         */
+        terminate() {
+            if (!IsTransformStreamDefaultController(this)) {
+                throw defaultControllerBrandCheckException('terminate');
+            }
+            TransformStreamDefaultControllerTerminate(this);
+        }
+    }
+    Object.defineProperties(TransformStreamDefaultController.prototype, {
+        enqueue: { enumerable: true },
+        error: { enumerable: true },
+        terminate: { enumerable: true },
+        desiredSize: { enumerable: true }
+    });
+    if (typeof SymbolPolyfill.toStringTag === 'symbol') {
+        Object.defineProperty(TransformStreamDefaultController.prototype, SymbolPolyfill.toStringTag, {
+            value: 'TransformStreamDefaultController',
+            configurable: true
+        });
+    }
+    // Transform Stream Default Controller Abstract Operations
+    function IsTransformStreamDefaultController(x) {
+        if (!typeIsObject(x)) {
+            return false;
+        }
+        if (!Object.prototype.hasOwnProperty.call(x, '_controlledTransformStream')) {
+            return false;
+        }
+        return x instanceof TransformStreamDefaultController;
+    }
+    function SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm) {
+        controller._controlledTransformStream = stream;
+        stream._transformStreamController = controller;
+        controller._transformAlgorithm = transformAlgorithm;
+        controller._flushAlgorithm = flushAlgorithm;
+    }
+    function SetUpTransformStreamDefaultControllerFromTransformer(stream, transformer) {
+        const controller = Object.create(TransformStreamDefaultController.prototype);
+        let transformAlgorithm = (chunk) => {
+            try {
+                TransformStreamDefaultControllerEnqueue(controller, chunk);
+                return promiseResolvedWith(undefined);
+            }
+            catch (transformResultE) {
+                return promiseRejectedWith(transformResultE);
+            }
+        };
+        let flushAlgorithm = () => promiseResolvedWith(undefined);
+        if (transformer.transform !== undefined) {
+            transformAlgorithm = chunk => transformer.transform(chunk, controller);
+        }
+        if (transformer.flush !== undefined) {
+            flushAlgorithm = () => transformer.flush(controller);
+        }
+        SetUpTransformStreamDefaultController(stream, controller, transformAlgorithm, flushAlgorithm);
+    }
+    function TransformStreamDefaultControllerClearAlgorithms(controller) {
+        controller._transformAlgorithm = undefined;
+        controller._flushAlgorithm = undefined;
+    }
+    function TransformStreamDefaultControllerEnqueue(controller, chunk) {
+        const stream = controller._controlledTransformStream;
+        const readableController = stream._readable._readableStreamController;
+        if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(readableController)) {
+            throw new TypeError('Readable side is not in a state that permits enqueue');
+        }
+        // We throttle transform invocations based on the backpressure of the ReadableStream, but we still
+        // accept TransformStreamDefaultControllerEnqueue() calls.
+        try {
+            ReadableStreamDefaultControllerEnqueue(readableController, chunk);
+        }
+        catch (e) {
+            // This happens when readableStrategy.size() throws.
+            TransformStreamErrorWritableAndUnblockWrite(stream, e);
+            throw stream._readable._storedError;
+        }
+        const backpressure = ReadableStreamDefaultControllerHasBackpressure(readableController);
+        if (backpressure !== stream._backpressure) {
+            TransformStreamSetBackpressure(stream, true);
+        }
+    }
+    function TransformStreamDefaultControllerError(controller, e) {
+        TransformStreamError(controller._controlledTransformStream, e);
+    }
+    function TransformStreamDefaultControllerPerformTransform(controller, chunk) {
+        const transformPromise = controller._transformAlgorithm(chunk);
+        return transformPromiseWith(transformPromise, undefined, r => {
+            TransformStreamError(controller._controlledTransformStream, r);
+            throw r;
+        });
+    }
+    function TransformStreamDefaultControllerTerminate(controller) {
+        const stream = controller._controlledTransformStream;
+        const readableController = stream._readable._readableStreamController;
+        ReadableStreamDefaultControllerClose(readableController);
+        const error = new TypeError('TransformStream terminated');
+        TransformStreamErrorWritableAndUnblockWrite(stream, error);
+    }
+    // TransformStreamDefaultSink Algorithms
+    function TransformStreamDefaultSinkWriteAlgorithm(stream, chunk) {
+        const controller = stream._transformStreamController;
+        if (stream._backpressure) {
+            const backpressureChangePromise = stream._backpressureChangePromise;
+            return transformPromiseWith(backpressureChangePromise, () => {
+                const writable = stream._writable;
+                const state = writable._state;
+                if (state === 'erroring') {
+                    throw writable._storedError;
+                }
+                return TransformStreamDefaultControllerPerformTransform(controller, chunk);
+            });
+        }
+        return TransformStreamDefaultControllerPerformTransform(controller, chunk);
+    }
+    function TransformStreamDefaultSinkAbortAlgorithm(stream, reason) {
+        // abort() is not called synchronously, so it is possible for abort() to be called when the stream is already
+        // errored.
+        TransformStreamError(stream, reason);
+        return promiseResolvedWith(undefined);
+    }
+    function TransformStreamDefaultSinkCloseAlgorithm(stream) {
+        // stream._readable cannot change after construction, so caching it across a call to user code is safe.
+        const readable = stream._readable;
+        const controller = stream._transformStreamController;
+        const flushPromise = controller._flushAlgorithm();
+        TransformStreamDefaultControllerClearAlgorithms(controller);
+        // Return a promise that is fulfilled with undefined on success.
+        return transformPromiseWith(flushPromise, () => {
+            if (readable._state === 'errored') {
+                throw readable._storedError;
+            }
+            ReadableStreamDefaultControllerClose(readable._readableStreamController);
+        }, r => {
+            TransformStreamError(stream, r);
+            throw readable._storedError;
+        });
+    }
+    // TransformStreamDefaultSource Algorithms
+    function TransformStreamDefaultSourcePullAlgorithm(stream) {
+        // Invariant. Enforced by the promises returned by start() and pull().
+        TransformStreamSetBackpressure(stream, false);
+        // Prevent the next pull() call until there is backpressure.
+        return stream._backpressureChangePromise;
+    }
+    // Helper functions for the TransformStreamDefaultController.
+    function defaultControllerBrandCheckException(name) {
+        return new TypeError(`TransformStreamDefaultController.prototype.${name} can only be used on a TransformStreamDefaultController`);
+    }
+    // Helper functions for the TransformStream.
+    function streamBrandCheckException(name) {
+        return new TypeError(`TransformStream.prototype.${name} can only be used on a TransformStream`);
+    }
+
+    exports.ByteLengthQueuingStrategy = ByteLengthQueuingStrategy;
+    exports.CountQueuingStrategy = CountQueuingStrategy;
+    exports.ReadableByteStreamController = ReadableByteStreamController;
+    exports.ReadableStream = ReadableStream;
+    exports.ReadableStreamBYOBReader = ReadableStreamBYOBReader;
+    exports.ReadableStreamBYOBRequest = ReadableStreamBYOBRequest;
+    exports.ReadableStreamDefaultController = ReadableStreamDefaultController;
+    exports.ReadableStreamDefaultReader = ReadableStreamDefaultReader;
+    exports.TransformStream = TransformStream;
+    exports.TransformStreamDefaultController = TransformStreamDefaultController;
+    exports.WritableStream = WritableStream;
+    exports.WritableStreamDefaultController = WritableStreamDefaultController;
+    exports.WritableStreamDefaultWriter = WritableStreamDefaultWriter;
+
+    Object.defineProperty(exports, '__esModule', { value: true });
+
+})));
+//# sourceMappingURL=ponyfill.es2018.js.map
+
+
+/***/ }),
+/* 29 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("buffer");
+
+/***/ }),
+/* 30 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   File: () => (/* binding */ File),
+/* harmony export */   FormData: () => (/* binding */ FormData),
+/* harmony export */   formDataToBlob: () => (/* binding */ formDataToBlob)
+/* harmony export */ });
+/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(24);
+/* harmony import */ var fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(31);
+/*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
+
+
+
+
+var {toStringTag:t,iterator:i,hasInstance:h}=Symbol,
+r=Math.random,
+m='append,set,get,getAll,delete,keys,values,entries,forEach,constructor'.split(','),
+f=(a,b,c)=>(a+='',/^(Blob|File)$/.test(b && b[t])?[(c=c!==void 0?c+'':b[t]=='File'?b.name:'blob',a),b.name!==c||b[t]=='blob'?new fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__["default"]([b],c,b):b]:[a,b+'']),
+e=(c,f)=>(f?c:c.replace(/\r?\n|\r/g,'\r\n')).replace(/\n/g,'%0A').replace(/\r/g,'%0D').replace(/"/g,'%22'),
+x=(n, a, e)=>{if(a.length<e){throw new TypeError(`Failed to execute '${n}' on 'FormData': ${e} arguments required, but only ${a.length} present.`)}}
+
+const File = fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__["default"]
+
+/** @type {typeof globalThis.FormData} */
+const FormData = class FormData {
+#d=[];
+constructor(...a){if(a.length)throw new TypeError(`Failed to construct 'FormData': parameter 1 is not of type 'HTMLFormElement'.`)}
+get [t]() {return 'FormData'}
+[i](){return this.entries()}
+static [h](o) {return o&&typeof o==='object'&&o[t]==='FormData'&&!m.some(m=>typeof o[m]!='function')}
+append(...a){x('append',arguments,2);this.#d.push(f(...a))}
+delete(a){x('delete',arguments,1);a+='';this.#d=this.#d.filter(([b])=>b!==a)}
+get(a){x('get',arguments,1);a+='';for(var b=this.#d,l=b.length,c=0;c<l;c++)if(b[c][0]===a)return b[c][1];return null}
+getAll(a,b){x('getAll',arguments,1);b=[];a+='';this.#d.forEach(c=>c[0]===a&&b.push(c[1]));return b}
+has(a){x('has',arguments,1);a+='';return this.#d.some(b=>b[0]===a)}
+forEach(a,b){x('forEach',arguments,1);for(var [c,d]of this)a.call(b,d,c,this)}
+set(...a){x('set',arguments,2);var b=[],c=!0;a=f(...a);this.#d.forEach(d=>{d[0]===a[0]?c&&(c=!b.push(a)):b.push(d)});c&&b.push(a);this.#d=b}
+*entries(){yield*this.#d}
+*keys(){for(var[a]of this)yield a}
+*values(){for(var[,a]of this)yield a}}
+
+/** @param {FormData} F */
+function formDataToBlob (F,B=fetch_blob__WEBPACK_IMPORTED_MODULE_0__["default"]){
+var b=`${r()}${r()}`.replace(/\./g, '').slice(-28).padStart(32, '-'),c=[],p=`--${b}\r\nContent-Disposition: form-data; name="`
+F.forEach((v,n)=>typeof v=='string'
+?c.push(p+e(n)+`"\r\n\r\n${v.replace(/\r(?!\n)|(?<!\r)\n/g, '\r\n')}\r\n`)
+:c.push(p+e(n)+`"; filename="${e(v.name, 1)}"\r\nContent-Type: ${v.type||"application/octet-stream"}\r\n\r\n`, v, '\r\n'))
+c.push(`--${b}--`)
+return new B(c,{type:"multipart/form-data; boundary="+b})}
+
+
+/***/ }),
+/* 31 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   File: () => (/* binding */ File),
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
+/* harmony export */ });
+/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(24);
+
+
+const _File = class File extends _index_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
+  #lastModified = 0
+  #name = ''
+
+  /**
+   * @param {*[]} fileBits
+   * @param {string} fileName
+   * @param {{lastModified?: number, type?: string}} options
+   */// @ts-ignore
+  constructor (fileBits, fileName, options = {}) {
+    if (arguments.length < 2) {
+      throw new TypeError(`Failed to construct 'File': 2 arguments required, but only ${arguments.length} present.`)
+    }
+    super(fileBits, options)
+
+    if (options === null) options = {}
+
+    // Simulate WebIDL type casting for NaN value in lastModified option.
+    const lastModified = options.lastModified === undefined ? Date.now() : Number(options.lastModified)
+    if (!Number.isNaN(lastModified)) {
+      this.#lastModified = lastModified
+    }
+
+    this.#name = String(fileName)
+  }
+
+  get name () {
+    return this.#name
+  }
+
+  get lastModified () {
+    return this.#lastModified
+  }
+
+  get [Symbol.toStringTag] () {
+    return 'File'
+  }
+
+  static [Symbol.hasInstance] (object) {
+    return !!object && object instanceof _index_js__WEBPACK_IMPORTED_MODULE_0__["default"] &&
+      /^(File)$/.test(object[Symbol.toStringTag])
+  }
+}
+
+/** @type {typeof globalThis.File} */// @ts-ignore
+const File = _File
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (File);
+
+
+/***/ }),
+/* 32 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   FetchError: () => (/* binding */ FetchError)
+/* harmony export */ });
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(33);
+
+
+
+/**
+ * @typedef {{ address?: string, code: string, dest?: string, errno: number, info?: object, message: string, path?: string, port?: number, syscall: string}} SystemError
+*/
+
+/**
+ * FetchError interface for operational errors
+ */
+class FetchError extends _base_js__WEBPACK_IMPORTED_MODULE_0__.FetchBaseError {
+	/**
+	 * @param  {string} message -      Error message for human
+	 * @param  {string} [type] -        Error type for machine
+	 * @param  {SystemError} [systemError] - For Node.js system error
+	 */
+	constructor(message, type, systemError) {
+		super(message, type);
+		// When err.type is `system`, err.erroredSysCall contains system error and err.code contains system error code
+		if (systemError) {
+			// eslint-disable-next-line no-multi-assign
+			this.code = this.errno = systemError.code;
+			this.erroredSysCall = systemError.syscall;
+		}
+	}
+}
+
+
+/***/ }),
+/* 33 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   FetchBaseError: () => (/* binding */ FetchBaseError)
+/* harmony export */ });
+class FetchBaseError extends Error {
+	constructor(message, type) {
+		super(message);
+		// Hide custom error implementation details from end-users
+		Error.captureStackTrace(this, this.constructor);
+
+		this.type = type;
+	}
+
+	get name() {
+		return this.constructor.name;
+	}
+
+	get [Symbol.toStringTag]() {
+		return this.constructor.name;
+	}
+}
+
+
+/***/ }),
+/* 34 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   isAbortSignal: () => (/* binding */ isAbortSignal),
+/* harmony export */   isBlob: () => (/* binding */ isBlob),
+/* harmony export */   isDomainOrSubdomain: () => (/* binding */ isDomainOrSubdomain),
+/* harmony export */   isSameProtocol: () => (/* binding */ isSameProtocol),
+/* harmony export */   isURLSearchParameters: () => (/* binding */ isURLSearchParameters)
+/* harmony export */ });
+/**
+ * Is.js
+ *
+ * Object type checks.
+ */
+
+const NAME = Symbol.toStringTag;
+
+/**
+ * Check if `obj` is a URLSearchParams object
+ * ref: https://github.com/node-fetch/node-fetch/issues/296#issuecomment-307598143
+ * @param {*} object - Object to check for
+ * @return {boolean}
+ */
+const isURLSearchParameters = object => {
+	return (
+		typeof object === 'object' &&
+		typeof object.append === 'function' &&
+		typeof object.delete === 'function' &&
+		typeof object.get === 'function' &&
+		typeof object.getAll === 'function' &&
+		typeof object.has === 'function' &&
+		typeof object.set === 'function' &&
+		typeof object.sort === 'function' &&
+		object[NAME] === 'URLSearchParams'
+	);
+};
+
+/**
+ * Check if `object` is a W3C `Blob` object (which `File` inherits from)
+ * @param {*} object - Object to check for
+ * @return {boolean}
+ */
+const isBlob = object => {
+	return (
+		object &&
+		typeof object === 'object' &&
+		typeof object.arrayBuffer === 'function' &&
+		typeof object.type === 'string' &&
+		typeof object.stream === 'function' &&
+		typeof object.constructor === 'function' &&
+		/^(Blob|File)$/.test(object[NAME])
+	);
+};
+
+/**
+ * Check if `obj` is an instance of AbortSignal.
+ * @param {*} object - Object to check for
+ * @return {boolean}
+ */
+const isAbortSignal = object => {
+	return (
+		typeof object === 'object' && (
+			object[NAME] === 'AbortSignal' ||
+			object[NAME] === 'EventTarget'
+		)
+	);
+};
+
+/**
+ * isDomainOrSubdomain reports whether sub is a subdomain (or exact match) of
+ * the parent domain.
+ *
+ * Both domains must already be in canonical form.
+ * @param {string|URL} original
+ * @param {string|URL} destination
+ */
+const isDomainOrSubdomain = (destination, original) => {
+	const orig = new URL(original).hostname;
+	const dest = new URL(destination).hostname;
+
+	return orig === dest || orig.endsWith(`.${dest}`);
+};
+
+/**
+ * isSameProtocol reports whether the two provided URLs use the same protocol.
+ *
+ * Both domains must already be in canonical form.
+ * @param {string|URL} original
+ * @param {string|URL} destination
+ */
+const isSameProtocol = (destination, original) => {
+	const orig = new URL(original).protocol;
+	const dest = new URL(destination).protocol;
+
+	return orig === dest;
+};
+
+
+/***/ }),
+/* 35 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ Response)
+/* harmony export */ });
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(36);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(22);
+/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(37);
+/**
+ * Response.js
+ *
+ * Response class provides content decoding
+ */
+
+
+
+
+
+const INTERNALS = Symbol('Response internals');
+
+/**
+ * Response class
+ *
+ * Ref: https://fetch.spec.whatwg.org/#response-class
+ *
+ * @param   Stream  body  Readable stream
+ * @param   Object  opts  Response options
+ * @return  Void
+ */
+class Response extends _body_js__WEBPACK_IMPORTED_MODULE_1__["default"] {
+	constructor(body = null, options = {}) {
+		super(body, options);
+
+		// eslint-disable-next-line no-eq-null, eqeqeq, no-negated-condition
+		const status = options.status != null ? options.status : 200;
+
+		const headers = new _headers_js__WEBPACK_IMPORTED_MODULE_0__["default"](options.headers);
+
+		if (body !== null && !headers.has('Content-Type')) {
+			const contentType = (0,_body_js__WEBPACK_IMPORTED_MODULE_1__.extractContentType)(body, this);
+			if (contentType) {
+				headers.append('Content-Type', contentType);
+			}
+		}
+
+		this[INTERNALS] = {
+			type: 'default',
+			url: options.url,
+			status,
+			statusText: options.statusText || '',
+			headers,
+			counter: options.counter,
+			highWaterMark: options.highWaterMark
+		};
+	}
+
+	get type() {
+		return this[INTERNALS].type;
+	}
+
+	get url() {
+		return this[INTERNALS].url || '';
+	}
+
+	get status() {
+		return this[INTERNALS].status;
+	}
+
+	/**
+	 * Convenience property representing if the request ended normally
+	 */
+	get ok() {
+		return this[INTERNALS].status >= 200 && this[INTERNALS].status < 300;
+	}
+
+	get redirected() {
+		return this[INTERNALS].counter > 0;
+	}
+
+	get statusText() {
+		return this[INTERNALS].statusText;
+	}
+
+	get headers() {
+		return this[INTERNALS].headers;
+	}
+
+	get highWaterMark() {
+		return this[INTERNALS].highWaterMark;
+	}
+
+	/**
+	 * Clone this response
+	 *
+	 * @return  Response
+	 */
+	clone() {
+		return new Response((0,_body_js__WEBPACK_IMPORTED_MODULE_1__.clone)(this, this.highWaterMark), {
+			type: this.type,
+			url: this.url,
+			status: this.status,
+			statusText: this.statusText,
+			headers: this.headers,
+			ok: this.ok,
+			redirected: this.redirected,
+			size: this.size,
+			highWaterMark: this.highWaterMark
+		});
+	}
+
+	/**
+	 * @param {string} url    The URL that the new response is to originate from.
+	 * @param {number} status An optional status code for the response (e.g., 302.)
+	 * @returns {Response}    A Response object.
+	 */
+	static redirect(url, status = 302) {
+		if (!(0,_utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_2__.isRedirect)(status)) {
+			throw new RangeError('Failed to execute "redirect" on "response": Invalid status code');
+		}
+
+		return new Response(null, {
+			headers: {
+				location: new URL(url).toString()
+			},
+			status
+		});
+	}
+
+	static error() {
+		const response = new Response(null, {status: 0, statusText: ''});
+		response[INTERNALS].type = 'error';
+		return response;
+	}
+
+	static json(data = undefined, init = {}) {
+		const body = JSON.stringify(data);
+
+		if (body === undefined) {
+			throw new TypeError('data is not JSON serializable');
+		}
+
+		const headers = new _headers_js__WEBPACK_IMPORTED_MODULE_0__["default"](init && init.headers);
+
+		if (!headers.has('content-type')) {
+			headers.set('content-type', 'application/json');
+		}
+
+		return new Response(body, {
+			...init,
+			headers
+		});
+	}
+
+	get [Symbol.toStringTag]() {
+		return 'Response';
+	}
+}
+
+Object.defineProperties(Response.prototype, {
+	type: {enumerable: true},
+	url: {enumerable: true},
+	status: {enumerable: true},
+	ok: {enumerable: true},
+	redirected: {enumerable: true},
+	statusText: {enumerable: true},
+	headers: {enumerable: true},
+	clone: {enumerable: true}
+});
+
+
+/***/ }),
+/* 36 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ Headers),
+/* harmony export */   fromRawHeaders: () => (/* binding */ fromRawHeaders)
+/* harmony export */ });
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(23);
+/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(16);
+/**
+ * Headers.js
+ *
+ * Headers class offers convenient helpers
+ */
+
+
+
+
+/* c8 ignore next 9 */
+const validateHeaderName = typeof node_http__WEBPACK_IMPORTED_MODULE_1__.validateHeaderName === 'function' ?
+	node_http__WEBPACK_IMPORTED_MODULE_1__.validateHeaderName :
+	name => {
+		if (!/^[\^`\-\w!#$%&'*+.|~]+$/.test(name)) {
+			const error = new TypeError(`Header name must be a valid HTTP token [${name}]`);
+			Object.defineProperty(error, 'code', {value: 'ERR_INVALID_HTTP_TOKEN'});
+			throw error;
+		}
+	};
+
+/* c8 ignore next 9 */
+const validateHeaderValue = typeof node_http__WEBPACK_IMPORTED_MODULE_1__.validateHeaderValue === 'function' ?
+	node_http__WEBPACK_IMPORTED_MODULE_1__.validateHeaderValue :
+	(name, value) => {
+		if (/[^\t\u0020-\u007E\u0080-\u00FF]/.test(value)) {
+			const error = new TypeError(`Invalid character in header content ["${name}"]`);
+			Object.defineProperty(error, 'code', {value: 'ERR_INVALID_CHAR'});
+			throw error;
+		}
+	};
+
+/**
+ * @typedef {Headers | Record<string, string> | Iterable<readonly [string, string]> | Iterable<Iterable<string>>} HeadersInit
+ */
+
+/**
+ * This Fetch API interface allows you to perform various actions on HTTP request and response headers.
+ * These actions include retrieving, setting, adding to, and removing.
+ * A Headers object has an associated header list, which is initially empty and consists of zero or more name and value pairs.
+ * You can add to this using methods like append() (see Examples.)
+ * In all methods of this interface, header names are matched by case-insensitive byte sequence.
+ *
+ */
+class Headers extends URLSearchParams {
+	/**
+	 * Headers class
+	 *
+	 * @constructor
+	 * @param {HeadersInit} [init] - Response headers
+	 */
+	constructor(init) {
+		// Validate and normalize init object in [name, value(s)][]
+		/** @type {string[][]} */
+		let result = [];
+		if (init instanceof Headers) {
+			const raw = init.raw();
+			for (const [name, values] of Object.entries(raw)) {
+				result.push(...values.map(value => [name, value]));
+			}
+		} else if (init == null) { // eslint-disable-line no-eq-null, eqeqeq
+			// No op
+		} else if (typeof init === 'object' && !node_util__WEBPACK_IMPORTED_MODULE_0__.types.isBoxedPrimitive(init)) {
+			const method = init[Symbol.iterator];
+			// eslint-disable-next-line no-eq-null, eqeqeq
+			if (method == null) {
+				// Record<ByteString, ByteString>
+				result.push(...Object.entries(init));
+			} else {
+				if (typeof method !== 'function') {
+					throw new TypeError('Header pairs must be iterable');
+				}
+
+				// Sequence<sequence<ByteString>>
+				// Note: per spec we have to first exhaust the lists then process them
+				result = [...init]
+					.map(pair => {
+						if (
+							typeof pair !== 'object' || node_util__WEBPACK_IMPORTED_MODULE_0__.types.isBoxedPrimitive(pair)
+						) {
+							throw new TypeError('Each header pair must be an iterable object');
+						}
+
+						return [...pair];
+					}).map(pair => {
+						if (pair.length !== 2) {
+							throw new TypeError('Each header pair must be a name/value tuple');
+						}
+
+						return [...pair];
+					});
+			}
+		} else {
+			throw new TypeError('Failed to construct \'Headers\': The provided value is not of type \'(sequence<sequence<ByteString>> or record<ByteString, ByteString>)');
+		}
+
+		// Validate and lowercase
+		result =
+			result.length > 0 ?
+				result.map(([name, value]) => {
+					validateHeaderName(name);
+					validateHeaderValue(name, String(value));
+					return [String(name).toLowerCase(), String(value)];
+				}) :
+				undefined;
+
+		super(result);
+
+		// Returning a Proxy that will lowercase key names, validate parameters and sort keys
+		// eslint-disable-next-line no-constructor-return
+		return new Proxy(this, {
+			get(target, p, receiver) {
+				switch (p) {
+					case 'append':
+					case 'set':
+						return (name, value) => {
+							validateHeaderName(name);
+							validateHeaderValue(name, String(value));
+							return URLSearchParams.prototype[p].call(
+								target,
+								String(name).toLowerCase(),
+								String(value)
+							);
+						};
+
+					case 'delete':
+					case 'has':
+					case 'getAll':
+						return name => {
+							validateHeaderName(name);
+							return URLSearchParams.prototype[p].call(
+								target,
+								String(name).toLowerCase()
+							);
+						};
+
+					case 'keys':
+						return () => {
+							target.sort();
+							return new Set(URLSearchParams.prototype.keys.call(target)).keys();
+						};
+
+					default:
+						return Reflect.get(target, p, receiver);
+				}
+			}
+		});
+		/* c8 ignore next */
+	}
+
+	get [Symbol.toStringTag]() {
+		return this.constructor.name;
+	}
+
+	toString() {
+		return Object.prototype.toString.call(this);
+	}
+
+	get(name) {
+		const values = this.getAll(name);
+		if (values.length === 0) {
+			return null;
+		}
+
+		let value = values.join(', ');
+		if (/^content-encoding$/i.test(name)) {
+			value = value.toLowerCase();
+		}
+
+		return value;
+	}
+
+	forEach(callback, thisArg = undefined) {
+		for (const name of this.keys()) {
+			Reflect.apply(callback, thisArg, [this.get(name), name, this]);
+		}
+	}
+
+	* values() {
+		for (const name of this.keys()) {
+			yield this.get(name);
+		}
+	}
+
+	/**
+	 * @type {() => IterableIterator<[string, string]>}
+	 */
+	* entries() {
+		for (const name of this.keys()) {
+			yield [name, this.get(name)];
+		}
+	}
+
+	[Symbol.iterator]() {
+		return this.entries();
+	}
+
+	/**
+	 * Node-fetch non-spec method
+	 * returning all headers and their values as array
+	 * @returns {Record<string, string[]>}
+	 */
+	raw() {
+		return [...this.keys()].reduce((result, key) => {
+			result[key] = this.getAll(key);
+			return result;
+		}, {});
+	}
+
+	/**
+	 * For better console.log(headers) and also to convert Headers into Node.js Request compatible format
+	 */
+	[Symbol.for('nodejs.util.inspect.custom')]() {
+		return [...this.keys()].reduce((result, key) => {
+			const values = this.getAll(key);
+			// Http.request() only supports string as Host header.
+			// This hack makes specifying custom Host header possible.
+			if (key === 'host') {
+				result[key] = values[0];
+			} else {
+				result[key] = values.length > 1 ? values : values[0];
+			}
+
+			return result;
+		}, {});
+	}
+}
+
+/**
+ * Re-shaping object for Web IDL tests
+ * Only need to do it for overridden methods
+ */
+Object.defineProperties(
+	Headers.prototype,
+	['get', 'entries', 'forEach', 'values'].reduce((result, property) => {
+		result[property] = {enumerable: true};
+		return result;
+	}, {})
+);
+
+/**
+ * Create a Headers object from an http.IncomingMessage.rawHeaders, ignoring those that do
+ * not conform to HTTP grammar productions.
+ * @param {import('http').IncomingMessage['rawHeaders']} headers
+ */
+function fromRawHeaders(headers = []) {
+	return new Headers(
+		headers
+			// Split into pairs
+			.reduce((result, value, index, array) => {
+				if (index % 2 === 0) {
+					result.push(array.slice(index, index + 2));
+				}
+
+				return result;
+			}, [])
+			.filter(([name, value]) => {
+				try {
+					validateHeaderName(name);
+					validateHeaderValue(name, String(value));
+					return true;
+				} catch {
+					return false;
+				}
+			})
+
+	);
+}
+
+
+/***/ }),
+/* 37 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   isRedirect: () => (/* binding */ isRedirect)
+/* harmony export */ });
+const redirectStatus = new Set([301, 302, 303, 307, 308]);
+
+/**
+ * Redirect code matching
+ *
+ * @param {number} code - Status code
+ * @return {boolean}
+ */
+const isRedirect = code => {
+	return redirectStatus.has(code);
+};
+
+
+/***/ }),
+/* 38 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   "default": () => (/* binding */ Request),
+/* harmony export */   getNodeRequestOptions: () => (/* binding */ getNodeRequestOptions)
+/* harmony export */ });
+/* harmony import */ var node_url__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(39);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(23);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(36);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(22);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(34);
+/* harmony import */ var _utils_get_search_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(40);
+/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(41);
+/**
+ * Request.js
+ *
+ * Request class contains server only options
+ *
+ * All spec algorithm step numbers are based on https://fetch.spec.whatwg.org/commit-snapshots/ae716822cb3a61843226cd090eefc6589446c1d2/.
+ */
+
+
+
+
+
+
+
+
+
+const INTERNALS = Symbol('Request internals');
+
+/**
+ * Check if `obj` is an instance of Request.
+ *
+ * @param  {*} object
+ * @return {boolean}
+ */
+const isRequest = object => {
+	return (
+		typeof object === 'object' &&
+		typeof object[INTERNALS] === 'object'
+	);
+};
+
+const doBadDataWarn = (0,node_util__WEBPACK_IMPORTED_MODULE_1__.deprecate)(() => {},
+	'.data is not a valid RequestInit property, use .body instead',
+	'https://github.com/node-fetch/node-fetch/issues/1000 (request)');
+
+/**
+ * Request class
+ *
+ * Ref: https://fetch.spec.whatwg.org/#request-class
+ *
+ * @param   Mixed   input  Url or Request instance
+ * @param   Object  init   Custom options
+ * @return  Void
+ */
+class Request extends _body_js__WEBPACK_IMPORTED_MODULE_3__["default"] {
+	constructor(input, init = {}) {
+		let parsedURL;
+
+		// Normalize input and force URL to be encoded as UTF-8 (https://github.com/node-fetch/node-fetch/issues/245)
+		if (isRequest(input)) {
+			parsedURL = new URL(input.url);
+		} else {
+			parsedURL = new URL(input);
+			input = {};
+		}
+
+		if (parsedURL.username !== '' || parsedURL.password !== '') {
+			throw new TypeError(`${parsedURL} is an url with embedded credentials.`);
+		}
+
+		let method = init.method || input.method || 'GET';
+		if (/^(delete|get|head|options|post|put)$/i.test(method)) {
+			method = method.toUpperCase();
+		}
+
+		if (!isRequest(init) && 'data' in init) {
+			doBadDataWarn();
+		}
+
+		// eslint-disable-next-line no-eq-null, eqeqeq
+		if ((init.body != null || (isRequest(input) && input.body !== null)) &&
+			(method === 'GET' || method === 'HEAD')) {
+			throw new TypeError('Request with GET/HEAD method cannot have body');
+		}
+
+		const inputBody = init.body ?
+			init.body :
+			(isRequest(input) && input.body !== null ?
+				(0,_body_js__WEBPACK_IMPORTED_MODULE_3__.clone)(input) :
+				null);
+
+		super(inputBody, {
+			size: init.size || input.size || 0
+		});
+
+		const headers = new _headers_js__WEBPACK_IMPORTED_MODULE_2__["default"](init.headers || input.headers || {});
+
+		if (inputBody !== null && !headers.has('Content-Type')) {
+			const contentType = (0,_body_js__WEBPACK_IMPORTED_MODULE_3__.extractContentType)(inputBody, this);
+			if (contentType) {
+				headers.set('Content-Type', contentType);
+			}
+		}
+
+		let signal = isRequest(input) ?
+			input.signal :
+			null;
+		if ('signal' in init) {
+			signal = init.signal;
+		}
+
+		// eslint-disable-next-line no-eq-null, eqeqeq
+		if (signal != null && !(0,_utils_is_js__WEBPACK_IMPORTED_MODULE_4__.isAbortSignal)(signal)) {
+			throw new TypeError('Expected signal to be an instanceof AbortSignal or EventTarget');
+		}
+
+		// §5.4, Request constructor steps, step 15.1
+		// eslint-disable-next-line no-eq-null, eqeqeq
+		let referrer = init.referrer == null ? input.referrer : init.referrer;
+		if (referrer === '') {
+			// §5.4, Request constructor steps, step 15.2
+			referrer = 'no-referrer';
+		} else if (referrer) {
+			// §5.4, Request constructor steps, step 15.3.1, 15.3.2
+			const parsedReferrer = new URL(referrer);
+			// §5.4, Request constructor steps, step 15.3.3, 15.3.4
+			referrer = /^about:(\/\/)?client$/.test(parsedReferrer) ? 'client' : parsedReferrer;
+		} else {
+			referrer = undefined;
+		}
+
+		this[INTERNALS] = {
+			method,
+			redirect: init.redirect || input.redirect || 'follow',
+			headers,
+			parsedURL,
+			signal,
+			referrer
+		};
+
+		// Node-fetch-only options
+		this.follow = init.follow === undefined ? (input.follow === undefined ? 20 : input.follow) : init.follow;
+		this.compress = init.compress === undefined ? (input.compress === undefined ? true : input.compress) : init.compress;
+		this.counter = init.counter || input.counter || 0;
+		this.agent = init.agent || input.agent;
+		this.highWaterMark = init.highWaterMark || input.highWaterMark || 16384;
+		this.insecureHTTPParser = init.insecureHTTPParser || input.insecureHTTPParser || false;
+
+		// §5.4, Request constructor steps, step 16.
+		// Default is empty string per https://fetch.spec.whatwg.org/#concept-request-referrer-policy
+		this.referrerPolicy = init.referrerPolicy || input.referrerPolicy || '';
+	}
+
+	/** @returns {string} */
+	get method() {
+		return this[INTERNALS].method;
+	}
+
+	/** @returns {string} */
+	get url() {
+		return (0,node_url__WEBPACK_IMPORTED_MODULE_0__.format)(this[INTERNALS].parsedURL);
+	}
+
+	/** @returns {Headers} */
+	get headers() {
+		return this[INTERNALS].headers;
+	}
+
+	get redirect() {
+		return this[INTERNALS].redirect;
+	}
+
+	/** @returns {AbortSignal} */
+	get signal() {
+		return this[INTERNALS].signal;
+	}
+
+	// https://fetch.spec.whatwg.org/#dom-request-referrer
+	get referrer() {
+		if (this[INTERNALS].referrer === 'no-referrer') {
+			return '';
+		}
+
+		if (this[INTERNALS].referrer === 'client') {
+			return 'about:client';
+		}
+
+		if (this[INTERNALS].referrer) {
+			return this[INTERNALS].referrer.toString();
+		}
+
+		return undefined;
+	}
+
+	get referrerPolicy() {
+		return this[INTERNALS].referrerPolicy;
+	}
+
+	set referrerPolicy(referrerPolicy) {
+		this[INTERNALS].referrerPolicy = (0,_utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__.validateReferrerPolicy)(referrerPolicy);
+	}
+
+	/**
+	 * Clone this request
+	 *
+	 * @return  Request
+	 */
+	clone() {
+		return new Request(this);
+	}
+
+	get [Symbol.toStringTag]() {
+		return 'Request';
+	}
+}
+
+Object.defineProperties(Request.prototype, {
+	method: {enumerable: true},
+	url: {enumerable: true},
+	headers: {enumerable: true},
+	redirect: {enumerable: true},
+	clone: {enumerable: true},
+	signal: {enumerable: true},
+	referrer: {enumerable: true},
+	referrerPolicy: {enumerable: true}
+});
+
+/**
+ * Convert a Request to Node.js http request options.
+ *
+ * @param {Request} request - A Request instance
+ * @return The options object to be passed to http.request
+ */
+const getNodeRequestOptions = request => {
+	const {parsedURL} = request[INTERNALS];
+	const headers = new _headers_js__WEBPACK_IMPORTED_MODULE_2__["default"](request[INTERNALS].headers);
+
+	// Fetch step 1.3
+	if (!headers.has('Accept')) {
+		headers.set('Accept', '*/*');
+	}
+
+	// HTTP-network-or-cache fetch steps 2.4-2.7
+	let contentLengthValue = null;
+	if (request.body === null && /^(post|put)$/i.test(request.method)) {
+		contentLengthValue = '0';
+	}
+
+	if (request.body !== null) {
+		const totalBytes = (0,_body_js__WEBPACK_IMPORTED_MODULE_3__.getTotalBytes)(request);
+		// Set Content-Length if totalBytes is a number (that is not NaN)
+		if (typeof totalBytes === 'number' && !Number.isNaN(totalBytes)) {
+			contentLengthValue = String(totalBytes);
+		}
+	}
+
+	if (contentLengthValue) {
+		headers.set('Content-Length', contentLengthValue);
+	}
+
+	// 4.1. Main fetch, step 2.6
+	// > If request's referrer policy is the empty string, then set request's referrer policy to the
+	// > default referrer policy.
+	if (request.referrerPolicy === '') {
+		request.referrerPolicy = _utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__.DEFAULT_REFERRER_POLICY;
+	}
+
+	// 4.1. Main fetch, step 2.7
+	// > If request's referrer is not "no-referrer", set request's referrer to the result of invoking
+	// > determine request's referrer.
+	if (request.referrer && request.referrer !== 'no-referrer') {
+		request[INTERNALS].referrer = (0,_utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__.determineRequestsReferrer)(request);
+	} else {
+		request[INTERNALS].referrer = 'no-referrer';
+	}
+
+	// 4.5. HTTP-network-or-cache fetch, step 6.9
+	// > If httpRequest's referrer is a URL, then append `Referer`/httpRequest's referrer, serialized
+	// >  and isomorphic encoded, to httpRequest's header list.
+	if (request[INTERNALS].referrer instanceof URL) {
+		headers.set('Referer', request.referrer);
+	}
+
+	// HTTP-network-or-cache fetch step 2.11
+	if (!headers.has('User-Agent')) {
+		headers.set('User-Agent', 'node-fetch');
+	}
+
+	// HTTP-network-or-cache fetch step 2.15
+	if (request.compress && !headers.has('Accept-Encoding')) {
+		headers.set('Accept-Encoding', 'gzip, deflate, br');
+	}
+
+	let {agent} = request;
+	if (typeof agent === 'function') {
+		agent = agent(parsedURL);
+	}
+
+	// HTTP-network fetch step 4.2
+	// chunked encoding is handled by Node.js
+
+	const search = (0,_utils_get_search_js__WEBPACK_IMPORTED_MODULE_5__.getSearch)(parsedURL);
+
+	// Pass the full URL directly to request(), but overwrite the following
+	// options:
+	const options = {
+		// Overwrite search to retain trailing ? (issue #776)
+		path: parsedURL.pathname + search,
+		// The following options are not expressed in the URL
+		method: request.method,
+		headers: headers[Symbol.for('nodejs.util.inspect.custom')](),
+		insecureHTTPParser: request.insecureHTTPParser,
+		agent
+	};
+
+	return {
+		/** @type {URL} */
+		parsedURL,
+		options
+	};
+};
+
+
+/***/ }),
+/* 39 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:url");
+
+/***/ }),
+/* 40 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   getSearch: () => (/* binding */ getSearch)
+/* harmony export */ });
+const getSearch = parsedURL => {
+	if (parsedURL.search) {
+		return parsedURL.search;
+	}
+
+	const lastOffset = parsedURL.href.length - 1;
+	const hash = parsedURL.hash || (parsedURL.href[lastOffset] === '#' ? '#' : '');
+	return parsedURL.href[lastOffset - hash.length] === '?' ? '?' : '';
+};
+
+
+/***/ }),
+/* 41 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   DEFAULT_REFERRER_POLICY: () => (/* binding */ DEFAULT_REFERRER_POLICY),
+/* harmony export */   ReferrerPolicy: () => (/* binding */ ReferrerPolicy),
+/* harmony export */   determineRequestsReferrer: () => (/* binding */ determineRequestsReferrer),
+/* harmony export */   isOriginPotentiallyTrustworthy: () => (/* binding */ isOriginPotentiallyTrustworthy),
+/* harmony export */   isUrlPotentiallyTrustworthy: () => (/* binding */ isUrlPotentiallyTrustworthy),
+/* harmony export */   parseReferrerPolicyFromHeader: () => (/* binding */ parseReferrerPolicyFromHeader),
+/* harmony export */   stripURLForUseAsAReferrer: () => (/* binding */ stripURLForUseAsAReferrer),
+/* harmony export */   validateReferrerPolicy: () => (/* binding */ validateReferrerPolicy)
+/* harmony export */ });
+/* harmony import */ var node_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(42);
+
+
+/**
+ * @external URL
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/URL|URL}
+ */
+
+/**
+ * @module utils/referrer
+ * @private
+ */
+
+/**
+ * @see {@link https://w3c.github.io/webappsec-referrer-policy/#strip-url|Referrer Policy §8.4. Strip url for use as a referrer}
+ * @param {string} URL
+ * @param {boolean} [originOnly=false]
+ */
+function stripURLForUseAsAReferrer(url, originOnly = false) {
+	// 1. If url is null, return no referrer.
+	if (url == null) { // eslint-disable-line no-eq-null, eqeqeq
+		return 'no-referrer';
+	}
+
+	url = new URL(url);
+
+	// 2. If url's scheme is a local scheme, then return no referrer.
+	if (/^(about|blob|data):$/.test(url.protocol)) {
+		return 'no-referrer';
+	}
+
+	// 3. Set url's username to the empty string.
+	url.username = '';
+
+	// 4. Set url's password to null.
+	// Note: `null` appears to be a mistake as this actually results in the password being `"null"`.
+	url.password = '';
+
+	// 5. Set url's fragment to null.
+	// Note: `null` appears to be a mistake as this actually results in the fragment being `"#null"`.
+	url.hash = '';
+
+	// 6. If the origin-only flag is true, then:
+	if (originOnly) {
+		// 6.1. Set url's path to null.
+		// Note: `null` appears to be a mistake as this actually results in the path being `"/null"`.
+		url.pathname = '';
+
+		// 6.2. Set url's query to null.
+		// Note: `null` appears to be a mistake as this actually results in the query being `"?null"`.
+		url.search = '';
+	}
+
+	// 7. Return url.
+	return url;
+}
+
+/**
+ * @see {@link https://w3c.github.io/webappsec-referrer-policy/#enumdef-referrerpolicy|enum ReferrerPolicy}
+ */
+const ReferrerPolicy = new Set([
+	'',
+	'no-referrer',
+	'no-referrer-when-downgrade',
+	'same-origin',
+	'origin',
+	'strict-origin',
+	'origin-when-cross-origin',
+	'strict-origin-when-cross-origin',
+	'unsafe-url'
+]);
+
+/**
+ * @see {@link https://w3c.github.io/webappsec-referrer-policy/#default-referrer-policy|default referrer policy}
+ */
+const DEFAULT_REFERRER_POLICY = 'strict-origin-when-cross-origin';
+
+/**
+ * @see {@link https://w3c.github.io/webappsec-referrer-policy/#referrer-policies|Referrer Policy §3. Referrer Policies}
+ * @param {string} referrerPolicy
+ * @returns {string} referrerPolicy
+ */
+function validateReferrerPolicy(referrerPolicy) {
+	if (!ReferrerPolicy.has(referrerPolicy)) {
+		throw new TypeError(`Invalid referrerPolicy: ${referrerPolicy}`);
+	}
+
+	return referrerPolicy;
+}
+
+/**
+ * @see {@link https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy|Referrer Policy §3.2. Is origin potentially trustworthy?}
+ * @param {external:URL} url
+ * @returns `true`: "Potentially Trustworthy", `false`: "Not Trustworthy"
+ */
+function isOriginPotentiallyTrustworthy(url) {
+	// 1. If origin is an opaque origin, return "Not Trustworthy".
+	// Not applicable
+
+	// 2. Assert: origin is a tuple origin.
+	// Not for implementations
+
+	// 3. If origin's scheme is either "https" or "wss", return "Potentially Trustworthy".
+	if (/^(http|ws)s:$/.test(url.protocol)) {
+		return true;
+	}
+
+	// 4. If origin's host component matches one of the CIDR notations 127.0.0.0/8 or ::1/128 [RFC4632], return "Potentially Trustworthy".
+	const hostIp = url.host.replace(/(^\[)|(]$)/g, '');
+	const hostIPVersion = (0,node_net__WEBPACK_IMPORTED_MODULE_0__.isIP)(hostIp);
+
+	if (hostIPVersion === 4 && /^127\./.test(hostIp)) {
+		return true;
+	}
+
+	if (hostIPVersion === 6 && /^(((0+:){7})|(::(0+:){0,6}))0*1$/.test(hostIp)) {
+		return true;
+	}
+
+	// 5. If origin's host component is "localhost" or falls within ".localhost", and the user agent conforms to the name resolution rules in [let-localhost-be-localhost], return "Potentially Trustworthy".
+	// We are returning FALSE here because we cannot ensure conformance to
+	// let-localhost-be-loalhost (https://tools.ietf.org/html/draft-west-let-localhost-be-localhost)
+	if (url.host === 'localhost' || url.host.endsWith('.localhost')) {
+		return false;
+	}
+
+	// 6. If origin's scheme component is file, return "Potentially Trustworthy".
+	if (url.protocol === 'file:') {
+		return true;
+	}
+
+	// 7. If origin's scheme component is one which the user agent considers to be authenticated, return "Potentially Trustworthy".
+	// Not supported
+
+	// 8. If origin has been configured as a trustworthy origin, return "Potentially Trustworthy".
+	// Not supported
+
+	// 9. Return "Not Trustworthy".
+	return false;
+}
+
+/**
+ * @see {@link https://w3c.github.io/webappsec-secure-contexts/#is-url-trustworthy|Referrer Policy §3.3. Is url potentially trustworthy?}
+ * @param {external:URL} url
+ * @returns `true`: "Potentially Trustworthy", `false`: "Not Trustworthy"
+ */
+function isUrlPotentiallyTrustworthy(url) {
+	// 1. If url is "about:blank" or "about:srcdoc", return "Potentially Trustworthy".
+	if (/^about:(blank|srcdoc)$/.test(url)) {
+		return true;
+	}
+
+	// 2. If url's scheme is "data", return "Potentially Trustworthy".
+	if (url.protocol === 'data:') {
+		return true;
+	}
+
+	// Note: The origin of blob: and filesystem: URLs is the origin of the context in which they were
+	// created. Therefore, blobs created in a trustworthy origin will themselves be potentially
+	// trustworthy.
+	if (/^(blob|filesystem):$/.test(url.protocol)) {
+		return true;
+	}
+
+	// 3. Return the result of executing §3.2 Is origin potentially trustworthy? on url's origin.
+	return isOriginPotentiallyTrustworthy(url);
+}
+
+/**
+ * Modifies the referrerURL to enforce any extra security policy considerations.
+ * @see {@link https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer|Referrer Policy §8.3. Determine request's Referrer}, step 7
+ * @callback module:utils/referrer~referrerURLCallback
+ * @param {external:URL} referrerURL
+ * @returns {external:URL} modified referrerURL
+ */
+
+/**
+ * Modifies the referrerOrigin to enforce any extra security policy considerations.
+ * @see {@link https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer|Referrer Policy §8.3. Determine request's Referrer}, step 7
+ * @callback module:utils/referrer~referrerOriginCallback
+ * @param {external:URL} referrerOrigin
+ * @returns {external:URL} modified referrerOrigin
+ */
+
+/**
+ * @see {@link https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer|Referrer Policy §8.3. Determine request's Referrer}
+ * @param {Request} request
+ * @param {object} o
+ * @param {module:utils/referrer~referrerURLCallback} o.referrerURLCallback
+ * @param {module:utils/referrer~referrerOriginCallback} o.referrerOriginCallback
+ * @returns {external:URL} Request's referrer
+ */
+function determineRequestsReferrer(request, {referrerURLCallback, referrerOriginCallback} = {}) {
+	// There are 2 notes in the specification about invalid pre-conditions.  We return null, here, for
+	// these cases:
+	// > Note: If request's referrer is "no-referrer", Fetch will not call into this algorithm.
+	// > Note: If request's referrer policy is the empty string, Fetch will not call into this
+	// > algorithm.
+	if (request.referrer === 'no-referrer' || request.referrerPolicy === '') {
+		return null;
+	}
+
+	// 1. Let policy be request's associated referrer policy.
+	const policy = request.referrerPolicy;
+
+	// 2. Let environment be request's client.
+	// not applicable to node.js
+
+	// 3. Switch on request's referrer:
+	if (request.referrer === 'about:client') {
+		return 'no-referrer';
+	}
+
+	// "a URL": Let referrerSource be request's referrer.
+	const referrerSource = request.referrer;
+
+	// 4. Let request's referrerURL be the result of stripping referrerSource for use as a referrer.
+	let referrerURL = stripURLForUseAsAReferrer(referrerSource);
+
+	// 5. Let referrerOrigin be the result of stripping referrerSource for use as a referrer, with the
+	//    origin-only flag set to true.
+	let referrerOrigin = stripURLForUseAsAReferrer(referrerSource, true);
+
+	// 6. If the result of serializing referrerURL is a string whose length is greater than 4096, set
+	//    referrerURL to referrerOrigin.
+	if (referrerURL.toString().length > 4096) {
+		referrerURL = referrerOrigin;
+	}
+
+	// 7. The user agent MAY alter referrerURL or referrerOrigin at this point to enforce arbitrary
+	//    policy considerations in the interests of minimizing data leakage. For example, the user
+	//    agent could strip the URL down to an origin, modify its host, replace it with an empty
+	//    string, etc.
+	if (referrerURLCallback) {
+		referrerURL = referrerURLCallback(referrerURL);
+	}
+
+	if (referrerOriginCallback) {
+		referrerOrigin = referrerOriginCallback(referrerOrigin);
+	}
+
+	// 8.Execute the statements corresponding to the value of policy:
+	const currentURL = new URL(request.url);
+
+	switch (policy) {
+		case 'no-referrer':
+			return 'no-referrer';
+
+		case 'origin':
+			return referrerOrigin;
+
+		case 'unsafe-url':
+			return referrerURL;
+
+		case 'strict-origin':
+			// 1. If referrerURL is a potentially trustworthy URL and request's current URL is not a
+			//    potentially trustworthy URL, then return no referrer.
+			if (isUrlPotentiallyTrustworthy(referrerURL) && !isUrlPotentiallyTrustworthy(currentURL)) {
+				return 'no-referrer';
+			}
+
+			// 2. Return referrerOrigin.
+			return referrerOrigin.toString();
+
+		case 'strict-origin-when-cross-origin':
+			// 1. If the origin of referrerURL and the origin of request's current URL are the same, then
+			//    return referrerURL.
+			if (referrerURL.origin === currentURL.origin) {
+				return referrerURL;
+			}
+
+			// 2. If referrerURL is a potentially trustworthy URL and request's current URL is not a
+			//    potentially trustworthy URL, then return no referrer.
+			if (isUrlPotentiallyTrustworthy(referrerURL) && !isUrlPotentiallyTrustworthy(currentURL)) {
+				return 'no-referrer';
+			}
+
+			// 3. Return referrerOrigin.
+			return referrerOrigin;
+
+		case 'same-origin':
+			// 1. If the origin of referrerURL and the origin of request's current URL are the same, then
+			//    return referrerURL.
+			if (referrerURL.origin === currentURL.origin) {
+				return referrerURL;
+			}
+
+			// 2. Return no referrer.
+			return 'no-referrer';
+
+		case 'origin-when-cross-origin':
+			// 1. If the origin of referrerURL and the origin of request's current URL are the same, then
+			//    return referrerURL.
+			if (referrerURL.origin === currentURL.origin) {
+				return referrerURL;
+			}
+
+			// Return referrerOrigin.
+			return referrerOrigin;
+
+		case 'no-referrer-when-downgrade':
+			// 1. If referrerURL is a potentially trustworthy URL and request's current URL is not a
+			//    potentially trustworthy URL, then return no referrer.
+			if (isUrlPotentiallyTrustworthy(referrerURL) && !isUrlPotentiallyTrustworthy(currentURL)) {
+				return 'no-referrer';
+			}
+
+			// 2. Return referrerURL.
+			return referrerURL;
+
+		default:
+			throw new TypeError(`Invalid referrerPolicy: ${policy}`);
+	}
+}
+
+/**
+ * @see {@link https://w3c.github.io/webappsec-referrer-policy/#parse-referrer-policy-from-header|Referrer Policy §8.1. Parse a referrer policy from a Referrer-Policy header}
+ * @param {Headers} headers Response headers
+ * @returns {string} policy
+ */
+function parseReferrerPolicyFromHeader(headers) {
+	// 1. Let policy-tokens be the result of extracting header list values given `Referrer-Policy`
+	//    and response’s header list.
+	const policyTokens = (headers.get('referrer-policy') || '').split(/[,\s]+/);
+
+	// 2. Let policy be the empty string.
+	let policy = '';
+
+	// 3. For each token in policy-tokens, if token is a referrer policy and token is not the empty
+	//    string, then set policy to token.
+	// Note: This algorithm loops over multiple policy values to allow deployment of new policy
+	// values with fallbacks for older user agents, as described in § 11.1 Unknown Policy Values.
+	for (const token of policyTokens) {
+		if (token && ReferrerPolicy.has(token)) {
+			policy = token;
+		}
+	}
+
+	// 4. Return policy.
+	return policy;
+}
+
+
+/***/ }),
+/* 42 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:net");
+
+/***/ }),
+/* 43 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   AbortError: () => (/* binding */ AbortError)
+/* harmony export */ });
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(33);
+
+
+/**
+ * AbortError interface for cancelled requests
+ */
+class AbortError extends _base_js__WEBPACK_IMPORTED_MODULE_0__.FetchBaseError {
+	constructor(message, type = 'aborted') {
+		super(message, type);
+	}
+}
+
+
+/***/ }),
+/* 44 */
+/***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   Blob: () => (/* reexport safe */ _index_js__WEBPACK_IMPORTED_MODULE_4__["default"]),
+/* harmony export */   File: () => (/* reexport safe */ _file_js__WEBPACK_IMPORTED_MODULE_3__["default"]),
+/* harmony export */   blobFrom: () => (/* binding */ blobFrom),
+/* harmony export */   blobFromSync: () => (/* binding */ blobFromSync),
+/* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__),
+/* harmony export */   fileFrom: () => (/* binding */ fileFrom),
+/* harmony export */   fileFromSync: () => (/* binding */ fileFromSync)
+/* harmony export */ });
+/* harmony import */ var node_fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(45);
+/* harmony import */ var node_path__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(46);
+/* harmony import */ var node_domexception__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(47);
+/* harmony import */ var _file_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(31);
+/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(24);
+
+
+
+
+
+
+
+const { stat } = node_fs__WEBPACK_IMPORTED_MODULE_0__.promises
+
+/**
+ * @param {string} path filepath on the disk
+ * @param {string} [type] mimetype to use
+ */
+const blobFromSync = (path, type) => fromBlob((0,node_fs__WEBPACK_IMPORTED_MODULE_0__.statSync)(path), path, type)
+
+/**
+ * @param {string} path filepath on the disk
+ * @param {string} [type] mimetype to use
+ * @returns {Promise<Blob>}
+ */
+const blobFrom = (path, type) => stat(path).then(stat => fromBlob(stat, path, type))
+
+/**
+ * @param {string} path filepath on the disk
+ * @param {string} [type] mimetype to use
+ * @returns {Promise<File>}
+ */
+const fileFrom = (path, type) => stat(path).then(stat => fromFile(stat, path, type))
+
+/**
+ * @param {string} path filepath on the disk
+ * @param {string} [type] mimetype to use
+ */
+const fileFromSync = (path, type) => fromFile((0,node_fs__WEBPACK_IMPORTED_MODULE_0__.statSync)(path), path, type)
+
+// @ts-ignore
+const fromBlob = (stat, path, type = '') => new _index_js__WEBPACK_IMPORTED_MODULE_4__["default"]([new BlobDataItem({
+  path,
+  size: stat.size,
+  lastModified: stat.mtimeMs,
+  start: 0
+})], { type })
+
+// @ts-ignore
+const fromFile = (stat, path, type = '') => new _file_js__WEBPACK_IMPORTED_MODULE_3__["default"]([new BlobDataItem({
+  path,
+  size: stat.size,
+  lastModified: stat.mtimeMs,
+  start: 0
+})], (0,node_path__WEBPACK_IMPORTED_MODULE_1__.basename)(path), { type, lastModified: stat.mtimeMs })
+
+/**
+ * This is a blob backed up by a file on the disk
+ * with minium requirement. Its wrapped around a Blob as a blobPart
+ * so you have no direct access to this.
+ *
+ * @private
+ */
+class BlobDataItem {
+  #path
+  #start
+
+  constructor (options) {
+    this.#path = options.path
+    this.#start = options.start
+    this.size = options.size
+    this.lastModified = options.lastModified
+  }
+
+  /**
+   * Slicing arguments is first validated and formatted
+   * to not be out of range by Blob.prototype.slice
+   */
+  slice (start, end) {
+    return new BlobDataItem({
+      path: this.#path,
+      lastModified: this.lastModified,
+      size: end - start,
+      start: this.#start + start
+    })
+  }
+
+  async * stream () {
+    const { mtimeMs } = await stat(this.#path)
+    if (mtimeMs > this.lastModified) {
+      throw new node_domexception__WEBPACK_IMPORTED_MODULE_2__('The requested file could not be read, typically due to permission problems that have occurred after a reference to a file was acquired.', 'NotReadableError')
+    }
+    yield * (0,node_fs__WEBPACK_IMPORTED_MODULE_0__.createReadStream)(this.#path, {
+      start: this.#start,
+      end: this.#start + this.size - 1
+    })
+  }
+
+  get [Symbol.toStringTag] () {
+    return 'Blob'
+  }
+}
+
+/* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (blobFromSync);
+
+
+
+/***/ }),
+/* 45 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:fs");
+
+/***/ }),
+/* 46 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("node:path");
+
+/***/ }),
+/* 47 */
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+/*! node-domexception. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
+
+if (!globalThis.DOMException) {
+  try {
+    const { MessageChannel } = __webpack_require__(48),
+    port = new MessageChannel().port1,
+    ab = new ArrayBuffer()
+    port.postMessage(ab, [ab, ab])
+  } catch (err) {
+    err.constructor.name === 'DOMException' && (
+      globalThis.DOMException = err.constructor
+    )
+  }
+}
+
+module.exports = globalThis.DOMException
+
+
+/***/ }),
+/* 48 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("worker_threads");
+
+/***/ }),
+/* 49 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ConnectionsView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(4);
+class ConnectionsView {
+    constructor(panel, extensionUri, api) {
+        this._disposables = [];
+        ui.logToOutput('ConnectionsView.constructor Started');
+        this.extensionUri = extensionUri;
+        this._panel = panel;
+        this.api = api;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('ConnectionsView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('ConnectionsView.loadData Started');
+        const result = await this.api.getConnections();
+        if (result.isSuccessful) {
+            this.connectionsJson = result.result;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('ConnectionsView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        ui.logToOutput('ConnectionsView.renderHtml Completed');
+    }
+    static render(extensionUri, api) {
+        ui.logToOutput('ConnectionsView.render Started');
+        if (ConnectionsView.Current) {
+            ConnectionsView.Current.api = api;
+            ConnectionsView.Current._panel.reveal(vscode.ViewColumn.Two);
+            ConnectionsView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("connectionsView", "Connections", vscode.ViewColumn.Two, {
+                enableScripts: true,
+            });
+            ConnectionsView.Current = new ConnectionsView(panel, extensionUri, api);
+        }
+    }
+    dispose() {
+        ui.logToOutput('ConnectionsView.dispose Started');
+        ConnectionsView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('ConnectionsView._getWebviewContent Started');
+        const toolkitUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode",
+            "webview-ui-toolkit",
+            "dist",
+            "toolkit.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        const connectionsData = this.connectionsJson ? JSON.stringify(this.connectionsJson, null, 4) : "No connections found";
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <title>Connections</title>
+      </head>
+      <body>  
+        <h2>Airflow Connections</h2>
+        <vscode-button appearance="secondary" id="refresh-connections">Refresh</vscode-button>
+        <br><br>
+        <pre>${connectionsData}</pre>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('ConnectionsView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('ConnectionsView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "refresh-connections":
+                    this.loadData();
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.ConnectionsView = ConnectionsView;
+
+
+/***/ }),
+/* 50 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.VariablesView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(4);
+class VariablesView {
+    constructor(panel, extensionUri, api) {
+        this._disposables = [];
+        ui.logToOutput('VariablesView.constructor Started');
+        this.extensionUri = extensionUri;
+        this._panel = panel;
+        this.api = api;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('VariablesView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('VariablesView.loadData Started');
+        const result = await this.api.getVariables();
+        if (result.isSuccessful) {
+            this.variablesJson = result.result;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('VariablesView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        ui.logToOutput('VariablesView.renderHtml Completed');
+    }
+    static render(extensionUri, api) {
+        ui.logToOutput('VariablesView.render Started');
+        if (VariablesView.Current) {
+            VariablesView.Current.api = api;
+            VariablesView.Current._panel.reveal(vscode.ViewColumn.Two);
+            VariablesView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("variablesView", "Variables", vscode.ViewColumn.Two, {
+                enableScripts: true,
+            });
+            VariablesView.Current = new VariablesView(panel, extensionUri, api);
+        }
+    }
+    dispose() {
+        ui.logToOutput('VariablesView.dispose Started');
+        VariablesView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('VariablesView._getWebviewContent Started');
+        const toolkitUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode",
+            "webview-ui-toolkit",
+            "dist",
+            "toolkit.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        const variablesData = this.variablesJson ? JSON.stringify(this.variablesJson, null, 4) : "No variables found";
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <title>Variables</title>
+      </head>
+      <body>  
+        <h2>Airflow Variables</h2>
+        <vscode-button appearance="secondary" id="refresh-variables">Refresh</vscode-button>
+        <br><br>
+        <pre>${variablesData}</pre>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('VariablesView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('VariablesView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "refresh-variables":
+                    this.loadData();
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.VariablesView = VariablesView;
+
+
+/***/ }),
+/* 51 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ProvidersView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(4);
+class ProvidersView {
+    constructor(panel, extensionUri, api) {
+        this._disposables = [];
+        ui.logToOutput('ProvidersView.constructor Started');
+        this.extensionUri = extensionUri;
+        this._panel = panel;
+        this.api = api;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('ProvidersView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('ProvidersView.loadData Started');
+        const result = await this.api.getProviders();
+        if (result.isSuccessful) {
+            this.providersJson = result.result;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('ProvidersView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        ui.logToOutput('ProvidersView.renderHtml Completed');
+    }
+    static render(extensionUri, api) {
+        ui.logToOutput('ProvidersView.render Started');
+        if (ProvidersView.Current) {
+            ProvidersView.Current.api = api;
+            ProvidersView.Current._panel.reveal(vscode.ViewColumn.Two);
+            ProvidersView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("providersView", "Providers", vscode.ViewColumn.Two, {
+                enableScripts: true,
+            });
+            ProvidersView.Current = new ProvidersView(panel, extensionUri, api);
+        }
+    }
+    dispose() {
+        ui.logToOutput('ProvidersView.dispose Started');
+        ProvidersView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('ProvidersView._getWebviewContent Started');
+        const toolkitUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode",
+            "webview-ui-toolkit",
+            "dist",
+            "toolkit.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        const providersData = this.providersJson ? JSON.stringify(this.providersJson, null, 4) : "No providers found";
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <title>Providers</title>
+      </head>
+      <body>  
+        <h2>Airflow Providers</h2>
+        <vscode-button appearance="secondary" id="refresh-providers">Refresh</vscode-button>
+        <br><br>
+        <pre>${providersData}</pre>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('ProvidersView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('ProvidersView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "refresh-providers":
+                    this.loadData();
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.ProvidersView = ProvidersView;
+
+
+/***/ })
+/******/ 	]);
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			id: moduleId,
+/******/ 			loaded: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Flag the module as loaded
+/******/ 		module.loaded = true;
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = __webpack_modules__;
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/ensure chunk */
+/******/ 	(() => {
+/******/ 		__webpack_require__.f = {};
+/******/ 		// This file contains only the entry chunk.
+/******/ 		// The chunk loading function for additional chunks
+/******/ 		__webpack_require__.e = (chunkId) => {
+/******/ 			return Promise.all(Object.keys(__webpack_require__.f).reduce((promises, key) => {
+/******/ 				__webpack_require__.f[key](chunkId, promises);
+/******/ 				return promises;
+/******/ 			}, []));
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/get javascript chunk filename */
+/******/ 	(() => {
+/******/ 		// This function allow to reference async chunks
+/******/ 		__webpack_require__.u = (chunkId) => {
+/******/ 			// return url for filenames based on template
+/******/ 			return "" + chunkId + ".extension.js";
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/node module decorator */
+/******/ 	(() => {
+/******/ 		__webpack_require__.nmd = (module) => {
+/******/ 			module.paths = [];
+/******/ 			if (!module.children) module.children = [];
+/******/ 			return module;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/require chunk loading */
+/******/ 	(() => {
+/******/ 		// no baseURI
+/******/ 		
+/******/ 		// object to store loaded chunks
+/******/ 		// "1" means "loaded", otherwise not loaded yet
+/******/ 		var installedChunks = {
+/******/ 			0: 1
+/******/ 		};
+/******/ 		
+/******/ 		// no on chunks loaded
+/******/ 		
+/******/ 		var installChunk = (chunk) => {
+/******/ 			var moreModules = chunk.modules, chunkIds = chunk.ids, runtime = chunk.runtime;
+/******/ 			for(var moduleId in moreModules) {
+/******/ 				if(__webpack_require__.o(moreModules, moduleId)) {
+/******/ 					__webpack_require__.m[moduleId] = moreModules[moduleId];
+/******/ 				}
+/******/ 			}
+/******/ 			if(runtime) runtime(__webpack_require__);
+/******/ 			for(var i = 0; i < chunkIds.length; i++)
+/******/ 				installedChunks[chunkIds[i]] = 1;
+/******/ 		
+/******/ 		};
+/******/ 		
+/******/ 		// require() chunk loading for javascript
+/******/ 		__webpack_require__.f.require = (chunkId, promises) => {
+/******/ 			// "1" is the signal for "already loaded"
+/******/ 			if(!installedChunks[chunkId]) {
+/******/ 				if(true) { // all chunks have JS
+/******/ 					var installedChunk = require("./" + __webpack_require__.u(chunkId));
+/******/ 					if (!installedChunks[chunkId]) {
+/******/ 						installChunk(installedChunk);
+/******/ 					}
+/******/ 				} else installedChunks[chunkId] = 1;
+/******/ 			}
+/******/ 		};
+/******/ 		
+/******/ 		// no external install chunk
+/******/ 		
+/******/ 		// no HMR
+/******/ 		
+/******/ 		// no HMR manifest
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+// This entry needs to be wrapped in an IIFE because it needs to be in strict mode.
+(() => {
+"use strict";
+var exports = __webpack_exports__;
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.activate = activate;
+exports.deactivate = deactivate;
+// The module 'vscode' contains the VS Code extensibility API
+// Import the module and reference it with the alias vscode in your code below
+const vscode = __webpack_require__(1);
+const dagTreeView_1 = __webpack_require__(2);
+const ui = __webpack_require__(4);
+// this method is called when your extension is activated
+// your extension is activated the very first time the command is executed
+function activate(context) {
+    ui.logToOutput('Extension activation started');
+    let dagTreeView = new dagTreeView_1.DagTreeView(context);
+    // register commands and keep disposables so they are cleaned up on deactivate
+    const commands = [];
+    commands.push(vscode.commands.registerCommand('dagTreeView.refreshServer', () => { dagTreeView.refresh(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.addServer', () => { dagTreeView.addServer(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.removeServer', () => { dagTreeView.removeServer(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.connectServer', () => { dagTreeView.connectServer(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.clearServers', () => { dagTreeView.clearServers(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.filter', () => { dagTreeView.filter(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.showOnlyActive', () => { dagTreeView.showOnlyActive(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.showOnlyFavorite', () => { dagTreeView.showOnlyFavorite(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewDagView', (node) => { dagTreeView.viewDagView(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.triggerDag', (node) => { dagTreeView.triggerDag(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.triggerDagWithConfig', (node) => { dagTreeView.triggerDagWConfig(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.checkDagRunState', (node) => { dagTreeView.checkDagRunState(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.checkAllDagsRunState', () => { dagTreeView.checkAllDagsRunState(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.pauseDAG', (node) => { dagTreeView.pauseDAG(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.unPauseDAG', (node) => { dagTreeView.unPauseDAG(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.lastDAGRunLog', (node) => { dagTreeView.lastDAGRunLog(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.dagSourceCode', (node) => { dagTreeView.dagSourceCode(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.showDagInfo', (node) => { dagTreeView.showDagInfo(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.addToFavDAG', (node) => { dagTreeView.addToFavDAG(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.deleteFromFavDAG', (node) => { dagTreeView.deleteFromFavDAG(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.showDagView', (node) => { dagTreeView.viewDagView(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewConnections', () => { dagTreeView.viewConnections(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewVariables', () => { dagTreeView.viewVariables(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewProviders', () => { dagTreeView.viewProviders(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node) => { dagTreeView.askAI(node); }));
+    const participant = vscode.chat.createChatParticipant('airflow-ext.participant', dagTreeView.aIHandler.bind(dagTreeView));
+    participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'airflow-extension-logo.png');
+    context.subscriptions.push(participant);
+    for (const c of commands) {
+        context.subscriptions.push(c);
+    }
+    ui.logToOutput('Extension activation completed');
+}
+// this method is called when your extension is deactivated
+function deactivate() {
+    ui.logToOutput('Extension is now deactive!');
+}
+
+})();
+
+module.exports = __webpack_exports__;
+/******/ })()
+;
+//# sourceMappingURL=extension.js.map
