@@ -308,40 +308,145 @@ class DagTreeView {
     }
     async aIHandler(request, context, stream, token) {
         const aiContext = DagTreeView.Current?.askAIContext;
-        if (!aiContext) {
-            stream.markdown("No active DAG context found. Please use the 'Ask AI' button on a DAG item first.");
-            return;
-        }
-        // B. Construct the Prompt
-        const messages = [
-            vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. Here is the code for a DAG and its recent execution logs. Analyze them and explain any errors.`),
-            vscode.LanguageModelChatMessage.User(`DAG Code:\n\`\`\`python\n${aiContext.code}\n\`\`\``),
-            vscode.LanguageModelChatMessage.User(`Execution Logs:\n\`\`\`text\n${aiContext.logs}\n\`\`\``)
+        // 1. Define the tools we want to expose to the model
+        // These must match the definitions in package.json
+        const tools = [
+            {
+                name: 'list_active_dags',
+                description: 'Lists all Airflow DAGs that are currently active (not paused). Returns a list of DAG IDs and their details.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'list_paused_dags',
+                description: 'Lists all Airflow DAGs that are currently paused. Returns a list of DAG IDs and their details.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'pause_dag',
+                description: 'Pauses a specific Airflow DAG. Required input: dag_id (string).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dag_id: { type: 'string', description: 'The unique identifier (ID) of the DAG to pause' }
+                    },
+                    required: ['dag_id']
+                }
+            },
+            {
+                name: 'unpause_dag',
+                description: 'Unpauses (activates) a specific Airflow DAG. Required input: dag_id (string).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dag_id: { type: 'string', description: 'The unique identifier (ID) of the DAG to unpause' }
+                    },
+                    required: ['dag_id']
+                }
+            },
+            {
+                name: 'trigger_dag_run',
+                description: 'Triggers a DAG run. Inputs: dag_id (string), config_json (string, optional), date (string, optional).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dag_id: { type: 'string', description: 'The DAG ID' },
+                        config_json: { type: 'string', description: 'JSON configuration or file path' },
+                        date: { type: 'string', description: 'Logical date in ISO 8601 format' }
+                    },
+                    required: ['dag_id']
+                }
+            },
+            {
+                name: 'get_failed_runs',
+                description: 'Gets failed DAG runs. Inputs: time_range_hours (number), dag_id_filter (string).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        time_range_hours: { type: 'number' },
+                        dag_id_filter: { type: 'string' }
+                    },
+                    required: []
+                }
+            },
+            {
+                name: 'analyze_dag_run',
+                description: 'Analyzes the latest DAG run. Inputs: dag_id (required).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dag_id: { type: 'string' }
+                    },
+                    required: ['dag_id']
+                }
+            }
         ];
-        if (aiContext.dag) {
-            messages.push(vscode.LanguageModelChatMessage.User(`DAG:\n\`\`\`json\n${aiContext.dag}\n\`\`\``));
+        // 2. Construct the Initial Messages
+        const messages = [
+            vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. You have access to tools to manage DAGs, view logs, and check status. Use them when appropriate.`)
+        ];
+        // Add context if available
+        if (aiContext) {
+            messages.push(vscode.LanguageModelChatMessage.User(`Context:\nDAG: ${aiContext.dag || 'N/A'}\nLogs: ${aiContext.logs || 'N/A'}\nCode: ${aiContext.code || 'N/A'}`));
         }
-        if (aiContext.dagRun) {
-            messages.push(vscode.LanguageModelChatMessage.User(`DAG Run:\n\`\`\`json\n${aiContext.dagRun}\n\`\`\``));
-        }
-        if (aiContext.tasks) {
-            messages.push(vscode.LanguageModelChatMessage.User(`DAG Tasks:\n\`\`\`json\n${aiContext.tasks}\n\`\`\``));
-        }
-        if (aiContext.taskInstances) {
-            messages.push(vscode.LanguageModelChatMessage.User(`Task Instances:\n\`\`\`json\n${aiContext.taskInstances}\n\`\`\``));
-        }
-        messages.push(vscode.LanguageModelChatMessage.User(request.prompt || "Please analyze the error in these logs if any."));
-        // C. Send to VS Code's AI (Copilot)
+        messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
+        // 3. Select Model and Send Request
         try {
             const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4' });
-            if (model) {
-                const chatResponse = await model.sendRequest(messages, {}, token);
+            if (!model) {
+                stream.markdown("No suitable AI model found.");
+                return;
+            }
+            // Tool calling loop
+            let keepGoing = true;
+            while (keepGoing && !token.isCancellationRequested) {
+                keepGoing = false; // Default to stop unless we get a tool call
+                const chatResponse = await model.sendRequest(messages, { tools }, token);
+                let toolCalls = [];
                 for await (const fragment of chatResponse.text) {
                     stream.markdown(fragment);
                 }
-            }
-            else {
-                stream.markdown("No suitable AI model found.");
+                // Collect tool calls from the response
+                for await (const part of chatResponse.stream) {
+                    if (part instanceof vscode.LanguageModelToolCallPart) {
+                        toolCalls.push(part);
+                    }
+                }
+                // Execute tools if any were called
+                if (toolCalls.length > 0) {
+                    keepGoing = true; // We need to send results back to the model
+                    // Add the model's response (including tool calls) to history
+                    messages.push(vscode.LanguageModelChatMessage.Assistant(toolCalls));
+                    for (const toolCall of toolCalls) {
+                        stream.progress(`Running tool: ${toolCall.name}...`);
+                        try {
+                            // Invoke the tool using VS Code LM API
+                            const result = await vscode.lm.invokeTool(toolCall.name, { input: toolCall.input }, token);
+                            // Convert result to string/text part
+                            const resultText = result.content
+                                .filter(part => part instanceof vscode.LanguageModelTextPart)
+                                .map(part => part.value)
+                                .join('\n');
+                            // Add result to history
+                            messages.push(vscode.LanguageModelChatMessage.User([
+                                new vscode.LanguageModelToolResultPart(toolCall.callId, [new vscode.LanguageModelTextPart(resultText)])
+                            ]));
+                        }
+                        catch (err) {
+                            const errorMessage = `Tool execution failed: ${err instanceof Error ? err.message : String(err)}`;
+                            messages.push(vscode.LanguageModelChatMessage.User([
+                                new vscode.LanguageModelToolResultPart(toolCall.callId, [new vscode.LanguageModelTextPart(errorMessage)])
+                            ]));
+                        }
+                    }
+                }
             }
         }
         catch (err) {
@@ -4084,7 +4189,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 52));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 59));
 		return toFormData(this.body, ct);
 	}
 
@@ -10925,6 +11030,1048 @@ class ProvidersView {
 exports.ProvidersView = ProvidersView;
 
 
+/***/ }),
+/* 52 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * AirflowClientAdapter - Adapter to bridge AirflowApi with Language Model Tools
+ *
+ * This class adapts the existing AirflowApi class to work with the Language Model Tools.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AirflowClientAdapter = void 0;
+const dagTreeView_1 = __webpack_require__(2);
+const ui = __webpack_require__(4);
+class AirflowClientAdapter {
+    /**
+     * Dynamically retrieves the currently connected Airflow API instance.
+     * Throws an error if no server is connected.
+     */
+    get api() {
+        if (!dagTreeView_1.DagTreeView.Current || !dagTreeView_1.DagTreeView.Current.api) {
+            const msg = "No Airflow server connected. Please connect to a server in the Airflow view.";
+            ui.showErrorMessage(msg);
+            throw new Error(msg);
+        }
+        return dagTreeView_1.DagTreeView.Current.api;
+    }
+    /**
+     * Triggers a DAG run via POST /dags/{dag_id}/dagRuns
+     *
+     * @param dagId - The DAG identifier
+     * @param configJson - JSON string containing the DAG run configuration (optional)
+     * @param date - The logical date for the run (optional)
+     * @returns Promise with the created DAG run result
+     */
+    async triggerDagRun(dagId, configJson = '{}', date) {
+        // Validate JSON before calling API
+        try {
+            JSON.parse(configJson);
+        }
+        catch (error) {
+            throw new Error(`Invalid JSON in config_json parameter: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        // Call the actual AirflowApi.triggerDag method
+        // Note: AirflowApi.triggerDag already accepts date as the 3rd argument
+        const result = await this.api.triggerDag(dagId, configJson, date);
+        if (!result.isSuccessful) {
+            throw new Error(result.error?.message || 'Failed to trigger DAG run');
+        }
+        // Map the API response to our interface
+        const apiResponse = result.result;
+        return {
+            dag_id: apiResponse.dag_id || dagId,
+            dag_run_id: apiResponse.dag_run_id || apiResponse.run_id || '',
+            state: apiResponse.state || 'queued',
+            execution_date: apiResponse.execution_date || apiResponse.logical_date || new Date().toISOString(),
+            logical_date: apiResponse.logical_date || apiResponse.execution_date || new Date().toISOString(),
+            start_date: apiResponse.start_date,
+            end_date: apiResponse.end_date,
+            conf: apiResponse.conf
+        };
+    }
+    /**
+     * Queries for failed DAG runs using the Airflow API
+     *
+     * @param timeRangeHours - Number of hours to look back (default 24)
+     * @param dagIdFilter - Optional DAG ID filter
+     * @returns Promise with array of failed run summaries
+     */
+    async queryFailedRuns(timeRangeHours = 24, dagIdFilter) {
+        const failedRuns = [];
+        try {
+            // If dagIdFilter is specified, query only that DAG
+            if (dagIdFilter) {
+                const result = await this.api.getDagRunHistory(dagIdFilter);
+                if (result.isSuccessful && result.result?.dag_runs) {
+                    failedRuns.push(...this.filterFailedRuns(result.result.dag_runs, timeRangeHours));
+                }
+            }
+            else {
+                // If no filter, we need to get the DAG list first, then query each
+                const dagListResult = await this.api.getDagList();
+                if (dagListResult.isSuccessful && dagListResult.result) {
+                    // Handle both v1 (array) and v2 (object with dags property) responses
+                    const resultData = dagListResult.result;
+                    const dags = Array.isArray(resultData) ? resultData : (resultData.dags || []);
+                    // Limit to first 20 DAGs to avoid too many API calls
+                    const dagsToCheck = dags.slice(0, 20);
+                    // Query each DAG's runs in parallel
+                    const runPromises = dagsToCheck.map(async (dag) => {
+                        try {
+                            const dagId = dag.dag_id;
+                            const runResult = await this.api.getDagRunHistory(dagId);
+                            if (runResult.isSuccessful && runResult.result?.dag_runs) {
+                                return this.filterFailedRuns(runResult.result.dag_runs, timeRangeHours);
+                            }
+                        }
+                        catch (error) {
+                            // Silently continue on error for individual DAGs
+                            return [];
+                        }
+                        return [];
+                    });
+                    const results = await Promise.all(runPromises);
+                    results.forEach(runs => failedRuns.push(...runs));
+                }
+            }
+            return failedRuns;
+        }
+        catch (error) {
+            throw new Error(`Failed to query failed runs: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Retrieves a list of DAGs filtered by paused state
+     *
+     * @param isPaused - Whether to list paused (true) or active (false) DAGs
+     * @returns Promise with array of DAG summaries
+     */
+    async getDags(isPaused) {
+        try {
+            const dagListResult = await this.api.getDagList();
+            if (!dagListResult.isSuccessful || !dagListResult.result) {
+                throw new Error(dagListResult.error?.message || 'Failed to fetch DAG list');
+            }
+            // Handle both v1 (array) and v2 (object with dags property) responses
+            const resultData = dagListResult.result;
+            const dags = Array.isArray(resultData) ? resultData : (resultData.dags || []);
+            return dags
+                .filter((dag) => dag.is_paused === isPaused)
+                .map((dag) => ({
+                dag_id: dag.dag_id,
+                is_paused: dag.is_paused,
+                is_active: dag.is_active !== undefined ? dag.is_active : !dag.is_paused,
+                description: dag.description,
+                owners: dag.owners,
+                tags: dag.tags
+            }));
+        }
+        catch (error) {
+            throw new Error(`Failed to get DAG list: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Pauses or unpauses a DAG
+     *
+     * @param dagId - The DAG ID
+     * @param isPaused - True to pause, false to unpause
+     */
+    async pauseDag(dagId, isPaused) {
+        try {
+            const result = await this.api.pauseDag(dagId, isPaused);
+            if (!result.isSuccessful) {
+                throw new Error(result.error?.message || `Failed to ${isPaused ? 'pause' : 'unpause'} DAG`);
+            }
+        }
+        catch (error) {
+            throw new Error(`Failed to change DAG state: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Retrieves the latest DAG run for a given DAG
+     *
+     * @param dagId - The DAG ID
+     * @returns Promise with the latest DAG run result or undefined if not found
+     */
+    async getLatestDagRun(dagId) {
+        try {
+            const result = await this.api.getLastDagRun(dagId);
+            if (!result.isSuccessful || !result.result) {
+                return undefined;
+            }
+            const apiResponse = result.result;
+            return {
+                dag_id: apiResponse.dag_id || dagId,
+                dag_run_id: apiResponse.dag_run_id || apiResponse.run_id || '',
+                state: apiResponse.state || 'unknown',
+                execution_date: apiResponse.execution_date || apiResponse.logical_date || new Date().toISOString(),
+                logical_date: apiResponse.logical_date || apiResponse.execution_date || new Date().toISOString(),
+                start_date: apiResponse.start_date,
+                end_date: apiResponse.end_date,
+                conf: apiResponse.conf
+            };
+        }
+        catch (error) {
+            // Return undefined on error to allow caller to handle
+            return undefined;
+        }
+    }
+    /**
+     * Retrieves task instances for a specific DAG run
+     *
+     * @param dagId - The DAG ID
+     * @param dagRunId - The DAG run ID
+     * @returns Promise with array of task instances
+     */
+    async getTaskInstances(dagId, dagRunId) {
+        try {
+            const result = await this.api.getTaskInstances(dagId, dagRunId);
+            if (!result.isSuccessful || !result.result) {
+                return [];
+            }
+            // API v2 returns { task_instances: [...] }
+            return result.result.task_instances || [];
+        }
+        catch (error) {
+            return [];
+        }
+    }
+    /**
+     * Retrieves task log content
+     *
+     * @param dagId - The DAG ID
+     * @param dagRunId - The DAG run ID
+     * @param taskId - The task ID
+     * @param tryNumber - The task attempt number
+     * @returns Promise with the log content (truncated for LLM processing)
+     */
+    async getTaskLog(dagId, dagRunId, taskId, tryNumber) {
+        try {
+            // Use the existing getTaskInstanceLog method
+            const result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
+            if (!result.isSuccessful) {
+                throw new Error(result.error?.message || 'Failed to retrieve task log');
+            }
+            const logContent = result.result || '';
+            // Truncate to last 400 characters for token efficiency
+            if (logContent.length > 400) {
+                return '...' + logContent.slice(-400);
+            }
+            return logContent;
+        }
+        catch (error) {
+            throw new Error(`Failed to get task log: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Helper method to filter failed runs within the time range
+     */
+    filterFailedRuns(dagRuns, timeRangeHours) {
+        const cutoffTime = new Date();
+        cutoffTime.setHours(cutoffTime.getHours() - timeRangeHours);
+        const failedStates = ['failed', 'upstream_failed', 'skipped'];
+        return dagRuns
+            .filter((run) => {
+            // Filter by state
+            if (!failedStates.includes(run.state)) {
+                return false;
+            }
+            // Filter by time range
+            const runDate = new Date(run.execution_date || run.logical_date || run.start_date);
+            return runDate >= cutoffTime;
+        })
+            .map((run) => ({
+            dag_id: run.dag_id,
+            dag_run_id: run.dag_run_id || run.run_id,
+            state: run.state,
+            execution_date: run.execution_date || run.logical_date,
+            logical_date: run.logical_date || run.execution_date,
+            start_date: run.start_date,
+            end_date: run.end_date,
+            error_message: this.extractErrorMessage(run)
+        }));
+    }
+    /**
+     * Retrieves DAG run history for a specific DAG
+     *
+     * @param dagId - The DAG ID
+     * @param date - Optional date filter (YYYY-MM-DD format)
+     * @returns Promise with DAG runs data
+     */
+    async getDagRunHistory(dagId, date) {
+        try {
+            const result = await this.api.getDagRunHistory(dagId, date);
+            if (!result.isSuccessful || !result.result) {
+                throw new Error(result.error?.message || 'Failed to fetch DAG run history');
+            }
+            return result.result;
+        }
+        catch (error) {
+            throw new Error(`Failed to get DAG run history: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Helper to extract error message from DAG run
+     */
+    extractErrorMessage(run) {
+        // Try to extract error information from the run object
+        if (run.note) {
+            return run.note;
+        }
+        if (run.state === 'failed') {
+            return `DAG run failed`;
+        }
+        if (run.state === 'upstream_failed') {
+            return `Upstream task(s) failed`;
+        }
+        if (run.state === 'skipped') {
+            return `DAG run was skipped`;
+        }
+        return undefined;
+    }
+}
+exports.AirflowClientAdapter = AirflowClientAdapter;
+
+
+/***/ }),
+/* 53 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * TriggerDagRunTool - Language Model Tool for triggering Airflow DAG runs
+ *
+ * This tool implements a state-changing action that requires explicit user confirmation
+ * via the prepareInvocation method. It displays the target DAG ID and configuration
+ * payload in a markdown-formatted confirmation dialog before execution.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.TriggerDagRunTool = void 0;
+const vscode = __webpack_require__(1);
+const fs = __webpack_require__(5);
+/**
+ * TriggerDagRunTool - Implements vscode.LanguageModelTool for DAG triggering
+ */
+class TriggerDagRunTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * SECURITY CRITICAL: Prepare invocation with user confirmation
+     *
+     * This method is called before invoke() and provides a confirmation gate
+     * for the user to review the exact DAG and configuration before triggering.
+     *
+     * @param options - Contains the parsed input parameters
+     * @param token - Cancellation token
+     * @returns PreparedToolInvocation with confirmation message
+     */
+    async prepareInvocation(options, token) {
+        const { dag_id, config_json, date } = options.input;
+        // Process config_json: check if it's a file path
+        let finalConfig = config_json || '{}';
+        let configSource = 'Inline';
+        if (config_json && !config_json.trim().startsWith('{')) {
+            // Assume it's a file path if it doesn't start with {
+            try {
+                // Remove quotes if present
+                const filePath = config_json.replace(/^['"]|['"]$/g, '');
+                if (fs.existsSync(filePath)) {
+                    finalConfig = fs.readFileSync(filePath, 'utf8');
+                    configSource = `File: ${filePath}`;
+                }
+            }
+            catch (error) {
+                // If read fails, keep original string (validation will happen later)
+                console.warn(`Failed to read config file: ${error}`);
+            }
+        }
+        // Validate JSON
+        try {
+            JSON.parse(finalConfig);
+        }
+        catch (e) {
+            throw new Error(`Invalid JSON configuration: ${e instanceof Error ? e.message : String(e)}`);
+        }
+        const confirmationMessage = new vscode.MarkdownString();
+        confirmationMessage.isTrusted = true;
+        confirmationMessage.appendMarkdown('## ⚠️ Trigger DAG Confirmation\n\n');
+        confirmationMessage.appendMarkdown(`You are about to trigger the following DAG:\n\n`);
+        confirmationMessage.appendMarkdown(`**DAG ID:** \`${dag_id}\`\n`);
+        if (date) {
+            confirmationMessage.appendMarkdown(`**Logical Date:** \`${date}\`\n`);
+        }
+        confirmationMessage.appendMarkdown(`**Config Source:** ${configSource}\n\n`);
+        confirmationMessage.appendMarkdown('**Configuration Payload:**\n');
+        confirmationMessage.appendCodeblock(finalConfig, 'json');
+        confirmationMessage.appendMarkdown('\nDo you want to proceed?');
+        return {
+            invocationMessage: `Triggering DAG: ${dag_id}`,
+            confirmationMessages: {
+                title: 'Confirm DAG Trigger',
+                message: confirmationMessage
+            }
+        };
+    }
+    /**
+     * Execute the DAG trigger action
+     *
+     * @param options - Contains the validated input parameters
+     * @param token - Cancellation token
+     * @returns LanguageModelToolResult with success/error information
+     */
+    async invoke(options, token) {
+        const { dag_id, config_json, date } = options.input;
+        try {
+            // Re-process config for invoke (same logic as prepare)
+            let finalConfig = config_json || '{}';
+            if (config_json && !config_json.trim().startsWith('{')) {
+                try {
+                    const filePath = config_json.replace(/^['"]|['"]$/g, '');
+                    if (fs.existsSync(filePath)) {
+                        finalConfig = fs.readFileSync(filePath, 'utf8');
+                    }
+                }
+                catch (error) {
+                    // Ignore error here, will fail at JSON parse in client
+                }
+            }
+            const result = await this.client.triggerDagRun(dag_id, finalConfig, date);
+            const message = [
+                `✅ **Success!** DAG Run triggered.`,
+                ``,
+                `- **DAG ID:** ${result.dag_id}`,
+                `- **Run ID:** ${result.dag_run_id}`,
+                `- **State:** ${result.state}`,
+                `- **Logical Date:** ${result.logical_date}`,
+                date ? `- **Requested Date:** ${date}` : ''
+            ].filter(Boolean).join('\n');
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(message)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to trigger DAG ${dag_id}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.TriggerDagRunTool = TriggerDagRunTool;
+
+
+/***/ }),
+/* 54 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GetFailedRunsTool - Language Model Tool for monitoring failed DAG runs
+ *
+ * This tool implements a read-only observability action that retrieves
+ * failed DAG runs from Airflow. It does not require user confirmation
+ * since it's a non-destructive operation.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetFailedRunsTool = void 0;
+const vscode = __webpack_require__(1);
+/**
+ * GetFailedRunsTool - Implements vscode.LanguageModelTool for monitoring
+ */
+class GetFailedRunsTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Prepare invocation - minimal for read-only operations
+     *
+     * Since this is a read-only monitoring tool, we don't need extensive
+     * confirmation dialogs. This method can return undefined or a simple message.
+     *
+     * @param options - Contains the parsed input parameters
+     * @param token - Cancellation token
+     * @returns PreparedToolInvocation or undefined
+     */
+    async prepareInvocation(options, token) {
+        const timeRange = options.input.time_range_hours || 24;
+        const dagFilter = options.input.dag_id_filter;
+        const message = dagFilter
+            ? `Querying failed runs for DAG '${dagFilter}' (last ${timeRange} hours)`
+            : `Querying all failed runs (last ${timeRange} hours)`;
+        return {
+            invocationMessage: message
+        };
+    }
+    /**
+     * Execute the query for failed DAG runs
+     *
+     * @param options - Contains the validated input parameters
+     * @param token - Cancellation token
+     * @returns LanguageModelToolResult with failed runs data
+     */
+    async invoke(options, token) {
+        const timeRange = options.input.time_range_hours || 24;
+        const dagFilter = options.input.dag_id_filter;
+        try {
+            // Call the mock API client to get failed runs
+            const failedRuns = await this.client.queryFailedRuns(timeRange, dagFilter);
+            // Format the response for the LLM
+            if (failedRuns.length === 0) {
+                const noFailuresMessage = dagFilter
+                    ? `✅ No failed runs found for DAG '${dagFilter}' in the last ${timeRange} hours.`
+                    : `✅ No failed runs found in the last ${timeRange} hours. All DAGs are healthy!`;
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(noFailuresMessage)
+                ]);
+            }
+            // Build a detailed summary
+            let summaryMessage = `## ⚠️ Failed DAG Runs Report\n\n`;
+            summaryMessage += `**Time Range:** Last ${timeRange} hours\n`;
+            if (dagFilter) {
+                summaryMessage += `**DAG Filter:** ${dagFilter}\n`;
+            }
+            summaryMessage += `**Total Failed Runs:** ${failedRuns.length}\n\n`;
+            summaryMessage += `---\n\n`;
+            // Add individual run details
+            failedRuns.forEach((run, index) => {
+                summaryMessage += `### ${index + 1}. ${run.dag_id}\n\n`;
+                summaryMessage += `- **Run ID:** \`${run.dag_run_id}\`\n`;
+                summaryMessage += `- **State:** ${run.state}\n`;
+                summaryMessage += `- **Execution Date:** ${run.execution_date}\n`;
+                summaryMessage += `- **Logical Date:** ${run.logical_date}\n`;
+                if (run.start_date) {
+                    summaryMessage += `- **Started:** ${run.start_date}\n`;
+                }
+                if (run.end_date) {
+                    summaryMessage += `- **Ended:** ${run.end_date}\n`;
+                }
+                if (run.error_message) {
+                    summaryMessage += `- **Error:** ${run.error_message}\n`;
+                }
+                summaryMessage += `\n`;
+            });
+            // Also include raw JSON for LLM processing
+            summaryMessage += `\n---\n\n**Raw Data (JSON):**\n\n`;
+            summaryMessage += `\`\`\`json\n${JSON.stringify(failedRuns, null, 2)}\n\`\`\`\n`;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(summaryMessage)
+            ]);
+        }
+        catch (error) {
+            // Handle errors gracefully
+            const errorMessage = `
+❌ Failed to Query DAG Runs
+
+**Error:** ${error instanceof Error ? error.message : String(error)}
+
+Please check:
+- The Airflow server is accessible
+- You have the necessary permissions
+- The time range and filters are valid
+            `.trim();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(errorMessage)
+            ]);
+        }
+    }
+}
+exports.GetFailedRunsTool = GetFailedRunsTool;
+
+
+/***/ }),
+/* 55 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * ListActiveDagsTool - Language Model Tool for listing active DAGs
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ListActiveDagsTool = void 0;
+const vscode = __webpack_require__(1);
+class ListActiveDagsTool {
+    constructor(client) {
+        this.client = client;
+    }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: "Listing active DAGs..."
+        };
+    }
+    async invoke(options, token) {
+        try {
+            const dags = await this.client.getDags(false); // false = active (not paused)
+            if (dags.length === 0) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart("✅ No active DAGs found.")
+                ]);
+            }
+            let message = `## 🟢 Active DAGs (${dags.length})\n\n`;
+            dags.forEach(dag => {
+                message += `- **${dag.dag_id}**`;
+                if (dag.description) {
+                    message += `: ${dag.description}`;
+                }
+                message += `\n`;
+            });
+            message += `\n---\n**Raw Data:**\n\`\`\`json\n${JSON.stringify(dags, null, 2)}\n\`\`\``;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(message)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to list active DAGs: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.ListActiveDagsTool = ListActiveDagsTool;
+
+
+/***/ }),
+/* 56 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * ListPausedDagsTool - Language Model Tool for listing paused DAGs
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ListPausedDagsTool = void 0;
+const vscode = __webpack_require__(1);
+class ListPausedDagsTool {
+    constructor(client) {
+        this.client = client;
+    }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: "Listing paused DAGs..."
+        };
+    }
+    async invoke(options, token) {
+        try {
+            const dags = await this.client.getDags(true); // true = paused
+            if (dags.length === 0) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart("✅ No paused DAGs found.")
+                ]);
+            }
+            let message = `## ⏸️ Paused DAGs (${dags.length})\n\n`;
+            dags.forEach(dag => {
+                message += `- **${dag.dag_id}**`;
+                if (dag.description) {
+                    message += `: ${dag.description}`;
+                }
+                message += `\n`;
+            });
+            message += `\n---\n**Raw Data:**\n\`\`\`json\n${JSON.stringify(dags, null, 2)}\n\`\`\``;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(message)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to list paused DAGs: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.ListPausedDagsTool = ListPausedDagsTool;
+
+
+/***/ }),
+/* 57 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * PauseDagTool - Language Model Tool for pausing a DAG
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PauseDagTool = void 0;
+const vscode = __webpack_require__(1);
+class PauseDagTool {
+    constructor(client) {
+        this.client = client;
+    }
+    async prepareInvocation(options, token) {
+        const { dag_id } = options.input;
+        const confirmationMessage = new vscode.MarkdownString();
+        confirmationMessage.isTrusted = true;
+        confirmationMessage.appendMarkdown('## ⚠️ Pause DAG Confirmation\n\n');
+        confirmationMessage.appendMarkdown(`You are about to **PAUSE** the following DAG:\n\n`);
+        confirmationMessage.appendMarkdown(`**DAG ID:** \`${dag_id}\`\n\n`);
+        confirmationMessage.appendMarkdown('**Effect:** No new runs will be scheduled for this DAG.\n\n');
+        confirmationMessage.appendMarkdown('Do you want to proceed?');
+        return {
+            invocationMessage: `Pausing DAG: ${dag_id}`,
+            confirmationMessages: {
+                title: 'Confirm Pause DAG',
+                message: confirmationMessage
+            }
+        };
+    }
+    async invoke(options, token) {
+        const { dag_id } = options.input;
+        try {
+            await this.client.pauseDag(dag_id, true); // true = pause
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`✅ Successfully PAUSED DAG: **${dag_id}**`)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to pause DAG ${dag_id}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.PauseDagTool = PauseDagTool;
+
+
+/***/ }),
+/* 58 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * UnpauseDagTool - Language Model Tool for unpausing (activating) a DAG
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.UnpauseDagTool = void 0;
+const vscode = __webpack_require__(1);
+class UnpauseDagTool {
+    constructor(client) {
+        this.client = client;
+    }
+    async prepareInvocation(options, token) {
+        const { dag_id } = options.input;
+        const confirmationMessage = new vscode.MarkdownString();
+        confirmationMessage.isTrusted = true;
+        confirmationMessage.appendMarkdown('## ⚠️ Unpause DAG Confirmation\n\n');
+        confirmationMessage.appendMarkdown(`You are about to **UNPAUSE** (activate) the following DAG:\n\n`);
+        confirmationMessage.appendMarkdown(`**DAG ID:** \`${dag_id}\`\n\n`);
+        confirmationMessage.appendMarkdown('**Effect:** New runs will be scheduled for this DAG.\n\n');
+        confirmationMessage.appendMarkdown('Do you want to proceed?');
+        return {
+            invocationMessage: `Unpausing DAG: ${dag_id}`,
+            confirmationMessages: {
+                title: 'Confirm Unpause DAG',
+                message: confirmationMessage
+            }
+        };
+    }
+    async invoke(options, token) {
+        const { dag_id } = options.input;
+        try {
+            await this.client.pauseDag(dag_id, false); // false = unpause
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`✅ Successfully UNPAUSED DAG: **${dag_id}**`)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to unpause DAG ${dag_id}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.UnpauseDagTool = UnpauseDagTool;
+
+
+/***/ }),
+/* 59 */,
+/* 60 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * AnalyzeTaskLogTool - Language Model Tool for analyzing Airflow task logs
+ *
+ * This tool retrieves task logs and provides them to the LLM for analysis.
+ * It includes a security confirmation step to prevent accidental exposure of sensitive log data.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AnalyzeDagRunTool = void 0;
+const vscode = __webpack_require__(1);
+/**
+ * AnalyzeDagRunTool - Implements vscode.LanguageModelTool for log analysis
+ */
+class AnalyzeDagRunTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Helper to resolve optional parameters by fetching latest run/task details
+     */
+    async resolveInput(input) {
+        let { dag_id, dag_run_id, task_id, try_number } = input;
+        // 1. Resolve DAG Run
+        if (!dag_run_id) {
+            const latestRun = await this.client.getLatestDagRun(dag_id);
+            if (!latestRun) {
+                throw new Error(`No runs found for DAG ${dag_id}`);
+            }
+            dag_run_id = latestRun.dag_run_id;
+        }
+        // 2. Resolve Task and Try Number
+        if (!task_id || !try_number) {
+            const tasks = await this.client.getTaskInstances(dag_id, dag_run_id);
+            if (!task_id) {
+                // Find first failed task
+                const failedTask = tasks.find((t) => t.state === 'failed' || t.state === 'upstream_failed');
+                if (!failedTask) {
+                    throw new Error(`No failed tasks found in DAG run ${dag_run_id}. Please specify a task_id.`);
+                }
+                task_id = failedTask.task_id;
+                // Use the try number from the found task if not provided
+                if (!try_number) {
+                    try_number = failedTask.try_number.toString();
+                }
+            }
+            else if (!try_number) {
+                // Task ID provided, but try_number missing
+                const task = tasks.find((t) => t.task_id === task_id);
+                if (task) {
+                    try_number = task.try_number.toString();
+                }
+                else {
+                    // Default to '1' if task instance not found (fallback)
+                    try_number = '1';
+                }
+            }
+        }
+        return {
+            dag_id,
+            dag_run_id: dag_run_id,
+            task_id: task_id,
+            try_number: try_number || '1'
+        };
+    }
+    /**
+     * SECURITY CRITICAL: Prepare invocation with user confirmation
+     */
+    async prepareInvocation(options, token) {
+        try {
+            // Resolve parameters to show the user exactly what will be analyzed
+            const resolved = await this.resolveInput(options.input);
+            const { dag_id, dag_run_id, task_id, try_number } = resolved;
+            const confirmationMessage = new vscode.MarkdownString();
+            confirmationMessage.isTrusted = true;
+            confirmationMessage.appendMarkdown('## ⚠️ Analyze Task Log Confirmation\n\n');
+            confirmationMessage.appendMarkdown('You are about to retrieve and analyze logs for the following task:\n\n');
+            confirmationMessage.appendMarkdown(`- **DAG ID:** \`${dag_id}\`\n`);
+            confirmationMessage.appendMarkdown(`- **Run ID:** \`${dag_run_id}\`\n`);
+            confirmationMessage.appendMarkdown(`- **Task ID:** \`${task_id}\`\n`);
+            confirmationMessage.appendMarkdown(`- **Try Number:** \`${try_number}\`\n\n`);
+            confirmationMessage.appendMarkdown('**Security Warning:**\n');
+            confirmationMessage.appendMarkdown('Task logs may contain sensitive information (environment variables, connection strings, data samples). ');
+            confirmationMessage.appendMarkdown('Proceeding will send these logs to the Language Model for analysis.\n\n');
+            confirmationMessage.appendMarkdown('Do you want to proceed?');
+            return {
+                invocationMessage: `Analyzing logs for ${dag_id} / ${task_id}`,
+                confirmationMessages: {
+                    title: 'Confirm Log Analysis',
+                    message: confirmationMessage
+                }
+            };
+        }
+        catch (error) {
+            // If resolution fails, we can't prepare the confirmation properly.
+            // We return a generic error message in the confirmation dialog or throw?
+            // Throwing here might be handled by VS Code UI.
+            throw new Error(`Failed to prepare log analysis: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Execute the log analysis
+     */
+    async invoke(options, token) {
+        try {
+            // Re-resolve inputs (stateless)
+            const { dag_id, dag_run_id, task_id, try_number } = await this.resolveInput(options.input);
+            const logContent = await this.client.getTaskLog(dag_id, dag_run_id, task_id, try_number);
+            const message = [
+                `## Log Analysis for ${task_id}`,
+                ``,
+                `**Context:**`,
+                `- DAG: ${dag_id}`,
+                `- Run: ${dag_run_id}`,
+                `- Try: ${try_number}`,
+                ``,
+                `**Log Content (Truncated):**`,
+                '```',
+                logContent,
+                '```',
+                ``,
+                `Please analyze the above log for errors and suggest potential fixes.`
+            ].join('\n');
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(message)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to analyze logs: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.AnalyzeDagRunTool = AnalyzeDagRunTool;
+
+
+/***/ }),
+/* 61 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GetDagRunsTool - Language Model Tool for retrieving DAG runs
+ *
+ * This tool retrieves the runs for a specific DAG, optionally filtered by date.
+ * Returns run ID, start time, duration, and status for each run.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetDagRunsTool = void 0;
+const vscode = __webpack_require__(1);
+/**
+ * GetDagRunsTool - Implements vscode.LanguageModelTool for retrieving DAG runs
+ */
+class GetDagRunsTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Prepare invocation - minimal for read-only operations
+     */
+    async prepareInvocation(options, token) {
+        const { dag_id, date } = options.input;
+        const dateStr = date || new Date().toISOString().split('T')[0];
+        return {
+            invocationMessage: `Retrieving runs for DAG '${dag_id}' (date: ${dateStr})`
+        };
+    }
+    /**
+     * Execute the query for DAG runs
+     */
+    async invoke(options, token) {
+        const { dag_id, date } = options.input;
+        try {
+            // Get DAG run history from the API
+            const result = await this.client.getDagRunHistory(dag_id);
+            if (!result || !result.dag_runs || result.dag_runs.length === 0) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`ℹ️ No runs found for DAG '${dag_id}'.`)
+                ]);
+            }
+            let runs = result.dag_runs;
+            // Filter by date if provided
+            if (date) {
+                const targetDate = new Date(date);
+                runs = runs.filter((run) => {
+                    const runDate = new Date(run.execution_date || run.logical_date);
+                    return runDate.toISOString().split('T')[0] === targetDate.toISOString().split('T')[0];
+                });
+                if (runs.length === 0) {
+                    return new vscode.LanguageModelToolResult([
+                        new vscode.LanguageModelTextPart(`ℹ️ No runs found for DAG '${dag_id}' on ${date}.`)
+                    ]);
+                }
+            }
+            // Build detailed summary
+            let summaryMessage = `## 📊 DAG Runs for '${dag_id}'\n\n`;
+            if (date) {
+                summaryMessage += `**Date Filter:** ${date}\n`;
+            }
+            else {
+                summaryMessage += `**Date Filter:** Today (${new Date().toISOString().split('T')[0]})\n`;
+            }
+            summaryMessage += `**Total Runs:** ${runs.length}\n\n`;
+            summaryMessage += `---\n\n`;
+            // Add individual run details
+            runs.forEach((run, index) => {
+                const startTime = run.start_date || run.execution_date || 'N/A';
+                const endTime = run.end_date || 'N/A';
+                let duration = 'N/A';
+                if (run.start_date && run.end_date) {
+                    const start = new Date(run.start_date);
+                    const end = new Date(run.end_date);
+                    const durationMs = end.getTime() - start.getTime();
+                    const durationSec = Math.floor(durationMs / 1000);
+                    const minutes = Math.floor(durationSec / 60);
+                    const seconds = durationSec % 60;
+                    duration = `${minutes}m ${seconds}s`;
+                }
+                const status = run.state || 'unknown';
+                const statusEmoji = this.getStatusEmoji(status);
+                summaryMessage += `### ${index + 1}. Run: ${run.dag_run_id || run.run_id}\n\n`;
+                summaryMessage += `- **Status:** ${statusEmoji} ${status}\n`;
+                summaryMessage += `- **Start Time:** ${startTime}\n`;
+                if (endTime !== 'N/A') {
+                    summaryMessage += `- **End Time:** ${endTime}\n`;
+                }
+                summaryMessage += `- **Duration:** ${duration}\n`;
+                summaryMessage += `- **Execution Date:** ${run.execution_date || run.logical_date}\n`;
+                summaryMessage += `\n`;
+            });
+            // Include raw JSON for LLM processing
+            summaryMessage += `\n---\n\n**Raw Data (JSON):**\n\n`;
+            summaryMessage += `\`\`\`json\n${JSON.stringify(runs, null, 2)}\n\`\`\`\n`;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(summaryMessage)
+            ]);
+        }
+        catch (error) {
+            const errorMessage = `
+❌ Failed to retrieve DAG runs
+
+**Error:** ${error instanceof Error ? error.message : String(error)}
+
+Please check:
+- The DAG ID is correct
+- The Airflow server is accessible
+- You have the necessary permissions
+            `.trim();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(errorMessage)
+            ]);
+        }
+    }
+    /**
+     * Helper to get emoji for run status
+     */
+    getStatusEmoji(status) {
+        const statusMap = {
+            'success': '✅',
+            'failed': '❌',
+            'running': '▶️',
+            'queued': '⏳',
+            'upstream_failed': '⚠️',
+            'skipped': '⏭️',
+            'up_for_retry': '🔄',
+            'up_for_reschedule': '📅',
+            'removed': '🗑️',
+            'scheduled': '📆'
+        };
+        return statusMap[status.toLowerCase()] || '❓';
+    }
+}
+exports.GetDagRunsTool = GetDagRunsTool;
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -11078,6 +12225,15 @@ exports.deactivate = deactivate;
 const vscode = __webpack_require__(1);
 const dagTreeView_1 = __webpack_require__(2);
 const ui = __webpack_require__(4);
+const AirflowClientAdapter_1 = __webpack_require__(52);
+const TriggerDagRunTool_1 = __webpack_require__(53);
+const GetFailedRunsTool_1 = __webpack_require__(54);
+const AnalyzeDagRunTool_1 = __webpack_require__(60);
+const ListActiveDagsTool_1 = __webpack_require__(55);
+const ListPausedDagsTool_1 = __webpack_require__(56);
+const PauseDagTool_1 = __webpack_require__(57);
+const UnpauseDagTool_1 = __webpack_require__(58);
+const GetDagRunsTool_1 = __webpack_require__(61);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
@@ -11113,6 +12269,43 @@ function activate(context) {
     const participant = vscode.chat.createChatParticipant('airflow-ext.participant', dagTreeView.aIHandler.bind(dagTreeView));
     participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'airflow-extension-logo.png');
     context.subscriptions.push(participant);
+    // Register Language Model Tools for AI-powered control, monitoring, and debugging
+    ui.logToOutput('Registering Language Model Tools...');
+    // Initialize the API adapter (uses DagTreeView.Current.api dynamically)
+    const airflowClient = new AirflowClientAdapter_1.AirflowClientAdapter();
+    // Register Tool 1: trigger_dag_run (Control)
+    const triggerDagRunTool = vscode.lm.registerTool('trigger_dag_run', new TriggerDagRunTool_1.TriggerDagRunTool(airflowClient));
+    context.subscriptions.push(triggerDagRunTool);
+    ui.logToOutput('Registered tool: trigger_dag_run');
+    // Register Tool 2: get_failed_runs (Monitoring)
+    const getFailedRunsTool = vscode.lm.registerTool('get_failed_runs', new GetFailedRunsTool_1.GetFailedRunsTool(airflowClient));
+    context.subscriptions.push(getFailedRunsTool);
+    ui.logToOutput('Registered tool: get_failed_runs');
+    // Register Tool 3: analyze_task_log (Debugging)
+    const analyzeTaskLogTool = vscode.lm.registerTool('analyze_task_log', new AnalyzeDagRunTool_1.AnalyzeDagRunTool(airflowClient));
+    context.subscriptions.push(analyzeTaskLogTool);
+    ui.logToOutput('Registered tool: analyze_task_log');
+    // Register Tool 4: list_active_dags (Monitoring)
+    const listActiveDagsTool = vscode.lm.registerTool('list_active_dags', new ListActiveDagsTool_1.ListActiveDagsTool(airflowClient));
+    context.subscriptions.push(listActiveDagsTool);
+    ui.logToOutput('Registered tool: list_active_dags');
+    // Register Tool 5: list_paused_dags (Monitoring)
+    const listPausedDagsTool = vscode.lm.registerTool('list_paused_dags', new ListPausedDagsTool_1.ListPausedDagsTool(airflowClient));
+    context.subscriptions.push(listPausedDagsTool);
+    ui.logToOutput('Registered tool: list_paused_dags');
+    // Register Tool 6: pause_dag (Control)
+    const pauseDagTool = vscode.lm.registerTool('pause_dag', new PauseDagTool_1.PauseDagTool(airflowClient));
+    context.subscriptions.push(pauseDagTool);
+    ui.logToOutput('Registered tool: pause_dag');
+    // Register Tool 7: unpause_dag (Control)
+    const unpauseDagTool = vscode.lm.registerTool('unpause_dag', new UnpauseDagTool_1.UnpauseDagTool(airflowClient));
+    context.subscriptions.push(unpauseDagTool);
+    ui.logToOutput('Registered tool: unpause_dag');
+    // Register Tool 8: get_dag_runs (Monitoring)
+    const getDagRunsTool = vscode.lm.registerTool('get_dag_runs', new GetDagRunsTool_1.GetDagRunsTool(airflowClient));
+    context.subscriptions.push(getDagRunsTool);
+    ui.logToOutput('Registered tool: get_dag_runs');
+    ui.logToOutput('All Language Model Tools registered successfully');
     for (const c of commands) {
         context.subscriptions.push(c);
     }

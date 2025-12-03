@@ -315,52 +315,169 @@ export class DagTreeView {
 
 	public askAIContext: AskAIContext | undefined;
 
-	public async aIHandler (request, context, stream, token) : Promise<vscode.ChatRequestHandler>
+	public async aIHandler (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream, token: vscode.CancellationToken) : Promise<void>
 	{
-		
 		const aiContext = DagTreeView.Current?.askAIContext;
-		if (!aiContext) {
-			stream.markdown("No active DAG context found. Please use the 'Ask AI' button on a DAG item first.");
-			return;
-		}
-
-
-		// B. Construct the Prompt
-		const messages = [
-			vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. Here is the code for a DAG and its recent execution logs. Analyze them and explain any errors.`),
-			vscode.LanguageModelChatMessage.User(`DAG Code:\n\`\`\`python\n${aiContext.code}\n\`\`\``),
-			vscode.LanguageModelChatMessage.User(`Execution Logs:\n\`\`\`text\n${aiContext.logs}\n\`\`\``)
+		
+		// 1. Define the tools we want to expose to the model
+		// These must match the definitions in package.json
+		const tools: vscode.LanguageModelChatTool[] = [
+			{
+				name: 'list_active_dags',
+				description: 'Lists all Airflow DAGs that are currently active (not paused). Returns a list of DAG IDs and their details.',
+				inputSchema: {
+					type: 'object',
+					properties: {},
+					required: []
+				}
+			},
+			{
+				name: 'list_paused_dags',
+				description: 'Lists all Airflow DAGs that are currently paused. Returns a list of DAG IDs and their details.',
+				inputSchema: {
+					type: 'object',
+					properties: {},
+					required: []
+				}
+			},
+			{
+				name: 'pause_dag',
+				description: 'Pauses a specific Airflow DAG. Required input: dag_id (string).',
+				inputSchema: {
+					type: 'object',
+					properties: {
+						dag_id: { type: 'string', description: 'The unique identifier (ID) of the DAG to pause' }
+					},
+					required: ['dag_id']
+				}
+			},
+			{
+				name: 'unpause_dag',
+				description: 'Unpauses (activates) a specific Airflow DAG. Required input: dag_id (string).',
+				inputSchema: {
+					type: 'object',
+					properties: {
+						dag_id: { type: 'string', description: 'The unique identifier (ID) of the DAG to unpause' }
+					},
+					required: ['dag_id']
+				}
+			},
+			{
+				name: 'trigger_dag_run',
+				description: 'Triggers a DAG run. Inputs: dag_id (string), config_json (string, optional), date (string, optional).',
+				inputSchema: {
+					type: 'object',
+					properties: {
+						dag_id: { type: 'string', description: 'The DAG ID' },
+						config_json: { type: 'string', description: 'JSON configuration or file path' },
+						date: { type: 'string', description: 'Logical date in ISO 8601 format' }
+					},
+					required: ['dag_id']
+				}
+			},
+			{
+				name: 'get_failed_runs',
+				description: 'Gets failed DAG runs. Inputs: time_range_hours (number), dag_id_filter (string).',
+				inputSchema: {
+					type: 'object',
+					properties: {
+						time_range_hours: { type: 'number' },
+						dag_id_filter: { type: 'string' }
+					},
+					required: []
+				}
+			},
+			{
+				name: 'analyze_dag_run',
+				description: 'Analyzes the latest DAG run. Inputs: dag_id (required).',
+				inputSchema: {
+					type: 'object',
+					properties: {
+						dag_id: { type: 'string' }
+					},
+					required: ['dag_id']
+				}
+			}
 		];
 
-		if (aiContext.dag) {
-			messages.push(vscode.LanguageModelChatMessage.User(`DAG:\n\`\`\`json\n${aiContext.dag}\n\`\`\``));
+		// 2. Construct the Initial Messages
+		const messages: vscode.LanguageModelChatMessage[] = [
+			vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. You have access to tools to manage DAGs, view logs, and check status. Use them when appropriate.`)
+		];
+
+		// Add context if available
+		if (aiContext) {
+			messages.push(vscode.LanguageModelChatMessage.User(`Context:\nDAG: ${aiContext.dag || 'N/A'}\nLogs: ${aiContext.logs || 'N/A'}\nCode: ${aiContext.code || 'N/A'}`));
 		}
 
-		if (aiContext.dagRun) {
-			messages.push(vscode.LanguageModelChatMessage.User(`DAG Run:\n\`\`\`json\n${aiContext.dagRun}\n\`\`\``));
-		}
+		messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
 
-		if (aiContext.tasks) {
-			messages.push(vscode.LanguageModelChatMessage.User(`DAG Tasks:\n\`\`\`json\n${aiContext.tasks}\n\`\`\``));
-		}
-
-		if (aiContext.taskInstances) {
-			messages.push(vscode.LanguageModelChatMessage.User(`Task Instances:\n\`\`\`json\n${aiContext.taskInstances}\n\`\`\``));
-		}
-
-		messages.push(vscode.LanguageModelChatMessage.User(request.prompt || "Please analyze the error in these logs if any."));
-
-		// C. Send to VS Code's AI (Copilot)
+		// 3. Select Model and Send Request
 		try {
 			const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4' });
-			if (model) {
-				const chatResponse = await model.sendRequest(messages, {}, token);
+			if (!model) {
+				stream.markdown("No suitable AI model found.");
+				return;
+			}
+
+			// Tool calling loop
+			let keepGoing = true;
+			while (keepGoing && !token.isCancellationRequested) {
+				keepGoing = false; // Default to stop unless we get a tool call
+
+				const chatResponse = await model.sendRequest(messages, { tools }, token);
+				let toolCalls: vscode.LanguageModelToolCallPart[] = [];
+
 				for await (const fragment of chatResponse.text) {
 					stream.markdown(fragment);
 				}
-			} else {
-				stream.markdown("No suitable AI model found.");
+				
+				// Collect tool calls from the response
+				for await (const part of chatResponse.stream) {
+					if (part instanceof vscode.LanguageModelToolCallPart) {
+						toolCalls.push(part);
+					}
+				}
+
+				// Execute tools if any were called
+				if (toolCalls.length > 0) {
+					keepGoing = true; // We need to send results back to the model
+					
+					// Add the model's response (including tool calls) to history
+					messages.push(vscode.LanguageModelChatMessage.Assistant(toolCalls));
+
+					for (const toolCall of toolCalls) {
+						stream.progress(`Running tool: ${toolCall.name}...`);
+						
+						try {
+							// Invoke the tool using VS Code LM API
+							const result = await vscode.lm.invokeTool(
+								toolCall.name, 
+								{ input: toolCall.input } as any, 
+								token
+							);
+							
+							// Convert result to string/text part
+							const resultText = result.content
+								.filter(part => part instanceof vscode.LanguageModelTextPart)
+								.map(part => (part as vscode.LanguageModelTextPart).value)
+								.join('\n');
+							
+							// Add result to history
+							messages.push(vscode.LanguageModelChatMessage.User([
+								new vscode.LanguageModelToolResultPart(toolCall.callId, [new vscode.LanguageModelTextPart(resultText)])
+							]));
+
+						} catch (err) {
+							const errorMessage = `Tool execution failed: ${err instanceof Error ? err.message : String(err)}`;
+							messages.push(vscode.LanguageModelChatMessage.User([
+								new vscode.LanguageModelToolResultPart(toolCall.callId, [new vscode.LanguageModelTextPart(errorMessage)])
+							]));
+						}
+					}
+				}
 			}
+
 		} catch (err) {
 			if (err instanceof Error) {
 				stream.markdown(`I'm sorry, I couldn't connect to the AI model: ${err.message}`);

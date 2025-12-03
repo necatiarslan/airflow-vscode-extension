@@ -27,6 +27,207 @@
         "isSticky": true
       }
     ],
+    "languageModelTools": [
+      {
+        "name": "trigger_dag_run",
+        "displayName": "Trigger DAG Run",
+        "modelDescription": "Triggers a specific Apache Airflow DAG run via the REST API. Use this tool when the user wants to execute or start a DAG workflow. Required inputs: dag_id (string) - the unique identifier of the DAG to trigger, config_json (string) - a JSON string containing the DAG run configuration parameters (e.g., {\"param1\": \"value1\"}). This is a state-changing operation that requires user confirmation.",
+        "icon": "$(run)",
+        "tags": [
+          "airflow",
+          "control",
+          "dag",
+          "trigger",
+          "execution"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dag_id": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to trigger"
+            },
+            "config_json": {
+              "type": "string",
+              "description": "JSON string containing configuration parameters OR an absolute file path to a JSON file."
+            },
+            "date": {
+              "type": "string",
+              "description": "The logical date (execution date) for the DAG run in ISO 8601 format (e.g., '2023-12-01T10:00:00Z'). Optional."
+            }
+          },
+          "required": [
+            "dag_id"
+          ]
+        }
+      },
+      {
+        "name": "get_failed_runs",
+        "displayName": "Get Failed DAG Runs",
+        "modelDescription": "Retrieves a summary list of DAG runs that have failed (status: failed, upstream_failed, or skipped) within a specified time range using the Airflow batch API. Use this tool for monitoring and observability to help users identify problems. Optional inputs: time_range_hours (integer, defaults to 24) - how many hours back to search, dag_id_filter (string, optional) - filter results to a specific DAG ID. Returns a JSON array of failed run objects.",
+        "icon": "$(warning)",
+        "tags": [
+          "airflow",
+          "monitoring",
+          "failed",
+          "observability",
+          "debugging"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "time_range_hours": {
+              "type": "integer",
+              "description": "Number of hours to look back for failed runs (default: 24)",
+              "default": 24
+            },
+            "dag_id_filter": {
+              "type": "string",
+              "description": "Optional: Filter by specific DAG ID"
+            }
+          }
+        }
+      },
+      {
+        "name": "analyze_dag_run",
+        "tags": [
+          "airflow",
+          "log",
+          "analysis",
+          "debug",
+          "dag_run"
+        ],
+        "displayName": "Analyze DAG Run",
+        "modelDescription": "Analyzes the latest DAG run by retrieving logs, source code, and task statuses to diagnose issues.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dag_id": {
+              "type": "string",
+              "description": "The DAG ID to analyze"
+            }
+          },
+          "required": [
+            "dag_id"
+          ]
+        }
+      },
+      {
+        "name": "list_active_dags",
+        "displayName": "List Active DAGs",
+        "modelDescription": "Lists all Airflow DAGs that are currently active (not paused). Use this tool when the user asks to see running or enabled DAGs. Returns a list of DAG IDs and their details.",
+        "icon": "$(play)",
+        "tags": [
+          "airflow",
+          "monitoring",
+          "dags",
+          "list",
+          "active"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "list_paused_dags",
+        "displayName": "List Paused DAGs",
+        "modelDescription": "Lists all Airflow DAGs that are currently paused. Use this tool when the user asks to see disabled or stopped DAGs. Returns a list of DAG IDs and their details.",
+        "icon": "$(debug-pause)",
+        "tags": [
+          "airflow",
+          "monitoring",
+          "dags",
+          "list",
+          "paused"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "pause_dag",
+        "displayName": "Pause DAG",
+        "modelDescription": "Pauses a specific Airflow DAG. This stops new runs from being scheduled. Use this tool when the user wants to stop, disable, or pause a DAG. Required input: dag_id (string). This is a state-changing operation that requires user confirmation.",
+        "icon": "$(debug-pause)",
+        "tags": [
+          "airflow",
+          "control",
+          "dag",
+          "pause",
+          "stop"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dag_id": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to pause"
+            }
+          },
+          "required": [
+            "dag_id"
+          ]
+        }
+      },
+      {
+        "name": "unpause_dag",
+        "displayName": "Unpause DAG",
+        "modelDescription": "Unpauses (activates) a specific Airflow DAG. This allows new runs to be scheduled. Use this tool when the user wants to start, enable, or unpause a DAG. Required input: dag_id (string). This is a state-changing operation that requires user confirmation.",
+        "icon": "$(play)",
+        "tags": [
+          "airflow",
+          "control",
+          "dag",
+          "unpause",
+          "start"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dag_id": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to unpause"
+            }
+          },
+          "required": [
+            "dag_id"
+          ]
+        }
+      },
+      {
+        "name": "get_dag_runs",
+        "displayName": "Get DAG Runs",
+        "modelDescription": "Retrieves the run history for a specific Airflow DAG. Returns run ID, start time, duration, and status (success, failed, running, etc.) for each run. Optional input: date (string in YYYY-MM-DD format, defaults to today). Use this tool when the user wants to see the execution history or status of DAG runs.",
+        "icon": "$(history)",
+        "tags": [
+          "airflow",
+          "monitoring",
+          "dag",
+          "runs",
+          "history"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dag_id": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to query"
+            },
+            "date": {
+              "type": "string",
+              "description": "Optional: Date to filter runs (YYYY-MM-DD format, defaults to today)"
+            }
+          },
+          "required": [
+            "dag_id"
+          ]
+        }
+      }
+    ],
     "commands": [
       {
         "command": "dagTreeView.AskAI",
