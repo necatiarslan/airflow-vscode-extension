@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { DagTreeItem } from './DagTreeItem';
 import { DagTreeDataProvider } from './DagTreeDataProvider';
 import { DagView } from './DagView';
+import { DailyDagRunView } from '../report/DailyDagRunView';
 import { DagRunView } from '../report/DagRunView';
 import { ConnectionsView } from '../admin/ConnectionsView';
 import { VariablesView } from '../admin/VariablesView';
@@ -897,6 +898,13 @@ export class DagTreeView {
 
 	async viewDagRuns() {
 		ui.logToOutput('DagTreeView.viewDagRuns Started');
+		if (this.api) {
+			DailyDagRunView.render(this.context.extensionUri, this.api);
+		}
+	}
+
+	async viewDagRunHistory() {
+		ui.logToOutput('DagTreeView.viewDagRunHistory Started');
 		if (this.api) {
 			DagRunView.render(this.context.extensionUri, this.api);
 		}

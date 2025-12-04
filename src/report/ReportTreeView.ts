@@ -20,14 +20,24 @@ export class ReportTreeView implements vscode.TreeDataProvider<ReportTreeItem> {
       // Root level - return the report nodes
       return Promise.resolve([
         new ReportTreeItem(
-          'DAG Runs',
+          'Daily DAG Runs',
           vscode.TreeItemCollapsibleState.None,
           {
             command: 'dagTreeView.viewDagRuns',
-            title: 'View DAG Runs',
+            title: 'View Daily DAG Runs',
             arguments: []
           },
           new vscode.ThemeIcon('list-selection')
+        ),
+        new ReportTreeItem(
+          'DAG Run History',
+          vscode.TreeItemCollapsibleState.None,
+          {
+            command: 'dagTreeView.viewDagRunHistory',
+            title: 'View DAG Run History',
+            arguments: []
+          },
+          new vscode.ThemeIcon('history')
         )
       ]);
     }

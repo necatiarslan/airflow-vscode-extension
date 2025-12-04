@@ -4,8 +4,8 @@ import * as ui from '../common/UI';
 import { AirflowApi } from '../common/Api';
 import { DagView } from '../dag/DagView';
 
-export class DagRunView {
-    public static Current: DagRunView | undefined;
+export class DailyDagRunView {
+    public static Current: DailyDagRunView | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
@@ -13,84 +13,77 @@ export class DagRunView {
     private api: AirflowApi;
     
     // Filters
-    private selectedDagId: string = '';
-    private selectedStartDate: string = ui.toISODateString(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)); // Default to 7 days ago
-    private selectedEndDate: string = ui.toISODateString(new Date());
+    private selectedDate: string = ui.toISODateString(new Date());
     private selectedStatus: string = '';
+    private selectedDagId: string = '';
     private allDagIds: string[] = [];
 
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, api: AirflowApi) {
-        ui.logToOutput('DagRunView.constructor Started');
+        ui.logToOutput('DailyDagRunView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
         this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
-        ui.logToOutput('DagRunView.constructor Completed');
+        ui.logToOutput('DailyDagRunView.constructor Completed');
     }
 
     public async loadData() {
-        ui.logToOutput('DagRunView.loadData Started');
+        ui.logToOutput('DailyDagRunView.loadData Started');
 
         // Fetch all DAGs to populate dag_id filter
         const dagsResult = await this.api.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
             this.allDagIds = dagsResult.result.map((dag: any) => dag.dag_id).sort();
-            
-            // If no DAG is selected yet, select the first one
-            if (!this.selectedDagId && this.allDagIds.length > 0) {
-                this.selectedDagId = this.allDagIds[0];
-            }
         }
 
-        // Fetch DAG runs for the selected DAG and date range
+        // Fetch DAG runs for the selected date
+        // If a specific DAG is selected, query that DAG, otherwise query all
         if (this.selectedDagId) {
-            const result = await this.api.getDagRunHistory(this.selectedDagId);
+            const result = await this.api.getDagRunHistory(this.selectedDagId, this.selectedDate);
             if (result.isSuccessful && result.result && result.result.dag_runs) {
-                // Filter runs by date range on the client side
-                const startDateTime = new Date(this.selectedStartDate + 'T00:00:00Z').getTime();
-                const endDateTime = new Date(this.selectedEndDate + 'T23:59:59Z').getTime();
-                
-                this.dagRunsJson = result.result.dag_runs.filter((run: any) => {
-                    if (run.start_date) {
-                        const runTime = new Date(run.start_date).getTime();
-                        return runTime >= startDateTime && runTime <= endDateTime;
-                    }
-                    return false;
-                });
+                this.dagRunsJson = result.result.dag_runs;
             }
         } else {
-            this.dagRunsJson = [];
+            // Query all DAGs for runs on the selected date
+            const allRuns: any[] = [];
+            for (const dagId of this.allDagIds) {
+                const result = await this.api.getDagRunHistory(dagId, this.selectedDate);
+                if (result.isSuccessful && result.result && result.result.dag_runs) {
+                    allRuns.push(...result.result.dag_runs);
+                }
+            }
+            this.dagRunsJson = allRuns;
         }
 
         await this.renderHtml();
     }
 
     public async renderHtml() {
-        ui.logToOutput('DagRunView.renderHtml Started');
+        ui.logToOutput('DailyDagRunView.renderHtml Started');
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
-        ui.logToOutput('DagRunView.renderHtml Completed');
+        ui.logToOutput('DailyDagRunView.renderHtml Completed');
     }
 
     public static render(extensionUri: vscode.Uri, api: AirflowApi) {
-        ui.logToOutput('DagRunView.render Started');
-        if (DagRunView.Current) {
-            DagRunView.Current.api = api;
-            DagRunView.Current._panel.reveal(vscode.ViewColumn.One);
-            DagRunView.Current.loadData();
+        ui.logToOutput('DailyDagRunView.render Started');
+        if (DailyDagRunView.Current) {
+            DailyDagRunView.Current.api = api;
+            DailyDagRunView.Current._panel.reveal(vscode.ViewColumn.One);
+            DailyDagRunView.Current.loadData();
         } else {
-            const panel = vscode.window.createWebviewPanel("dagRunView", "DAG Run History", vscode.ViewColumn.One, {
+            const panel = vscode.window.createWebviewPanel("dailyDagRunView", "Daily DAG Runs", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
 
-            DagRunView.Current = new DagRunView(panel, extensionUri, api);
+            DailyDagRunView.Current = new DailyDagRunView(panel, extensionUri, api);
         }
     }
 
     public dispose() {
-        ui.logToOutput('DagRunView.dispose Started');
-        DagRunView.Current = undefined;
+        ui.logToOutput('DailyDagRunView.dispose Started');
+        DailyDagRunView.Current = undefined;
 
         this._panel.dispose();
 
@@ -103,7 +96,7 @@ export class DagRunView {
     }
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
-        ui.logToOutput('DagRunView._getWebviewContent Started');
+        ui.logToOutput('DailyDagRunView._getWebviewContent Started');
 
         const elementsUri = ui.getUri(webview, extensionUri, [
             "node_modules",
@@ -116,7 +109,7 @@ export class DagRunView {
         const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
         const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
 
-        // Filter DAG runs based on selected status
+        // Filter DAG runs based on selected filters
         let filteredRuns: any[] = [];
         if (this.dagRunsJson && Array.isArray(this.dagRunsJson)) {
             filteredRuns = this.dagRunsJson.filter((run: any) => {
@@ -124,6 +117,7 @@ export class DagRunView {
                 if (this.selectedStatus && run.state !== this.selectedStatus) {
                     return false;
                 }
+
                 return true;
             });
         }
@@ -153,9 +147,7 @@ export class DagRunView {
         });
 
         // Build dag_id filter options
-        const dagIdOptions = this.allDagIds.map(id => 
-            `<option value="${this._escapeHtml(id)}" ${id === this.selectedDagId ? 'selected' : ''}>${this._escapeHtml(id)}</option>`
-        ).join('');
+        const dagIdOptions = this.allDagIds.map(id => `<option value="${this._escapeHtml(id)}">${this._escapeHtml(id)}</option>`).join('');
 
         const result = /*html*/ `
     <!DOCTYPE html>
@@ -229,41 +221,38 @@ export class DagRunView {
                 text-decoration: underline;
             }
         </style>
-        <title>DAG Run History</title>
+        <title>Daily DAG Runs</title>
       </head>
       <body>  
-        <h2>DAG Run History</h2>
+        <h2>Daily DAG Runs</h2>
         
         <div class="filters">
             <div class="filter-group">
-                <label>DAG ID</label>
-                <select id="filter-dag-id">
-                    ${dagIdOptions}
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>Start Date</label>
-                <input type="date" id="filter-start-date" value="${this.selectedStartDate}">
-            </div>
-            <div class="filter-group">
-                <label>End Date</label>
-                <input type="date" id="filter-end-date" value="${this.selectedEndDate}">
+                <label>Date</label>
+                <input type="date" id="filter-date" value="${this.selectedDate}">
             </div>
             <div class="filter-group">
                 <label>Status</label>
                 <select id="filter-status">
                     <option value="">All</option>
-                    <option value="success" ${this.selectedStatus === 'success' ? 'selected' : ''}>Success</option>
-                    <option value="failed" ${this.selectedStatus === 'failed' ? 'selected' : ''}>Failed</option>
-                    <option value="running" ${this.selectedStatus === 'running' ? 'selected' : ''}>Running</option>
-                    <option value="queued" ${this.selectedStatus === 'queued' ? 'selected' : ''}>Queued</option>
-                    <option value="upstream_failed" ${this.selectedStatus === 'upstream_failed' ? 'selected' : ''}>Upstream Failed</option>
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                    <option value="running">Running</option>
+                    <option value="queued">Queued</option>
+                    <option value="upstream_failed">Upstream Failed</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>DAG ID</label>
+                <select id="filter-dag-id">
+                    <option value="">All DAGs</option>
+                    ${dagIdOptions}
                 </select>
             </div>
         </div>
         
         <vscode-table zebra bordered-columns resizable>
-            <vscode-table-header slot="header">
+            <vscode-table-header  slot="header">
                 <vscode-table-header-cell>DAG ID</vscode-table-header-cell>
                 <vscode-table-header-cell>Status</vscode-table-header-cell>
                 <vscode-table-header-cell>Start Date</vscode-table-header-cell>
@@ -279,20 +268,16 @@ export class DagRunView {
         <script>
             const vscode = acquireVsCodeApi();
 
-            document.getElementById('filter-dag-id').addEventListener('change', (e) => {
-                vscode.postMessage({ command: 'filter-dag-id', dagId: e.target.value });
-            });
-
-            document.getElementById('filter-start-date').addEventListener('change', (e) => {
-                vscode.postMessage({ command: 'filter-start-date', startDate: e.target.value });
-            });
-
-            document.getElementById('filter-end-date').addEventListener('change', (e) => {
-                vscode.postMessage({ command: 'filter-end-date', endDate: e.target.value });
+            document.getElementById('filter-date').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-date', date: e.target.value });
             });
 
             document.getElementById('filter-status').addEventListener('change', (e) => {
                 vscode.postMessage({ command: 'filter-status', status: e.target.value });
+            });
+
+            document.getElementById('filter-dag-id').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-dag-id', dagId: e.target.value });
             });
 
             // Handle dag-link clicks
@@ -337,26 +322,22 @@ export class DagRunView {
     }
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
-        ui.logToOutput('DagRunView._setWebviewMessageListener Started');
+        ui.logToOutput('DailyDagRunView._setWebviewMessageListener Started');
         webview.onDidReceiveMessage(
             (message: any) => {
-                ui.logToOutput('DagRunView._setWebviewMessageListener Message Received ' + message.command);
+                ui.logToOutput('DailyDagRunView._setWebviewMessageListener Message Received ' + message.command);
                 switch (message.command) {
-                    case "filter-dag-id":
-                        this.selectedDagId = message.dagId;
-                        this.loadData();
-                        return;
-                    case "filter-start-date":
-                        this.selectedStartDate = message.startDate;
-                        this.loadData();
-                        return;
-                    case "filter-end-date":
-                        this.selectedEndDate = message.endDate;
+                    case "filter-date":
+                        this.selectedDate = message.date;
                         this.loadData();
                         return;
                     case "filter-status":
                         this.selectedStatus = message.status;
                         this.renderHtml();
+                        return;
+                    case "filter-dag-id":
+                        this.selectedDagId = message.dagId;
+                        this.loadData();
                         return;
                     case "open-dag-view":
                         // Open DagView with specific dag and run

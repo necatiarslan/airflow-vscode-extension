@@ -65,6 +65,7 @@ export function activate(context: vscode.ExtensionContext) {
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewConfigs', () => { dagTreeView.viewConfigs(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewPlugins', () => { dagTreeView.viewPlugins(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRuns', () => { dagTreeView.viewDagRuns(); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRunHistory', () => { dagTreeView.viewDagRunHistory(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node: DagTreeItem) => { dagTreeView.askAI(node); }));
 
 	const participant = vscode.chat.createChatParticipant('airflow-ext.participant', dagTreeView.aIHandler.bind(dagTreeView));
