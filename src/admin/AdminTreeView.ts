@@ -58,6 +58,16 @@ export class AdminTreeView implements vscode.TreeDataProvider<AdminTreeItem> {
             arguments: []
           },
           new vscode.ThemeIcon('settings-gear')
+        ),
+        new AdminTreeItem(
+          'Plugins',
+          vscode.TreeItemCollapsibleState.None,
+          {
+            command: 'dagTreeView.viewPlugins',
+            title: 'View Plugins',
+            arguments: []
+          },
+          new vscode.ThemeIcon('extensions')
         )
       ]);
     }

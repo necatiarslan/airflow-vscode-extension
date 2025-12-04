@@ -8,6 +8,7 @@ import { ConnectionsView } from '../admin/ConnectionsView';
 import { VariablesView } from '../admin/VariablesView';
 import { ProvidersView } from '../admin/ProvidersView';
 import { ConfigsView } from '../admin/ConfigsView';
+import { PluginsView } from '../admin/PluginsView';
 import * as ui from '../common/UI';
 import { AirflowApi } from '../common/Api';
 import { AskAIContext, ServerConfig } from '../common/Types';
@@ -883,6 +884,14 @@ export class DagTreeView {
 		if (this.api) {
 			const { ConfigsView } = await import('../admin/ConfigsView');
 			ConfigsView.render(this.context.extensionUri, this.api);
+		}
+	}
+
+	async viewPlugins() {
+		ui.logToOutput('DagTreeView.viewPlugins Started');
+		if (this.api) {
+			const { PluginsView } = await import('../admin/PluginsView');
+			PluginsView.render(this.context.extensionUri, this.api);
 		}
 	}
 

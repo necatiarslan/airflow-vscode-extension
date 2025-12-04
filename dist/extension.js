@@ -826,6 +826,13 @@ class DagTreeView {
             ConfigsView.render(this.context.extensionUri, this.api);
         }
     }
+    async viewPlugins() {
+        ui.logToOutput('DagTreeView.viewPlugins Started');
+        if (this.api) {
+            const { PluginsView } = await Promise.resolve().then(() => __webpack_require__(70));
+            PluginsView.render(this.context.extensionUri, this.api);
+        }
+    }
     async viewDagRuns() {
         ui.logToOutput('DagTreeView.viewDagRuns Started');
         if (this.api) {
@@ -3716,6 +3723,9 @@ class AirflowApi {
     }
     async getConfig() {
         return this.genericGet('/config');
+    }
+    async getPlugins() {
+        return this.genericGet('/plugins');
     }
     async genericGet(endpoint) {
         const result = new MethodResult_1.MethodResult();
@@ -11642,7 +11652,12 @@ class AdminTreeView {
                     command: 'dagTreeView.viewConfigs',
                     title: 'View Configs',
                     arguments: []
-                }, new vscode.ThemeIcon('settings-gear'))
+                }, new vscode.ThemeIcon('settings-gear')),
+                new AdminTreeItem_1.AdminTreeItem('Plugins', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewPlugins',
+                    title: 'View Plugins',
+                    arguments: []
+                }, new vscode.ThemeIcon('extensions'))
             ]);
         }
         return Promise.resolve([]);
@@ -13319,6 +13334,173 @@ class ConfigsView {
 exports.ConfigsView = ConfigsView;
 
 
+/***/ }),
+/* 70 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PluginsView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(6);
+class PluginsView {
+    constructor(panel, extensionUri, api) {
+        this._disposables = [];
+        ui.logToOutput('PluginsView.constructor Started');
+        this.extensionUri = extensionUri;
+        this._panel = panel;
+        this.api = api;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('PluginsView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('PluginsView.loadData Started');
+        const result = await this.api.getPlugins();
+        if (result.isSuccessful) {
+            this.pluginsJson = result.result;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('PluginsView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        ui.logToOutput('PluginsView.renderHtml Completed');
+    }
+    static render(extensionUri, api) {
+        ui.logToOutput('PluginsView.render Started');
+        if (PluginsView.Current) {
+            PluginsView.Current.api = api;
+            PluginsView.Current._panel.reveal(vscode.ViewColumn.One);
+            PluginsView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("pluginsView", "Plugins", vscode.ViewColumn.One, {
+                enableScripts: true,
+            });
+            PluginsView.Current = new PluginsView(panel, extensionUri, api);
+        }
+    }
+    dispose() {
+        ui.logToOutput('PluginsView.dispose Started');
+        PluginsView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('PluginsView._getWebviewContent Started');
+        const elementsUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode-elements",
+            "elements",
+            "dist",
+            "bundled.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        // Build table rows from plugins data
+        let tableRows = '';
+        if (this.pluginsJson && this.pluginsJson.plugins) {
+            for (const plugin of this.pluginsJson.plugins) {
+                const name = plugin.name || 'N/A';
+                const hooks = plugin.hooks && plugin.hooks.length > 0 ? plugin.hooks.join(', ') : 'None';
+                const executors = plugin.executors && plugin.executors.length > 0 ? plugin.executors.join(', ') : 'None';
+                const macros = plugin.macros && plugin.macros.length > 0 ? plugin.macros.map((m) => m.name).join(', ') : 'None';
+                tableRows += `
+                <vscode-table-row>
+                    <vscode-table-cell>${this._escapeHtml(name)}</vscode-table-cell>
+                    <vscode-table-cell>${this._escapeHtml(hooks)}</vscode-table-cell>
+                    <vscode-table-cell>${this._escapeHtml(executors)}</vscode-table-cell>
+                    <vscode-table-cell>${this._escapeHtml(macros)}</vscode-table-cell>
+                </vscode-table-row>`;
+            }
+        }
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${elementsUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <style>
+            body {
+                padding: 16px;
+            }
+            h2 {
+                margin-top: 0;
+            }
+            .controls {
+                margin-bottom: 16px;
+            }
+            vscode-table {
+                width: 100%;
+                max-height: 600px;
+                overflow-y: auto;
+            }
+            vscode-table-cell {
+                word-wrap: break-word;
+                white-space: normal;
+            }
+        </style>
+        <title>Plugins</title>
+      </head>
+      <body>  
+        <h2>Airflow Plugins</h2>
+        <div class="controls">
+            <vscode-button appearance="secondary" id="refresh-plugins">Refresh</vscode-button>
+        </div>
+        
+        <vscode-table zebra bordered-columns resizable>
+            <vscode-table-header slot="header">
+                <vscode-table-header-cell>Name</vscode-table-header-cell>
+                <vscode-table-header-cell>Hooks</vscode-table-header-cell>
+                <vscode-table-header-cell>Executors</vscode-table-header-cell>
+                <vscode-table-header-cell>Macros</vscode-table-header-cell>
+            </vscode-table-header>
+            <vscode-table-body slot="body">
+            ${tableRows}
+            </vscode-table-body>
+        </vscode-table>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('PluginsView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('PluginsView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "refresh-plugins":
+                    this.loadData();
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.PluginsView = PluginsView;
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -13525,6 +13707,7 @@ function activate(context) {
     commands.push(vscode.commands.registerCommand('dagTreeView.viewVariables', () => { dagTreeView.viewVariables(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.viewProviders', () => { dagTreeView.viewProviders(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.viewConfigs', () => { dagTreeView.viewConfigs(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewPlugins', () => { dagTreeView.viewPlugins(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRuns', () => { dagTreeView.viewDagRuns(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node) => { dagTreeView.askAI(node); }));
     const participant = vscode.chat.createChatParticipant('airflow-ext.participant', dagTreeView.aIHandler.bind(dagTreeView));

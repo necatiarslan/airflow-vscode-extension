@@ -508,6 +508,10 @@ export class AirflowApi {
         return this.genericGet('/config');
     }
 
+    public async getPlugins(): Promise<MethodResult<any>> {
+        return this.genericGet('/plugins');
+    }
+
     private async genericGet(endpoint: string): Promise<MethodResult<any>> {
         const result = new MethodResult<any>();
         try {
