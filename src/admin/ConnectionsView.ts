@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
-import * as ui from './UI';
-import { AirflowApi } from './Api';
-import { MethodResult } from './MethodResult';
+import * as ui from '../common/UI';
+import { AirflowApi } from '../common/Api';
+import { MethodResult } from '../common/MethodResult';
 
 export class ConnectionsView {
     public static Current: ConnectionsView | undefined;

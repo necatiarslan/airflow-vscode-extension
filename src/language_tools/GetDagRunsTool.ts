@@ -6,8 +6,8 @@
  */
 
 import * as vscode from 'vscode';
-import { AirflowClientAdapter } from '../AirflowClientAdapter';
-import * as ui from '../UI';
+import { AirflowClientAdapter } from './AirflowClientAdapter';
+import * as ui from '../common/UI';
 
 /**
  * Input parameters for querying DAG runs

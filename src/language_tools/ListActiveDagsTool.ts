@@ -1,11 +1,11 @@
 /**
- * ListPausedDagsTool - Language Model Tool for listing paused DAGs
+ * ListActiveDagsTool - Language Model Tool for listing active DAGs
  */
 
 import * as vscode from 'vscode';
-import { AirflowClientAdapter, IDagSummary } from '../AirflowClientAdapter';
+import { AirflowClientAdapter, IDagSummary } from './AirflowClientAdapter';
 
-export class ListPausedDagsTool implements vscode.LanguageModelTool<void> {
+export class ListActiveDagsTool implements vscode.LanguageModelTool<void> {
     private client: AirflowClientAdapter;
 
     constructor(client: AirflowClientAdapter) {
@@ -17,7 +17,7 @@ export class ListPausedDagsTool implements vscode.LanguageModelTool<void> {
         token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation | undefined> {
         return {
-            invocationMessage: "Listing paused DAGs..."
+            invocationMessage: "Listing active DAGs..."
         };
     }
 
@@ -26,15 +26,15 @@ export class ListPausedDagsTool implements vscode.LanguageModelTool<void> {
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         try {
-            const dags = await this.client.getDags(true); // true = paused
+            const dags = await this.client.getDags(false); // false = active (not paused)
 
             if (dags.length === 0) {
                 return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart("✅ No paused DAGs found.")
+                    new vscode.LanguageModelTextPart("✅ No active DAGs found.")
                 ]);
             }
 
-            let message = `## ⏸️ Paused DAGs (${dags.length})\n\n`;
+            let message = `## 🟢 Active DAGs (${dags.length})\n\n`;
             dags.forEach(dag => {
                 message += `- **${dag.dag_id}**`;
                 if (dag.description) {
@@ -51,7 +51,7 @@ export class ListPausedDagsTool implements vscode.LanguageModelTool<void> {
 
         } catch (error) {
             return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(`❌ Failed to list paused DAGs: ${error instanceof Error ? error.message : String(error)}`)
+                new vscode.LanguageModelTextPart(`❌ Failed to list active DAGs: ${error instanceof Error ? error.message : String(error)}`)
             ]);
         }
     }

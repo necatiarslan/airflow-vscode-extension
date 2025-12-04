@@ -7,7 +7,7 @@
  */
 
 import * as vscode from 'vscode';
-import { AirflowClientAdapter, IFailedRunSummary } from '../AirflowClientAdapter';
+import { AirflowClientAdapter, IFailedRunSummary } from './AirflowClientAdapter';
 
 /**
  * Input parameters for querying failed runs

@@ -8,7 +8,7 @@
 
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { AirflowClientAdapter } from '../AirflowClientAdapter';
+import { AirflowClientAdapter } from './AirflowClientAdapter';
 
 /**
  * Input parameters for triggering a DAG run

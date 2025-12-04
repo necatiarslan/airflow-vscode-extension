@@ -11,7 +11,7 @@
  */
 
 import * as vscode from 'vscode';
-import { AirflowClientAdapter } from '../AirflowClientAdapter';
+import { AirflowClientAdapter } from './AirflowClientAdapter';
 
 /**
  * Input parameters for analyzing latest DAG run

@@ -17,10 +17,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DagTreeView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const DagView_1 = __webpack_require__(3);
-const DagTreeDataProvider_1 = __webpack_require__(10);
+const DagTreeDataProvider_1 = __webpack_require__(3);
+const DagView_1 = __webpack_require__(5);
 const DagRunView_1 = __webpack_require__(12);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(6);
 const Api_1 = __webpack_require__(13);
 class DagTreeView {
     constructor(context) {
@@ -264,8 +264,8 @@ class DagTreeView {
         }
         const result = await this.api.getLastDagRunLog(node.DagId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
+            const tmp = __webpack_require__(9);
+            const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.log' });
             fs.appendFileSync(tmpFile.name, result.result);
             ui.openFile(tmpFile.name);
@@ -278,8 +278,8 @@ class DagTreeView {
         }
         const result = await this.api.getSourceCode(node.DagId, node.FileToken);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
+            const tmp = __webpack_require__(9);
+            const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.py' });
             fs.appendFileSync(tmpFile.name, result.result);
             ui.openFile(tmpFile.name);
@@ -296,8 +296,8 @@ class DagTreeView {
         }
         const result = await this.api.getDagInfo(node.DagId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
+            const tmp = __webpack_require__(9);
+            const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId + '_info', postfix: '.json' });
             fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
             ui.openFile(tmpFile.name);
@@ -836,10 +836,181 @@ exports.DagTreeView = DagTreeView;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTreeDataProvider = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const DagTreeItem_1 = __webpack_require__(4);
+const DagTreeView_1 = __webpack_require__(2);
+class DagTreeDataProvider {
+    constructor() {
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+        this.dagTreeItemList = [];
+        this.visibleDagList = [];
+    }
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+    loadDagTreeItemsFromApiResponse() {
+        this.dagTreeItemList = [];
+        if (this.dagList) {
+            for (var dag of this.dagList) {
+                if (dag) {
+                    let treeItem = new DagTreeItem_1.DagTreeItem(dag);
+                    this.dagTreeItemList.push(treeItem);
+                }
+            }
+        }
+    }
+    getChildren(element) {
+        if (!element) {
+            this.visibleDagList = this.getVisibleDagList();
+            return Promise.resolve(this.visibleDagList);
+        }
+        return Promise.resolve([]);
+    }
+    getVisibleDagList() {
+        var result = [];
+        for (var node of this.dagTreeItemList) {
+            if (DagTreeView_1.DagTreeView.Current.filterString && !node.doesFilterMatch(DagTreeView_1.DagTreeView.Current.filterString)) {
+                continue;
+            }
+            if (DagTreeView_1.DagTreeView.Current.ShowOnlyActive && node.IsPaused) {
+                continue;
+            }
+            if (DagTreeView_1.DagTreeView.Current.ShowOnlyFavorite && !node.IsFav) {
+                continue;
+            }
+            result.push(node);
+        }
+        return result;
+    }
+    getTreeItem(element) {
+        return element;
+    }
+}
+exports.DagTreeDataProvider = DagTreeDataProvider;
+
+
+/***/ }),
+/* 4 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTreeItem = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+class DagTreeItem extends vscode.TreeItem {
+    constructor(apiResponse) {
+        super(apiResponse.dag_id);
+        this.LatestDagRunId = '';
+        this.LatestDagState = '';
+        this._IsFav = false;
+        this.IsFiltered = false;
+        this.ApiResponse = apiResponse;
+        this.DagId = apiResponse.dag_id;
+        this.IsActive = apiResponse.is_active;
+        this.IsPaused = apiResponse.is_paused;
+        this.Owners = apiResponse.owners;
+        this.Tags = apiResponse.tags;
+        this.FileToken = apiResponse.file_token;
+        this.setContextValue();
+        this.refreshUI();
+    }
+    set IsFav(value) {
+        this._IsFav = value;
+        this.setContextValue();
+    }
+    get IsFav() {
+        return this._IsFav;
+    }
+    isDagRunning() {
+        return (this.LatestDagState === 'queued' || this.LatestDagState === 'running');
+    }
+    setContextValue() {
+        let contextValue = "#";
+        contextValue += this.IsFav ? "IsFav#" : "!IsFav#";
+        contextValue += this.IsPaused ? "IsPaused#" : "!IsPaused#";
+        contextValue += this.IsActive ? "IsActive#" : "!IsActive#";
+        contextValue += this.IsFiltered ? "IsFiltered#" : "!IsFiltered#";
+        this.contextValue = contextValue;
+    }
+    refreshUI() {
+        if (this.IsPaused) {
+            this.iconPath = new vscode.ThemeIcon('circle-outline');
+            this.ApiResponse.is_paused = true;
+        }
+        else {
+            //"queued" "running" "success" "failed"
+            if (this.LatestDagState === 'queued') {
+                this.iconPath = new vscode.ThemeIcon('loading~spin');
+            }
+            else if (this.LatestDagState === 'running') {
+                this.iconPath = new vscode.ThemeIcon('loading~spin');
+            }
+            else if (this.LatestDagState === 'success') {
+                this.iconPath = new vscode.ThemeIcon('check');
+            }
+            else if (this.LatestDagState === 'failed') {
+                this.iconPath = new vscode.ThemeIcon('error');
+            }
+            else {
+                this.iconPath = new vscode.ThemeIcon('circle-filled');
+            }
+            this.ApiResponse.is_paused = false;
+        }
+    }
+    doesFilterMatch(filterString) {
+        const words = filterString.split(',');
+        const matchingWords = [];
+        for (const word of words) {
+            if (word === 'active' && !this.IsPaused) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (word === 'paused' && this.IsPaused) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (this.DagId.includes(word)) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (this.Owners.includes(word)) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (word === 'fav' && this.IsFav) {
+                matchingWords.push(word);
+                continue;
+            }
+            for (const t of this.Tags) {
+                if (t.name.includes(word)) {
+                    matchingWords.push(word);
+                    continue;
+                }
+            }
+        }
+        this.IsFiltered = (words.length === matchingWords.length);
+        return this.IsFiltered;
+    }
+}
+exports.DagTreeItem = DagTreeItem;
+
+
+/***/ }),
+/* 5 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DagView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(6);
 const DagTreeView_1 = __webpack_require__(2);
 class DagView {
     constructor(panel, extensionUri, dagId, api, dagRunId) {
@@ -1498,8 +1669,8 @@ class DagView {
         ui.logToOutput('DagView.showSourceCode Started');
         let result = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
+            const tmp = __webpack_require__(9);
+            const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.py' });
             fs.appendFileSync(tmpFile.name, result.result);
             ui.openFile(tmpFile.name);
@@ -1519,8 +1690,8 @@ class DagView {
         ui.logToOutput('DagView.DAGRunLog Started');
         let result = await this.api.getDagRunLog(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
+            const tmp = __webpack_require__(9);
+            const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.log' });
             fs.appendFileSync(tmpFile.name, result.result);
             ui.openFile(tmpFile.name);
@@ -1530,8 +1701,8 @@ class DagView {
         ui.logToOutput('DagView.showTaskInstanceLog Started');
         let result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
+            const tmp = __webpack_require__(9);
+            const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId, postfix: '.log' });
             fs.appendFileSync(tmpFile.name, result.result);
             ui.openFile(tmpFile.name);
@@ -1541,8 +1712,8 @@ class DagView {
         ui.logToOutput('DagView.showTaskXComs Started');
         let result = await this.api.getTaskXComs(dagId, dagRunId, taskId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
+            const tmp = __webpack_require__(9);
+            const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId + '_xcom', postfix: '.json' });
             fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
             ui.openFile(tmpFile.name);
@@ -1664,7 +1835,7 @@ exports.DagView = DagView;
 
 
 /***/ }),
-/* 4 */
+/* 6 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -1687,8 +1858,8 @@ exports.isJsonString = isJsonString;
 exports.isValidDate = isValidDate;
 const vscode = __webpack_require__(1);
 const vscode_1 = __webpack_require__(1);
-const fs_1 = __webpack_require__(5);
-const path_1 = __webpack_require__(6);
+const fs_1 = __webpack_require__(7);
+const path_1 = __webpack_require__(8);
 let outputChannel;
 let logsOutputChannel;
 const NEW_LINE = "\n\n";
@@ -1838,21 +2009,21 @@ function isValidDate(dateString) {
 
 
 /***/ }),
-/* 5 */
+/* 7 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("fs");
 
 /***/ }),
-/* 6 */
+/* 8 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("path");
 
 /***/ }),
-/* 7 */
+/* 9 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /*!
@@ -1866,10 +2037,10 @@ module.exports = require("path");
 /*
  * Module dependencies.
  */
-const fs = __webpack_require__(5);
-const os = __webpack_require__(8);
-const path = __webpack_require__(6);
-const crypto = __webpack_require__(9);
+const fs = __webpack_require__(7);
+const os = __webpack_require__(10);
+const path = __webpack_require__(8);
+const crypto = __webpack_require__(11);
 const _c = { fs: fs.constants, os: os.constants };
 
 /*
@@ -2700,189 +2871,18 @@ module.exports.setGracefulCleanup = setGracefulCleanup;
 
 
 /***/ }),
-/* 8 */
+/* 10 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("os");
 
 /***/ }),
-/* 9 */
+/* 11 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("crypto");
-
-/***/ }),
-/* 10 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagTreeDataProvider = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-const DagTreeItem_1 = __webpack_require__(11);
-const DagTreeView_1 = __webpack_require__(2);
-class DagTreeDataProvider {
-    constructor() {
-        this._onDidChangeTreeData = new vscode.EventEmitter();
-        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-        this.dagTreeItemList = [];
-        this.visibleDagList = [];
-    }
-    refresh() {
-        this._onDidChangeTreeData.fire();
-    }
-    loadDagTreeItemsFromApiResponse() {
-        this.dagTreeItemList = [];
-        if (this.dagList) {
-            for (var dag of this.dagList) {
-                if (dag) {
-                    let treeItem = new DagTreeItem_1.DagTreeItem(dag);
-                    this.dagTreeItemList.push(treeItem);
-                }
-            }
-        }
-    }
-    getChildren(element) {
-        if (!element) {
-            this.visibleDagList = this.getVisibleDagList();
-            return Promise.resolve(this.visibleDagList);
-        }
-        return Promise.resolve([]);
-    }
-    getVisibleDagList() {
-        var result = [];
-        for (var node of this.dagTreeItemList) {
-            if (DagTreeView_1.DagTreeView.Current.filterString && !node.doesFilterMatch(DagTreeView_1.DagTreeView.Current.filterString)) {
-                continue;
-            }
-            if (DagTreeView_1.DagTreeView.Current.ShowOnlyActive && node.IsPaused) {
-                continue;
-            }
-            if (DagTreeView_1.DagTreeView.Current.ShowOnlyFavorite && !node.IsFav) {
-                continue;
-            }
-            result.push(node);
-        }
-        return result;
-    }
-    getTreeItem(element) {
-        return element;
-    }
-}
-exports.DagTreeDataProvider = DagTreeDataProvider;
-
-
-/***/ }),
-/* 11 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagTreeItem = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-class DagTreeItem extends vscode.TreeItem {
-    constructor(apiResponse) {
-        super(apiResponse.dag_id);
-        this.LatestDagRunId = '';
-        this.LatestDagState = '';
-        this._IsFav = false;
-        this.IsFiltered = false;
-        this.ApiResponse = apiResponse;
-        this.DagId = apiResponse.dag_id;
-        this.IsActive = apiResponse.is_active;
-        this.IsPaused = apiResponse.is_paused;
-        this.Owners = apiResponse.owners;
-        this.Tags = apiResponse.tags;
-        this.FileToken = apiResponse.file_token;
-        this.setContextValue();
-        this.refreshUI();
-    }
-    set IsFav(value) {
-        this._IsFav = value;
-        this.setContextValue();
-    }
-    get IsFav() {
-        return this._IsFav;
-    }
-    isDagRunning() {
-        return (this.LatestDagState === 'queued' || this.LatestDagState === 'running');
-    }
-    setContextValue() {
-        let contextValue = "#";
-        contextValue += this.IsFav ? "IsFav#" : "!IsFav#";
-        contextValue += this.IsPaused ? "IsPaused#" : "!IsPaused#";
-        contextValue += this.IsActive ? "IsActive#" : "!IsActive#";
-        contextValue += this.IsFiltered ? "IsFiltered#" : "!IsFiltered#";
-        this.contextValue = contextValue;
-    }
-    refreshUI() {
-        if (this.IsPaused) {
-            this.iconPath = new vscode.ThemeIcon('circle-outline');
-            this.ApiResponse.is_paused = true;
-        }
-        else {
-            //"queued" "running" "success" "failed"
-            if (this.LatestDagState === 'queued') {
-                this.iconPath = new vscode.ThemeIcon('loading~spin');
-            }
-            else if (this.LatestDagState === 'running') {
-                this.iconPath = new vscode.ThemeIcon('loading~spin');
-            }
-            else if (this.LatestDagState === 'success') {
-                this.iconPath = new vscode.ThemeIcon('check');
-            }
-            else if (this.LatestDagState === 'failed') {
-                this.iconPath = new vscode.ThemeIcon('error');
-            }
-            else {
-                this.iconPath = new vscode.ThemeIcon('circle-filled');
-            }
-            this.ApiResponse.is_paused = false;
-        }
-    }
-    doesFilterMatch(filterString) {
-        const words = filterString.split(',');
-        const matchingWords = [];
-        for (const word of words) {
-            if (word === 'active' && !this.IsPaused) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (word === 'paused' && this.IsPaused) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (this.DagId.includes(word)) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (this.Owners.includes(word)) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (word === 'fav' && this.IsFav) {
-                matchingWords.push(word);
-                continue;
-            }
-            for (const t of this.Tags) {
-                if (t.name.includes(word)) {
-                    matchingWords.push(word);
-                    continue;
-                }
-            }
-        }
-        this.IsFiltered = (words.length === matchingWords.length);
-        return this.IsFiltered;
-    }
-}
-exports.DagTreeItem = DagTreeItem;
-
 
 /***/ }),
 /* 12 */
@@ -2894,8 +2894,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DagRunView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(4);
-const DagView_1 = __webpack_require__(3);
+const ui = __webpack_require__(6);
+const DagView_1 = __webpack_require__(5);
 class DagRunView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
@@ -3224,7 +3224,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AirflowApi = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const base_64_1 = __webpack_require__(14);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(6);
 const MethodResult_1 = __webpack_require__(15);
 // Wrapper for fetch to handle ESM node-fetch in CommonJS
 const fetch = async (url, init) => {
@@ -4607,7 +4607,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 64));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 68));
 		return toFormData(this.body, ct);
 	}
 
@@ -11131,7 +11131,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConnectionsView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(6);
 class ConnectionsView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
@@ -11240,7 +11240,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.VariablesView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(6);
 class VariablesView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
@@ -11422,7 +11422,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ProvidersView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(6);
 class ProvidersView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
@@ -11593,6 +11593,140 @@ exports.ProvidersView = ProvidersView;
 
 "use strict";
 
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AdminTreeView = void 0;
+const vscode = __webpack_require__(1);
+const AdminTreeItem_1 = __webpack_require__(54);
+class AdminTreeView {
+    constructor(context) {
+        this.context = context;
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+    }
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+    getTreeItem(element) {
+        return element;
+    }
+    getChildren(element) {
+        if (!element) {
+            // Root level - return the three admin nodes
+            return Promise.resolve([
+                new AdminTreeItem_1.AdminTreeItem('Variables', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewVariables',
+                    title: 'View Variables',
+                    arguments: []
+                }, new vscode.ThemeIcon('symbol-variable')),
+                new AdminTreeItem_1.AdminTreeItem('Connections', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewConnections',
+                    title: 'View Connections',
+                    arguments: []
+                }, new vscode.ThemeIcon('link')),
+                new AdminTreeItem_1.AdminTreeItem('Providers', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewProviders',
+                    title: 'View Providers',
+                    arguments: []
+                }, new vscode.ThemeIcon('package'))
+            ]);
+        }
+        return Promise.resolve([]);
+    }
+}
+exports.AdminTreeView = AdminTreeView;
+
+
+/***/ }),
+/* 54 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AdminTreeItem = void 0;
+const vscode = __webpack_require__(1);
+class AdminTreeItem extends vscode.TreeItem {
+    constructor(label, collapsibleState, command, iconPath) {
+        super(label, collapsibleState);
+        this.label = label;
+        this.collapsibleState = collapsibleState;
+        this.command = command;
+        this.iconPath = iconPath;
+        this.command = command;
+        this.iconPath = iconPath;
+    }
+}
+exports.AdminTreeItem = AdminTreeItem;
+
+
+/***/ }),
+/* 55 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ReportTreeView = void 0;
+const vscode = __webpack_require__(1);
+const ReportTreeItem_1 = __webpack_require__(56);
+class ReportTreeView {
+    constructor(context) {
+        this.context = context;
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+    }
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+    getTreeItem(element) {
+        return element;
+    }
+    getChildren(element) {
+        if (!element) {
+            // Root level - return the report nodes
+            return Promise.resolve([
+                new ReportTreeItem_1.ReportTreeItem('DAG Runs', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewDagRuns',
+                    title: 'View DAG Runs',
+                    arguments: []
+                }, new vscode.ThemeIcon('list-selection'))
+            ]);
+        }
+        return Promise.resolve([]);
+    }
+}
+exports.ReportTreeView = ReportTreeView;
+
+
+/***/ }),
+/* 56 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ReportTreeItem = void 0;
+const vscode = __webpack_require__(1);
+class ReportTreeItem extends vscode.TreeItem {
+    constructor(label, collapsibleState, command, iconPath) {
+        super(label, collapsibleState);
+        this.label = label;
+        this.collapsibleState = collapsibleState;
+        this.command = command;
+        this.iconPath = iconPath;
+        this.command = command;
+        this.iconPath = iconPath;
+    }
+}
+exports.ReportTreeItem = ReportTreeItem;
+
+
+/***/ }),
+/* 57 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
 /**
  * AirflowClientAdapter - Adapter to bridge AirflowApi with Language Model Tools
  *
@@ -11601,7 +11735,7 @@ exports.ProvidersView = ProvidersView;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AirflowClientAdapter = void 0;
 const DagTreeView_1 = __webpack_require__(2);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(6);
 class AirflowClientAdapter {
     /**
      * Dynamically retrieves the currently connected Airflow API instance.
@@ -11930,7 +12064,7 @@ exports.AirflowClientAdapter = AirflowClientAdapter;
 
 
 /***/ }),
-/* 54 */
+/* 58 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11945,7 +12079,7 @@ exports.AirflowClientAdapter = AirflowClientAdapter;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TriggerDagRunTool = void 0;
 const vscode = __webpack_require__(1);
-const fs = __webpack_require__(5);
+const fs = __webpack_require__(7);
 /**
  * TriggerDagRunTool - Implements vscode.LanguageModelTool for DAG triggering
  */
@@ -12058,7 +12192,7 @@ exports.TriggerDagRunTool = TriggerDagRunTool;
 
 
 /***/ }),
-/* 55 */
+/* 59 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12177,7 +12311,7 @@ exports.GetFailedRunsTool = GetFailedRunsTool;
 
 
 /***/ }),
-/* 56 */
+/* 60 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12229,7 +12363,7 @@ exports.ListActiveDagsTool = ListActiveDagsTool;
 
 
 /***/ }),
-/* 57 */
+/* 61 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12281,7 +12415,7 @@ exports.ListPausedDagsTool = ListPausedDagsTool;
 
 
 /***/ }),
-/* 58 */
+/* 62 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12332,7 +12466,7 @@ exports.PauseDagTool = PauseDagTool;
 
 
 /***/ }),
-/* 59 */
+/* 63 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12383,7 +12517,7 @@ exports.UnpauseDagTool = UnpauseDagTool;
 
 
 /***/ }),
-/* 60 */
+/* 64 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12397,7 +12531,7 @@ exports.UnpauseDagTool = UnpauseDagTool;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetDagRunsTool = void 0;
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(6);
 /**
  * GetDagRunsTool - Implements vscode.LanguageModelTool for retrieving DAG runs
  */
@@ -12524,7 +12658,7 @@ exports.GetDagRunsTool = GetDagRunsTool;
 
 
 /***/ }),
-/* 61 */
+/* 65 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12624,7 +12758,7 @@ exports.StopDagRunTool = StopDagRunTool;
 
 
 /***/ }),
-/* 62 */
+/* 66 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12844,7 +12978,7 @@ exports.AnalyseDagLatestRunTool = AnalyseDagLatestRunTool;
 
 
 /***/ }),
-/* 63 */
+/* 67 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12858,7 +12992,7 @@ exports.AnalyseDagLatestRunTool = AnalyseDagLatestRunTool;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetDagHistoryTool = void 0;
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(6);
 /**
  * GetDagHistoryTool - Implements vscode.LanguageModelTool for retrieving DAG history
  */
@@ -12992,141 +13126,6 @@ Please check:
     }
 }
 exports.GetDagHistoryTool = GetDagHistoryTool;
-
-
-/***/ }),
-/* 64 */,
-/* 65 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.AdminTreeView = void 0;
-const vscode = __webpack_require__(1);
-const AdminTreeItem_1 = __webpack_require__(66);
-class AdminTreeView {
-    constructor(context) {
-        this.context = context;
-        this._onDidChangeTreeData = new vscode.EventEmitter();
-        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-    }
-    refresh() {
-        this._onDidChangeTreeData.fire();
-    }
-    getTreeItem(element) {
-        return element;
-    }
-    getChildren(element) {
-        if (!element) {
-            // Root level - return the three admin nodes
-            return Promise.resolve([
-                new AdminTreeItem_1.AdminTreeItem('Variables', vscode.TreeItemCollapsibleState.None, {
-                    command: 'dagTreeView.viewVariables',
-                    title: 'View Variables',
-                    arguments: []
-                }, new vscode.ThemeIcon('symbol-variable')),
-                new AdminTreeItem_1.AdminTreeItem('Connections', vscode.TreeItemCollapsibleState.None, {
-                    command: 'dagTreeView.viewConnections',
-                    title: 'View Connections',
-                    arguments: []
-                }, new vscode.ThemeIcon('link')),
-                new AdminTreeItem_1.AdminTreeItem('Providers', vscode.TreeItemCollapsibleState.None, {
-                    command: 'dagTreeView.viewProviders',
-                    title: 'View Providers',
-                    arguments: []
-                }, new vscode.ThemeIcon('package'))
-            ]);
-        }
-        return Promise.resolve([]);
-    }
-}
-exports.AdminTreeView = AdminTreeView;
-
-
-/***/ }),
-/* 66 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.AdminTreeItem = void 0;
-const vscode = __webpack_require__(1);
-class AdminTreeItem extends vscode.TreeItem {
-    constructor(label, collapsibleState, command, iconPath) {
-        super(label, collapsibleState);
-        this.label = label;
-        this.collapsibleState = collapsibleState;
-        this.command = command;
-        this.iconPath = iconPath;
-        this.command = command;
-        this.iconPath = iconPath;
-    }
-}
-exports.AdminTreeItem = AdminTreeItem;
-
-
-/***/ }),
-/* 67 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ReportTreeView = void 0;
-const vscode = __webpack_require__(1);
-const ReportTreeItem_1 = __webpack_require__(68);
-class ReportTreeView {
-    constructor(context) {
-        this.context = context;
-        this._onDidChangeTreeData = new vscode.EventEmitter();
-        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-    }
-    refresh() {
-        this._onDidChangeTreeData.fire();
-    }
-    getTreeItem(element) {
-        return element;
-    }
-    getChildren(element) {
-        if (!element) {
-            // Root level - return the report nodes
-            return Promise.resolve([
-                new ReportTreeItem_1.ReportTreeItem('DAG Runs', vscode.TreeItemCollapsibleState.None, {
-                    command: 'dagTreeView.viewDagRuns',
-                    title: 'View DAG Runs',
-                    arguments: []
-                }, new vscode.ThemeIcon('list-selection'))
-            ]);
-        }
-        return Promise.resolve([]);
-    }
-}
-exports.ReportTreeView = ReportTreeView;
-
-
-/***/ }),
-/* 68 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ReportTreeItem = void 0;
-const vscode = __webpack_require__(1);
-class ReportTreeItem extends vscode.TreeItem {
-    constructor(label, collapsibleState, command, iconPath) {
-        super(label, collapsibleState);
-        this.label = label;
-        this.collapsibleState = collapsibleState;
-        this.command = command;
-        this.iconPath = iconPath;
-        this.command = command;
-        this.iconPath = iconPath;
-    }
-}
-exports.ReportTreeItem = ReportTreeItem;
 
 
 /***/ })
@@ -13281,20 +13280,20 @@ exports.deactivate = deactivate;
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
-const AdminTreeView_1 = __webpack_require__(65);
-const ReportTreeView_1 = __webpack_require__(67);
-const ui = __webpack_require__(4);
-const AirflowClientAdapter_1 = __webpack_require__(53);
-const TriggerDagRunTool_1 = __webpack_require__(54);
-const GetFailedRunsTool_1 = __webpack_require__(55);
-const ListActiveDagsTool_1 = __webpack_require__(56);
-const ListPausedDagsTool_1 = __webpack_require__(57);
-const PauseDagTool_1 = __webpack_require__(58);
-const UnpauseDagTool_1 = __webpack_require__(59);
-const GetDagRunsTool_1 = __webpack_require__(60);
-const StopDagRunTool_1 = __webpack_require__(61);
-const AnalyseDagLatestRunTool_1 = __webpack_require__(62);
-const GetDagHistoryTool_1 = __webpack_require__(63);
+const AdminTreeView_1 = __webpack_require__(53);
+const ReportTreeView_1 = __webpack_require__(55);
+const ui = __webpack_require__(6);
+const AirflowClientAdapter_1 = __webpack_require__(57);
+const TriggerDagRunTool_1 = __webpack_require__(58);
+const GetFailedRunsTool_1 = __webpack_require__(59);
+const ListActiveDagsTool_1 = __webpack_require__(60);
+const ListPausedDagsTool_1 = __webpack_require__(61);
+const PauseDagTool_1 = __webpack_require__(62);
+const UnpauseDagTool_1 = __webpack_require__(63);
+const GetDagRunsTool_1 = __webpack_require__(64);
+const StopDagRunTool_1 = __webpack_require__(65);
+const AnalyseDagLatestRunTool_1 = __webpack_require__(66);
+const GetDagHistoryTool_1 = __webpack_require__(67);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {

@@ -1,22 +1,22 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { DagTreeView } from './DagTreeView';
-import { DagTreeItem } from './DagTreeItem';
-import { AdminTreeView } from './AdminTreeView';
-import { ReportTreeView } from './ReportTreeView';
-import * as ui from './UI';
-import { AirflowClientAdapter } from './AirflowClientAdapter';
-import { TriggerDagRunTool } from './tools/TriggerDagRunTool';
-import { GetFailedRunsTool } from './tools/GetFailedRunsTool';
-import { ListActiveDagsTool } from './tools/ListActiveDagsTool';
-import { ListPausedDagsTool } from './tools/ListPausedDagsTool';
-import { PauseDagTool } from './tools/PauseDagTool';
-import { UnpauseDagTool } from './tools/UnpauseDagTool';
-import { GetDagRunsTool } from './tools/GetDagRunsTool';
-import { StopDagRunTool } from './tools/StopDagRunTool';
-import { AnalyseDagLatestRunTool } from './tools/AnalyseDagLatestRunTool';
-import { GetDagHistoryTool } from './tools/GetDagHistoryTool';
+import { DagTreeView } from './dag/DagTreeView';
+import { DagTreeItem } from './dag/DagTreeItem';
+import { AdminTreeView } from './admin/AdminTreeView';
+import { ReportTreeView } from './report/ReportTreeView';
+import * as ui from './common/UI';
+import { AirflowClientAdapter } from './language_tools/AirflowClientAdapter';
+import { TriggerDagRunTool } from './language_tools/TriggerDagRunTool';
+import { GetFailedRunsTool } from './language_tools/GetFailedRunsTool';
+import { ListActiveDagsTool } from './language_tools/ListActiveDagsTool';
+import { ListPausedDagsTool } from './language_tools/ListPausedDagsTool';
+import { PauseDagTool } from './language_tools/PauseDagTool';
+import { UnpauseDagTool } from './language_tools/UnpauseDagTool';
+import { GetDagRunsTool } from './language_tools/GetDagRunsTool';
+import { StopDagRunTool } from './language_tools/StopDagRunTool';
+import { AnalyseDagLatestRunTool } from './language_tools/AnalyseDagLatestRunTool';
+import { GetDagHistoryTool } from './language_tools/GetDagHistoryTool';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed

@@ -1,62 +1,61 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
-import * as ui from './UI';
-import { AirflowApi } from './Api';
-import { MethodResult } from './MethodResult';
+import * as ui from '../common/UI';
+import { AirflowApi } from '../common/Api';
 
-export class ProvidersView {
-    public static Current: ProvidersView | undefined;
+export class VariablesView {
+    public static Current: VariablesView | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
-    private providersJson: any;
+    private variablesJson: any;
     private api: AirflowApi;
 
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, api: AirflowApi) {
-        ui.logToOutput('ProvidersView.constructor Started');
+        ui.logToOutput('VariablesView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
         this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
-        ui.logToOutput('ProvidersView.constructor Completed');
+        ui.logToOutput('VariablesView.constructor Completed');
     }
 
     public async loadData() {
-        ui.logToOutput('ProvidersView.loadData Started');
+        ui.logToOutput('VariablesView.loadData Started');
 
-        const result = await this.api.getProviders();
+        const result = await this.api.getVariables();
         if (result.isSuccessful) {
-            this.providersJson = result.result;
+            this.variablesJson = result.result;
         }
         await this.renderHtml();
     }
 
     public async renderHtml() {
-        ui.logToOutput('ProvidersView.renderHtml Started');
+        ui.logToOutput('VariablesView.renderHtml Started');
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
-        ui.logToOutput('ProvidersView.renderHtml Completed');
+        ui.logToOutput('VariablesView.renderHtml Completed');
     }
 
     public static render(extensionUri: vscode.Uri, api: AirflowApi) {
-        ui.logToOutput('ProvidersView.render Started');
-        if (ProvidersView.Current) {
-            ProvidersView.Current.api = api;
-            ProvidersView.Current._panel.reveal(vscode.ViewColumn.One);
-            ProvidersView.Current.loadData();
+        ui.logToOutput('VariablesView.render Started');
+        if (VariablesView.Current) {
+            VariablesView.Current.api = api;
+            VariablesView.Current._panel.reveal(vscode.ViewColumn.One);
+            VariablesView.Current.loadData();
         } else {
-            const panel = vscode.window.createWebviewPanel("providersView", "Providers", vscode.ViewColumn.One, {
+            const panel = vscode.window.createWebviewPanel("variablesView", "Variables", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
 
-            ProvidersView.Current = new ProvidersView(panel, extensionUri, api);
+            VariablesView.Current = new VariablesView(panel, extensionUri, api);
         }
     }
 
     public dispose() {
-        ui.logToOutput('ProvidersView.dispose Started');
-        ProvidersView.Current = undefined;
+        ui.logToOutput('VariablesView.dispose Started');
+        VariablesView.Current = undefined;
 
         this._panel.dispose();
 
@@ -69,7 +68,7 @@ export class ProvidersView {
     }
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
-        ui.logToOutput('ProvidersView._getWebviewContent Started');
+        ui.logToOutput('VariablesView._getWebviewContent Started');
 
         const elementsUri = ui.getUri(webview, extensionUri, [
             "node_modules",
@@ -82,28 +81,28 @@ export class ProvidersView {
         const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
         const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
 
-        // Build table rows from providers data
+        // Build table rows from variables data
         let tableRows = '';
-        if (this.providersJson) {
-            // tableRows = this.providersJson.map((provider: any) => {
-            //     const packageName = provider.package_name || 'N/A';
-            //     const version = provider.version || 'N/A';
-            //     const description = provider.description || 'N/A';
+        if (this.variablesJson) {
+            // tableRows = this.variablesJson.map((variable: any) => {
+            //     const key = variable.key || 'N/A';
+            //     const value = variable.val || 'N/A';
+            //     const description = variable.description || '';
             //     return `
             //     <vscode-table-row>
-            //         <vscode-table-cell>${this._escapeHtml(packageName)}</vscode-table-cell>
-            //         <vscode-table-cell>${this._escapeHtml(version)}</vscode-table-cell>
+            //         <vscode-table-cell>${this._escapeHtml(key)}</vscode-table-cell>
+            //         <vscode-table-cell><code>${this._escapeHtml(value)}</code></vscode-table-cell>
             //         <vscode-table-cell>${this._escapeHtml(description)}</vscode-table-cell>
             //     </vscode-table-row>`;
             // }).join('');
-            for (const provider of this.providersJson.providers) {
-                const packageName = provider.package_name || 'N/A';
-                const version = provider.version || 'N/A';
-                const description = provider.description || 'N/A';
+            for (const variable of this.variablesJson.variables) {
+                const key = variable.key || 'N/A';
+                const value = variable.val || 'N/A';
+                const description = variable.description || '';
                 tableRows += `
                 <vscode-table-row>
-                    <vscode-table-cell>${this._escapeHtml(packageName)}</vscode-table-cell>
-                    <vscode-table-cell>${this._escapeHtml(version)}</vscode-table-cell>
+                    <vscode-table-cell>${this._escapeHtml(key)}</vscode-table-cell>
+                    <vscode-table-cell><code>${this._escapeHtml(value)}</code></vscode-table-cell>
                     <vscode-table-cell>${this._escapeHtml(description)}</vscode-table-cell>
                 </vscode-table-row>`;
             }
@@ -137,19 +136,26 @@ export class ProvidersView {
                 word-wrap: break-word;
                 white-space: normal;
             }
+            code {
+                background-color: var(--vscode-editor-background);
+                color: var(--vscode-editor-foreground);
+                padding: 2px 4px;
+                border-radius: 3px;
+                font-family: monospace;
+            }
         </style>
-        <title>Providers</title>
+        <title>Variables</title>
       </head>
       <body>  
-        <h2>Airflow Providers</h2>
+        <h2>Airflow Variables</h2>
         <div class="controls">
-            <vscode-button appearance="secondary" id="refresh-providers">Refresh</vscode-button>
+            <vscode-button appearance="secondary" id="refresh-variables">Refresh</vscode-button>
         </div>
         
         <vscode-table zebra bordered-columns resizable>
             <vscode-table-header slot="header">
-                <vscode-table-header-cell>Package Name</vscode-table-header-cell>
-                <vscode-table-header-cell>Version</vscode-table-header-cell>
+                <vscode-table-header-cell>Key</vscode-table-header-cell>
+                <vscode-table-header-cell>Value</vscode-table-header-cell>
                 <vscode-table-header-cell>Description</vscode-table-header-cell>
             </vscode-table-header>
             <vscode-table-body slot="body">
@@ -175,12 +181,12 @@ export class ProvidersView {
     }
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
-        ui.logToOutput('ProvidersView._setWebviewMessageListener Started');
+        ui.logToOutput('VariablesView._setWebviewMessageListener Started');
         webview.onDidReceiveMessage(
             (message: any) => {
-                ui.logToOutput('ProvidersView._setWebviewMessageListener Message Received ' + message.command);
+                ui.logToOutput('VariablesView._setWebviewMessageListener Message Received ' + message.command);
                 switch (message.command) {
-                    case "refresh-providers":
+                    case "refresh-variables":
                         this.loadData();
                         return;
                 }

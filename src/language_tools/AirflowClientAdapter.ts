@@ -4,9 +4,9 @@
  * This class adapts the existing AirflowApi class to work with the Language Model Tools.
  */
 
-import { AirflowApi } from './Api';
-import { DagTreeView } from './DagTreeView';
-import * as ui from './UI';
+import { AirflowApi } from '../common/Api';
+import { DagTreeView } from '../dag/DagTreeView';
+import * as ui from '../common/UI';
 
 export interface IDagRunResult {
     dag_id: string;

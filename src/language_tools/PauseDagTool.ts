@@ -3,7 +3,7 @@
  */
 
 import * as vscode from 'vscode';
-import { AirflowClientAdapter } from '../AirflowClientAdapter';
+import { AirflowClientAdapter } from './AirflowClientAdapter';
 
 export interface IPauseDagParams {
     dag_id: string;

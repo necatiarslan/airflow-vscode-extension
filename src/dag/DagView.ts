@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
-import * as ui from './UI';
-import { AirflowApi } from './Api';
+import * as ui from '../common/UI';
+import { AirflowApi } from '../common/Api';
 import { DagTreeView } from "./DagTreeView";
-import { MethodResult } from './MethodResult';
+import { MethodResult } from '../common/MethodResult';
 
 export class DagView {
     public static Current: DagView | undefined;
