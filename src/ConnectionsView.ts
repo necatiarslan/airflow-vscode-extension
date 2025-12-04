@@ -43,10 +43,10 @@ export class ConnectionsView {
         ui.logToOutput('ConnectionsView.render Started');
         if (ConnectionsView.Current) {
             ConnectionsView.Current.api = api;
-            ConnectionsView.Current._panel.reveal(vscode.ViewColumn.Two);
+            ConnectionsView.Current._panel.reveal(vscode.ViewColumn.One);
             ConnectionsView.Current.loadData();
         } else {
-            const panel = vscode.window.createWebviewPanel("connectionsView", "Connections", vscode.ViewColumn.Two, {
+            const panel = vscode.window.createWebviewPanel("connectionsView", "Connections", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
 
