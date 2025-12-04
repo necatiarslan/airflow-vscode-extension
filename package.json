@@ -400,6 +400,11 @@
         "command": "dagTreeView.viewProviders",
         "title": "View Providers",
         "icon": "$(package)"
+      },
+      {
+        "command": "dagTreeView.viewDagRuns",
+        "title": "View DAG Runs",
+        "icon": "$(list-selection)"
       }
     ],
     "menus": {
@@ -456,6 +461,11 @@
         },
         {
           "command": "dagTreeView.viewProviders",
+          "when": "view == dagTreeView",
+          "group": "other"
+        },
+        {
+          "command": "dagTreeView.viewDagRuns",
           "when": "view == dagTreeView",
           "group": "other"
         }

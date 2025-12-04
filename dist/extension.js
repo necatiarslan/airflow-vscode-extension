@@ -19,6 +19,7 @@ exports.DagTreeView = void 0;
 const vscode = __webpack_require__(1);
 const DagView_1 = __webpack_require__(3);
 const DagTreeDataProvider_1 = __webpack_require__(10);
+const DagRunView_1 = __webpack_require__(64);
 const ui = __webpack_require__(4);
 const Api_1 = __webpack_require__(12);
 class DagTreeView {
@@ -816,6 +817,12 @@ class DagTreeView {
         if (this.api) {
             const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(51));
             ProvidersView.render(this.context.extensionUri, this.api);
+        }
+    }
+    async viewDagRuns() {
+        ui.logToOutput('DagTreeView.viewDagRuns Started');
+        if (this.api) {
+            DagRunView_1.DagRunView.render(this.context.extensionUri, this.api);
         }
     }
 }
@@ -12636,6 +12643,337 @@ Please check:
 exports.GetDagHistoryTool = GetDagHistoryTool;
 
 
+/***/ }),
+/* 63 */,
+/* 64 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagRunView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(4);
+const DagView_1 = __webpack_require__(3);
+class DagRunView {
+    constructor(panel, extensionUri, api) {
+        this._disposables = [];
+        // Filters
+        this.selectedDate = new Date().toISOString().split('T')[0];
+        this.selectedStatus = '';
+        this.selectedDagId = '';
+        this.allDagIds = [];
+        ui.logToOutput('DagRunView.constructor Started');
+        this.extensionUri = extensionUri;
+        this._panel = panel;
+        this.api = api;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('DagRunView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('DagRunView.loadData Started');
+        // Fetch all DAGs to populate dag_id filter
+        const dagsResult = await this.api.getDagList();
+        if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
+            this.allDagIds = dagsResult.result.map((dag) => dag.dag_id).sort();
+        }
+        // Fetch DAG runs for the selected date
+        // If a specific DAG is selected, query that DAG, otherwise query all
+        if (this.selectedDagId) {
+            const result = await this.api.getDagRunHistory(this.selectedDagId, this.selectedDate);
+            if (result.isSuccessful && result.result && result.result.dag_runs) {
+                this.dagRunsJson = result.result.dag_runs;
+            }
+        }
+        else {
+            // Query all DAGs for runs on the selected date
+            const allRuns = [];
+            for (const dagId of this.allDagIds) {
+                const result = await this.api.getDagRunHistory(dagId, this.selectedDate);
+                if (result.isSuccessful && result.result && result.result.dag_runs) {
+                    allRuns.push(...result.result.dag_runs);
+                }
+            }
+            this.dagRunsJson = allRuns;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('DagRunView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        ui.logToOutput('DagRunView.renderHtml Completed');
+    }
+    static render(extensionUri, api) {
+        ui.logToOutput('DagRunView.render Started');
+        if (DagRunView.Current) {
+            DagRunView.Current.api = api;
+            DagRunView.Current._panel.reveal(vscode.ViewColumn.One);
+            DagRunView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("dagRunView", "DAG Runs", vscode.ViewColumn.One, {
+                enableScripts: true,
+            });
+            DagRunView.Current = new DagRunView(panel, extensionUri, api);
+        }
+    }
+    dispose() {
+        ui.logToOutput('DagRunView.dispose Started');
+        DagRunView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('DagRunView._getWebviewContent Started');
+        const elementsUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode-elements",
+            "elements",
+            "dist",
+            "bundled.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        // Filter DAG runs based on selected filters
+        let filteredRuns = [];
+        if (this.dagRunsJson && Array.isArray(this.dagRunsJson)) {
+            filteredRuns = this.dagRunsJson.filter((run) => {
+                // Filter by status
+                if (this.selectedStatus && run.state !== this.selectedStatus) {
+                    return false;
+                }
+                return true;
+            });
+        }
+        // Build table rows
+        let tableRows = '';
+        filteredRuns.forEach((run) => {
+            const dagId = run.dag_id || 'N/A';
+            const status = run.state || 'N/A';
+            const startDate = run.start_date ? new Date(run.start_date).toLocaleString() : 'N/A';
+            const duration = run.start_date && run.end_date ? ui.getDuration(new Date(run.start_date), new Date(run.end_date)) : 'Running';
+            const config = run.conf ? JSON.stringify(run.conf) : '{}';
+            const note = run.note || '';
+            const dagRunId = run.dag_run_id || '';
+            const statusEmoji = this._getStatusEmoji(status);
+            tableRows += `
+            <vscode-table-row>
+                <vscode-table-cell><a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-link">${this._escapeHtml(dagId)}</a></vscode-table-cell>
+                <vscode-table-cell>${statusEmoji} ${this._escapeHtml(status)}</vscode-table-cell>
+                <vscode-table-cell>${this._escapeHtml(startDate)}</vscode-table-cell>
+                <vscode-table-cell>${this._escapeHtml(duration)}</vscode-table-cell>
+                <vscode-table-cell><code>${this._escapeHtml(config.substring(0, 50))}${config.length > 50 ? '...' : ''}</code></vscode-table-cell>
+                <vscode-table-cell>${this._escapeHtml(note)}</vscode-table-cell>
+            </vscode-table-row>`;
+        });
+        // Build dag_id filter options
+        const dagIdOptions = this.allDagIds.map(id => `<option value="${this._escapeHtml(id)}">${this._escapeHtml(id)}</option>`).join('');
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${elementsUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <style>
+            body {
+                padding: 16px;
+            }
+            h2 {
+                margin-top: 0;
+            }
+            .filters {
+                display: flex;
+                gap: 12px;
+                margin-bottom: 16px;
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            .filter-group {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .filter-group label {
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                opacity: 0.8;
+            }
+            .filter-group select,
+            .filter-group input {
+                padding: 6px 8px;
+                border: 1px solid var(--vscode-input-border);
+                background-color: var(--vscode-input-background);
+                color: var(--vscode-input-foreground);
+                border-radius: 4px;
+                font-size: 13px;
+            }
+            vscode-table {
+                width: 100%;
+                max-height: 600px;
+                overflow-y: auto;
+            }
+            vscode-table-cell {
+                word-wrap: break-word;
+                white-space: normal;
+            }
+            vscode-table-cell:first-child {
+                white-space: nowrap;
+            }
+            code {
+                background-color: var(--vscode-editor-background);
+                color: var(--vscode-editor-foreground);
+                padding: 2px 4px;
+                border-radius: 3px;
+                font-family: monospace;
+                font-size: 11px;
+            }
+            a {
+                color: var(--vscode-textLink-foreground);
+                text-decoration: none;
+                cursor: pointer;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+        </style>
+        <title>DAG Runs</title>
+      </head>
+      <body>  
+        <h2>DAG Runs</h2>
+        
+        <div class="filters">
+            <div class="filter-group">
+                <label>Date</label>
+                <input type="date" id="filter-date" value="${this.selectedDate}">
+            </div>
+            <div class="filter-group">
+                <label>Status</label>
+                <select id="filter-status">
+                    <option value="">All</option>
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                    <option value="running">Running</option>
+                    <option value="queued">Queued</option>
+                    <option value="upstream_failed">Upstream Failed</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>DAG ID</label>
+                <select id="filter-dag-id">
+                    <option value="">All DAGs</option>
+                    ${dagIdOptions}
+                </select>
+            </div>
+        </div>
+        
+        <vscode-table zebra bordered-columns resizable>
+            <vscode-table-header  slot="header">
+                <vscode-table-header-cell>DAG ID</vscode-table-header-cell>
+                <vscode-table-header-cell>Status</vscode-table-header-cell>
+                <vscode-table-header-cell>Start Date</vscode-table-header-cell>
+                <vscode-table-header-cell>Duration</vscode-table-header-cell>
+                <vscode-table-header-cell>Config</vscode-table-header-cell>
+                <vscode-table-header-cell>Note</vscode-table-header-cell>
+            </vscode-table-header>
+            <vscode-table-body slot="body">
+            ${tableRows || '<vscode-table-row><vscode-table-cell colspan="6">No runs found for the selected filters</vscode-table-cell></vscode-table-row>'}        
+            </vscode-table-body>
+        </vscode-table>
+
+        <script>
+            const vscode = acquireVsCodeApi();
+
+            document.getElementById('filter-date').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-date', date: e.target.value });
+            });
+
+            document.getElementById('filter-status').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-status', status: e.target.value });
+            });
+
+            document.getElementById('filter-dag-id').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-dag-id', dagId: e.target.value });
+            });
+
+            // Handle dag-link clicks
+            document.querySelectorAll('.dag-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const dagId = e.target.getAttribute('data-dag-id');
+                    const dagRunId = e.target.getAttribute('data-dag-run-id');
+                    vscode.postMessage({ command: 'open-dag-view', dagId, dagRunId });
+                });
+            });
+        </script>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+    _getStatusEmoji(status) {
+        const statusMap = {
+            'success': '✅',
+            'failed': '❌',
+            'running': '▶️',
+            'queued': '⏳',
+            'upstream_failed': '⚠️',
+            'skipped': '⏭️',
+            'deferred': '🔄'
+        };
+        return statusMap[status.toLowerCase()] || '📅';
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('DagRunView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('DagRunView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "filter-date":
+                    this.selectedDate = message.date;
+                    this.loadData();
+                    return;
+                case "filter-status":
+                    this.selectedStatus = message.status;
+                    this.renderHtml();
+                    return;
+                case "filter-dag-id":
+                    this.selectedDagId = message.dagId;
+                    this.loadData();
+                    return;
+                case "open-dag-view":
+                    // Open DagView with specific dag and run
+                    if (this.api && message.dagId) {
+                        DagView_1.DagView.render(this.extensionUri, message.dagId, this.api);
+                    }
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.DagRunView = DagRunView;
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -12831,6 +13169,7 @@ function activate(context) {
     commands.push(vscode.commands.registerCommand('dagTreeView.viewConnections', () => { dagTreeView.viewConnections(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.viewVariables', () => { dagTreeView.viewVariables(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.viewProviders', () => { dagTreeView.viewProviders(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRuns', () => { dagTreeView.viewDagRuns(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node) => { dagTreeView.askAI(node); }));
     const participant = vscode.chat.createChatParticipant('airflow-ext.participant', dagTreeView.aIHandler.bind(dagTreeView));
     participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'airflow-extension-logo.png');

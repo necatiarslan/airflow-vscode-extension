@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { DagView } from './DagView';
 import { DagTreeItem } from './DagTreeItem';
 import { DagTreeDataProvider } from './DagTreeDataProvider';
+import { DagRunView } from './DagRunView';
 import * as ui from './UI';
 import { AirflowApi } from './Api';
 import { AskAIContext, ServerConfig } from './Types';
@@ -864,11 +865,19 @@ export class DagTreeView {
 			VariablesView.render(this.context.extensionUri, this.api);
 		}
 	}
+
 	async viewProviders() {
 		ui.logToOutput('DagTreeView.viewProviders Started');
 		if (this.api) {
 			const { ProvidersView } = await import('./ProvidersView');
 			ProvidersView.render(this.context.extensionUri, this.api);
+		}
+	}
+
+	async viewDagRuns() {
+		ui.logToOutput('DagTreeView.viewDagRuns Started');
+		if (this.api) {
+			DagRunView.render(this.context.extensionUri, this.api);
 		}
 	}
 }
