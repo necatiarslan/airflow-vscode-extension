@@ -32,6 +32,98 @@ Trigger DAGs, pause/unpause, explore DAG runs, view logs, browse code, and more�
   - AI analyzes DAG code and logs to provide insights and recommendations
   - Integrated with VS Code's native chat interface for seamless interaction
 
+- **Language Model Tools**
+  - Use AI chat with integrated Airflow management tools for intelligent DAG control and monitoring
+  - Tools include: trigger runs, pause/unpause DAGs, check failed runs, analyze latest DAG execution, view run history, and stop running DAGs
+
+## 🤖 Language Model Tools & Sample Prompts
+
+The extension provides 11 language model tools that integrate with VS Code's AI chat. Use `@airflow` in the chat to access these tools.
+
+### Control Tools
+
+#### Trigger DAG Run
+- **Purpose**: Execute a DAG with optional configuration
+- **Sample Prompts**:
+  - `@airflow trigger data_pipeline_dag`
+  - `@airflow trigger etl_job_dag with config {"max_workers": 10}`
+  - `@airflow run my_dag on 2025-12-03`
+
+#### Pause DAG
+- **Purpose**: Stop new DAG runs from being scheduled
+- **Sample Prompts**:
+  - `@airflow pause data_pipeline_dag`
+  - `@airflow disable staging_etl_dag`
+  - `@airflow pause all failing dags`
+
+#### Unpause DAG
+- **Purpose**: Enable scheduling for a paused DAG
+- **Sample Prompts**:
+  - `@airflow unpause data_pipeline_dag`
+  - `@airflow activate my_dag`
+  - `@airflow resume production_job`
+
+#### Stop DAG Run
+- **Purpose**: Terminate a currently running DAG execution
+- **Sample Prompts**:
+  - `@airflow stop data_pipeline_dag run`
+  - `@airflow cancel current run of my_dag`
+  - `@airflow kill the running data_ingestion_dag`
+
+### Monitoring Tools
+
+#### Get DAG Runs
+- **Purpose**: View execution history for a specific DAG with optional date filter
+- **Sample Prompts**:
+  - `@airflow get dag runs for api_data_ingestion_dag`
+  - `@airflow show runs of data_pipeline_dag on 2025-12-03`
+  - `@airflow list runs for etl_job_dag from last week`
+
+#### Get DAG History
+- **Purpose**: View DAG run history on a specific date with status, duration, and notes
+- **Sample Prompts**:
+  - `@airflow get dag history of api_data_ingestion_dag`
+  - `@airflow show history for data_pipeline_dag on 2025-12-02`
+  - `@airflow view past runs of my_dag today`
+
+#### Get Failed Runs
+- **Purpose**: Identify and analyze failed DAG runs across the system
+- **Sample Prompts**:
+  - `@airflow get failed runs`
+  - `@airflow show failed dags from last 24 hours`
+  - `@airflow which dags failed in the last 48 hours`
+
+#### List Active DAGs
+- **Purpose**: View all currently enabled DAGs
+- **Sample Prompts**:
+  - `@airflow list active dags`
+  - `@airflow show all running dags`
+  - `@airflow get enabled dags`
+
+#### List Paused DAGs
+- **Purpose**: View all currently disabled DAGs
+- **Sample Prompts**:
+  - `@airflow list paused dags`
+  - `@airflow show disabled dags`
+  - `@airflow get all paused dags`
+
+### Analysis Tools
+
+#### Analyse DAG Latest Run
+- **Purpose**: Comprehensive diagnostic report of the latest DAG execution including tasks, logs, and source code
+- **Sample Prompts**:
+  - `@airflow analyze api_data_ingestion_dag`
+  - `@airflow get full diagnostics for data_pipeline_dag`
+  - `@airflow show latest execution details and logs for etl_job_dag`
+  - `@airflow what went wrong with my_dag last run`
+
+#### AI Chat Analysis
+- **Purpose**: Get AI-powered insights and recommendations using all available tools
+- **Sample Prompts**:
+  - `@airflow why is data_pipeline_dag failing? Analyze and show me the logs`
+  - `@airflow give me a summary of failed runs and recommend fixes`
+  - `@airflow check if my dags are healthy and pause any that keep failing`
+
 ## 📷 Screenshots
 
 | Dag Tree | Runs | Tasks |
