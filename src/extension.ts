@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { DagTreeView } from './DagTreeView';
 import { DagTreeItem } from './DagTreeItem';
 import { AdminTreeView } from './AdminTreeView';
+import { ReportTreeView } from './ReportTreeView';
 import * as ui from './UI';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import { TriggerDagRunTool } from './tools/TriggerDagRunTool';
@@ -24,10 +25,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 	let dagTreeView:DagTreeView = new DagTreeView(context);
 	let adminTreeView:AdminTreeView = new AdminTreeView(context);
+	let reportTreeView:ReportTreeView = new ReportTreeView(context);
 
 	// Register the Admin Tree View
 	vscode.window.registerTreeDataProvider('adminTreeView', adminTreeView);
 	ui.logToOutput('Admin Tree View registered');
+
+	// Register the Report Tree View
+	vscode.window.registerTreeDataProvider('reportTreeView', reportTreeView);
+	ui.logToOutput('Report Tree View registered');
 
 	// register commands and keep disposables so they are cleaned up on deactivate
 	const commands: vscode.Disposable[] = [];

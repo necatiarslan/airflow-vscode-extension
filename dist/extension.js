@@ -13067,6 +13067,68 @@ class AdminTreeItem extends vscode.TreeItem {
 exports.AdminTreeItem = AdminTreeItem;
 
 
+/***/ }),
+/* 67 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ReportTreeView = void 0;
+const vscode = __webpack_require__(1);
+const ReportTreeItem_1 = __webpack_require__(68);
+class ReportTreeView {
+    constructor(context) {
+        this.context = context;
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+    }
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+    getTreeItem(element) {
+        return element;
+    }
+    getChildren(element) {
+        if (!element) {
+            // Root level - return the report nodes
+            return Promise.resolve([
+                new ReportTreeItem_1.ReportTreeItem('DAG Runs', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewDagRuns',
+                    title: 'View DAG Runs',
+                    arguments: []
+                }, new vscode.ThemeIcon('list-selection'))
+            ]);
+        }
+        return Promise.resolve([]);
+    }
+}
+exports.ReportTreeView = ReportTreeView;
+
+
+/***/ }),
+/* 68 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ReportTreeItem = void 0;
+const vscode = __webpack_require__(1);
+class ReportTreeItem extends vscode.TreeItem {
+    constructor(label, collapsibleState, command, iconPath) {
+        super(label, collapsibleState);
+        this.label = label;
+        this.collapsibleState = collapsibleState;
+        this.command = command;
+        this.iconPath = iconPath;
+        this.command = command;
+        this.iconPath = iconPath;
+    }
+}
+exports.ReportTreeItem = ReportTreeItem;
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -13220,6 +13282,7 @@ exports.deactivate = deactivate;
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
 const AdminTreeView_1 = __webpack_require__(65);
+const ReportTreeView_1 = __webpack_require__(67);
 const ui = __webpack_require__(4);
 const AirflowClientAdapter_1 = __webpack_require__(53);
 const TriggerDagRunTool_1 = __webpack_require__(54);
@@ -13238,9 +13301,13 @@ function activate(context) {
     ui.logToOutput('Extension activation started');
     let dagTreeView = new DagTreeView_1.DagTreeView(context);
     let adminTreeView = new AdminTreeView_1.AdminTreeView(context);
+    let reportTreeView = new ReportTreeView_1.ReportTreeView(context);
     // Register the Admin Tree View
     vscode.window.registerTreeDataProvider('adminTreeView', adminTreeView);
     ui.logToOutput('Admin Tree View registered');
+    // Register the Report Tree View
+    vscode.window.registerTreeDataProvider('reportTreeView', reportTreeView);
+    ui.logToOutput('Report Tree View registered');
     // register commands and keep disposables so they are cleaned up on deactivate
     const commands = [];
     commands.push(vscode.commands.registerCommand('dagTreeView.refreshServer', () => { dagTreeView.refresh(); }));
