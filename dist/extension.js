@@ -12994,6 +12994,79 @@ Please check:
 exports.GetDagHistoryTool = GetDagHistoryTool;
 
 
+/***/ }),
+/* 64 */,
+/* 65 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AdminTreeView = void 0;
+const vscode = __webpack_require__(1);
+const AdminTreeItem_1 = __webpack_require__(66);
+class AdminTreeView {
+    constructor(context) {
+        this.context = context;
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+    }
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+    getTreeItem(element) {
+        return element;
+    }
+    getChildren(element) {
+        if (!element) {
+            // Root level - return the three admin nodes
+            return Promise.resolve([
+                new AdminTreeItem_1.AdminTreeItem('Variables', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewVariables',
+                    title: 'View Variables',
+                    arguments: []
+                }, new vscode.ThemeIcon('symbol-variable')),
+                new AdminTreeItem_1.AdminTreeItem('Connections', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewConnections',
+                    title: 'View Connections',
+                    arguments: []
+                }, new vscode.ThemeIcon('link')),
+                new AdminTreeItem_1.AdminTreeItem('Providers', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewProviders',
+                    title: 'View Providers',
+                    arguments: []
+                }, new vscode.ThemeIcon('package'))
+            ]);
+        }
+        return Promise.resolve([]);
+    }
+}
+exports.AdminTreeView = AdminTreeView;
+
+
+/***/ }),
+/* 66 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AdminTreeItem = void 0;
+const vscode = __webpack_require__(1);
+class AdminTreeItem extends vscode.TreeItem {
+    constructor(label, collapsibleState, command, iconPath) {
+        super(label, collapsibleState);
+        this.label = label;
+        this.collapsibleState = collapsibleState;
+        this.command = command;
+        this.iconPath = iconPath;
+        this.command = command;
+        this.iconPath = iconPath;
+    }
+}
+exports.AdminTreeItem = AdminTreeItem;
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -13146,6 +13219,7 @@ exports.deactivate = deactivate;
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
+const AdminTreeView_1 = __webpack_require__(65);
 const ui = __webpack_require__(4);
 const AirflowClientAdapter_1 = __webpack_require__(53);
 const TriggerDagRunTool_1 = __webpack_require__(54);
@@ -13163,6 +13237,10 @@ const GetDagHistoryTool_1 = __webpack_require__(63);
 function activate(context) {
     ui.logToOutput('Extension activation started');
     let dagTreeView = new DagTreeView_1.DagTreeView(context);
+    let adminTreeView = new AdminTreeView_1.AdminTreeView(context);
+    // Register the Admin Tree View
+    vscode.window.registerTreeDataProvider('adminTreeView', adminTreeView);
+    ui.logToOutput('Admin Tree View registered');
     // register commands and keep disposables so they are cleaned up on deactivate
     const commands = [];
     commands.push(vscode.commands.registerCommand('dagTreeView.refreshServer', () => { dagTreeView.refresh(); }));

@@ -558,6 +558,16 @@
           "id": "dagTreeView",
           "name": "Airflow",
           "icon": "media/airflow-extension-logo.png"
+        },
+        {
+          "id": "reportsTreeView",
+          "name": "Reports",
+          "icon": "media/airflow-extension-logo.png"
+        },
+        {
+          "id": "adminTreeView",
+          "name": "Admin",
+          "icon": "media/airflow-extension-logo.png"
         }
       ]
     },
