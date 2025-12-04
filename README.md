@@ -26,17 +26,22 @@ Trigger DAGs, pause/unpause, explore DAG runs, view logs, browse code, and more�
   - View logs  
   - See task instances, execution durations, and statuses
 
-- **Ask AI**  
+- **DAG Runs View**
+  - Browse all DAG runs across all DAGs for a specific date
+  - Filter by status (success, failed, running, queued) and specific DAG ID
+  - See execution details: start date, duration, config, and notes
+  - Click on any DAG run to open detailed DagView for analysis
+
+- **AI Airflow Assistant**  
   - Get AI-powered assistance for analyzing DAG logs and troubleshooting issues
-  - Right-click on any DAG and select "Ask AI" to get contextual help
+  - Click "Ask AI" in the DagView to open the AI chat interface
+  - In the Chat, use `@airflow` to ask questions and execute commands like triggering DAGs, pausing/unpausing, checking failed runs, and more
   - AI analyzes DAG code and logs to provide insights and recommendations
   - Integrated with VS Code's native chat interface for seamless interaction
+  - 11 language model tools for intelligent DAG control and monitoring: trigger runs, pause/unpause DAGs, check failed runs, analyze latest DAG execution, view run history, stop running DAGs, and more
+  - Use `@airflow` in the chat to access all AI-powered tools
 
-- **Language Model Tools**
-  - Use AI chat with integrated Airflow management tools for intelligent DAG control and monitoring
-  - Tools include: trigger runs, pause/unpause DAGs, check failed runs, analyze latest DAG execution, view run history, and stop running DAGs
-
-## 🤖 Language Model Tools & Sample Prompts
+## 🤖 AI Airflow Assistant Tools & Sample Prompts
 
 The extension provides 11 language model tools that integrate with VS Code's AI chat. Use `@airflow` in the chat to access these tools.
 
@@ -135,6 +140,9 @@ The extension provides 11 language model tools that integrate with VS Code's AI 
 | ----------- | ----------- | ----------- |
 | ![screenshoot](./docs/dagview-info.png) | ![screenshoot](./docs/dagview-history.png) | ![screenshoot](./docs/ai-chat.png) |
 
+| Dag Run View |
+| ----------- |
+| ![screenshoot](./docs/dagrunview.png) |
 
 ## ⚙️ Configuration
 After installing the extension, you need to configure the extension to connect to your Airflow Server.

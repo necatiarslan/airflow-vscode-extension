@@ -19,9 +19,9 @@ exports.DagTreeView = void 0;
 const vscode = __webpack_require__(1);
 const DagView_1 = __webpack_require__(3);
 const DagTreeDataProvider_1 = __webpack_require__(10);
-const DagRunView_1 = __webpack_require__(64);
+const DagRunView_1 = __webpack_require__(12);
 const ui = __webpack_require__(4);
-const Api_1 = __webpack_require__(12);
+const Api_1 = __webpack_require__(13);
 class DagTreeView {
     constructor(context) {
         this.filterString = '';
@@ -801,21 +801,21 @@ class DagTreeView {
     async viewConnections() {
         ui.logToOutput('DagTreeView.viewConnections Started');
         if (this.api) {
-            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(49));
+            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(50));
             ConnectionsView.render(this.context.extensionUri, this.api);
         }
     }
     async viewVariables() {
         ui.logToOutput('DagTreeView.viewVariables Started');
         if (this.api) {
-            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(50));
+            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(51));
             VariablesView.render(this.context.extensionUri, this.api);
         }
     }
     async viewProviders() {
         ui.logToOutput('DagTreeView.viewProviders Started');
         if (this.api) {
-            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(51));
+            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(52));
             ProvidersView.render(this.context.extensionUri, this.api);
         }
     }
@@ -2872,14 +2872,344 @@ exports.DagTreeItem = DagTreeItem;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagRunView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(4);
+const DagView_1 = __webpack_require__(3);
+class DagRunView {
+    constructor(panel, extensionUri, api) {
+        this._disposables = [];
+        // Filters
+        this.selectedDate = new Date().toISOString().split('T')[0];
+        this.selectedStatus = '';
+        this.selectedDagId = '';
+        this.allDagIds = [];
+        ui.logToOutput('DagRunView.constructor Started');
+        this.extensionUri = extensionUri;
+        this._panel = panel;
+        this.api = api;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('DagRunView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('DagRunView.loadData Started');
+        // Fetch all DAGs to populate dag_id filter
+        const dagsResult = await this.api.getDagList();
+        if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
+            this.allDagIds = dagsResult.result.map((dag) => dag.dag_id).sort();
+        }
+        // Fetch DAG runs for the selected date
+        // If a specific DAG is selected, query that DAG, otherwise query all
+        if (this.selectedDagId) {
+            const result = await this.api.getDagRunHistory(this.selectedDagId, this.selectedDate);
+            if (result.isSuccessful && result.result && result.result.dag_runs) {
+                this.dagRunsJson = result.result.dag_runs;
+            }
+        }
+        else {
+            // Query all DAGs for runs on the selected date
+            const allRuns = [];
+            for (const dagId of this.allDagIds) {
+                const result = await this.api.getDagRunHistory(dagId, this.selectedDate);
+                if (result.isSuccessful && result.result && result.result.dag_runs) {
+                    allRuns.push(...result.result.dag_runs);
+                }
+            }
+            this.dagRunsJson = allRuns;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('DagRunView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        ui.logToOutput('DagRunView.renderHtml Completed');
+    }
+    static render(extensionUri, api) {
+        ui.logToOutput('DagRunView.render Started');
+        if (DagRunView.Current) {
+            DagRunView.Current.api = api;
+            DagRunView.Current._panel.reveal(vscode.ViewColumn.One);
+            DagRunView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("dagRunView", "DAG Runs", vscode.ViewColumn.One, {
+                enableScripts: true,
+            });
+            DagRunView.Current = new DagRunView(panel, extensionUri, api);
+        }
+    }
+    dispose() {
+        ui.logToOutput('DagRunView.dispose Started');
+        DagRunView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('DagRunView._getWebviewContent Started');
+        const elementsUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode-elements",
+            "elements",
+            "dist",
+            "bundled.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        // Filter DAG runs based on selected filters
+        let filteredRuns = [];
+        if (this.dagRunsJson && Array.isArray(this.dagRunsJson)) {
+            filteredRuns = this.dagRunsJson.filter((run) => {
+                // Filter by status
+                if (this.selectedStatus && run.state !== this.selectedStatus) {
+                    return false;
+                }
+                return true;
+            });
+        }
+        // Build table rows
+        let tableRows = '';
+        filteredRuns.forEach((run) => {
+            const dagId = run.dag_id || 'N/A';
+            const status = run.state || 'N/A';
+            const startDate = run.start_date ? new Date(run.start_date).toLocaleString() : 'N/A';
+            const duration = run.start_date && run.end_date ? ui.getDuration(new Date(run.start_date), new Date(run.end_date)) : 'Running';
+            const config = run.conf ? JSON.stringify(run.conf) : '{}';
+            const note = run.note || '';
+            const dagRunId = run.dag_run_id || '';
+            const statusEmoji = this._getStatusEmoji(status);
+            tableRows += `
+            <vscode-table-row>
+                <vscode-table-cell><a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-link">${this._escapeHtml(dagId)}</a></vscode-table-cell>
+                <vscode-table-cell>${statusEmoji} ${this._escapeHtml(status)}</vscode-table-cell>
+                <vscode-table-cell>${this._escapeHtml(startDate)}</vscode-table-cell>
+                <vscode-table-cell>${this._escapeHtml(duration)}</vscode-table-cell>
+                <vscode-table-cell><code>${this._escapeHtml(config.substring(0, 50))}${config.length > 50 ? '...' : ''}</code></vscode-table-cell>
+                <vscode-table-cell>${this._escapeHtml(note)}</vscode-table-cell>
+            </vscode-table-row>`;
+        });
+        // Build dag_id filter options
+        const dagIdOptions = this.allDagIds.map(id => `<option value="${this._escapeHtml(id)}">${this._escapeHtml(id)}</option>`).join('');
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${elementsUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <style>
+            body {
+                padding: 16px;
+            }
+            h2 {
+                margin-top: 0;
+            }
+            .filters {
+                display: flex;
+                gap: 12px;
+                margin-bottom: 16px;
+                flex-wrap: wrap;
+                align-items: center;
+            }
+            .filter-group {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .filter-group label {
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                opacity: 0.8;
+            }
+            .filter-group select,
+            .filter-group input {
+                padding: 6px 8px;
+                border: 1px solid var(--vscode-input-border);
+                background-color: var(--vscode-input-background);
+                color: var(--vscode-input-foreground);
+                border-radius: 4px;
+                font-size: 13px;
+            }
+            vscode-table {
+                width: 100%;
+                max-height: 600px;
+                overflow-y: auto;
+            }
+            vscode-table-cell {
+                word-wrap: break-word;
+                white-space: normal;
+            }
+            vscode-table-cell:first-child {
+                white-space: nowrap;
+            }
+            code {
+                background-color: var(--vscode-editor-background);
+                color: var(--vscode-editor-foreground);
+                padding: 2px 4px;
+                border-radius: 3px;
+                font-family: monospace;
+                font-size: 11px;
+            }
+            a {
+                color: var(--vscode-textLink-foreground);
+                text-decoration: none;
+                cursor: pointer;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+        </style>
+        <title>DAG Runs</title>
+      </head>
+      <body>  
+        <h2>DAG Runs</h2>
+        
+        <div class="filters">
+            <div class="filter-group">
+                <label>Date</label>
+                <input type="date" id="filter-date" value="${this.selectedDate}">
+            </div>
+            <div class="filter-group">
+                <label>Status</label>
+                <select id="filter-status">
+                    <option value="">All</option>
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                    <option value="running">Running</option>
+                    <option value="queued">Queued</option>
+                    <option value="upstream_failed">Upstream Failed</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>DAG ID</label>
+                <select id="filter-dag-id">
+                    <option value="">All DAGs</option>
+                    ${dagIdOptions}
+                </select>
+            </div>
+        </div>
+        
+        <vscode-table zebra bordered-columns resizable>
+            <vscode-table-header  slot="header">
+                <vscode-table-header-cell>DAG ID</vscode-table-header-cell>
+                <vscode-table-header-cell>Status</vscode-table-header-cell>
+                <vscode-table-header-cell>Start Date</vscode-table-header-cell>
+                <vscode-table-header-cell>Duration</vscode-table-header-cell>
+                <vscode-table-header-cell>Config</vscode-table-header-cell>
+                <vscode-table-header-cell>Note</vscode-table-header-cell>
+            </vscode-table-header>
+            <vscode-table-body slot="body">
+            ${tableRows || '<vscode-table-row><vscode-table-cell colspan="6">No runs found for the selected filters</vscode-table-cell></vscode-table-row>'}        
+            </vscode-table-body>
+        </vscode-table>
+
+        <script>
+            const vscode = acquireVsCodeApi();
+
+            document.getElementById('filter-date').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-date', date: e.target.value });
+            });
+
+            document.getElementById('filter-status').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-status', status: e.target.value });
+            });
+
+            document.getElementById('filter-dag-id').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-dag-id', dagId: e.target.value });
+            });
+
+            // Handle dag-link clicks
+            document.querySelectorAll('.dag-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const dagId = e.target.getAttribute('data-dag-id');
+                    const dagRunId = e.target.getAttribute('data-dag-run-id');
+                    vscode.postMessage({ command: 'open-dag-view', dagId, dagRunId });
+                });
+            });
+        </script>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+    _getStatusEmoji(status) {
+        const statusMap = {
+            'success': '✅',
+            'failed': '❌',
+            'running': '▶️',
+            'queued': '⏳',
+            'upstream_failed': '⚠️',
+            'skipped': '⏭️',
+            'deferred': '🔄'
+        };
+        return statusMap[status.toLowerCase()] || '📅';
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('DagRunView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('DagRunView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "filter-date":
+                    this.selectedDate = message.date;
+                    this.loadData();
+                    return;
+                case "filter-status":
+                    this.selectedStatus = message.status;
+                    this.renderHtml();
+                    return;
+                case "filter-dag-id":
+                    this.selectedDagId = message.dagId;
+                    this.loadData();
+                    return;
+                case "open-dag-view":
+                    // Open DagView with specific dag and run
+                    if (this.api && message.dagId) {
+                        DagView_1.DagView.render(this.extensionUri, message.dagId, this.api);
+                    }
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.DagRunView = DagRunView;
+
+
+/***/ }),
+/* 13 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AirflowApi = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
-const base_64_1 = __webpack_require__(13);
+const base_64_1 = __webpack_require__(14);
 const ui = __webpack_require__(4);
-const MethodResult_1 = __webpack_require__(14);
+const MethodResult_1 = __webpack_require__(15);
 // Wrapper for fetch to handle ESM node-fetch in CommonJS
 const fetch = async (url, init) => {
-    const module = await Promise.resolve().then(() => __webpack_require__(15));
+    const module = await Promise.resolve().then(() => __webpack_require__(16));
     return module.default(url, init);
 };
 class AirflowApi {
@@ -3385,7 +3715,7 @@ exports.AirflowApi = AirflowApi;
 
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* module decorator */ module = __webpack_require__.nmd(module);
@@ -3546,7 +3876,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/base64 v1.0.0 by @mathias 
 
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -3565,7 +3895,7 @@ exports.MethodResult = MethodResult;
 
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3586,23 +3916,23 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   fileFromSync: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.fileFromSync),
 /* harmony export */   isRedirect: () => (/* reexport safe */ _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__.isRedirect)
 /* harmony export */ });
-/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(16);
-/* harmony import */ var node_https__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(17);
-/* harmony import */ var node_zlib__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(18);
-/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(19);
-/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(20);
-/* harmony import */ var data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(21);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(22);
-/* harmony import */ var _response_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(35);
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(36);
-/* harmony import */ var _request_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(38);
-/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(32);
-/* harmony import */ var _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(43);
-/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(37);
-/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(30);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(34);
-/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(41);
-/* harmony import */ var fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(44);
+/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(17);
+/* harmony import */ var node_https__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(18);
+/* harmony import */ var node_zlib__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(19);
+/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(20);
+/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(21);
+/* harmony import */ var data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(22);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(23);
+/* harmony import */ var _response_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(36);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(37);
+/* harmony import */ var _request_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(39);
+/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(33);
+/* harmony import */ var _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(44);
+/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(38);
+/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(31);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(35);
+/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(42);
+/* harmony import */ var fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(45);
 /**
  * Index.js
  *
@@ -4016,42 +4346,42 @@ function fixResponseChunkedTransferBadEnding(request, errorCallback) {
 
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:http");
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:https");
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:zlib");
 
 /***/ }),
-/* 19 */
+/* 20 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:stream");
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:buffer");
 
 /***/ }),
-/* 21 */
+/* 22 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4115,7 +4445,7 @@ function dataUriToBuffer(uri) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 22 */
+/* 23 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4127,14 +4457,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   getTotalBytes: () => (/* binding */ getTotalBytes),
 /* harmony export */   writeToStream: () => (/* binding */ writeToStream)
 /* harmony export */ });
-/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(19);
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(23);
-/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(20);
-/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(24);
-/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(30);
-/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(32);
-/* harmony import */ var _errors_base_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(33);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(34);
+/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(20);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(24);
+/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(21);
+/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(25);
+/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(31);
+/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(33);
+/* harmony import */ var _errors_base_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(34);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(35);
 
 /**
  * Body.js
@@ -4258,7 +4588,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 63));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 64));
 		return toFormData(this.body, ct);
 	}
 
@@ -4535,14 +4865,14 @@ const writeToStream = async (dest, {body}) => {
 
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:util");
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4551,7 +4881,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   Blob: () => (/* binding */ Blob),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _streams_cjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(25);
+/* harmony import */ var _streams_cjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(26);
 /*! fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 // TODO (jimmywarting): in the feature use conditional loading with top level await (requires 14.x)
@@ -4805,7 +5135,7 @@ const Blob = _Blob
 
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
 
 /* c8 ignore start */
@@ -4817,11 +5147,11 @@ if (!globalThis.ReadableStream) {
   // and it's preferred over the polyfilled version. So we also
   // suppress the warning that gets emitted by NodeJS for using it.
   try {
-    const process = __webpack_require__(26)
+    const process = __webpack_require__(27)
     const { emitWarning } = process
     try {
       process.emitWarning = () => {}
-      Object.assign(globalThis, __webpack_require__(27))
+      Object.assign(globalThis, __webpack_require__(28))
       process.emitWarning = emitWarning
     } catch (error) {
       process.emitWarning = emitWarning
@@ -4829,14 +5159,14 @@ if (!globalThis.ReadableStream) {
     }
   } catch (error) {
     // fallback to polyfill implementation
-    Object.assign(globalThis, __webpack_require__(28))
+    Object.assign(globalThis, __webpack_require__(29))
   }
 }
 
 try {
   // Don't use node: prefix for this, require+node: is not supported until node v14.14
   // Only `import()` can use prefix in 12.20 and later
-  const { Blob } = __webpack_require__(29)
+  const { Blob } = __webpack_require__(30)
   if (Blob && !Blob.prototype.stream) {
     Blob.prototype.stream = function name (params) {
       let position = 0
@@ -4862,21 +5192,21 @@ try {
 
 
 /***/ }),
-/* 26 */
+/* 27 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:process");
 
 /***/ }),
-/* 27 */
+/* 28 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:stream/web");
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ (function(__unused_webpack_module, exports) {
 
 /**
@@ -9094,14 +9424,14 @@ module.exports = require("node:stream/web");
 
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("buffer");
 
 /***/ }),
-/* 30 */
+/* 31 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9111,8 +9441,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   FormData: () => (/* binding */ FormData),
 /* harmony export */   formDataToBlob: () => (/* binding */ formDataToBlob)
 /* harmony export */ });
-/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(24);
-/* harmony import */ var fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(31);
+/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(25);
+/* harmony import */ var fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(32);
 /*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 
@@ -9156,7 +9486,7 @@ return new B(c,{type:"multipart/form-data; boundary="+b})}
 
 
 /***/ }),
-/* 31 */
+/* 32 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9165,7 +9495,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   File: () => (/* binding */ File),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(24);
+/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(25);
 
 
 const _File = class File extends _index_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
@@ -9218,7 +9548,7 @@ const File = _File
 
 
 /***/ }),
-/* 32 */
+/* 33 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9226,7 +9556,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   FetchError: () => (/* binding */ FetchError)
 /* harmony export */ });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(33);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(34);
 
 
 
@@ -9256,7 +9586,7 @@ class FetchError extends _base_js__WEBPACK_IMPORTED_MODULE_0__.FetchBaseError {
 
 
 /***/ }),
-/* 33 */
+/* 34 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9284,7 +9614,7 @@ class FetchBaseError extends Error {
 
 
 /***/ }),
-/* 34 */
+/* 35 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9386,7 +9716,7 @@ const isSameProtocol = (destination, original) => {
 
 
 /***/ }),
-/* 35 */
+/* 36 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9394,9 +9724,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (/* binding */ Response)
 /* harmony export */ });
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(36);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(22);
-/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(37);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(37);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(23);
+/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(38);
 /**
  * Response.js
  *
@@ -9560,7 +9890,7 @@ Object.defineProperties(Response.prototype, {
 
 
 /***/ }),
-/* 36 */
+/* 37 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9569,8 +9899,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (/* binding */ Headers),
 /* harmony export */   fromRawHeaders: () => (/* binding */ fromRawHeaders)
 /* harmony export */ });
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(23);
-/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(16);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(24);
+/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(17);
 /**
  * Headers.js
  *
@@ -9841,7 +10171,7 @@ function fromRawHeaders(headers = []) {
 
 
 /***/ }),
-/* 37 */
+/* 38 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9863,7 +10193,7 @@ const isRedirect = code => {
 
 
 /***/ }),
-/* 38 */
+/* 39 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9872,13 +10202,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (/* binding */ Request),
 /* harmony export */   getNodeRequestOptions: () => (/* binding */ getNodeRequestOptions)
 /* harmony export */ });
-/* harmony import */ var node_url__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(39);
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(23);
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(36);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(22);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(34);
-/* harmony import */ var _utils_get_search_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(40);
-/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(41);
+/* harmony import */ var node_url__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(40);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(24);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(37);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(23);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(35);
+/* harmony import */ var _utils_get_search_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(41);
+/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(42);
 /**
  * Request.js
  *
@@ -10193,14 +10523,14 @@ const getNodeRequestOptions = request => {
 
 
 /***/ }),
-/* 39 */
+/* 40 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:url");
 
 /***/ }),
-/* 40 */
+/* 41 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10220,7 +10550,7 @@ const getSearch = parsedURL => {
 
 
 /***/ }),
-/* 41 */
+/* 42 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10235,7 +10565,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   stripURLForUseAsAReferrer: () => (/* binding */ stripURLForUseAsAReferrer),
 /* harmony export */   validateReferrerPolicy: () => (/* binding */ validateReferrerPolicy)
 /* harmony export */ });
-/* harmony import */ var node_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(42);
+/* harmony import */ var node_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(43);
 
 
 /**
@@ -10579,14 +10909,14 @@ function parseReferrerPolicyFromHeader(headers) {
 
 
 /***/ }),
-/* 42 */
+/* 43 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:net");
 
 /***/ }),
-/* 43 */
+/* 44 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10594,7 +10924,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   AbortError: () => (/* binding */ AbortError)
 /* harmony export */ });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(33);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(34);
 
 
 /**
@@ -10608,7 +10938,7 @@ class AbortError extends _base_js__WEBPACK_IMPORTED_MODULE_0__.FetchBaseError {
 
 
 /***/ }),
-/* 44 */
+/* 45 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10622,11 +10952,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   fileFrom: () => (/* binding */ fileFrom),
 /* harmony export */   fileFromSync: () => (/* binding */ fileFromSync)
 /* harmony export */ });
-/* harmony import */ var node_fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(45);
-/* harmony import */ var node_path__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(46);
-/* harmony import */ var node_domexception__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(47);
-/* harmony import */ var _file_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(31);
-/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(24);
+/* harmony import */ var node_fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(46);
+/* harmony import */ var node_path__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(47);
+/* harmony import */ var node_domexception__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(48);
+/* harmony import */ var _file_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(32);
+/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(25);
 
 
 
@@ -10730,28 +11060,28 @@ class BlobDataItem {
 
 
 /***/ }),
-/* 45 */
+/* 46 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:fs");
 
 /***/ }),
-/* 46 */
+/* 47 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:path");
 
 /***/ }),
-/* 47 */
+/* 48 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /*! node-domexception. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 if (!globalThis.DOMException) {
   try {
-    const { MessageChannel } = __webpack_require__(48),
+    const { MessageChannel } = __webpack_require__(49),
     port = new MessageChannel().port1,
     ab = new ArrayBuffer()
     port.postMessage(ab, [ab, ab])
@@ -10766,14 +11096,14 @@ module.exports = globalThis.DOMException
 
 
 /***/ }),
-/* 48 */
+/* 49 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("worker_threads");
 
 /***/ }),
-/* 49 */
+/* 50 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -10882,7 +11212,7 @@ exports.ConnectionsView = ConnectionsView;
 
 
 /***/ }),
-/* 50 */
+/* 51 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11064,7 +11394,7 @@ exports.VariablesView = VariablesView;
 
 
 /***/ }),
-/* 51 */
+/* 52 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11239,7 +11569,7 @@ exports.ProvidersView = ProvidersView;
 
 
 /***/ }),
-/* 52 */
+/* 53 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11581,7 +11911,7 @@ exports.AirflowClientAdapter = AirflowClientAdapter;
 
 
 /***/ }),
-/* 53 */
+/* 54 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11709,7 +12039,7 @@ exports.TriggerDagRunTool = TriggerDagRunTool;
 
 
 /***/ }),
-/* 54 */
+/* 55 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11828,7 +12158,7 @@ exports.GetFailedRunsTool = GetFailedRunsTool;
 
 
 /***/ }),
-/* 55 */
+/* 56 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11880,7 +12210,7 @@ exports.ListActiveDagsTool = ListActiveDagsTool;
 
 
 /***/ }),
-/* 56 */
+/* 57 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11932,7 +12262,7 @@ exports.ListPausedDagsTool = ListPausedDagsTool;
 
 
 /***/ }),
-/* 57 */
+/* 58 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11983,7 +12313,7 @@ exports.PauseDagTool = PauseDagTool;
 
 
 /***/ }),
-/* 58 */
+/* 59 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12034,7 +12364,7 @@ exports.UnpauseDagTool = UnpauseDagTool;
 
 
 /***/ }),
-/* 59 */
+/* 60 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12174,7 +12504,7 @@ exports.GetDagRunsTool = GetDagRunsTool;
 
 
 /***/ }),
-/* 60 */
+/* 61 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12274,7 +12604,7 @@ exports.StopDagRunTool = StopDagRunTool;
 
 
 /***/ }),
-/* 61 */
+/* 62 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12494,7 +12824,7 @@ exports.AnalyseDagLatestRunTool = AnalyseDagLatestRunTool;
 
 
 /***/ }),
-/* 62 */
+/* 63 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12641,337 +12971,6 @@ Please check:
     }
 }
 exports.GetDagHistoryTool = GetDagHistoryTool;
-
-
-/***/ }),
-/* 63 */,
-/* 64 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagRunView = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-const ui = __webpack_require__(4);
-const DagView_1 = __webpack_require__(3);
-class DagRunView {
-    constructor(panel, extensionUri, api) {
-        this._disposables = [];
-        // Filters
-        this.selectedDate = new Date().toISOString().split('T')[0];
-        this.selectedStatus = '';
-        this.selectedDagId = '';
-        this.allDagIds = [];
-        ui.logToOutput('DagRunView.constructor Started');
-        this.extensionUri = extensionUri;
-        this._panel = panel;
-        this.api = api;
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-        this._setWebviewMessageListener(this._panel.webview);
-        this.loadData();
-        ui.logToOutput('DagRunView.constructor Completed');
-    }
-    async loadData() {
-        ui.logToOutput('DagRunView.loadData Started');
-        // Fetch all DAGs to populate dag_id filter
-        const dagsResult = await this.api.getDagList();
-        if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
-            this.allDagIds = dagsResult.result.map((dag) => dag.dag_id).sort();
-        }
-        // Fetch DAG runs for the selected date
-        // If a specific DAG is selected, query that DAG, otherwise query all
-        if (this.selectedDagId) {
-            const result = await this.api.getDagRunHistory(this.selectedDagId, this.selectedDate);
-            if (result.isSuccessful && result.result && result.result.dag_runs) {
-                this.dagRunsJson = result.result.dag_runs;
-            }
-        }
-        else {
-            // Query all DAGs for runs on the selected date
-            const allRuns = [];
-            for (const dagId of this.allDagIds) {
-                const result = await this.api.getDagRunHistory(dagId, this.selectedDate);
-                if (result.isSuccessful && result.result && result.result.dag_runs) {
-                    allRuns.push(...result.result.dag_runs);
-                }
-            }
-            this.dagRunsJson = allRuns;
-        }
-        await this.renderHtml();
-    }
-    async renderHtml() {
-        ui.logToOutput('DagRunView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
-        ui.logToOutput('DagRunView.renderHtml Completed');
-    }
-    static render(extensionUri, api) {
-        ui.logToOutput('DagRunView.render Started');
-        if (DagRunView.Current) {
-            DagRunView.Current.api = api;
-            DagRunView.Current._panel.reveal(vscode.ViewColumn.One);
-            DagRunView.Current.loadData();
-        }
-        else {
-            const panel = vscode.window.createWebviewPanel("dagRunView", "DAG Runs", vscode.ViewColumn.One, {
-                enableScripts: true,
-            });
-            DagRunView.Current = new DagRunView(panel, extensionUri, api);
-        }
-    }
-    dispose() {
-        ui.logToOutput('DagRunView.dispose Started');
-        DagRunView.Current = undefined;
-        this._panel.dispose();
-        while (this._disposables.length) {
-            const disposable = this._disposables.pop();
-            if (disposable) {
-                disposable.dispose();
-            }
-        }
-    }
-    _getWebviewContent(webview, extensionUri) {
-        ui.logToOutput('DagRunView._getWebviewContent Started');
-        const elementsUri = ui.getUri(webview, extensionUri, [
-            "node_modules",
-            "@vscode-elements",
-            "elements",
-            "dist",
-            "bundled.js",
-        ]);
-        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
-        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
-        // Filter DAG runs based on selected filters
-        let filteredRuns = [];
-        if (this.dagRunsJson && Array.isArray(this.dagRunsJson)) {
-            filteredRuns = this.dagRunsJson.filter((run) => {
-                // Filter by status
-                if (this.selectedStatus && run.state !== this.selectedStatus) {
-                    return false;
-                }
-                return true;
-            });
-        }
-        // Build table rows
-        let tableRows = '';
-        filteredRuns.forEach((run) => {
-            const dagId = run.dag_id || 'N/A';
-            const status = run.state || 'N/A';
-            const startDate = run.start_date ? new Date(run.start_date).toLocaleString() : 'N/A';
-            const duration = run.start_date && run.end_date ? ui.getDuration(new Date(run.start_date), new Date(run.end_date)) : 'Running';
-            const config = run.conf ? JSON.stringify(run.conf) : '{}';
-            const note = run.note || '';
-            const dagRunId = run.dag_run_id || '';
-            const statusEmoji = this._getStatusEmoji(status);
-            tableRows += `
-            <vscode-table-row>
-                <vscode-table-cell><a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-link">${this._escapeHtml(dagId)}</a></vscode-table-cell>
-                <vscode-table-cell>${statusEmoji} ${this._escapeHtml(status)}</vscode-table-cell>
-                <vscode-table-cell>${this._escapeHtml(startDate)}</vscode-table-cell>
-                <vscode-table-cell>${this._escapeHtml(duration)}</vscode-table-cell>
-                <vscode-table-cell><code>${this._escapeHtml(config.substring(0, 50))}${config.length > 50 ? '...' : ''}</code></vscode-table-cell>
-                <vscode-table-cell>${this._escapeHtml(note)}</vscode-table-cell>
-            </vscode-table-row>`;
-        });
-        // Build dag_id filter options
-        const dagIdOptions = this.allDagIds.map(id => `<option value="${this._escapeHtml(id)}">${this._escapeHtml(id)}</option>`).join('');
-        const result = /*html*/ `
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1.0">
-        <script type="module" src="${elementsUri}"></script>
-        <script type="module" src="${mainUri}"></script>
-        <link rel="stylesheet" href="${styleUri}">
-        <style>
-            body {
-                padding: 16px;
-            }
-            h2 {
-                margin-top: 0;
-            }
-            .filters {
-                display: flex;
-                gap: 12px;
-                margin-bottom: 16px;
-                flex-wrap: wrap;
-                align-items: center;
-            }
-            .filter-group {
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-            }
-            .filter-group label {
-                font-size: 12px;
-                font-weight: 600;
-                text-transform: uppercase;
-                opacity: 0.8;
-            }
-            .filter-group select,
-            .filter-group input {
-                padding: 6px 8px;
-                border: 1px solid var(--vscode-input-border);
-                background-color: var(--vscode-input-background);
-                color: var(--vscode-input-foreground);
-                border-radius: 4px;
-                font-size: 13px;
-            }
-            vscode-table {
-                width: 100%;
-                max-height: 600px;
-                overflow-y: auto;
-            }
-            vscode-table-cell {
-                word-wrap: break-word;
-                white-space: normal;
-            }
-            vscode-table-cell:first-child {
-                white-space: nowrap;
-            }
-            code {
-                background-color: var(--vscode-editor-background);
-                color: var(--vscode-editor-foreground);
-                padding: 2px 4px;
-                border-radius: 3px;
-                font-family: monospace;
-                font-size: 11px;
-            }
-            a {
-                color: var(--vscode-textLink-foreground);
-                text-decoration: none;
-                cursor: pointer;
-            }
-            a:hover {
-                text-decoration: underline;
-            }
-        </style>
-        <title>DAG Runs</title>
-      </head>
-      <body>  
-        <h2>DAG Runs</h2>
-        
-        <div class="filters">
-            <div class="filter-group">
-                <label>Date</label>
-                <input type="date" id="filter-date" value="${this.selectedDate}">
-            </div>
-            <div class="filter-group">
-                <label>Status</label>
-                <select id="filter-status">
-                    <option value="">All</option>
-                    <option value="success">Success</option>
-                    <option value="failed">Failed</option>
-                    <option value="running">Running</option>
-                    <option value="queued">Queued</option>
-                    <option value="upstream_failed">Upstream Failed</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label>DAG ID</label>
-                <select id="filter-dag-id">
-                    <option value="">All DAGs</option>
-                    ${dagIdOptions}
-                </select>
-            </div>
-        </div>
-        
-        <vscode-table zebra bordered-columns resizable>
-            <vscode-table-header  slot="header">
-                <vscode-table-header-cell>DAG ID</vscode-table-header-cell>
-                <vscode-table-header-cell>Status</vscode-table-header-cell>
-                <vscode-table-header-cell>Start Date</vscode-table-header-cell>
-                <vscode-table-header-cell>Duration</vscode-table-header-cell>
-                <vscode-table-header-cell>Config</vscode-table-header-cell>
-                <vscode-table-header-cell>Note</vscode-table-header-cell>
-            </vscode-table-header>
-            <vscode-table-body slot="body">
-            ${tableRows || '<vscode-table-row><vscode-table-cell colspan="6">No runs found for the selected filters</vscode-table-cell></vscode-table-row>'}        
-            </vscode-table-body>
-        </vscode-table>
-
-        <script>
-            const vscode = acquireVsCodeApi();
-
-            document.getElementById('filter-date').addEventListener('change', (e) => {
-                vscode.postMessage({ command: 'filter-date', date: e.target.value });
-            });
-
-            document.getElementById('filter-status').addEventListener('change', (e) => {
-                vscode.postMessage({ command: 'filter-status', status: e.target.value });
-            });
-
-            document.getElementById('filter-dag-id').addEventListener('change', (e) => {
-                vscode.postMessage({ command: 'filter-dag-id', dagId: e.target.value });
-            });
-
-            // Handle dag-link clicks
-            document.querySelectorAll('.dag-link').forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const dagId = e.target.getAttribute('data-dag-id');
-                    const dagRunId = e.target.getAttribute('data-dag-run-id');
-                    vscode.postMessage({ command: 'open-dag-view', dagId, dagRunId });
-                });
-            });
-        </script>
-      </body>
-    </html>
-    `;
-        return result;
-    }
-    _escapeHtml(text) {
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return String(text).replace(/[&<>"']/g, m => map[m]);
-    }
-    _getStatusEmoji(status) {
-        const statusMap = {
-            'success': '✅',
-            'failed': '❌',
-            'running': '▶️',
-            'queued': '⏳',
-            'upstream_failed': '⚠️',
-            'skipped': '⏭️',
-            'deferred': '🔄'
-        };
-        return statusMap[status.toLowerCase()] || '📅';
-    }
-    _setWebviewMessageListener(webview) {
-        ui.logToOutput('DagRunView._setWebviewMessageListener Started');
-        webview.onDidReceiveMessage((message) => {
-            ui.logToOutput('DagRunView._setWebviewMessageListener Message Received ' + message.command);
-            switch (message.command) {
-                case "filter-date":
-                    this.selectedDate = message.date;
-                    this.loadData();
-                    return;
-                case "filter-status":
-                    this.selectedStatus = message.status;
-                    this.renderHtml();
-                    return;
-                case "filter-dag-id":
-                    this.selectedDagId = message.dagId;
-                    this.loadData();
-                    return;
-                case "open-dag-view":
-                    // Open DagView with specific dag and run
-                    if (this.api && message.dagId) {
-                        DagView_1.DagView.render(this.extensionUri, message.dagId, this.api);
-                    }
-                    return;
-            }
-        }, undefined, this._disposables);
-    }
-}
-exports.DagRunView = DagRunView;
 
 
 /***/ })
@@ -13127,17 +13126,17 @@ exports.deactivate = deactivate;
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
 const ui = __webpack_require__(4);
-const AirflowClientAdapter_1 = __webpack_require__(52);
-const TriggerDagRunTool_1 = __webpack_require__(53);
-const GetFailedRunsTool_1 = __webpack_require__(54);
-const ListActiveDagsTool_1 = __webpack_require__(55);
-const ListPausedDagsTool_1 = __webpack_require__(56);
-const PauseDagTool_1 = __webpack_require__(57);
-const UnpauseDagTool_1 = __webpack_require__(58);
-const GetDagRunsTool_1 = __webpack_require__(59);
-const StopDagRunTool_1 = __webpack_require__(60);
-const AnalyseDagLatestRunTool_1 = __webpack_require__(61);
-const GetDagHistoryTool_1 = __webpack_require__(62);
+const AirflowClientAdapter_1 = __webpack_require__(53);
+const TriggerDagRunTool_1 = __webpack_require__(54);
+const GetFailedRunsTool_1 = __webpack_require__(55);
+const ListActiveDagsTool_1 = __webpack_require__(56);
+const ListPausedDagsTool_1 = __webpack_require__(57);
+const PauseDagTool_1 = __webpack_require__(58);
+const UnpauseDagTool_1 = __webpack_require__(59);
+const GetDagRunsTool_1 = __webpack_require__(60);
+const StopDagRunTool_1 = __webpack_require__(61);
+const AnalyseDagLatestRunTool_1 = __webpack_require__(62);
+const GetDagHistoryTool_1 = __webpack_require__(63);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
