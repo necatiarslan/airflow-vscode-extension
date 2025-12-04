@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { encode } from 'base-64';
-import * as ui from './ui';
-import { MethodResult } from './methodResult';
-import { ServerConfig } from './types';
+import * as ui from './UI';
+import { MethodResult } from './MethodResult';
+import { ServerConfig } from './Types';
 
 // Wrapper for fetch to handle ESM node-fetch in CommonJS
 const fetch = async (url: string, init?: any) => {

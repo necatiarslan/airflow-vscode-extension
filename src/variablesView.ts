@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
-import * as ui from './ui';
-import { AirflowApi } from './api';
-import { MethodResult } from './methodResult';
+import * as ui from './UI';
+import { AirflowApi } from './Api';
 
 export class VariablesView {
     public static Current: VariablesView | undefined;

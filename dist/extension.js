@@ -17,10 +17,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DagTreeView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const dagView_1 = __webpack_require__(3);
-const dagTreeDataProvider_1 = __webpack_require__(10);
+const DagView_1 = __webpack_require__(3);
+const DagTreeDataProvider_1 = __webpack_require__(10);
 const ui = __webpack_require__(4);
-const api_1 = __webpack_require__(12);
+const Api_1 = __webpack_require__(12);
 class DagTreeView {
     constructor(context) {
         this.filterString = '';
@@ -29,7 +29,7 @@ class DagTreeView {
         this.ServerList = [];
         ui.logToOutput('DagTreeView.constructor Started');
         this.context = context;
-        this.treeDataProvider = new dagTreeDataProvider_1.DagTreeDataProvider();
+        this.treeDataProvider = new DagTreeDataProvider_1.DagTreeDataProvider();
         this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
         this.loadState();
         context.subscriptions.push(this.view);
@@ -74,7 +74,7 @@ class DagTreeView {
     viewDagView(node) {
         ui.logToOutput('DagTreeView.viewDagView Started');
         if (this.api) {
-            dagView_1.DagView.render(this.context.extensionUri, node.DagId, this.api);
+            DagView_1.DagView.render(this.context.extensionUri, node.DagId, this.api);
         }
     }
     async addToFavDAG(node) {
@@ -592,7 +592,7 @@ class DagTreeView {
         }
         const newServer = { apiUrl: apiUrlTemp, apiUserName: userNameTemp, apiPassword: passwordTemp };
         this.ServerList.push(newServer);
-        let api = new api_1.AirflowApi(newServer);
+        let api = new Api_1.AirflowApi(newServer);
         let result = await api.checkConnection();
         if (!result) {
             ui.showErrorMessage("Failed to connect to server.");
@@ -645,11 +645,11 @@ class DagTreeView {
         if (selectedItems[0]) {
             const item = this.ServerList.find(item => item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]);
             if (item) {
-                let api = new api_1.AirflowApi(item);
+                let api = new Api_1.AirflowApi(item);
                 let result = await api.checkConnection();
                 if (result) {
                     this.currentServer = item;
-                    this.api = new api_1.AirflowApi(this.currentServer);
+                    this.api = new Api_1.AirflowApi(this.currentServer);
                     this.saveState();
                     this.refresh();
                 }
@@ -769,7 +769,7 @@ class DagTreeView {
             const apiPasswordTemp = this.context.globalState.get('apiPassword') || '';
             if (apiUrlTemp && apiUserNameTemp) {
                 this.currentServer = { apiUrl: apiUrlTemp, apiUserName: apiUserNameTemp, apiPassword: apiPasswordTemp };
-                this.api = new api_1.AirflowApi(this.currentServer);
+                this.api = new Api_1.AirflowApi(this.currentServer);
             }
             const filterStringTemp = this.context.globalState.get('filterString') || '';
             if (filterStringTemp) {
@@ -833,7 +833,7 @@ exports.DagView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(4);
-const dagTreeView_1 = __webpack_require__(2);
+const DagTreeView_1 = __webpack_require__(2);
 class DagView {
     constructor(panel, extensionUri, dagId, api) {
         this._disposables = [];
@@ -1456,12 +1456,12 @@ class DagView {
         let result = await this.api.pauseDag(this.dagId, is_paused);
         if (result.isSuccessful) {
             this.loadDagDataOnly();
-            is_paused ? dagTreeView_1.DagTreeView.Current?.notifyDagPaused(this.dagId) : dagTreeView_1.DagTreeView.Current?.notifyDagUnPaused(this.dagId);
+            is_paused ? DagTreeView_1.DagTreeView.Current?.notifyDagPaused(this.dagId) : DagTreeView_1.DagTreeView.Current?.notifyDagUnPaused(this.dagId);
         }
     }
     async askAI() {
         ui.logToOutput('DagView.askAI Started');
-        if (!dagTreeView_1.DagTreeView.Current) {
+        if (!DagTreeView_1.DagTreeView.Current) {
             ui.showErrorMessage('DagTreeView is not available');
             return;
         }
@@ -1480,7 +1480,7 @@ class DagView {
             return;
         }
         // Call the askAI function from DagTreeView
-        await dagTreeView_1.DagTreeView.Current?.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
+        await DagTreeView_1.DagTreeView.Current?.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
     }
     async showSourceCode() {
         ui.logToOutput('DagView.showSourceCode Started');
@@ -1556,7 +1556,7 @@ class DagView {
             let result = await this.api.triggerDag(this.dagId, config, date);
             if (result.isSuccessful) {
                 this.startCheckingDagRunStatus(result.result["dag_run_id"]);
-                dagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(this.dagId);
+                DagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(this.dagId);
             }
         }
     }
@@ -2697,8 +2697,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DagTreeDataProvider = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const dagTreeItem_1 = __webpack_require__(11);
-const dagTreeView_1 = __webpack_require__(2);
+const DagTreeItem_1 = __webpack_require__(11);
+const DagTreeView_1 = __webpack_require__(2);
 class DagTreeDataProvider {
     constructor() {
         this._onDidChangeTreeData = new vscode.EventEmitter();
@@ -2714,7 +2714,7 @@ class DagTreeDataProvider {
         if (this.dagList) {
             for (var dag of this.dagList) {
                 if (dag) {
-                    let treeItem = new dagTreeItem_1.DagTreeItem(dag);
+                    let treeItem = new DagTreeItem_1.DagTreeItem(dag);
                     this.dagTreeItemList.push(treeItem);
                 }
             }
@@ -2730,13 +2730,13 @@ class DagTreeDataProvider {
     getVisibleDagList() {
         var result = [];
         for (var node of this.dagTreeItemList) {
-            if (dagTreeView_1.DagTreeView.Current.filterString && !node.doesFilterMatch(dagTreeView_1.DagTreeView.Current.filterString)) {
+            if (DagTreeView_1.DagTreeView.Current.filterString && !node.doesFilterMatch(DagTreeView_1.DagTreeView.Current.filterString)) {
                 continue;
             }
-            if (dagTreeView_1.DagTreeView.Current.ShowOnlyActive && node.IsPaused) {
+            if (DagTreeView_1.DagTreeView.Current.ShowOnlyActive && node.IsPaused) {
                 continue;
             }
-            if (dagTreeView_1.DagTreeView.Current.ShowOnlyFavorite && !node.IsFav) {
+            if (DagTreeView_1.DagTreeView.Current.ShowOnlyFavorite && !node.IsFav) {
                 continue;
             }
             result.push(node);
@@ -2869,7 +2869,7 @@ exports.AirflowApi = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const base_64_1 = __webpack_require__(13);
 const ui = __webpack_require__(4);
-const methodResult_1 = __webpack_require__(14);
+const MethodResult_1 = __webpack_require__(14);
 // Wrapper for fetch to handle ESM node-fetch in CommonJS
 const fetch = async (url, init) => {
     const module = await Promise.resolve().then(() => __webpack_require__(15));
@@ -2941,7 +2941,7 @@ class AirflowApi {
         }
     }
     async getDagList() {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         const allDags = [];
         let offset = 0;
         const limit = 100;
@@ -2974,7 +2974,7 @@ class AirflowApi {
         return result;
     }
     async triggerDag(dagId, config = "{}", date) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             let body = { conf: JSON.parse(config) };
@@ -3008,7 +3008,7 @@ class AirflowApi {
         return result;
     }
     async getDagRun(dagId, dagRunId) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, { method: 'GET', headers });
@@ -3032,12 +3032,12 @@ class AirflowApi {
         if (history.isSuccessful && history.result && history.result.dag_runs && history.result.dag_runs.length > 0) {
             return this.getDagRun(dagId, history.result.dag_runs[0].dag_run_id);
         }
-        const res = new methodResult_1.MethodResult();
+        const res = new MethodResult_1.MethodResult();
         res.isSuccessful = false;
         return res;
     }
     async getDagRunHistory(dagId, date) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             let url = `${this.config.apiUrl}/dags/${dagId}/dagRuns?order_by=-start_date`;
@@ -3064,7 +3064,7 @@ class AirflowApi {
         return result;
     }
     async pauseDag(dagId, isPaused) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/dags/${dagId}`, {
@@ -3091,7 +3091,7 @@ class AirflowApi {
         return result;
     }
     async stopDagRun(dagId, dagRunId) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, {
@@ -3118,7 +3118,7 @@ class AirflowApi {
         return result;
     }
     async getSourceCode(dagId, fileToken) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             let url = "";
@@ -3156,7 +3156,7 @@ class AirflowApi {
         return result;
     }
     async getImportErrors() {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/importErrors`, { method: 'GET', headers });
@@ -3176,7 +3176,7 @@ class AirflowApi {
         return result;
     }
     async getLastDagRunLog(dagId) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             ui.showInfoMessage('Fetching Latest DAG Run Logs...');
             const history = await this.getDagRunHistory(dagId);
@@ -3201,7 +3201,7 @@ class AirflowApi {
         return result;
     }
     async getDagRunLog(dagId, dagRunId) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         ui.showInfoMessage('Fetching DAG Run Logs...');
         try {
             const headers = await this.getHeaders();
@@ -3237,7 +3237,7 @@ class AirflowApi {
         return this.genericGet(`/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`);
     }
     async cancelDagRun(dagId, dagRunId) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, {
@@ -3262,7 +3262,7 @@ class AirflowApi {
         return result;
     }
     async getTaskInstanceLog(dagId, dagRunId, taskId) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             ui.showInfoMessage('Fetching Task Logs...');
             const headers = await this.getHeaders();
@@ -3292,7 +3292,7 @@ class AirflowApi {
         return result;
     }
     async getTaskXComs(dagId, dagRunId, taskId) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${taskId}/xcomEntries`, { method: 'GET', headers });
@@ -3315,7 +3315,7 @@ class AirflowApi {
         return result;
     }
     async updateDagRunNote(dagId, dagRunId, note) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, {
@@ -3352,7 +3352,7 @@ class AirflowApi {
         return this.genericGet('/providers');
     }
     async genericGet(endpoint) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}${endpoint}`, { method: 'GET', headers });
@@ -4251,7 +4251,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 61));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 63));
 		return toFormData(this.body, ct);
 	}
 
@@ -11105,7 +11105,7 @@ exports.ProvidersView = ProvidersView;
  */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AirflowClientAdapter = void 0;
-const dagTreeView_1 = __webpack_require__(2);
+const DagTreeView_1 = __webpack_require__(2);
 const ui = __webpack_require__(4);
 class AirflowClientAdapter {
     /**
@@ -11113,12 +11113,12 @@ class AirflowClientAdapter {
      * Throws an error if no server is connected.
      */
     get api() {
-        if (!dagTreeView_1.DagTreeView.Current || !dagTreeView_1.DagTreeView.Current.api) {
+        if (!DagTreeView_1.DagTreeView.Current || !DagTreeView_1.DagTreeView.Current.api) {
             const msg = "No Airflow server connected. Please connect to a server in the Airflow view.";
             ui.showErrorMessage(msg);
             throw new Error(msg);
         }
-        return dagTreeView_1.DagTreeView.Current.api;
+        return DagTreeView_1.DagTreeView.Current.api;
     }
     /**
      * Triggers a DAG run via POST /dags/{dag_id}/dagRuns
@@ -11688,156 +11688,6 @@ exports.GetFailedRunsTool = GetFailedRunsTool;
 "use strict";
 
 /**
- * GetDagHistoryTool - Language Model Tool for retrieving DAG run history
- *
- * This tool retrieves the run history for a specific DAG, optionally filtered by date.
- * Returns date of run, status, duration, and notes for each run.
- */
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.GetDagHistoryTool = void 0;
-const vscode = __webpack_require__(1);
-/**
- * GetDagHistoryTool - Implements vscode.LanguageModelTool for retrieving DAG history
- */
-class GetDagHistoryTool {
-    constructor(client) {
-        this.client = client;
-    }
-    /**
-     * Prepare invocation - minimal for read-only operations
-     */
-    async prepareInvocation(options, token) {
-        const { dag_id, date } = options.input;
-        const dateStr = date || new Date().toISOString().split('T')[0];
-        return {
-            invocationMessage: `Retrieving history for DAG '${dag_id}' (date: ${dateStr})`
-        };
-    }
-    /**
-     * Execute the query for DAG history
-     */
-    async invoke(options, token) {
-        const { dag_id, date } = options.input;
-        // Use today's date if not provided
-        const queryDate = date || new Date().toISOString().split('T')[0];
-        try {
-            // Get DAG run history from the API
-            const result = await this.client.getDagRunHistory(dag_id, queryDate);
-            if (!result || !result.dag_runs || result.dag_runs.length === 0) {
-                return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart(`ℹ️ No run history found for DAG '${dag_id}' on ${queryDate}.`)
-                ]);
-            }
-            const runs = result.dag_runs;
-            // Build detailed summary
-            let summaryMessage = `## 📜 DAG Run History for '${dag_id}'\n\n`;
-            summaryMessage += `**Date Filter:** ${queryDate}\n`;
-            summaryMessage += `**Total Runs:** ${runs.length}\n\n`;
-            summaryMessage += `---\n\n`;
-            // Add individual run details in a table-like format
-            summaryMessage += `| # | Date/Time | Status | Duration | Note |\n`;
-            summaryMessage += `|---|-----------|--------|----------|------|\n`;
-            runs.forEach((run, index) => {
-                const runDate = run.execution_date || run.logical_date || 'N/A';
-                const status = this.getStatusEmoji(run.state) + ' ' + (run.state || 'unknown');
-                let duration = 'N/A';
-                if (run.start_date && run.end_date) {
-                    const start = new Date(run.start_date);
-                    const end = new Date(run.end_date);
-                    const durationMs = end.getTime() - start.getTime();
-                    const durationSec = Math.floor(durationMs / 1000);
-                    const minutes = Math.floor(durationSec / 60);
-                    const seconds = durationSec % 60;
-                    duration = `${minutes}m ${seconds}s`;
-                }
-                else if (run.start_date && !run.end_date) {
-                    duration = '⏳ Running';
-                }
-                const note = run.note || '-';
-                summaryMessage += `| ${index + 1} | ${runDate} | ${status} | ${duration} | ${note} |\n`;
-            });
-            summaryMessage += `\n---\n\n`;
-            // Add detailed breakdown
-            summaryMessage += `### Detailed Breakdown\n\n`;
-            runs.forEach((run, index) => {
-                summaryMessage += `#### ${index + 1}. Run ID: ${run.dag_run_id || run.run_id}\n\n`;
-                summaryMessage += `- **Status:** ${this.getStatusEmoji(run.state)} ${run.state || 'unknown'}\n`;
-                summaryMessage += `- **Execution Date:** ${run.execution_date || run.logical_date}\n`;
-                summaryMessage += `- **Logical Date:** ${run.logical_date || run.execution_date}\n`;
-                if (run.start_date) {
-                    summaryMessage += `- **Start Date:** ${run.start_date}\n`;
-                }
-                if (run.end_date) {
-                    summaryMessage += `- **End Date:** ${run.end_date}\n`;
-                    const start = new Date(run.start_date);
-                    const end = new Date(run.end_date);
-                    const durationMs = end.getTime() - start.getTime();
-                    const durationSec = Math.floor(durationMs / 1000);
-                    const minutes = Math.floor(durationSec / 60);
-                    const seconds = durationSec % 60;
-                    summaryMessage += `- **Duration:** ${minutes}m ${seconds}s\n`;
-                }
-                if (run.note) {
-                    summaryMessage += `- **Note:** ${run.note}\n`;
-                }
-                if (run.conf && Object.keys(run.conf).length > 0) {
-                    summaryMessage += `- **Configuration:** \`${JSON.stringify(run.conf)}\`\n`;
-                }
-                summaryMessage += `\n`;
-            });
-            // Include raw JSON for LLM processing
-            summaryMessage += `---\n\n**Raw Data (JSON):**\n\n`;
-            summaryMessage += `\`\`\`json\n${JSON.stringify(runs, null, 2)}\n\`\`\`\n`;
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(summaryMessage)
-            ]);
-        }
-        catch (error) {
-            const errorMessage = `
-❌ Failed to retrieve DAG history
-
-**Error:** ${error instanceof Error ? error.message : String(error)}
-
-Please check:
-- The DAG ID is correct
-- The date format is YYYY-MM-DD
-- The Airflow server is accessible
-- You have the necessary permissions
-            `.trim();
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(errorMessage)
-            ]);
-        }
-    }
-    /**
-     * Helper to get emoji for run status
-     */
-    getStatusEmoji(status) {
-        const statusMap = {
-            'success': '✅',
-            'failed': '❌',
-            'running': '▶️',
-            'queued': '⏳',
-            'upstream_failed': '⚠️',
-            'skipped': '⏭️',
-            'up_for_retry': '🔄',
-            'up_for_reschedule': '📅',
-            'removed': '🗑️',
-            'scheduled': '📆'
-        };
-        return statusMap[status?.toLowerCase()] || '❓';
-    }
-}
-exports.GetDagHistoryTool = GetDagHistoryTool;
-
-
-/***/ }),
-/* 56 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-/**
  * ListActiveDagsTool - Language Model Tool for listing active DAGs
  */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
@@ -11884,7 +11734,7 @@ exports.ListActiveDagsTool = ListActiveDagsTool;
 
 
 /***/ }),
-/* 57 */
+/* 56 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11936,7 +11786,7 @@ exports.ListPausedDagsTool = ListPausedDagsTool;
 
 
 /***/ }),
-/* 58 */
+/* 57 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11987,7 +11837,7 @@ exports.PauseDagTool = PauseDagTool;
 
 
 /***/ }),
-/* 59 */
+/* 58 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12038,7 +11888,7 @@ exports.UnpauseDagTool = UnpauseDagTool;
 
 
 /***/ }),
-/* 60 */
+/* 59 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12178,8 +12028,7 @@ exports.GetDagRunsTool = GetDagRunsTool;
 
 
 /***/ }),
-/* 61 */,
-/* 62 */
+/* 60 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12279,7 +12128,7 @@ exports.StopDagRunTool = StopDagRunTool;
 
 
 /***/ }),
-/* 63 */
+/* 61 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12498,6 +12347,156 @@ Please check:
 exports.AnalyseDagLatestRunTool = AnalyseDagLatestRunTool;
 
 
+/***/ }),
+/* 62 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GetDagHistoryTool - Language Model Tool for retrieving DAG run history
+ *
+ * This tool retrieves the run history for a specific DAG, optionally filtered by date.
+ * Returns date of run, status, duration, and notes for each run.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetDagHistoryTool = void 0;
+const vscode = __webpack_require__(1);
+/**
+ * GetDagHistoryTool - Implements vscode.LanguageModelTool for retrieving DAG history
+ */
+class GetDagHistoryTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Prepare invocation - minimal for read-only operations
+     */
+    async prepareInvocation(options, token) {
+        const { dag_id, date } = options.input;
+        const dateStr = date || new Date().toISOString().split('T')[0];
+        return {
+            invocationMessage: `Retrieving history for DAG '${dag_id}' (date: ${dateStr})`
+        };
+    }
+    /**
+     * Execute the query for DAG history
+     */
+    async invoke(options, token) {
+        const { dag_id, date } = options.input;
+        // Use today's date if not provided
+        const queryDate = date || new Date().toISOString().split('T')[0];
+        try {
+            // Get DAG run history from the API
+            const result = await this.client.getDagRunHistory(dag_id, queryDate);
+            if (!result || !result.dag_runs || result.dag_runs.length === 0) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`ℹ️ No run history found for DAG '${dag_id}' on ${queryDate}.`)
+                ]);
+            }
+            const runs = result.dag_runs;
+            // Build detailed summary
+            let summaryMessage = `## 📜 DAG Run History for '${dag_id}'\n\n`;
+            summaryMessage += `**Date Filter:** ${queryDate}\n`;
+            summaryMessage += `**Total Runs:** ${runs.length}\n\n`;
+            summaryMessage += `---\n\n`;
+            // Add individual run details in a table-like format
+            summaryMessage += `| # | Date/Time | Status | Duration | Note |\n`;
+            summaryMessage += `|---|-----------|--------|----------|------|\n`;
+            runs.forEach((run, index) => {
+                const runDate = run.execution_date || run.logical_date || 'N/A';
+                const status = this.getStatusEmoji(run.state) + ' ' + (run.state || 'unknown');
+                let duration = 'N/A';
+                if (run.start_date && run.end_date) {
+                    const start = new Date(run.start_date);
+                    const end = new Date(run.end_date);
+                    const durationMs = end.getTime() - start.getTime();
+                    const durationSec = Math.floor(durationMs / 1000);
+                    const minutes = Math.floor(durationSec / 60);
+                    const seconds = durationSec % 60;
+                    duration = `${minutes}m ${seconds}s`;
+                }
+                else if (run.start_date && !run.end_date) {
+                    duration = '⏳ Running';
+                }
+                const note = run.note || '-';
+                summaryMessage += `| ${index + 1} | ${runDate} | ${status} | ${duration} | ${note} |\n`;
+            });
+            summaryMessage += `\n---\n\n`;
+            // Add detailed breakdown
+            summaryMessage += `### Detailed Breakdown\n\n`;
+            runs.forEach((run, index) => {
+                summaryMessage += `#### ${index + 1}. Run ID: ${run.dag_run_id || run.run_id}\n\n`;
+                summaryMessage += `- **Status:** ${this.getStatusEmoji(run.state)} ${run.state || 'unknown'}\n`;
+                summaryMessage += `- **Execution Date:** ${run.execution_date || run.logical_date}\n`;
+                summaryMessage += `- **Logical Date:** ${run.logical_date || run.execution_date}\n`;
+                if (run.start_date) {
+                    summaryMessage += `- **Start Date:** ${run.start_date}\n`;
+                }
+                if (run.end_date) {
+                    summaryMessage += `- **End Date:** ${run.end_date}\n`;
+                    const start = new Date(run.start_date);
+                    const end = new Date(run.end_date);
+                    const durationMs = end.getTime() - start.getTime();
+                    const durationSec = Math.floor(durationMs / 1000);
+                    const minutes = Math.floor(durationSec / 60);
+                    const seconds = durationSec % 60;
+                    summaryMessage += `- **Duration:** ${minutes}m ${seconds}s\n`;
+                }
+                if (run.note) {
+                    summaryMessage += `- **Note:** ${run.note}\n`;
+                }
+                if (run.conf && Object.keys(run.conf).length > 0) {
+                    summaryMessage += `- **Configuration:** \`${JSON.stringify(run.conf)}\`\n`;
+                }
+                summaryMessage += `\n`;
+            });
+            // Include raw JSON for LLM processing
+            summaryMessage += `---\n\n**Raw Data (JSON):**\n\n`;
+            summaryMessage += `\`\`\`json\n${JSON.stringify(runs, null, 2)}\n\`\`\`\n`;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(summaryMessage)
+            ]);
+        }
+        catch (error) {
+            const errorMessage = `
+❌ Failed to retrieve DAG history
+
+**Error:** ${error instanceof Error ? error.message : String(error)}
+
+Please check:
+- The DAG ID is correct
+- The date format is YYYY-MM-DD
+- The Airflow server is accessible
+- You have the necessary permissions
+            `.trim();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(errorMessage)
+            ]);
+        }
+    }
+    /**
+     * Helper to get emoji for run status
+     */
+    getStatusEmoji(status) {
+        const statusMap = {
+            'success': '✅',
+            'failed': '❌',
+            'running': '▶️',
+            'queued': '⏳',
+            'upstream_failed': '⚠️',
+            'skipped': '⏭️',
+            'up_for_retry': '🔄',
+            'up_for_reschedule': '📅',
+            'removed': '🗑️',
+            'scheduled': '📆'
+        };
+        return statusMap[status?.toLowerCase()] || '❓';
+    }
+}
+exports.GetDagHistoryTool = GetDagHistoryTool;
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -12649,24 +12648,24 @@ exports.deactivate = deactivate;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
-const dagTreeView_1 = __webpack_require__(2);
+const DagTreeView_1 = __webpack_require__(2);
 const ui = __webpack_require__(4);
 const AirflowClientAdapter_1 = __webpack_require__(52);
 const TriggerDagRunTool_1 = __webpack_require__(53);
 const GetFailedRunsTool_1 = __webpack_require__(54);
-const ListActiveDagsTool_1 = __webpack_require__(56);
-const ListPausedDagsTool_1 = __webpack_require__(57);
-const PauseDagTool_1 = __webpack_require__(58);
-const UnpauseDagTool_1 = __webpack_require__(59);
-const GetDagRunsTool_1 = __webpack_require__(60);
-const StopDagRunTool_1 = __webpack_require__(62);
-const AnalyseDagLatestRunTool_1 = __webpack_require__(63);
-const GetDagHistoryTool_1 = __webpack_require__(55);
+const ListActiveDagsTool_1 = __webpack_require__(55);
+const ListPausedDagsTool_1 = __webpack_require__(56);
+const PauseDagTool_1 = __webpack_require__(57);
+const UnpauseDagTool_1 = __webpack_require__(58);
+const GetDagRunsTool_1 = __webpack_require__(59);
+const StopDagRunTool_1 = __webpack_require__(60);
+const AnalyseDagLatestRunTool_1 = __webpack_require__(61);
+const GetDagHistoryTool_1 = __webpack_require__(62);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
     ui.logToOutput('Extension activation started');
-    let dagTreeView = new dagTreeView_1.DagTreeView(context);
+    let dagTreeView = new DagTreeView_1.DagTreeView(context);
     // register commands and keep disposables so they are cleaned up on deactivate
     const commands = [];
     commands.push(vscode.commands.registerCommand('dagTreeView.refreshServer', () => { dagTreeView.refresh(); }));

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
-import { DagTreeItem } from './dagTreeItem';
-import { DagTreeView } from './dagTreeView';
+import { DagTreeItem } from './DagTreeItem';
+import { DagTreeView } from './DagTreeView';
 
 export class DagTreeDataProvider implements vscode.TreeDataProvider<DagTreeItem>
 {

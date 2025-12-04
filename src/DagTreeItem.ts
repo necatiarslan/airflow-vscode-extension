@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
-import { AirflowDag } from './types';
+import { AirflowDag } from './Types';
 
 export class DagTreeItem extends vscode.TreeItem {
     public IsPaused: boolean;

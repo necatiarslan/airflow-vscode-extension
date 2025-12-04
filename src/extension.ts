@@ -1,9 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { DagTreeView } from './dagTreeView';
-import { DagTreeItem } from './dagTreeItem';
-import * as ui from './ui';
+import { DagTreeView } from './DagTreeView';
+import { DagTreeItem } from './DagTreeItem';
+import * as ui from './UI';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import { TriggerDagRunTool } from './tools/TriggerDagRunTool';
 import { GetFailedRunsTool } from './tools/GetFailedRunsTool';

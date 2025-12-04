@@ -1,62 +1,62 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
-import * as ui from './ui';
-import { AirflowApi } from './api';
-import { MethodResult } from './methodResult';
+import * as ui from './UI';
+import { AirflowApi } from './Api';
+import { MethodResult } from './MethodResult';
 
-export class ProvidersView {
-    public static Current: ProvidersView | undefined;
+export class ConnectionsView {
+    public static Current: ConnectionsView | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
-    private providersJson: any;
+    private connectionsJson: any;
     private api: AirflowApi;
 
     private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, api: AirflowApi) {
-        ui.logToOutput('ProvidersView.constructor Started');
+        ui.logToOutput('ConnectionsView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
         this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
-        ui.logToOutput('ProvidersView.constructor Completed');
+        ui.logToOutput('ConnectionsView.constructor Completed');
     }
 
     public async loadData() {
-        ui.logToOutput('ProvidersView.loadData Started');
+        ui.logToOutput('ConnectionsView.loadData Started');
 
-        const result = await this.api.getProviders();
+        const result = await this.api.getConnections();
         if (result.isSuccessful) {
-            this.providersJson = result.result;
+            this.connectionsJson = result.result;
         }
         await this.renderHtml();
     }
 
     public async renderHtml() {
-        ui.logToOutput('ProvidersView.renderHtml Started');
+        ui.logToOutput('ConnectionsView.renderHtml Started');
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
-        ui.logToOutput('ProvidersView.renderHtml Completed');
+        ui.logToOutput('ConnectionsView.renderHtml Completed');
     }
 
     public static render(extensionUri: vscode.Uri, api: AirflowApi) {
-        ui.logToOutput('ProvidersView.render Started');
-        if (ProvidersView.Current) {
-            ProvidersView.Current.api = api;
-            ProvidersView.Current._panel.reveal(vscode.ViewColumn.Two);
-            ProvidersView.Current.loadData();
+        ui.logToOutput('ConnectionsView.render Started');
+        if (ConnectionsView.Current) {
+            ConnectionsView.Current.api = api;
+            ConnectionsView.Current._panel.reveal(vscode.ViewColumn.Two);
+            ConnectionsView.Current.loadData();
         } else {
-            const panel = vscode.window.createWebviewPanel("providersView", "Providers", vscode.ViewColumn.Two, {
+            const panel = vscode.window.createWebviewPanel("connectionsView", "Connections", vscode.ViewColumn.Two, {
                 enableScripts: true,
             });
 
-            ProvidersView.Current = new ProvidersView(panel, extensionUri, api);
+            ConnectionsView.Current = new ConnectionsView(panel, extensionUri, api);
         }
     }
 
     public dispose() {
-        ui.logToOutput('ProvidersView.dispose Started');
-        ProvidersView.Current = undefined;
+        ui.logToOutput('ConnectionsView.dispose Started');
+        ConnectionsView.Current = undefined;
 
         this._panel.dispose();
 
@@ -69,7 +69,7 @@ export class ProvidersView {
     }
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
-        ui.logToOutput('ProvidersView._getWebviewContent Started');
+        ui.logToOutput('ConnectionsView._getWebviewContent Started');
 
         const toolkitUri = ui.getUri(webview, extensionUri, [
             "node_modules",
@@ -82,7 +82,7 @@ export class ProvidersView {
         const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
         const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
 
-        const providersData = this.providersJson ? JSON.stringify(this.providersJson, null, 4) : "No providers found";
+        const connectionsData = this.connectionsJson ? JSON.stringify(this.connectionsJson, null, 4) : "No connections found";
 
         const result = /*html*/ `
     <!DOCTYPE html>
@@ -93,13 +93,13 @@ export class ProvidersView {
         <script type="module" src="${toolkitUri}"></script>
         <script type="module" src="${mainUri}"></script>
         <link rel="stylesheet" href="${styleUri}">
-        <title>Providers</title>
+        <title>Connections</title>
       </head>
       <body>  
-        <h2>Airflow Providers</h2>
-        <vscode-button appearance="secondary" id="refresh-providers">Refresh</vscode-button>
+        <h2>Airflow Connections</h2>
+        <vscode-button appearance="secondary" id="refresh-connections">Refresh</vscode-button>
         <br><br>
-        <pre>${providersData}</pre>
+        <pre>${connectionsData}</pre>
       </body>
     </html>
     `;
@@ -108,12 +108,12 @@ export class ProvidersView {
     }
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
-        ui.logToOutput('ProvidersView._setWebviewMessageListener Started');
+        ui.logToOutput('ConnectionsView._setWebviewMessageListener Started');
         webview.onDidReceiveMessage(
             (message: any) => {
-                ui.logToOutput('ProvidersView._setWebviewMessageListener Message Received ' + message.command);
+                ui.logToOutput('ConnectionsView._setWebviewMessageListener Message Received ' + message.command);
                 switch (message.command) {
-                    case "refresh-providers":
+                    case "refresh-connections":
                         this.loadData();
                         return;
                 }

@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
-import { DagView } from './dagView';
-import { DagTreeItem } from './dagTreeItem';
-import { DagTreeDataProvider } from './dagTreeDataProvider';
-import * as ui from './ui';
-import { AirflowApi } from './api';
-import { AskAIContext, ServerConfig } from './types';
+import { DagView } from './DagView';
+import { DagTreeItem } from './DagTreeItem';
+import { DagTreeDataProvider } from './DagTreeDataProvider';
+import * as ui from './UI';
+import { AirflowApi } from './Api';
+import { AskAIContext, ServerConfig } from './Types';
 
 export class DagTreeView {
 
@@ -852,7 +852,7 @@ export class DagTreeView {
 	async viewConnections() {
 		ui.logToOutput('DagTreeView.viewConnections Started');
 		if (this.api) {
-			const { ConnectionsView } = await import('./connectionsView');
+			const { ConnectionsView } = await import('./ConnectionsView');
 			ConnectionsView.render(this.context.extensionUri, this.api);
 		}
 	}
@@ -860,14 +860,14 @@ export class DagTreeView {
 	async viewVariables() {
 		ui.logToOutput('DagTreeView.viewVariables Started');
 		if (this.api) {
-			const { VariablesView } = await import('./variablesView');
+			const { VariablesView } = await import('./VariablesView');
 			VariablesView.render(this.context.extensionUri, this.api);
 		}
 	}
 	async viewProviders() {
 		ui.logToOutput('DagTreeView.viewProviders Started');
 		if (this.api) {
-			const { ProvidersView } = await import('./providersView');
+			const { ProvidersView } = await import('./ProvidersView');
 			ProvidersView.render(this.context.extensionUri, this.api);
 		}
 	}
