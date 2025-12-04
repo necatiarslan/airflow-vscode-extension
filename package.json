@@ -89,30 +89,6 @@
         }
       },
       {
-        "name": "analyze_dag_run",
-        "tags": [
-          "airflow",
-          "log",
-          "analysis",
-          "debug",
-          "dag_run"
-        ],
-        "displayName": "Analyze DAG Run",
-        "modelDescription": "Analyzes the latest DAG run by retrieving logs, source code, and task statuses to diagnose issues.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "dag_id": {
-              "type": "string",
-              "description": "The DAG ID to analyze"
-            }
-          },
-          "required": [
-            "dag_id"
-          ]
-        }
-      },
-      {
         "name": "list_active_dags",
         "displayName": "List Active DAGs",
         "modelDescription": "Lists all Airflow DAGs that are currently active (not paused). Use this tool when the user asks to see running or enabled DAGs. Returns a list of DAG IDs and their details.",
@@ -209,6 +185,86 @@
           "dag",
           "runs",
           "history"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dag_id": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to query"
+            },
+            "date": {
+              "type": "string",
+              "description": "Optional: Date to filter runs (YYYY-MM-DD format, defaults to today)"
+            }
+          },
+          "required": [
+            "dag_id"
+          ]
+        }
+      },
+      {
+        "name": "stop_dag_run",
+        "displayName": "Stop DAG Run",
+        "modelDescription": "Stops the currently running DAG run for a specific Airflow DAG. Use this tool when the user wants to stop, cancel, or terminate a running DAG execution. The DAG run will be marked as failed and stopped. Required input: dag_id (string). This is a state-changing operation that requires user confirmation.",
+        "icon": "$(debug-stop)",
+        "tags": [
+          "airflow",
+          "control",
+          "dag",
+          "stop",
+          "cancel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dag_id": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG whose run should be stopped"
+            }
+          },
+          "required": [
+            "dag_id"
+          ]
+        }
+      },
+      {
+        "name": "analyse_dag_latest_run",
+        "displayName": "Analyse DAG Latest Run",
+        "modelDescription": "Performs a comprehensive analysis of the latest DAG run. Retrieves and analyzes: DAG run details, all task instances with their states, DAG source code, and task logs (focusing on failed tasks). Use this tool when the user wants a complete diagnostic report of a DAG execution, understand what went wrong, or get a detailed analysis of task execution. Required input: dag_id (string). This provides the most comprehensive diagnostic information.",
+        "icon": "$(search)",
+        "tags": [
+          "airflow",
+          "analysis",
+          "debugging",
+          "dag",
+          "diagnostic",
+          "logs"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dag_id": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to analyze"
+            }
+          },
+          "required": [
+            "dag_id"
+          ]
+        }
+      },
+      {
+        "name": "get_dag_history",
+        "displayName": "Get DAG History",
+        "modelDescription": "Retrieves the run history for a specific DAG on a given date. Returns a list of runs with their date/time, status, duration, and any notes. Optional input: date (string in YYYY-MM-DD format, defaults to today). Use this tool when the user wants to see the execution history for a specific day or review past runs.",
+        "icon": "$(history)",
+        "tags": [
+          "airflow",
+          "monitoring",
+          "dag",
+          "history",
+          "runs"
         ],
         "inputSchema": {
           "type": "object",

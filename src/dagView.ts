@@ -208,7 +208,7 @@ export class DagView {
             logical_date = this.dagRunJson.logical_date;
             start_date = this.dagRunJson.start_date;
             end_date = this.dagRunJson.end_date;
-            logical_date_string = logical_date ? new Date(logical_date).toLocaleDateString() : "";
+            logical_date_string = logical_date ? new Date(logical_date).toISOString().slice(0, 10) : "";
             start_date_string = start_date ? new Date(start_date).toLocaleString() : "";
             duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
             isDagRunning = (state === "queued" || state === "running") ? true : false;

@@ -356,6 +356,41 @@ export class AirflowClientAdapter {
     }
 
     /**
+     * Stops a running DAG run by setting its state to failed
+     * 
+     * @param dagId - The DAG ID
+     * @param dagRunId - The DAG run ID to stop
+     */
+    async stopDagRun(dagId: string, dagRunId: string): Promise<void> {
+        try {
+            const result = await this.api.stopDagRun(dagId, dagRunId);
+            if (!result.isSuccessful) {
+                throw new Error(result.error?.message || 'Failed to stop DAG run');
+            }
+        } catch (error) {
+            throw new Error(`Failed to stop DAG run: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    /**
+     * Retrieves the source code for a DAG
+     * 
+     * @param dagId - The DAG ID
+     * @returns Promise with the DAG source code
+     */
+    async getDagSource(dagId: string): Promise<string> {
+        try {
+            const result = await this.api.getSourceCode(dagId);
+            if (!result.isSuccessful || !result.result) {
+                throw new Error(result.error?.message || 'Failed to fetch DAG source code');
+            }
+            return result.result;
+        } catch (error) {
+            throw new Error(`Failed to get DAG source code: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    /**
      * Helper to extract error message from DAG run
      */
     private extractErrorMessage(run: any): string | undefined {

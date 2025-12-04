@@ -228,6 +228,33 @@ export class AirflowApi {
         return result;
     }
 
+    public async stopDagRun(dagId: string, dagRunId: string): Promise<MethodResult<any>> {
+        const result = new MethodResult<any>();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({ state: 'failed' })
+            });
+            const data = await response.json();
+
+            if (response.status === 200) {
+                ui.showInfoMessage(`DAG Run ${dagRunId} stopped.`);
+                result.result = data;
+                result.isSuccessful = true;
+            } else {
+                ui.showApiErrorMessage(`Stop DAG Run Error`, data);
+                result.isSuccessful = false;
+            }
+        } catch (error) {
+            ui.showErrorMessage(`Stop DAG Run Error`, error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
     public async getSourceCode(dagId: string, fileToken?: string): Promise<MethodResult<string>> {
         const result = new MethodResult<string>();
         try {

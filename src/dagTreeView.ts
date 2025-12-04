@@ -388,12 +388,47 @@ export class DagTreeView {
 				}
 			},
 			{
-				name: 'analyze_dag_run',
-				description: 'Analyzes the latest DAG run. Inputs: dag_id (required).',
+				name: 'get_dag_runs',
+				description: 'Retrieves DAG runs for a given DAG. Optional date (YYYY-MM-DD). Returns run id, start time, duration, status.',
 				inputSchema: {
 					type: 'object',
 					properties: {
-						dag_id: { type: 'string' }
+						dag_id: { type: 'string', description: 'The DAG ID' },
+						date: { type: 'string', description: 'Optional date filter YYYY-MM-DD' }
+					},
+					required: ['dag_id']
+				}
+			},
+			{
+				name: 'get_dag_history',
+				description: 'Retrieves DAG run history for a given date (defaults to today). Returns date/time, status, duration, note.',
+				inputSchema: {
+					type: 'object',
+					properties: {
+						dag_id: { type: 'string', description: 'The DAG ID' },
+						date: { type: 'string', description: 'Optional date filter YYYY-MM-DD' }
+					},
+					required: ['dag_id']
+				}
+			},
+			{
+				name: 'stop_dag_run',
+				description: 'Stops the currently running DAG run for the given DAG. Required: dag_id.',
+				inputSchema: {
+					type: 'object',
+					properties: {
+						dag_id: { type: 'string', description: 'The DAG ID' }
+					},
+					required: ['dag_id']
+				}
+			},
+			{
+				name: 'analyse_dag_latest_run',
+				description: 'Comprehensive analysis of the latest DAG run including tasks, source code, and logs. Required: dag_id.',
+				inputSchema: {
+					type: 'object',
+					properties: {
+						dag_id: { type: 'string', description: 'The DAG ID' }
 					},
 					required: ['dag_id']
 				}

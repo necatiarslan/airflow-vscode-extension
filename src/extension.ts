@@ -7,12 +7,14 @@ import * as ui from './ui';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import { TriggerDagRunTool } from './tools/TriggerDagRunTool';
 import { GetFailedRunsTool } from './tools/GetFailedRunsTool';
-import { AnalyzeDagRunTool } from './tools/AnalyzeDagRunTool';
 import { ListActiveDagsTool } from './tools/ListActiveDagsTool';
 import { ListPausedDagsTool } from './tools/ListPausedDagsTool';
 import { PauseDagTool } from './tools/PauseDagTool';
 import { UnpauseDagTool } from './tools/UnpauseDagTool';
 import { GetDagRunsTool } from './tools/GetDagRunsTool';
+import { StopDagRunTool } from './tools/StopDagRunTool';
+import { AnalyseDagLatestRunTool } from './tools/AnalyseDagLatestRunTool';
+import { GetDagHistoryTool } from './tools/GetDagHistoryTool';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -76,14 +78,6 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(getFailedRunsTool);
 	ui.logToOutput('Registered tool: get_failed_runs');
 
-	// Register Tool 3: analyze_task_log (Debugging)
-	const analyzeTaskLogTool = vscode.lm.registerTool(
-		'analyze_task_log',
-		new AnalyzeDagRunTool(airflowClient)
-	);
-	context.subscriptions.push(analyzeTaskLogTool);
-	ui.logToOutput('Registered tool: analyze_task_log');
-
 	// Register Tool 4: list_active_dags (Monitoring)
 	const listActiveDagsTool = vscode.lm.registerTool(
 		'list_active_dags',
@@ -123,6 +117,30 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 	context.subscriptions.push(getDagRunsTool);
 	ui.logToOutput('Registered tool: get_dag_runs');
+
+	// Register Tool 9: stop_dag_run (Control)
+	const stopDagRunTool = vscode.lm.registerTool(
+		'stop_dag_run',
+		new StopDagRunTool(airflowClient)
+	);
+	context.subscriptions.push(stopDagRunTool);
+	ui.logToOutput('Registered tool: stop_dag_run');
+
+	// Register Tool 10: analyse_dag_latest_run (Analysis)
+	const analyseDagLatestRunTool = vscode.lm.registerTool(
+		'analyse_dag_latest_run',
+		new AnalyseDagLatestRunTool(airflowClient)
+	);
+	context.subscriptions.push(analyseDagLatestRunTool);
+	ui.logToOutput('Registered tool: analyse_dag_latest_run');
+
+	// Register Tool 11: get_dag_history (Monitoring)
+	const getDagHistoryTool = vscode.lm.registerTool(
+		'get_dag_history',
+		new GetDagHistoryTool(airflowClient)
+	);
+	context.subscriptions.push(getDagHistoryTool);
+	ui.logToOutput('Registered tool: get_dag_history');
 
 	ui.logToOutput('All Language Model Tools registered successfully');
 

@@ -377,12 +377,47 @@ class DagTreeView {
                 }
             },
             {
-                name: 'analyze_dag_run',
-                description: 'Analyzes the latest DAG run. Inputs: dag_id (required).',
+                name: 'get_dag_runs',
+                description: 'Retrieves DAG runs for a given DAG. Optional date (YYYY-MM-DD). Returns run id, start time, duration, status.',
                 inputSchema: {
                     type: 'object',
                     properties: {
-                        dag_id: { type: 'string' }
+                        dag_id: { type: 'string', description: 'The DAG ID' },
+                        date: { type: 'string', description: 'Optional date filter YYYY-MM-DD' }
+                    },
+                    required: ['dag_id']
+                }
+            },
+            {
+                name: 'get_dag_history',
+                description: 'Retrieves DAG run history for a given date (defaults to today). Returns date/time, status, duration, note.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dag_id: { type: 'string', description: 'The DAG ID' },
+                        date: { type: 'string', description: 'Optional date filter YYYY-MM-DD' }
+                    },
+                    required: ['dag_id']
+                }
+            },
+            {
+                name: 'stop_dag_run',
+                description: 'Stops the currently running DAG run for the given DAG. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dag_id: { type: 'string', description: 'The DAG ID' }
+                    },
+                    required: ['dag_id']
+                }
+            },
+            {
+                name: 'analyse_dag_latest_run',
+                description: 'Comprehensive analysis of the latest DAG run including tasks, source code, and logs. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dag_id: { type: 'string', description: 'The DAG ID' }
                     },
                     required: ['dag_id']
                 }
@@ -954,7 +989,7 @@ class DagView {
             logical_date = this.dagRunJson.logical_date;
             start_date = this.dagRunJson.start_date;
             end_date = this.dagRunJson.end_date;
-            logical_date_string = logical_date ? new Date(logical_date).toLocaleDateString() : "";
+            logical_date_string = logical_date ? new Date(logical_date).toISOString().slice(0, 10) : "";
             start_date_string = start_date ? new Date(start_date).toLocaleString() : "";
             duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
             isDagRunning = (state === "queued" || state === "running") ? true : false;
@@ -3055,6 +3090,33 @@ class AirflowApi {
         }
         return result;
     }
+    async stopDagRun(dagId, dagRunId) {
+        const result = new methodResult_1.MethodResult();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify({ state: 'failed' })
+            });
+            const data = await response.json();
+            if (response.status === 200) {
+                ui.showInfoMessage(`DAG Run ${dagRunId} stopped.`);
+                result.result = data;
+                result.isSuccessful = true;
+            }
+            else {
+                ui.showApiErrorMessage(`Stop DAG Run Error`, data);
+                result.isSuccessful = false;
+            }
+        }
+        catch (error) {
+            ui.showErrorMessage(`Stop DAG Run Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
     async getSourceCode(dagId, fileToken) {
         const result = new methodResult_1.MethodResult();
         try {
@@ -4189,7 +4251,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 59));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 61));
 		return toFormData(this.body, ct);
 	}
 
@@ -11315,6 +11377,41 @@ class AirflowClientAdapter {
         }
     }
     /**
+     * Stops a running DAG run by setting its state to failed
+     *
+     * @param dagId - The DAG ID
+     * @param dagRunId - The DAG run ID to stop
+     */
+    async stopDagRun(dagId, dagRunId) {
+        try {
+            const result = await this.api.stopDagRun(dagId, dagRunId);
+            if (!result.isSuccessful) {
+                throw new Error(result.error?.message || 'Failed to stop DAG run');
+            }
+        }
+        catch (error) {
+            throw new Error(`Failed to stop DAG run: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Retrieves the source code for a DAG
+     *
+     * @param dagId - The DAG ID
+     * @returns Promise with the DAG source code
+     */
+    async getDagSource(dagId) {
+        try {
+            const result = await this.api.getSourceCode(dagId);
+            if (!result.isSuccessful || !result.result) {
+                throw new Error(result.error?.message || 'Failed to fetch DAG source code');
+            }
+            return result.result;
+        }
+        catch (error) {
+            throw new Error(`Failed to get DAG source code: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
      * Helper to extract error message from DAG run
      */
     extractErrorMessage(run) {
@@ -11591,6 +11688,156 @@ exports.GetFailedRunsTool = GetFailedRunsTool;
 "use strict";
 
 /**
+ * GetDagHistoryTool - Language Model Tool for retrieving DAG run history
+ *
+ * This tool retrieves the run history for a specific DAG, optionally filtered by date.
+ * Returns date of run, status, duration, and notes for each run.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetDagHistoryTool = void 0;
+const vscode = __webpack_require__(1);
+/**
+ * GetDagHistoryTool - Implements vscode.LanguageModelTool for retrieving DAG history
+ */
+class GetDagHistoryTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Prepare invocation - minimal for read-only operations
+     */
+    async prepareInvocation(options, token) {
+        const { dag_id, date } = options.input;
+        const dateStr = date || new Date().toISOString().split('T')[0];
+        return {
+            invocationMessage: `Retrieving history for DAG '${dag_id}' (date: ${dateStr})`
+        };
+    }
+    /**
+     * Execute the query for DAG history
+     */
+    async invoke(options, token) {
+        const { dag_id, date } = options.input;
+        // Use today's date if not provided
+        const queryDate = date || new Date().toISOString().split('T')[0];
+        try {
+            // Get DAG run history from the API
+            const result = await this.client.getDagRunHistory(dag_id, queryDate);
+            if (!result || !result.dag_runs || result.dag_runs.length === 0) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`ℹ️ No run history found for DAG '${dag_id}' on ${queryDate}.`)
+                ]);
+            }
+            const runs = result.dag_runs;
+            // Build detailed summary
+            let summaryMessage = `## 📜 DAG Run History for '${dag_id}'\n\n`;
+            summaryMessage += `**Date Filter:** ${queryDate}\n`;
+            summaryMessage += `**Total Runs:** ${runs.length}\n\n`;
+            summaryMessage += `---\n\n`;
+            // Add individual run details in a table-like format
+            summaryMessage += `| # | Date/Time | Status | Duration | Note |\n`;
+            summaryMessage += `|---|-----------|--------|----------|------|\n`;
+            runs.forEach((run, index) => {
+                const runDate = run.execution_date || run.logical_date || 'N/A';
+                const status = this.getStatusEmoji(run.state) + ' ' + (run.state || 'unknown');
+                let duration = 'N/A';
+                if (run.start_date && run.end_date) {
+                    const start = new Date(run.start_date);
+                    const end = new Date(run.end_date);
+                    const durationMs = end.getTime() - start.getTime();
+                    const durationSec = Math.floor(durationMs / 1000);
+                    const minutes = Math.floor(durationSec / 60);
+                    const seconds = durationSec % 60;
+                    duration = `${minutes}m ${seconds}s`;
+                }
+                else if (run.start_date && !run.end_date) {
+                    duration = '⏳ Running';
+                }
+                const note = run.note || '-';
+                summaryMessage += `| ${index + 1} | ${runDate} | ${status} | ${duration} | ${note} |\n`;
+            });
+            summaryMessage += `\n---\n\n`;
+            // Add detailed breakdown
+            summaryMessage += `### Detailed Breakdown\n\n`;
+            runs.forEach((run, index) => {
+                summaryMessage += `#### ${index + 1}. Run ID: ${run.dag_run_id || run.run_id}\n\n`;
+                summaryMessage += `- **Status:** ${this.getStatusEmoji(run.state)} ${run.state || 'unknown'}\n`;
+                summaryMessage += `- **Execution Date:** ${run.execution_date || run.logical_date}\n`;
+                summaryMessage += `- **Logical Date:** ${run.logical_date || run.execution_date}\n`;
+                if (run.start_date) {
+                    summaryMessage += `- **Start Date:** ${run.start_date}\n`;
+                }
+                if (run.end_date) {
+                    summaryMessage += `- **End Date:** ${run.end_date}\n`;
+                    const start = new Date(run.start_date);
+                    const end = new Date(run.end_date);
+                    const durationMs = end.getTime() - start.getTime();
+                    const durationSec = Math.floor(durationMs / 1000);
+                    const minutes = Math.floor(durationSec / 60);
+                    const seconds = durationSec % 60;
+                    summaryMessage += `- **Duration:** ${minutes}m ${seconds}s\n`;
+                }
+                if (run.note) {
+                    summaryMessage += `- **Note:** ${run.note}\n`;
+                }
+                if (run.conf && Object.keys(run.conf).length > 0) {
+                    summaryMessage += `- **Configuration:** \`${JSON.stringify(run.conf)}\`\n`;
+                }
+                summaryMessage += `\n`;
+            });
+            // Include raw JSON for LLM processing
+            summaryMessage += `---\n\n**Raw Data (JSON):**\n\n`;
+            summaryMessage += `\`\`\`json\n${JSON.stringify(runs, null, 2)}\n\`\`\`\n`;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(summaryMessage)
+            ]);
+        }
+        catch (error) {
+            const errorMessage = `
+❌ Failed to retrieve DAG history
+
+**Error:** ${error instanceof Error ? error.message : String(error)}
+
+Please check:
+- The DAG ID is correct
+- The date format is YYYY-MM-DD
+- The Airflow server is accessible
+- You have the necessary permissions
+            `.trim();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(errorMessage)
+            ]);
+        }
+    }
+    /**
+     * Helper to get emoji for run status
+     */
+    getStatusEmoji(status) {
+        const statusMap = {
+            'success': '✅',
+            'failed': '❌',
+            'running': '▶️',
+            'queued': '⏳',
+            'upstream_failed': '⚠️',
+            'skipped': '⏭️',
+            'up_for_retry': '🔄',
+            'up_for_reschedule': '📅',
+            'removed': '🗑️',
+            'scheduled': '📆'
+        };
+        return statusMap[status?.toLowerCase()] || '❓';
+    }
+}
+exports.GetDagHistoryTool = GetDagHistoryTool;
+
+
+/***/ }),
+/* 56 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
  * ListActiveDagsTool - Language Model Tool for listing active DAGs
  */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
@@ -11637,7 +11884,7 @@ exports.ListActiveDagsTool = ListActiveDagsTool;
 
 
 /***/ }),
-/* 56 */
+/* 57 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11689,7 +11936,7 @@ exports.ListPausedDagsTool = ListPausedDagsTool;
 
 
 /***/ }),
-/* 57 */
+/* 58 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11740,7 +11987,7 @@ exports.PauseDagTool = PauseDagTool;
 
 
 /***/ }),
-/* 58 */
+/* 59 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11791,149 +12038,7 @@ exports.UnpauseDagTool = UnpauseDagTool;
 
 
 /***/ }),
-/* 59 */,
 /* 60 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-/**
- * AnalyzeTaskLogTool - Language Model Tool for analyzing Airflow task logs
- *
- * This tool retrieves task logs and provides them to the LLM for analysis.
- * It includes a security confirmation step to prevent accidental exposure of sensitive log data.
- */
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.AnalyzeDagRunTool = void 0;
-const vscode = __webpack_require__(1);
-/**
- * AnalyzeDagRunTool - Implements vscode.LanguageModelTool for log analysis
- */
-class AnalyzeDagRunTool {
-    constructor(client) {
-        this.client = client;
-    }
-    /**
-     * Helper to resolve optional parameters by fetching latest run/task details
-     */
-    async resolveInput(input) {
-        let { dag_id, dag_run_id, task_id, try_number } = input;
-        // 1. Resolve DAG Run
-        if (!dag_run_id) {
-            const latestRun = await this.client.getLatestDagRun(dag_id);
-            if (!latestRun) {
-                throw new Error(`No runs found for DAG ${dag_id}`);
-            }
-            dag_run_id = latestRun.dag_run_id;
-        }
-        // 2. Resolve Task and Try Number
-        if (!task_id || !try_number) {
-            const tasks = await this.client.getTaskInstances(dag_id, dag_run_id);
-            if (!task_id) {
-                // Find first failed task
-                const failedTask = tasks.find((t) => t.state === 'failed' || t.state === 'upstream_failed');
-                if (!failedTask) {
-                    throw new Error(`No failed tasks found in DAG run ${dag_run_id}. Please specify a task_id.`);
-                }
-                task_id = failedTask.task_id;
-                // Use the try number from the found task if not provided
-                if (!try_number) {
-                    try_number = failedTask.try_number.toString();
-                }
-            }
-            else if (!try_number) {
-                // Task ID provided, but try_number missing
-                const task = tasks.find((t) => t.task_id === task_id);
-                if (task) {
-                    try_number = task.try_number.toString();
-                }
-                else {
-                    // Default to '1' if task instance not found (fallback)
-                    try_number = '1';
-                }
-            }
-        }
-        return {
-            dag_id,
-            dag_run_id: dag_run_id,
-            task_id: task_id,
-            try_number: try_number || '1'
-        };
-    }
-    /**
-     * SECURITY CRITICAL: Prepare invocation with user confirmation
-     */
-    async prepareInvocation(options, token) {
-        try {
-            // Resolve parameters to show the user exactly what will be analyzed
-            const resolved = await this.resolveInput(options.input);
-            const { dag_id, dag_run_id, task_id, try_number } = resolved;
-            const confirmationMessage = new vscode.MarkdownString();
-            confirmationMessage.isTrusted = true;
-            confirmationMessage.appendMarkdown('## ⚠️ Analyze Task Log Confirmation\n\n');
-            confirmationMessage.appendMarkdown('You are about to retrieve and analyze logs for the following task:\n\n');
-            confirmationMessage.appendMarkdown(`- **DAG ID:** \`${dag_id}\`\n`);
-            confirmationMessage.appendMarkdown(`- **Run ID:** \`${dag_run_id}\`\n`);
-            confirmationMessage.appendMarkdown(`- **Task ID:** \`${task_id}\`\n`);
-            confirmationMessage.appendMarkdown(`- **Try Number:** \`${try_number}\`\n\n`);
-            confirmationMessage.appendMarkdown('**Security Warning:**\n');
-            confirmationMessage.appendMarkdown('Task logs may contain sensitive information (environment variables, connection strings, data samples). ');
-            confirmationMessage.appendMarkdown('Proceeding will send these logs to the Language Model for analysis.\n\n');
-            confirmationMessage.appendMarkdown('Do you want to proceed?');
-            return {
-                invocationMessage: `Analyzing logs for ${dag_id} / ${task_id}`,
-                confirmationMessages: {
-                    title: 'Confirm Log Analysis',
-                    message: confirmationMessage
-                }
-            };
-        }
-        catch (error) {
-            // If resolution fails, we can't prepare the confirmation properly.
-            // We return a generic error message in the confirmation dialog or throw?
-            // Throwing here might be handled by VS Code UI.
-            throw new Error(`Failed to prepare log analysis: ${error instanceof Error ? error.message : String(error)}`);
-        }
-    }
-    /**
-     * Execute the log analysis
-     */
-    async invoke(options, token) {
-        try {
-            // Re-resolve inputs (stateless)
-            const { dag_id, dag_run_id, task_id, try_number } = await this.resolveInput(options.input);
-            const logContent = await this.client.getTaskLog(dag_id, dag_run_id, task_id, try_number);
-            const message = [
-                `## Log Analysis for ${task_id}`,
-                ``,
-                `**Context:**`,
-                `- DAG: ${dag_id}`,
-                `- Run: ${dag_run_id}`,
-                `- Try: ${try_number}`,
-                ``,
-                `**Log Content (Truncated):**`,
-                '```',
-                logContent,
-                '```',
-                ``,
-                `Please analyze the above log for errors and suggest potential fixes.`
-            ].join('\n');
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(message)
-            ]);
-        }
-        catch (error) {
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(`❌ Failed to analyze logs: ${error instanceof Error ? error.message : String(error)}`)
-            ]);
-        }
-    }
-}
-exports.AnalyzeDagRunTool = AnalyzeDagRunTool;
-
-
-/***/ }),
-/* 61 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12070,6 +12175,327 @@ Please check:
     }
 }
 exports.GetDagRunsTool = GetDagRunsTool;
+
+
+/***/ }),
+/* 61 */,
+/* 62 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * StopDagRunTool - Language Model Tool for stopping a running DAG run
+ *
+ * This tool stops the currently running DAG run for a specific DAG.
+ * It requires user confirmation since it's a state-changing operation.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.StopDagRunTool = void 0;
+const vscode = __webpack_require__(1);
+/**
+ * StopDagRunTool - Implements vscode.LanguageModelTool for stopping DAG runs
+ */
+class StopDagRunTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Prepare invocation with user confirmation
+     */
+    async prepareInvocation(options, token) {
+        const { dag_id } = options.input;
+        // Try to get the current running DAG run
+        let runInfo = '';
+        try {
+            const latestRun = await this.client.getLatestDagRun(dag_id);
+            if (latestRun && (latestRun.state === 'running' || latestRun.state === 'queued')) {
+                runInfo = `\n**Current Run:** \`${latestRun.dag_run_id}\`\n**State:** ${latestRun.state}\n\n`;
+            }
+        }
+        catch (error) {
+            // Ignore error, proceed with generic confirmation
+        }
+        const confirmationMessage = new vscode.MarkdownString();
+        confirmationMessage.isTrusted = true;
+        confirmationMessage.appendMarkdown('## ⚠️ Stop DAG Run Confirmation\n\n');
+        confirmationMessage.appendMarkdown(`You are about to **STOP** the running DAG run for:\n\n`);
+        confirmationMessage.appendMarkdown(`**DAG ID:** \`${dag_id}\`\n`);
+        if (runInfo) {
+            confirmationMessage.appendMarkdown(runInfo);
+        }
+        confirmationMessage.appendMarkdown('**Effect:** The current DAG run will be marked as failed and stopped.\n\n');
+        confirmationMessage.appendMarkdown('Do you want to proceed?');
+        return {
+            invocationMessage: `Stopping DAG run: ${dag_id}`,
+            confirmationMessages: {
+                title: 'Confirm Stop DAG Run',
+                message: confirmationMessage
+            }
+        };
+    }
+    /**
+     * Execute the stop DAG run action
+     */
+    async invoke(options, token) {
+        const { dag_id } = options.input;
+        try {
+            // First, get the latest DAG run to find the running one
+            const latestRun = await this.client.getLatestDagRun(dag_id);
+            if (!latestRun) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`ℹ️ No DAG run found for '${dag_id}'.`)
+                ]);
+            }
+            // Check if the latest run is actually running
+            if (latestRun.state !== 'running' && latestRun.state !== 'queued') {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`ℹ️ DAG '${dag_id}' is not currently running.\n\nLatest run state: **${latestRun.state}**\nRun ID: \`${latestRun.dag_run_id}\``)
+                ]);
+            }
+            // Stop the DAG run
+            await this.client.stopDagRun(dag_id, latestRun.dag_run_id);
+            const message = [
+                `✅ **Success!** DAG run stopped.`,
+                ``,
+                `- **DAG ID:** ${dag_id}`,
+                `- **Run ID:** ${latestRun.dag_run_id}`,
+                `- **Previous State:** ${latestRun.state}`,
+                ``,
+                `The DAG run has been marked as failed and stopped.`
+            ].join('\n');
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(message)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to stop DAG run for ${dag_id}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.StopDagRunTool = StopDagRunTool;
+
+
+/***/ }),
+/* 63 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * AnalyseDagLatestRunTool - Language Model Tool for comprehensive DAG run analysis
+ *
+ * This tool retrieves comprehensive information about the latest DAG run including:
+ * - DAG run details
+ * - Task instances
+ * - DAG source code
+ * - Task logs
+ *
+ * It provides a complete analysis to help diagnose issues and understand execution.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AnalyseDagLatestRunTool = void 0;
+const vscode = __webpack_require__(1);
+/**
+ * AnalyseDagLatestRunTool - Implements vscode.LanguageModelTool for comprehensive DAG analysis
+ */
+class AnalyseDagLatestRunTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Prepare invocation
+     */
+    async prepareInvocation(options, token) {
+        const { dag_id } = options.input;
+        return {
+            invocationMessage: `Analyzing latest run for DAG '${dag_id}'...`
+        };
+    }
+    /**
+     * Execute comprehensive DAG run analysis
+     */
+    async invoke(options, token) {
+        const { dag_id } = options.input;
+        try {
+            // Step 1: Get the latest DAG run
+            const dagRun = await this.client.getLatestDagRun(dag_id);
+            if (!dagRun) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`ℹ️ No DAG run found for '${dag_id}'.`)
+                ]);
+            }
+            // Step 2: Get task instances for this run
+            const taskInstances = await this.client.getTaskInstances(dag_id, dagRun.dag_run_id);
+            // Step 3: Get DAG source code
+            let dagSourceCode = 'N/A';
+            try {
+                dagSourceCode = await this.client.getDagSource(dag_id);
+            }
+            catch (error) {
+                dagSourceCode = `Failed to retrieve source code: ${error instanceof Error ? error.message : String(error)}`;
+            }
+            // Step 4: Get logs for each task (focusing on failed tasks first, then all)
+            const taskLogs = [];
+            // Sort tasks: failed first, then by execution order
+            const sortedTasks = [...taskInstances].sort((a, b) => {
+                const failedStates = ['failed', 'upstream_failed'];
+                const aFailed = failedStates.includes(a.state);
+                const bFailed = failedStates.includes(b.state);
+                if (aFailed && !bFailed)
+                    return -1;
+                if (!aFailed && bFailed)
+                    return 1;
+                return 0;
+            });
+            // Get logs for up to 5 tasks (prioritizing failed tasks)
+            const tasksToLog = sortedTasks.slice(0, 5);
+            for (const task of tasksToLog) {
+                try {
+                    const log = await this.client.getTaskLog(dag_id, dagRun.dag_run_id, task.task_id, task.try_number?.toString() || '1');
+                    taskLogs.push({
+                        task_id: task.task_id,
+                        state: task.state,
+                        log: log
+                    });
+                }
+                catch (error) {
+                    taskLogs.push({
+                        task_id: task.task_id,
+                        state: task.state,
+                        log: `Failed to retrieve log: ${error instanceof Error ? error.message : String(error)}`
+                    });
+                }
+            }
+            // Build comprehensive analysis report
+            let report = this.buildAnalysisReport(dag_id, dagRun, taskInstances, dagSourceCode, taskLogs);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(report)
+            ]);
+        }
+        catch (error) {
+            const errorMessage = `
+❌ Failed to analyze DAG run
+
+**Error:** ${error instanceof Error ? error.message : String(error)}
+
+Please check:
+- The DAG ID is correct
+- The Airflow server is accessible
+- You have the necessary permissions
+            `.trim();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(errorMessage)
+            ]);
+        }
+    }
+    /**
+     * Build comprehensive analysis report
+     */
+    buildAnalysisReport(dagId, dagRun, taskInstances, dagSourceCode, taskLogs) {
+        let report = `# 🔍 Comprehensive DAG Run Analysis\n\n`;
+        report += `## DAG: ${dagId}\n\n`;
+        report += `---\n\n`;
+        // Section 1: DAG Run Overview
+        report += `## 📊 DAG Run Overview\n\n`;
+        report += `- **Run ID:** \`${dagRun.dag_run_id}\`\n`;
+        report += `- **State:** ${this.getStatusEmoji(dagRun.state)} **${dagRun.state}**\n`;
+        report += `- **Execution Date:** ${dagRun.execution_date}\n`;
+        report += `- **Logical Date:** ${dagRun.logical_date}\n`;
+        if (dagRun.start_date) {
+            report += `- **Start Date:** ${dagRun.start_date}\n`;
+        }
+        if (dagRun.end_date) {
+            report += `- **End Date:** ${dagRun.end_date}\n`;
+            // Calculate duration
+            const start = new Date(dagRun.start_date);
+            const end = new Date(dagRun.end_date);
+            const durationMs = end.getTime() - start.getTime();
+            const durationSec = Math.floor(durationMs / 1000);
+            const minutes = Math.floor(durationSec / 60);
+            const seconds = durationSec % 60;
+            report += `- **Duration:** ${minutes}m ${seconds}s\n`;
+        }
+        report += `\n---\n\n`;
+        // Section 2: Task Instances Summary
+        report += `## 📋 Task Instances (${taskInstances.length} tasks)\n\n`;
+        // Group tasks by state
+        const tasksByState = {};
+        taskInstances.forEach((task) => {
+            const state = task.state || 'unknown';
+            if (!tasksByState[state]) {
+                tasksByState[state] = [];
+            }
+            tasksByState[state].push(task);
+        });
+        // Display summary by state
+        for (const [state, tasks] of Object.entries(tasksByState)) {
+            report += `### ${this.getStatusEmoji(state)} ${state} (${tasks.length})\n`;
+            tasks.forEach((task) => {
+                report += `- **${task.task_id}**`;
+                if (task.duration) {
+                    report += ` - Duration: ${Math.round(task.duration)}s`;
+                }
+                if (task.start_date) {
+                    report += ` - Started: ${task.start_date}`;
+                }
+                report += `\n`;
+            });
+            report += `\n`;
+        }
+        report += `---\n\n`;
+        // Section 3: Task Logs Analysis
+        if (taskLogs.length > 0) {
+            report += `## 📝 Task Logs (Top ${taskLogs.length} tasks)\n\n`;
+            taskLogs.forEach((taskLog, index) => {
+                report += `### ${index + 1}. Task: ${taskLog.task_id} (${this.getStatusEmoji(taskLog.state)} ${taskLog.state})\n\n`;
+                report += `\`\`\`\n${taskLog.log}\n\`\`\`\n\n`;
+            });
+            report += `---\n\n`;
+        }
+        // Section 4: DAG Source Code
+        report += `## 💻 DAG Source Code\n\n`;
+        report += `\`\`\`python\n${dagSourceCode}\n\`\`\`\n\n`;
+        report += `---\n\n`;
+        // Section 5: Raw Data
+        report += `## 📦 Raw Data (JSON)\n\n`;
+        report += `### DAG Run\n\`\`\`json\n${JSON.stringify(dagRun, null, 2)}\n\`\`\`\n\n`;
+        report += `### Task Instances\n\`\`\`json\n${JSON.stringify(taskInstances, null, 2)}\n\`\`\`\n\n`;
+        // Section 6: Analysis Prompt
+        report += `---\n\n`;
+        report += `## 🤖 Analysis Request\n\n`;
+        report += `Please analyze the above information and provide:\n`;
+        report += `1. **Summary of Execution:** What happened during this DAG run?\n`;
+        report += `2. **Issues Identified:** What errors or problems occurred?\n`;
+        report += `3. **Root Cause Analysis:** What likely caused any failures?\n`;
+        report += `4. **Recommendations:** How can these issues be resolved?\n`;
+        report += `5. **Code Review:** Any issues in the DAG code that need attention?\n`;
+        return report;
+    }
+    /**
+     * Helper to get emoji for task/run status
+     */
+    getStatusEmoji(status) {
+        const statusMap = {
+            'success': '✅',
+            'failed': '❌',
+            'running': '▶️',
+            'queued': '⏳',
+            'upstream_failed': '⚠️',
+            'skipped': '⏭️',
+            'up_for_retry': '🔄',
+            'up_for_reschedule': '📅',
+            'removed': '🗑️',
+            'scheduled': '📆',
+            'none': '⚪',
+            'unknown': '❓'
+        };
+        return statusMap[status?.toLowerCase()] || '❓';
+    }
+}
+exports.AnalyseDagLatestRunTool = AnalyseDagLatestRunTool;
 
 
 /***/ })
@@ -12228,12 +12654,14 @@ const ui = __webpack_require__(4);
 const AirflowClientAdapter_1 = __webpack_require__(52);
 const TriggerDagRunTool_1 = __webpack_require__(53);
 const GetFailedRunsTool_1 = __webpack_require__(54);
-const AnalyzeDagRunTool_1 = __webpack_require__(60);
-const ListActiveDagsTool_1 = __webpack_require__(55);
-const ListPausedDagsTool_1 = __webpack_require__(56);
-const PauseDagTool_1 = __webpack_require__(57);
-const UnpauseDagTool_1 = __webpack_require__(58);
-const GetDagRunsTool_1 = __webpack_require__(61);
+const ListActiveDagsTool_1 = __webpack_require__(56);
+const ListPausedDagsTool_1 = __webpack_require__(57);
+const PauseDagTool_1 = __webpack_require__(58);
+const UnpauseDagTool_1 = __webpack_require__(59);
+const GetDagRunsTool_1 = __webpack_require__(60);
+const StopDagRunTool_1 = __webpack_require__(62);
+const AnalyseDagLatestRunTool_1 = __webpack_require__(63);
+const GetDagHistoryTool_1 = __webpack_require__(55);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
@@ -12281,10 +12709,6 @@ function activate(context) {
     const getFailedRunsTool = vscode.lm.registerTool('get_failed_runs', new GetFailedRunsTool_1.GetFailedRunsTool(airflowClient));
     context.subscriptions.push(getFailedRunsTool);
     ui.logToOutput('Registered tool: get_failed_runs');
-    // Register Tool 3: analyze_task_log (Debugging)
-    const analyzeTaskLogTool = vscode.lm.registerTool('analyze_task_log', new AnalyzeDagRunTool_1.AnalyzeDagRunTool(airflowClient));
-    context.subscriptions.push(analyzeTaskLogTool);
-    ui.logToOutput('Registered tool: analyze_task_log');
     // Register Tool 4: list_active_dags (Monitoring)
     const listActiveDagsTool = vscode.lm.registerTool('list_active_dags', new ListActiveDagsTool_1.ListActiveDagsTool(airflowClient));
     context.subscriptions.push(listActiveDagsTool);
@@ -12305,6 +12729,18 @@ function activate(context) {
     const getDagRunsTool = vscode.lm.registerTool('get_dag_runs', new GetDagRunsTool_1.GetDagRunsTool(airflowClient));
     context.subscriptions.push(getDagRunsTool);
     ui.logToOutput('Registered tool: get_dag_runs');
+    // Register Tool 9: stop_dag_run (Control)
+    const stopDagRunTool = vscode.lm.registerTool('stop_dag_run', new StopDagRunTool_1.StopDagRunTool(airflowClient));
+    context.subscriptions.push(stopDagRunTool);
+    ui.logToOutput('Registered tool: stop_dag_run');
+    // Register Tool 10: analyse_dag_latest_run (Analysis)
+    const analyseDagLatestRunTool = vscode.lm.registerTool('analyse_dag_latest_run', new AnalyseDagLatestRunTool_1.AnalyseDagLatestRunTool(airflowClient));
+    context.subscriptions.push(analyseDagLatestRunTool);
+    ui.logToOutput('Registered tool: analyse_dag_latest_run');
+    // Register Tool 11: get_dag_history (Monitoring)
+    const getDagHistoryTool = vscode.lm.registerTool('get_dag_history', new GetDagHistoryTool_1.GetDagHistoryTool(airflowClient));
+    context.subscriptions.push(getDagHistoryTool);
+    ui.logToOutput('Registered tool: get_dag_history');
     ui.logToOutput('All Language Model Tools registered successfully');
     for (const c of commands) {
         context.subscriptions.push(c);
