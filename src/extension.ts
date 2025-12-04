@@ -62,6 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewConnections', () => { dagTreeView.viewConnections(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewVariables', () => { dagTreeView.viewVariables(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewProviders', () => { dagTreeView.viewProviders(); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.viewConfigs', () => { dagTreeView.viewConfigs(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRuns', () => { dagTreeView.viewDagRuns(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node: DagTreeItem) => { dagTreeView.askAI(node); }));
 

@@ -17,7 +17,7 @@ export class AdminTreeView implements vscode.TreeDataProvider<AdminTreeItem> {
 
   getChildren(element?: AdminTreeItem): Thenable<AdminTreeItem[]> {
     if (!element) {
-      // Root level - return the three admin nodes
+      // Root level - return the admin nodes
       return Promise.resolve([
         new AdminTreeItem(
           'Variables',
@@ -48,6 +48,16 @@ export class AdminTreeView implements vscode.TreeDataProvider<AdminTreeItem> {
             arguments: []
           },
           new vscode.ThemeIcon('package')
+        ),
+        new AdminTreeItem(
+          'Configs',
+          vscode.TreeItemCollapsibleState.None,
+          {
+            command: 'dagTreeView.viewConfigs',
+            title: 'View Configs',
+            arguments: []
+          },
+          new vscode.ThemeIcon('settings-gear')
         )
       ]);
     }

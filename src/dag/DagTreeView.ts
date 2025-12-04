@@ -7,6 +7,7 @@ import { DagRunView } from '../report/DagRunView';
 import { ConnectionsView } from '../admin/ConnectionsView';
 import { VariablesView } from '../admin/VariablesView';
 import { ProvidersView } from '../admin/ProvidersView';
+import { ConfigsView } from '../admin/ConfigsView';
 import * as ui from '../common/UI';
 import { AirflowApi } from '../common/Api';
 import { AskAIContext, ServerConfig } from '../common/Types';
@@ -874,6 +875,14 @@ export class DagTreeView {
 		if (this.api) {
 			const { ProvidersView } = await import('../admin/ProvidersView');
 			ProvidersView.render(this.context.extensionUri, this.api);
+		}
+	}
+
+	async viewConfigs() {
+		ui.logToOutput('DagTreeView.viewConfigs Started');
+		if (this.api) {
+			const { ConfigsView } = await import('../admin/ConfigsView');
+			ConfigsView.render(this.context.extensionUri, this.api);
 		}
 	}
 
