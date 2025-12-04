@@ -842,14 +842,15 @@ const vscode = __webpack_require__(1);
 const ui = __webpack_require__(4);
 const DagTreeView_1 = __webpack_require__(2);
 class DagView {
-    constructor(panel, extensionUri, dagId, api) {
+    constructor(panel, extensionUri, dagId, api, dagRunId) {
         this._disposables = [];
-        this.dagHistorySelectedDate = new Date().toISOString().split('T')[0];
+        this.dagHistorySelectedDate = ui.toISODateString(new Date());
         this.activetabid = "tab-1";
         ui.logToOutput('DagView.constructor Started');
         this.dagId = dagId;
         this.extensionUri = extensionUri;
         this.api = api;
+        this.dagRunId = dagRunId;
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -858,10 +859,8 @@ class DagView {
     }
     resetDagData() {
         this.activetabid = "tab-1";
-        this.dagRunId = undefined;
         this.dagJson = undefined;
         this.dagRunJson = undefined;
-        this.dagRunId = undefined;
         this.dagRunHistoryJson = undefined;
         this.dagTaskInstancesJson = undefined;
         this.dagTasksJson = undefined;
@@ -870,7 +869,12 @@ class DagView {
     async loadAllDagData() {
         ui.logToOutput('DagView.loadAllDagData Started');
         await this.getDagInfo();
-        await this.getLastRun();
+        if (this.dagRunId) {
+            await this.getDagRun(this.dagId, this.dagRunId);
+        }
+        else {
+            await this.getLastRun();
+        }
         await this.getDagTasks();
         //await this.getRunHistory();
         await this.renderHmtl();
@@ -886,11 +890,12 @@ class DagView {
         //ui.showOutputMessage(this._panel.webview.html);
         ui.logToOutput('DagView.renderHmtl Completed');
     }
-    static render(extensionUri, dagId, api) {
+    static render(extensionUri, dagId, api, dagRunId) {
         ui.logToOutput('DagView.render Started');
         if (DagView.Current) {
             DagView.Current.api = api;
             DagView.Current.dagId = dagId;
+            DagView.Current.dagRunId = dagRunId;
             DagView.Current._panel.reveal(vscode.ViewColumn.Two);
             DagView.Current.resetDagData();
             DagView.Current.loadAllDagData();
@@ -899,7 +904,7 @@ class DagView {
             const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
                 enableScripts: true,
             });
-            DagView.Current = new DagView(panel, extensionUri, dagId, api);
+            DagView.Current = new DagView(panel, extensionUri, dagId, api, dagRunId);
         }
     }
     async getLastRun() {
@@ -996,8 +1001,8 @@ class DagView {
             logical_date = this.dagRunJson.logical_date;
             start_date = this.dagRunJson.start_date;
             end_date = this.dagRunJson.end_date;
-            logical_date_string = logical_date ? new Date(logical_date).toISOString().slice(0, 10) : "";
-            start_date_string = start_date ? new Date(start_date).toLocaleString() : "";
+            logical_date_string = logical_date ? ui.toISODateString(new Date(logical_date)) : "";
+            start_date_string = start_date ? ui.toISODateTimeString(new Date(start_date)) : "";
             duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
             isDagRunning = (state === "queued" || state === "running") ? true : false;
             hasDagRun = true;
@@ -1058,7 +1063,7 @@ class DagView {
                             &nbsp; ${t.state}
                         </div>
                     </td>
-                    <td><a href="#" id="history-dag-run-id-${t.dag_run_id}">${new Date(t.start_date).toLocaleString()}</a></td>
+                    <td><a href="#" id="history-dag-run-id-${t.dag_run_id}">${ui.toISODateTimeString(new Date(t.start_date))}</a></td>
                     <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
                     <td>${t.note}</td>
                 </tr>
@@ -1665,6 +1670,8 @@ exports.DagView = DagView;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.toISODateString = toISODateString;
+exports.toISODateTimeString = toISODateTimeString;
 exports.getUri = getUri;
 exports.showOutputMessage = showOutputMessage;
 exports.logToOutput = logToOutput;
@@ -1685,6 +1692,18 @@ const path_1 = __webpack_require__(6);
 let outputChannel;
 let logsOutputChannel;
 const NEW_LINE = "\n\n";
+function toISODateString(date) {
+    if (!date) {
+        return "";
+    }
+    return date.toISOString().split('T')[0];
+}
+function toISODateTimeString(date) {
+    if (!date) {
+        return "";
+    }
+    return date.toISOString().replace('T', ' ').substring(0, 19);
+}
 function getUri(webview, extensionUri, pathList) {
     return webview.asWebviewUri(vscode_1.Uri.joinPath(extensionUri, ...pathList));
 }
@@ -2881,7 +2900,7 @@ class DagRunView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
         // Filters
-        this.selectedDate = new Date().toISOString().split('T')[0];
+        this.selectedDate = ui.toISODateString(new Date());
         this.selectedStatus = '';
         this.selectedDagId = '';
         this.allDagIds = [];
@@ -2979,7 +2998,7 @@ class DagRunView {
         filteredRuns.forEach((run) => {
             const dagId = run.dag_id || 'N/A';
             const status = run.state || 'N/A';
-            const startDate = run.start_date ? new Date(run.start_date).toLocaleString() : 'N/A';
+            const startDate = run.start_date ? ui.toISODateTimeString(new Date(run.start_date)) : 'N/A';
             const duration = run.start_date && run.end_date ? ui.getDuration(new Date(run.start_date), new Date(run.end_date)) : 'Running';
             const config = run.conf ? JSON.stringify(run.conf) : '{}';
             const note = run.note || '';
@@ -3185,7 +3204,7 @@ class DagRunView {
                 case "open-dag-view":
                     // Open DagView with specific dag and run
                     if (this.api && message.dagId) {
-                        DagView_1.DagView.render(this.extensionUri, message.dagId, this.api);
+                        DagView_1.DagView.render(this.extensionUri, message.dagId, this.api, message.dagRunId);
                     }
                     return;
             }
@@ -12378,6 +12397,7 @@ exports.UnpauseDagTool = UnpauseDagTool;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetDagRunsTool = void 0;
 const vscode = __webpack_require__(1);
+const ui = __webpack_require__(4);
 /**
  * GetDagRunsTool - Implements vscode.LanguageModelTool for retrieving DAG runs
  */
@@ -12390,7 +12410,7 @@ class GetDagRunsTool {
      */
     async prepareInvocation(options, token) {
         const { dag_id, date } = options.input;
-        const dateStr = date || new Date().toISOString().split('T')[0];
+        const dateStr = date || ui.toISODateString(new Date());
         return {
             invocationMessage: `Retrieving runs for DAG '${dag_id}' (date: ${dateStr})`
         };
@@ -12414,7 +12434,7 @@ class GetDagRunsTool {
                 const targetDate = new Date(date);
                 runs = runs.filter((run) => {
                     const runDate = new Date(run.execution_date || run.logical_date);
-                    return runDate.toISOString().split('T')[0] === targetDate.toISOString().split('T')[0];
+                    return ui.toISODateString(runDate) === ui.toISODateString(targetDate);
                 });
                 if (runs.length === 0) {
                     return new vscode.LanguageModelToolResult([
@@ -12428,7 +12448,7 @@ class GetDagRunsTool {
                 summaryMessage += `**Date Filter:** ${date}\n`;
             }
             else {
-                summaryMessage += `**Date Filter:** Today (${new Date().toISOString().split('T')[0]})\n`;
+                summaryMessage += `**Date Filter:** Today (${ui.toISODateString(new Date())})\n`;
             }
             summaryMessage += `**Total Runs:** ${runs.length}\n\n`;
             summaryMessage += `---\n\n`;
@@ -12838,6 +12858,7 @@ exports.AnalyseDagLatestRunTool = AnalyseDagLatestRunTool;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetDagHistoryTool = void 0;
 const vscode = __webpack_require__(1);
+const ui = __webpack_require__(4);
 /**
  * GetDagHistoryTool - Implements vscode.LanguageModelTool for retrieving DAG history
  */
@@ -12850,7 +12871,7 @@ class GetDagHistoryTool {
      */
     async prepareInvocation(options, token) {
         const { dag_id, date } = options.input;
-        const dateStr = date || new Date().toISOString().split('T')[0];
+        const dateStr = date || ui.toISODateString(new Date());
         return {
             invocationMessage: `Retrieving history for DAG '${dag_id}' (date: ${dateStr})`
         };
@@ -12861,7 +12882,7 @@ class GetDagHistoryTool {
     async invoke(options, token) {
         const { dag_id, date } = options.input;
         // Use today's date if not provided
-        const queryDate = date || new Date().toISOString().split('T')[0];
+        const queryDate = date || ui.toISODateString(new Date());
         try {
             // Get DAG run history from the API
             const result = await this.client.getDagRunHistory(dag_id, queryDate);

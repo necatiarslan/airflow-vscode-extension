@@ -13,7 +13,7 @@ export class DagRunView {
     private api: AirflowApi;
     
     // Filters
-    private selectedDate: string = new Date().toISOString().split('T')[0];
+    private selectedDate: string = ui.toISODateString(new Date());
     private selectedStatus: string = '';
     private selectedDagId: string = '';
     private allDagIds: string[] = [];
@@ -127,7 +127,7 @@ export class DagRunView {
         filteredRuns.forEach((run: any) => {
             const dagId = run.dag_id || 'N/A';
             const status = run.state || 'N/A';
-            const startDate = run.start_date ? new Date(run.start_date).toLocaleString() : 'N/A';
+            const startDate = run.start_date ? ui.toISODateTimeString(new Date(run.start_date)) : 'N/A';
             const duration = run.start_date && run.end_date ? ui.getDuration(new Date(run.start_date), new Date(run.end_date)) : 'Running';
             const config = run.conf ? JSON.stringify(run.conf) : '{}';
             const note = run.note || '';
@@ -342,7 +342,7 @@ export class DagRunView {
                     case "open-dag-view":
                         // Open DagView with specific dag and run
                         if (this.api && message.dagId) {
-                            DagView.render(this.extensionUri, message.dagId, this.api);
+                            DagView.render(this.extensionUri, message.dagId, this.api, message.dagRunId);
                         }
                         return;
                 }

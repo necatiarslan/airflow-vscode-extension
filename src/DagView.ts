@@ -20,17 +20,17 @@ export class DagView {
     public dagRunHistoryJson: any;
     public dagTaskInstancesJson: any;
     public dagTasksJson: any;
-    public dagHistorySelectedDate: string | undefined = new Date().toISOString().split('T')[0];
+    public dagHistorySelectedDate: string | undefined = ui.toISODateString(new Date());
 
     private dagStatusInterval: NodeJS.Timeout | undefined;
     private activetabid: string = "tab-1";
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, dagId: string, api: AirflowApi) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, dagId: string, api: AirflowApi, dagRunId?: string) {
         ui.logToOutput('DagView.constructor Started');
         this.dagId = dagId;
         this.extensionUri = extensionUri;
         this.api = api;
-
+        this.dagRunId = dagRunId;
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -40,10 +40,8 @@ export class DagView {
 
     public resetDagData(){
         this.activetabid = "tab-1";
-        this.dagRunId = undefined;
         this.dagJson = undefined;
         this.dagRunJson = undefined;
-        this.dagRunId = undefined;
         this.dagRunHistoryJson = undefined;
         this.dagTaskInstancesJson = undefined;
         this.dagTasksJson = undefined;
@@ -53,7 +51,12 @@ export class DagView {
     public async loadAllDagData() {
         ui.logToOutput('DagView.loadAllDagData Started');
         await this.getDagInfo();
-        await this.getLastRun();
+        if (this.dagRunId) {
+            await this.getDagRun(this.dagId, this.dagRunId);
+        }
+        else {
+            await this.getLastRun();
+        }
         await this.getDagTasks();
         //await this.getRunHistory();
         await this.renderHmtl();
@@ -72,11 +75,12 @@ export class DagView {
         ui.logToOutput('DagView.renderHmtl Completed');
     }
 
-    public static render(extensionUri: vscode.Uri, dagId: string, api: AirflowApi) {
+    public static render(extensionUri: vscode.Uri, dagId: string, api: AirflowApi, dagRunId?: string) {
         ui.logToOutput('DagView.render Started');
         if (DagView.Current) {
             DagView.Current.api = api;
             DagView.Current.dagId = dagId;
+            DagView.Current.dagRunId = dagRunId;
             DagView.Current._panel.reveal(vscode.ViewColumn.Two);
             DagView.Current.resetDagData();
             DagView.Current.loadAllDagData();
@@ -85,7 +89,7 @@ export class DagView {
                 enableScripts: true,
             });
 
-            DagView.Current = new DagView(panel, extensionUri, dagId, api);
+            DagView.Current = new DagView(panel, extensionUri, dagId, api, dagRunId);
         }
     }
 
@@ -208,8 +212,8 @@ export class DagView {
             logical_date = this.dagRunJson.logical_date;
             start_date = this.dagRunJson.start_date;
             end_date = this.dagRunJson.end_date;
-            logical_date_string = logical_date ? new Date(logical_date).toISOString().slice(0, 10) : "";
-            start_date_string = start_date ? new Date(start_date).toLocaleString() : "";
+            logical_date_string = logical_date ? ui.toISODateString(new Date(logical_date)) : "";
+            start_date_string = start_date ? ui.toISODateTimeString(new Date(start_date)) : "";
             duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
             isDagRunning = (state === "queued" || state === "running") ? true : false;
             hasDagRun = true;
@@ -276,7 +280,7 @@ export class DagView {
                             &nbsp; ${t.state}
                         </div>
                     </td>
-                    <td><a href="#" id="history-dag-run-id-${t.dag_run_id}">${new Date(t.start_date).toLocaleString()}</a></td>
+                    <td><a href="#" id="history-dag-run-id-${t.dag_run_id}">${ui.toISODateTimeString(new Date(t.start_date))}</a></td>
                     <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
                     <td>${t.note}</td>
                 </tr>

@@ -7,6 +7,7 @@
 
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from '../AirflowClientAdapter';
+import * as ui from '../UI';
 
 /**
  * Input parameters for querying DAG history
@@ -34,7 +35,7 @@ export class GetDagHistoryTool implements vscode.LanguageModelTool<IGetDagHistor
         token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation | undefined> {
         const { dag_id, date } = options.input;
-        const dateStr = date || new Date().toISOString().split('T')[0];
+        const dateStr = date || ui.toISODateString(new Date());
 
         return {
             invocationMessage: `Retrieving history for DAG '${dag_id}' (date: ${dateStr})`
@@ -51,7 +52,7 @@ export class GetDagHistoryTool implements vscode.LanguageModelTool<IGetDagHistor
         const { dag_id, date } = options.input;
         
         // Use today's date if not provided
-        const queryDate = date || new Date().toISOString().split('T')[0];
+        const queryDate = date ||  ui.toISODateString(new Date());
 
         try {
             // Get DAG run history from the API

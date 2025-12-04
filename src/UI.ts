@@ -8,6 +8,20 @@ let logsOutputChannel: vscode.OutputChannel;
 
 const NEW_LINE: string = "\n\n";
 
+export function toISODateString(date: Date | null): string {
+  if (!date) {
+    return "";
+  }
+  return date.toISOString().split('T')[0];
+}
+
+export function toISODateTimeString(date: Date | null): string {
+  if (!date) {
+    return "";
+  }
+  return date.toISOString().replace('T', ' ').substring(0, 19);
+}
+
 export function getUri(webview: Webview, extensionUri: Uri, pathList: string[]) {
   return webview.asWebviewUri(Uri.joinPath(extensionUri, ...pathList));
 }

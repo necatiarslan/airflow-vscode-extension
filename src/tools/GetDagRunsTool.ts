@@ -7,6 +7,7 @@
 
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from '../AirflowClientAdapter';
+import * as ui from '../UI';
 
 /**
  * Input parameters for querying DAG runs
@@ -34,7 +35,7 @@ export class GetDagRunsTool implements vscode.LanguageModelTool<IGetDagRunsParam
         token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation | undefined> {
         const { dag_id, date } = options.input;
-        const dateStr = date || new Date().toISOString().split('T')[0];
+        const dateStr = date ||  ui.toISODateString(new Date());
 
         return {
             invocationMessage: `Retrieving runs for DAG '${dag_id}' (date: ${dateStr})`
@@ -67,7 +68,7 @@ export class GetDagRunsTool implements vscode.LanguageModelTool<IGetDagRunsParam
                 const targetDate = new Date(date);
                 runs = runs.filter((run: any) => {
                     const runDate = new Date(run.execution_date || run.logical_date);
-                    return runDate.toISOString().split('T')[0] === targetDate.toISOString().split('T')[0];
+                    return  ui.toISODateString(runDate) === ui.toISODateString(targetDate);
                 });
 
                 if (runs.length === 0) {
@@ -82,7 +83,7 @@ export class GetDagRunsTool implements vscode.LanguageModelTool<IGetDagRunsParam
             if (date) {
                 summaryMessage += `**Date Filter:** ${date}\n`;
             } else {
-                summaryMessage += `**Date Filter:** Today (${new Date().toISOString().split('T')[0]})\n`;
+                summaryMessage += `**Date Filter:** Today (${ui.toISODateString(new Date())})\n`;
             }
             summaryMessage += `**Total Runs:** ${runs.length}\n\n`;
             summaryMessage += `---\n\n`;
