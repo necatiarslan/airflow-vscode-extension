@@ -17,13 +17,15 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DagTreeView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const DagTreeDataProvider_1 = __webpack_require__(3);
-const DagView_1 = __webpack_require__(5);
+const tmp = __webpack_require__(3);
+const fs = __webpack_require__(4);
+const DagTreeDataProvider_1 = __webpack_require__(8);
+const DagView_1 = __webpack_require__(10);
 const DailyDagRunView_1 = __webpack_require__(13);
 const DagRunView_1 = __webpack_require__(14);
-const ui = __webpack_require__(6);
+const ui = __webpack_require__(11);
 const Api_1 = __webpack_require__(15);
-const MessageHub = __webpack_require__(9);
+const MessageHub = __webpack_require__(12);
 class DagTreeView {
     constructor(context) {
         this.filterString = '';
@@ -90,6 +92,35 @@ class DagTreeView {
         node.IsFav = false;
         this.treeDataProvider.refresh();
     }
+    /**
+     * Helper method to create a temp file and open it
+     */
+    createAndOpenTempFile(content, prefix, extension) {
+        const tmpFile = tmp.fileSync({ mode: 0o644, prefix, postfix: extension });
+        fs.appendFileSync(tmpFile.name, content);
+        ui.openFile(tmpFile.name);
+    }
+    /**
+     * Helper method to start the DAG status refresh interval
+     */
+    startDagStatusInterval() {
+        if (!this.dagStatusInterval) {
+            this.dagStatusInterval = setInterval(() => {
+                void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
+            }, 10 * 1000);
+        }
+    }
+    /**
+     * Helper method to handle post-trigger state updates
+     */
+    handleTriggerSuccess(node, responseTrigger) {
+        node.LatestDagRunId = responseTrigger['dag_run_id'];
+        node.LatestDagState = responseTrigger['state'];
+        node.refreshUI();
+        this.treeDataProvider.refresh();
+        this.startDagStatusInterval();
+        MessageHub.DagTriggered(this, node.DagId, node.LatestDagRunId);
+    }
     async triggerDag(node) {
         ui.logToOutput('DagTreeView.triggerDag Started');
         if (!this.api) {
@@ -105,17 +136,7 @@ class DagTreeView {
         }
         const result = await this.api.triggerDag(node.DagId);
         if (result.isSuccessful) {
-            const responseTrigger = result.result;
-            node.LatestDagRunId = responseTrigger['dag_run_id'];
-            node.LatestDagState = responseTrigger['state'];
-            node.refreshUI();
-            this.treeDataProvider.refresh();
-            if (!this.dagStatusInterval) {
-                this.dagStatusInterval = setInterval(() => {
-                    void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
-                }, 10 * 1000);
-            }
-            MessageHub.DagTriggered(this, node.DagId, node.LatestDagRunId);
+            this.handleTriggerSuccess(node, result.result);
         }
     }
     async refreshRunningDagState(dagTreeView) {
@@ -158,17 +179,7 @@ class DagTreeView {
         if (triggerDagConfig !== undefined) {
             const result = await this.api.triggerDag(node.DagId, triggerDagConfig);
             if (result.isSuccessful) {
-                const responseTrigger = result.result;
-                node.LatestDagRunId = responseTrigger['dag_run_id'];
-                node.LatestDagState = responseTrigger['state'];
-                node.refreshUI();
-                this.treeDataProvider.refresh();
-                if (!this.dagStatusInterval) {
-                    this.dagStatusInterval = setInterval(() => {
-                        void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
-                    }, 10 * 1000);
-                }
-                MessageHub.DagTriggered(this, node.DagId, node.LatestDagRunId);
+                this.handleTriggerSuccess(node, result.result);
             }
         }
     }
@@ -213,11 +224,7 @@ class DagTreeView {
             node.refreshUI();
             this.treeDataProvider.refresh();
             if (node.isDagRunning()) {
-                if (!this.dagStatusInterval) {
-                    this.dagStatusInterval = setInterval(() => {
-                        void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
-                    }, 10 * 1000);
-                }
+                this.startDagStatusInterval();
             }
         }
     }
@@ -243,7 +250,7 @@ class DagTreeView {
         this.refresh();
     }
     async notifyDagUnPaused(dagId) {
-        ui.logToOutput('DagTreeView.notifyDagPaused Started');
+        ui.logToOutput('DagTreeView.notifyDagUnPaused Started');
         this.refresh();
     }
     async unPauseDAG(node) {
@@ -292,11 +299,7 @@ class DagTreeView {
         }
         const result = await this.api.getLastDagRunLog(node.DagId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(10);
-            const fs = __webpack_require__(7);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.log' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
+            this.createAndOpenTempFile(result.result, node.DagId, '.log');
         }
     }
     async dagSourceCode(node) {
@@ -306,11 +309,7 @@ class DagTreeView {
         }
         const result = await this.api.getSourceCode(node.DagId, node.FileToken);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(10);
-            const fs = __webpack_require__(7);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.py' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
+            this.createAndOpenTempFile(result.result, node.DagId, '.py');
         }
         else {
             ui.logToOutput(result.result);
@@ -324,11 +323,7 @@ class DagTreeView {
         }
         const result = await this.api.getDagInfo(node.DagId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(10);
-            const fs = __webpack_require__(7);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId + '_info', postfix: '.json' });
-            fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
-            ui.openFile(tmpFile.name);
+            this.createAndOpenTempFile(JSON.stringify(result.result, null, 2), node.DagId + '_info', '.json');
         }
         else {
             ui.logToOutput(result.result);
@@ -905,1263 +900,6 @@ exports.DagTreeView = DagTreeView;
 
 /***/ }),
 /* 3 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagTreeDataProvider = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-const DagTreeItem_1 = __webpack_require__(4);
-const DagTreeView_1 = __webpack_require__(2);
-class DagTreeDataProvider {
-    constructor() {
-        this._onDidChangeTreeData = new vscode.EventEmitter();
-        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-        this.dagTreeItemList = [];
-        this.visibleDagList = [];
-    }
-    refresh() {
-        this._onDidChangeTreeData.fire();
-    }
-    loadDagTreeItemsFromApiResponse() {
-        this.dagTreeItemList = [];
-        if (this.dagList) {
-            for (var dag of this.dagList) {
-                if (dag) {
-                    let treeItem = new DagTreeItem_1.DagTreeItem(dag);
-                    this.dagTreeItemList.push(treeItem);
-                }
-            }
-        }
-    }
-    getChildren(element) {
-        if (!element) {
-            this.visibleDagList = this.getVisibleDagList();
-            return Promise.resolve(this.visibleDagList);
-        }
-        return Promise.resolve([]);
-    }
-    getVisibleDagList() {
-        var result = [];
-        for (var node of this.dagTreeItemList) {
-            if (DagTreeView_1.DagTreeView.Current.filterString && !node.doesFilterMatch(DagTreeView_1.DagTreeView.Current.filterString)) {
-                continue;
-            }
-            if (DagTreeView_1.DagTreeView.Current.ShowOnlyActive && node.IsPaused) {
-                continue;
-            }
-            if (DagTreeView_1.DagTreeView.Current.ShowOnlyFavorite && !node.IsFav) {
-                continue;
-            }
-            result.push(node);
-        }
-        return result;
-    }
-    getTreeItem(element) {
-        return element;
-    }
-}
-exports.DagTreeDataProvider = DagTreeDataProvider;
-
-
-/***/ }),
-/* 4 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagTreeItem = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-class DagTreeItem extends vscode.TreeItem {
-    constructor(apiResponse) {
-        super(apiResponse.dag_id);
-        this.LatestDagRunId = '';
-        this.LatestDagState = '';
-        this._IsFav = false;
-        this.IsFiltered = false;
-        this.ApiResponse = apiResponse;
-        this.DagId = apiResponse.dag_id;
-        this.IsActive = apiResponse.is_active;
-        this.IsPaused = apiResponse.is_paused;
-        this.Owners = apiResponse.owners;
-        this.Tags = apiResponse.tags;
-        this.FileToken = apiResponse.file_token;
-        this.setContextValue();
-        this.refreshUI();
-    }
-    set IsFav(value) {
-        this._IsFav = value;
-        this.setContextValue();
-    }
-    get IsFav() {
-        return this._IsFav;
-    }
-    isDagRunning() {
-        return (this.LatestDagState === 'queued' || this.LatestDagState === 'running');
-    }
-    setContextValue() {
-        let contextValue = "#";
-        contextValue += this.IsFav ? "IsFav#" : "!IsFav#";
-        contextValue += this.IsPaused ? "IsPaused#" : "!IsPaused#";
-        contextValue += this.IsActive ? "IsActive#" : "!IsActive#";
-        contextValue += this.IsFiltered ? "IsFiltered#" : "!IsFiltered#";
-        contextValue += this.isDagRunning() ? "IsRunning#" : "!IsRunning#";
-        this.contextValue = contextValue;
-    }
-    refreshUI() {
-        if (this.IsPaused) {
-            this.iconPath = new vscode.ThemeIcon('circle-outline');
-            this.ApiResponse.is_paused = true;
-        }
-        else {
-            //"queued" "running" "success" "failed"
-            if (this.LatestDagState === 'queued') {
-                this.iconPath = new vscode.ThemeIcon('loading~spin');
-            }
-            else if (this.LatestDagState === 'running') {
-                this.iconPath = new vscode.ThemeIcon('loading~spin');
-            }
-            else if (this.LatestDagState === 'success') {
-                this.iconPath = new vscode.ThemeIcon('check');
-            }
-            else if (this.LatestDagState === 'failed') {
-                this.iconPath = new vscode.ThemeIcon('error');
-            }
-            else {
-                this.iconPath = new vscode.ThemeIcon('circle-filled');
-            }
-            this.ApiResponse.is_paused = false;
-        }
-        // Update context value to reflect current running state
-        this.setContextValue();
-    }
-    doesFilterMatch(filterString) {
-        const words = filterString.split(',');
-        const matchingWords = [];
-        for (const word of words) {
-            if (word === 'active' && !this.IsPaused) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (word === 'paused' && this.IsPaused) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (this.DagId.includes(word)) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (this.Owners.includes(word)) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (word === 'fav' && this.IsFav) {
-                matchingWords.push(word);
-                continue;
-            }
-            for (const t of this.Tags) {
-                if (t.name.includes(word)) {
-                    matchingWords.push(word);
-                    continue;
-                }
-            }
-        }
-        this.IsFiltered = (words.length === matchingWords.length);
-        return this.IsFiltered;
-    }
-}
-exports.DagTreeItem = DagTreeItem;
-
-
-/***/ }),
-/* 5 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagView = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-const ui = __webpack_require__(6);
-const DagTreeView_1 = __webpack_require__(2);
-const MessageHub = __webpack_require__(9);
-class DagView {
-    constructor(panel, extensionUri, dagId, api, dagRunId) {
-        this._disposables = [];
-        this.dagHistorySelectedDate = ui.toISODateString(new Date());
-        this.activetabid = "tab-1";
-        ui.logToOutput('DagView.constructor Started');
-        this.dagId = dagId;
-        this.extensionUri = extensionUri;
-        this.api = api;
-        this.dagRunId = dagRunId;
-        this._panel = panel;
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-        this._setWebviewMessageListener(this._panel.webview);
-        this.loadAllDagData();
-        ui.logToOutput('DagView.constructor Completed');
-    }
-    resetDagData() {
-        this.activetabid = "tab-1";
-        this.dagJson = undefined;
-        this.dagRunJson = undefined;
-        this.dagRunHistoryJson = undefined;
-        this.dagTaskInstancesJson = undefined;
-        this.dagTasksJson = undefined;
-        this.stopCheckingDagRunStatus();
-    }
-    async loadAllDagData() {
-        ui.logToOutput('DagView.loadAllDagData Started');
-        await this.getDagInfo();
-        if (this.dagRunId) {
-            await this.getDagRun(this.dagId, this.dagRunId);
-        }
-        else {
-            await this.getLastRun();
-        }
-        await this.getDagTasks();
-        //await this.getRunHistory();
-        await this.renderHmtl();
-    }
-    async loadDagInfoOnly() {
-        ui.logToOutput('DagView.loadDagInfoOnly Started');
-        await this.getDagInfo();
-        await this.renderHmtl();
-    }
-    async renderHmtl() {
-        ui.logToOutput('DagView.renderHmtl Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
-        //ui.showOutputMessage(this._panel.webview.html);
-        ui.logToOutput('DagView.renderHmtl Completed');
-    }
-    static render(extensionUri, dagId, api, dagRunId) {
-        ui.logToOutput('DagView.render Started');
-        if (DagView.Current) {
-            DagView.Current.api = api;
-            DagView.Current.dagId = dagId;
-            DagView.Current.dagRunId = dagRunId;
-            DagView.Current._panel.reveal(vscode.ViewColumn.Two);
-            DagView.Current.resetDagData();
-            DagView.Current.loadAllDagData();
-        }
-        else {
-            const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
-                enableScripts: true,
-            });
-            DagView.Current = new DagView(panel, extensionUri, dagId, api, dagRunId);
-        }
-    }
-    async getLastRun() {
-        ui.logToOutput('DagView.getLastRun Started');
-        let result = await this.api.getLastDagRun(this.dagId);
-        if (result.isSuccessful) {
-            this.dagRunJson = result.result;
-            this.dagRunId = this.dagRunJson.dag_run_id;
-            this.getTaskInstances(this.dagRunId);
-            if (this.dagRunJson && this.dagRunJson.state === "running") {
-                this.startCheckingDagRunStatus(this.dagRunId);
-            }
-        }
-    }
-    async getDagRun(dagId, dagRunId) {
-        ui.logToOutput('DagView.getDagRun Started');
-        let result = await this.api.getDagRun(dagId, dagRunId);
-        if (result.isSuccessful) {
-            this.dagRunJson = result.result;
-            this.dagRunId = this.dagRunJson.dag_run_id;
-            this.getTaskInstances(this.dagRunId);
-        }
-        await this.renderHmtl();
-    }
-    async getRunHistory(date) {
-        ui.logToOutput('DagView.getRunHistory Started');
-        let result = await this.api.getDagRunHistory(this.dagId, date);
-        if (result.isSuccessful) {
-            this.dagRunHistoryJson = result.result;
-        }
-    }
-    async getTaskInstances(dagRunId) {
-        ui.logToOutput('DagView.getTaskInstances Started');
-        let result = await this.api.getTaskInstances(this.dagId, dagRunId); // Note: api.getTaskInstances was not implemented in my previous step, I need to check if I missed it.
-        if (result.isSuccessful) {
-            this.dagTaskInstancesJson = result.result;
-        }
-    }
-    async getDagInfo() {
-        ui.logToOutput('DagView.getDagInfo Started');
-        let result = await this.api.getDagInfo(this.dagId); // Also need to check if this exists in new api.ts
-        if (result.isSuccessful) {
-            this.dagJson = result.result;
-        }
-    }
-    async getDagTasks() {
-        ui.logToOutput('DagView.getDagTasks Started');
-        let result = await this.api.getDagTasks(this.dagId); // Need to check
-        if (result.isSuccessful) {
-            this.dagTasksJson = result.result;
-        }
-    }
-    dispose() {
-        ui.logToOutput('DagView.dispose Started');
-        DagView.Current = undefined;
-        // stop any running interval checks
-        this.stopCheckingDagRunStatus();
-        this._panel.dispose();
-        while (this._disposables.length) {
-            const disposable = this._disposables.pop();
-            if (disposable) {
-                disposable.dispose();
-            }
-        }
-    }
-    _getWebviewContent(webview, extensionUri) {
-        ui.logToOutput('DagView._getWebviewContent Started');
-        //file URIs
-        const toolkitUri = ui.getUri(webview, extensionUri, [
-            "node_modules",
-            "@vscode-elements",
-            "elements",
-            "dist",
-            "bundled.js",
-        ]);
-        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
-        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
-        //LATEST DAG RUN
-        let state = "";
-        let logical_date = undefined;
-        let start_date = undefined;
-        let end_date = undefined;
-        let logical_date_string = "";
-        let start_date_string = "";
-        let duration = "";
-        let isDagRunning = false;
-        let hasDagRun = false;
-        if (this.dagRunJson) {
-            state = this.dagRunJson.state;
-            logical_date = this.dagRunJson.logical_date;
-            start_date = this.dagRunJson.start_date;
-            end_date = this.dagRunJson.end_date;
-            logical_date_string = logical_date ? ui.toISODateTimeString(new Date(logical_date)) : "";
-            start_date_string = start_date ? ui.toISODateTimeString(new Date(start_date)) : "";
-            duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
-            isDagRunning = (state === "queued" || state === "running") ? true : false;
-            hasDagRun = true;
-        }
-        let runningOrFailedTasks = "";
-        if (this.dagTaskInstancesJson) {
-            for (const t of this.dagTaskInstancesJson["task_instances"]) {
-                if (t.state === "running" || t.state === "failed" || t.state === "up_for_retry" || t.state === "up_for_reschedule" || t.state === "deferred") {
-                    runningOrFailedTasks += t.task_id + ", ";
-                }
-            }
-        }
-        //INFO TAB
-        let owners = (this.dagJson && Array.isArray(this.dagJson["owners"])) ? this.dagJson["owners"].join(", ") : "";
-        let tags = "";
-        if (this.dagJson && Array.isArray(this.dagJson["tags"])) {
-            this.dagJson["tags"].forEach((item) => { tags += item.name + ", "; });
-        }
-        let schedule = (this.dagJson && this.dagJson["timetable_description"]) ? this.dagJson["timetable_description"] + " - " + this.dagJson["timetable_summary"] : "";
-        let next_run = (this.dagJson && this.dagJson["next_dagrun_data_interval_start"]) ? ui.toISODateTimeString(new Date(this.dagJson["next_dagrun_data_interval_start"])) : "None";
-        let isPausedText = (this.dagJson) ? (this.dagJson.is_paused ? "true" : "false") : "unknown";
-        let isPaused = isPausedText === "true";
-        //TASKS TAB
-        let taskRows = "";
-        if (this.dagTaskInstancesJson) {
-            for (const t of this.dagTaskInstancesJson["task_instances"].sort((a, b) => (a.start_date > b.start_date) ? 1 : -1)) {
-                taskRows += `
-                <tr>
-                    <td>
-                        <div style="display: flex; align-items: center;">
-                            <div class="state-${t.state}" title="${t.state}" ></div>
-                            &nbsp; ${t.task_id} (${t.try_number})
-                        </div>
-                    </td>
-                    <td>
-                        <a href="#" id="task-log-link-${t.task_id}">Log</a> | 
-                        <a href="#" id="task-xcom-link-${t.task_id}">XCom</a>
-                    </td>
-                    <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
-                    <td>${t.operator}</td>
-                </tr>
-                `;
-            }
-        }
-        // BUILD TASK DEPENDENCY TREE
-        let taskDependencyTree = "";
-        if (this.dagTasksJson && this.dagTasksJson.tasks && this.dagTasksJson.tasks.length > 0) {
-            taskDependencyTree = this.buildTaskDependencyTree(this.dagTasksJson.tasks);
-        }
-        //HISTORY TAB
-        let runHistoryRows = "";
-        if (this.dagRunHistoryJson) {
-            for (const t of this.dagRunHistoryJson["dag_runs"]) {
-                runHistoryRows += `
-                <tr>
-                    <td>
-                        <div style="display: flex; align-items: center;">
-                            <div class="state-${t.state}" title="${t.state}"></div>
-                            &nbsp; ${t.state}
-                        </div>
-                    </td>
-                    <td><a href="#" id="history-dag-run-id-${t.dag_run_id}">${ui.toISODateTimeString(new Date(t.start_date))}</a></td>
-                    <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
-                    <td>${t.note}</td>
-                </tr>
-                `;
-            }
-        }
-        let result = /*html*/ `
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1.0">
-        <script type="module" src="${toolkitUri}"></script>
-        <script type="module" src="${mainUri}"></script>
-        <link rel="stylesheet" href="${styleUri}">
-        <style>
-            input[type="date"] {
-                padding: 6px 8px;
-                border: 1px solid var(--vscode-input-border);
-                background-color: var(--vscode-input-background);
-                color: var(--vscode-input-foreground);
-                border-radius: 4px;
-                font-size: 13px;
-            }
-        </style>
-        <title>DAG</title>
-      </head>
-      <body>  
-
-
-        <div style="display: flex; align-items: center;">
-            <div class="dag-paused-${isPausedText}"></div>
-            &nbsp; &nbsp; <h2>${this.dagId}</h2>
-            <div style="visibility: ${isDagRunning ? "visible" : "hidden"}; display: flex; align-items: center;">
-            &nbsp; &nbsp; <vscode-progress-ring></vscode-progress-ring>
-            </div>
-        </div>
-                    
-
-        <vscode-tabs id="tab-control" selected-index="${this.activetabid === 'tab-1' ? 0 : this.activetabid === 'tab-2' ? 1 : this.activetabid === 'tab-3' ? 2 : 3}">
-            <vscode-tab-header slot="header">RUN</vscode-tab-header>
-            <vscode-tab-header slot="header">TASKS</vscode-tab-header>
-            <vscode-tab-header slot="header">INFO</vscode-tab-header>
-            <vscode-tab-header slot="header">HISTORY</vscode-tab-header>
-            
-            <vscode-tab-panel>
-                
-            <section>
-
-                    <table class="dag-run-details-table">
-                        <tr>
-                            <th colspan=3>Dag Run Details</th>
-                        </tr>
-                        <tr>
-                            <td>State</td>
-                            <td>:</td>
-                            <td>
-                                <div style="display: flex; align-items: center;">
-                                    <div class="state-${state}"></div> &nbsp; ${state}
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Tasks</td>
-                            <td>:</td>
-                            <td>${runningOrFailedTasks}</td>
-                        </tr>
-                        <tr>
-                            <td>Logical Date</td>
-                            <td>:</td>
-                            <td>${logical_date_string}</td>
-                        </tr>
-                        <tr>
-                            <td>StartDate</td>
-                            <td>:</td>
-                            <td>${start_date_string}</td>
-                        </tr>
-                        <tr>
-                            <td>Duration</td>
-                            <td>:</td>
-                            <td>${duration}</td>
-                        </tr>
-                        <tr>
-                            <td>Note</td>
-                            <td>:</td>
-                            <td><a href="#" id="run-update-note-link" title="Update Note">${this.dagRunJson?.note || '(No note)'}</a></td>
-                        </tr>
-                        <tr>
-                            <td>Config</td>
-                            <td>:</td>
-                            <td>${this.dagRunJson?.conf ? JSON.stringify(this.dagRunJson.conf, null, 2) : '(No config)'}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="3">
-                                <vscode-button appearance="secondary" id="run-ask-ai" ${!hasDagRun ? "disabled" : ""}>Ask AI</vscode-button>    
-                                <vscode-button appearance="secondary" id="run-view-log" ${!hasDagRun ? "disabled" : ""}>Log</vscode-button> 
-                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>  
-                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagRun ? "disabled" : ""}>More</vscode-button>
-                            </td>
-                        </tr>
-                    </table>
-            
-                    <br>
-            
-                    <table>
-                        <tr>
-                            <th colspan="3">Trigger</th>
-                        </tr>
-                        <tr>
-                            <td>Logical Date</td>
-                            <td>:</td>
-                            <td><vscode-textfield id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10" pattern="\d{4}-\d{2}-\d{2}"></vscode-textfield></td>
-                        </tr>
-                        <tr>
-                            <td>Config</td>
-                            <td>:</td>
-                            <td><vscode-textarea id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-textarea></td>
-                        </tr>
-                        <tr>           
-                            <td colspan="3">
-                            <vscode-button appearance="secondary" id="run-trigger-dag" ${isPaused ? "disabled" : ""}>Run</vscode-button>
-                            <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>  
-                            </td>
-                        </tr>
-                    </table>
-
-                    <br>
-
-                    <table>
-                        <tr>
-                            <th colspan="3">
-                            <vscode-button appearance="secondary" id="run-pause-dag" ${isPaused ? "disabled" : ""}>
-                            Pause
-                            </vscode-button>
-                            <vscode-button appearance="secondary" id="run-unpause-dag" ${!isPaused ? "disabled" : ""}>
-                            Un Pause
-                            </vscode-button>
-                            </th>
-                        </tr>
-                    </table>
-
-                    <br>
-                    <br>
-                    <br>
-                    
-                    <table>
-                        <tr>
-                            <td colspan="3">
-                                <a href="https://github.com/necatiarslan/airflow-vscode-extension/issues/new">Bug Report & Feature Request</a>
-                            </td>
-                        </tr>
-                    </table>
-                    <table>
-                        <tr>
-                            <td colspan="3">
-                                <a href="https://bit.ly/airflow-extension-survey">New Feature Survey</a>
-                            </td>
-                        </tr>
-                    </table>
-                    <table>
-                        <tr>
-                            <td colspan="3">
-                                <a href="https://github.com/sponsors/necatiarslan">Donate to support this extension</a>
-                            </td>
-                        </tr>
-                    </table>
-            </section>
-            </vscode-tab-panel>
-
-
-            <vscode-tab-panel>
-
-            <section>
-
-                    ${taskDependencyTree ? `
-                    <table>
-                        <tr>
-                            <th>Task Dependencies</th>
-                        </tr>
-                        <tr>
-                            <td>
-                                <vscode-tree>
-                                ${taskDependencyTree}
-                                </vscode-tree>
-                            </td>
-                        </tr>
-                    </table>
-                    <br>
-                    ` : ''}
-
-                    <table>
-                        <tr>
-                            <th colspan="4">Tasks</th>
-                        </tr>
-                        <tr>
-                            <td>Task</td>
-                            <td></td>
-                            <td>Duration</td>            
-                            <td>Operator</td>
-                        </tr>
-
-                        ${taskRows}
-
-                        <tr>          
-                            <td colspan="4">
-                                <vscode-button appearance="secondary" id="tasks-refresh">Refresh</vscode-button>
-                                <vscode-button appearance="secondary" id="tasks-more-detail" ${!this.dagTaskInstancesJson ? "disabled" : ""}>More</vscode-button>
-                            </td>
-                        </tr>
-                    </table>
-
-            </section>
-            </vscode-tab-panel>
-            
-            <vscode-tab-panel>
-            <section>
-
-                    <table>
-                    <tr>
-                        <th colspan=3>Other</th>
-                    </tr>
-                    <tr>
-                        <td>Owners</td>
-                        <td>:</td>
-                        <td>${owners}</td>
-                    </tr>
-                    <tr>
-                        <td>Tags</td>
-                        <td>:</td>
-                        <td>${tags}</td>
-                    </tr>
-                    <tr>
-                        <td>Schedule</td>
-                        <td>:</td>
-                        <td>${schedule}</td>
-                    </tr>
-                    <tr>
-                        <td>Next Run</td>
-                        <td>:</td>
-                        <td>${next_run}</td>
-                    </tr>
-                    <tr>           
-                        <td colspan="3"><vscode-button appearance="secondary" id="info-source-code">Source Code</vscode-button> <vscode-button appearance="secondary" id="other-dag-detail">More</vscode-button></td>
-                    </tr>
-                    </table>
-
-            </section>
-            </vscode-tab-panel>
-
-            <vscode-tab-panel>
-
-            <section>
-    
-                    <table>
-                        <tr>
-                            <th colspan=4>HISTORY</th>
-                        </tr>
-                        <tr>
-                            <td>Date</td>
-                            <td>:</td>
-                            <td>
-                            <input type="date" id="history_date" value="${this.dagHistorySelectedDate}">
-                            </td>
-                            <td><vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button></td>
-                        </tr>
-                    </table>
-
-                    <table>
-                        <tr>
-                            <th colspan=4>DAG RUNS</th>
-                        </tr>
-                        <tr>
-                            <td></td>
-                            <td>Start Time</td>            
-                            <td>Duration</td>
-                            <td>Notes</td>
-                        </tr>
-                        ${runHistoryRows}
-                    </table>   
-    
-            </section>
-            </vscode-tab-panel>
-
-        </vscode-tabs>
-      </body>
-    </html>
-    `;
-        ui.logToOutput('DagView._getWebviewContent Completed');
-        return result;
-    }
-    _setWebviewMessageListener(webview) {
-        ui.logToOutput('DagView._setWebviewMessageListener Started');
-        webview.onDidReceiveMessage((message) => {
-            const command = message.command;
-            let activetabid = message.activetabid;
-            if (["tab-1", "tab-2", "tab-3", "tab-4"].includes(activetabid)) {
-                this.activetabid = message.activetabid;
-            }
-            ui.logToOutput('DagView._setWebviewMessageListener Message Received ' + message.command);
-            switch (command) {
-                case "run-trigger-dag":
-                    this.triggerDagWConfig(message.config, message.date);
-                    return;
-                case "run-view-log":
-                    this.showDAGRunLog();
-                    return;
-                case "run-more-dagrun-detail":
-                    ui.showOutputMessage(this.dagRunJson);
-                    return;
-                case "other-dag-detail":
-                    ui.showOutputMessage(this.dagJson);
-                    return;
-                case "tasks-more-detail":
-                    ui.showOutputMessage(this.dagTaskInstancesJson);
-                    return;
-                case "history-load-runs":
-                    this.getRunHistoryAndRenderHtml(message.date);
-                    return;
-                case "info-source-code":
-                    this.showSourceCode();
-                    return;
-                case "run-pause-dag":
-                    this.pauseDAG(true);
-                    return;
-                case "run-unpause-dag":
-                    this.pauseDAG(false);
-                    return;
-                case "run-ask-ai":
-                    this.askAI();
-                    return;
-                case "run-lastrun-check":
-                    this.getLastRun();
-                    if (this.dagRunJson) {
-                        this.startCheckingDagRunStatus(this.dagRunId);
-                    }
-                    return;
-                case "run-lastrun-cancel":
-                    if (this.dagRunJson) {
-                        this.cancelDagRun(this.dagRunId);
-                    }
-                    return;
-                case "run-update-note":
-                    if (this.dagRunJson) {
-                        this.updateDagRunNote("");
-                    }
-                    return;
-                case "history-dag-run-id":
-                    let dagRunId = message.id;
-                    dagRunId = dagRunId.replace("history-dag-run-id-", "");
-                    this.activetabid = "tab-1";
-                    this.getDagRun(this.dagId, dagRunId);
-                    return;
-                case "task-log-link":
-                    let taskId = message.id;
-                    taskId = taskId.replace("task-log-link-", "");
-                    this.showTaskInstanceLog(this.dagId, this.dagRunId, taskId);
-                    return;
-                case "task-xcom-link":
-                    let xcomTaskId = message.id;
-                    xcomTaskId = xcomTaskId.replace("task-xcom-link-", "");
-                    this.showTaskXComs(this.dagId, this.dagRunId, xcomTaskId);
-                    return;
-                case "tasks-refresh":
-                    this.getTasksAndRenderHtml();
-                    return;
-                case "tabControlChanged":
-                    this.activetabid = message.activeid;
-                    ui.logToOutput("tab changed to " + message.activeid);
-                    return;
-            }
-        }, undefined, this._disposables);
-    }
-    async getTasksAndRenderHtml() {
-        await this.getDagTasks();
-        await this.renderHmtl();
-    }
-    async cancelDagRun(dagRunId) {
-        ui.logToOutput('DagView.cancelDagRun Started');
-        let result = await this.api.cancelDagRun(this.dagId, dagRunId);
-        if (result.isSuccessful) {
-            ui.showInfoMessage(`Dag ${this.dagId} Run ${dagRunId} cancelled successfully.`);
-            ui.logToOutput(`Dag ${this.dagId} Run ${dagRunId} cancelled successfully.`);
-            await this.getDagRun(this.dagId, dagRunId);
-            MessageHub.DagRunCancelled(this, this.dagId, dagRunId);
-        }
-    }
-    async updateDagRunNote(note) {
-        ui.logToOutput('DagView.updateDagRunNote Started');
-        if (!this.api || !this.dagRunJson) {
-            return;
-        }
-        // Show input box with current note as default value
-        const newNote = await vscode.window.showInputBox({
-            prompt: 'Enter note for this DAG run',
-            value: this.dagRunJson.note || '',
-            placeHolder: 'Add a note for this DAG run'
-        });
-        // User cancelled the input
-        if (newNote === undefined) {
-            return;
-        }
-        const result = await this.api.updateDagRunNote(this.dagId, this.dagRunId, newNote);
-        if (result.isSuccessful) {
-            // Refresh the DAG run to get the updated note
-            await this.getDagRun(this.dagId, this.dagRunId);
-        }
-    }
-    async pauseDAG(is_paused) {
-        ui.logToOutput('DagTreeView.pauseDAG Started');
-        if (is_paused && this.dagJson.is_paused) {
-            ui.showWarningMessage(this.dagId + 'Dag is already PAUSED');
-            return;
-        }
-        if (!is_paused && !this.dagJson.is_paused) {
-            ui.showWarningMessage(this.dagId + 'Dag is already ACTIVE');
-            return;
-        }
-        let result = await this.api.pauseDag(this.dagId, is_paused);
-        if (result.isSuccessful) {
-            this.loadDagInfoOnly();
-            is_paused ? MessageHub.DagPaused(this, this.dagId) : MessageHub.DagUnPaused(this, this.dagId);
-        }
-    }
-    async askAI() {
-        ui.logToOutput('DagView.askAI Started');
-        if (!DagTreeView_1.DagTreeView.Current) {
-            ui.showErrorMessage('DagTreeView is not available');
-            return;
-        }
-        if (!this.dagJson) {
-            ui.showErrorMessage('DAG information is not available');
-            return;
-        }
-        let code = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
-        if (!code.isSuccessful) {
-            ui.showErrorMessage('Failed to retrieve DAG source code for AI context');
-            return;
-        }
-        let logs = await this.api.getDagRunLog(this.dagId, this.dagRunId);
-        if (!logs.isSuccessful) {
-            ui.showErrorMessage('Failed to retrieve DAG logs for AI context');
-            return;
-        }
-        // Call the askAI function from DagTreeView
-        await DagTreeView_1.DagTreeView.Current?.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
-    }
-    async showSourceCode() {
-        ui.logToOutput('DagView.showSourceCode Started');
-        let result = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
-        if (result.isSuccessful) {
-            const tmp = __webpack_require__(10);
-            const fs = __webpack_require__(7);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.py' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
-        }
-        else {
-            ui.logToOutput(result.result);
-            ui.showErrorMessage(result.result);
-        }
-    }
-    async getRunHistoryAndRenderHtml(date) {
-        ui.logToOutput('DagView.getRunHistoryAndRenderHtml Started');
-        this.dagHistorySelectedDate = date;
-        await this.getRunHistory(date);
-        await this.renderHmtl();
-    }
-    async showDAGRunLog() {
-        ui.logToOutput('DagView.DAGRunLog Started');
-        let result = await this.api.getDagRunLog(this.dagId, this.dagRunId);
-        if (result.isSuccessful) {
-            const tmp = __webpack_require__(10);
-            const fs = __webpack_require__(7);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.log' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
-        }
-    }
-    async showTaskInstanceLog(dagId, dagRunId, taskId) {
-        ui.logToOutput('DagView.showTaskInstanceLog Started');
-        let result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
-        if (result.isSuccessful) {
-            const tmp = __webpack_require__(10);
-            const fs = __webpack_require__(7);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId, postfix: '.log' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
-        }
-    }
-    async showTaskXComs(dagId, dagRunId, taskId) {
-        ui.logToOutput('DagView.showTaskXComs Started');
-        let result = await this.api.getTaskXComs(dagId, dagRunId, taskId);
-        if (result.isSuccessful) {
-            const tmp = __webpack_require__(10);
-            const fs = __webpack_require__(7);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId + '_xcom', postfix: '.json' });
-            fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
-            ui.openFile(tmpFile.name);
-        }
-        else {
-            ui.showInfoMessage(`No XCom entries found for task: ${taskId}`);
-        }
-    }
-    async triggerDagWConfig(config = "", date = "") {
-        ui.logToOutput('DagView.triggerDagWConfig Started');
-        if (config && !ui.isJsonString(config)) {
-            ui.showWarningMessage("Config is not a valid JSON");
-            return;
-        }
-        if (date && !ui.isValidDate(date)) {
-            ui.showWarningMessage("Date is not a valid DATE");
-            return;
-        }
-        if (!config) {
-            config = "{}";
-        }
-        if (config !== undefined) {
-            let result = await this.api.triggerDag(this.dagId, config, date);
-            if (result.isSuccessful) {
-                this.startCheckingDagRunStatus(result.result["dag_run_id"]);
-                MessageHub.DagTriggered(this, this.dagId, result.result["dag_run_id"]);
-            }
-        }
-    }
-    async startCheckingDagRunStatus(dagRunId) {
-        ui.logToOutput('DagView.startCheckingDagRunStatus Started');
-        this.dagRunId = dagRunId;
-        await this.refreshRunningDagState(this);
-        if (this.dagStatusInterval) {
-            clearInterval(this.dagStatusInterval); //stop prev checking
-        }
-        this.dagStatusInterval = setInterval(() => {
-            void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
-        }, 5 * 1000);
-    }
-    async stopCheckingDagRunStatus() {
-        ui.logToOutput('DagView.stopCheckingDagRunStatus Started');
-        if (this.dagStatusInterval) {
-            clearInterval(this.dagStatusInterval); //stop prev checking
-        }
-    }
-    async refreshRunningDagState(dagView) {
-        ui.logToOutput('DagView.refreshRunningDagState Started');
-        if (!dagView.dagId || !dagView.dagRunId) {
-            dagView.stopCheckingDagRunStatus();
-            return;
-        }
-        let result = await this.api.getDagRun(dagView.dagId, dagView.dagRunId);
-        if (result.isSuccessful) {
-            dagView.dagRunJson = result.result;
-            let resultTasks = await this.api.getTaskInstances(dagView.dagId, dagView.dagRunId);
-            if (resultTasks.isSuccessful) {
-                dagView.dagTaskInstancesJson = resultTasks.result;
-            }
-        }
-        else {
-            dagView.stopCheckingDagRunStatus();
-            return;
-        }
-        let state = (dagView.dagRunJson) ? dagView.dagRunJson.state : "";
-        //"queued" "running" "success" "failed"
-        if (state === "queued" || state === "running") {
-            //go on for the next check
-        }
-        else {
-            dagView.stopCheckingDagRunStatus();
-        }
-        dagView.renderHmtl();
-    }
-    buildTaskDependencyTree(tasks) {
-        ui.logToOutput('DagView.buildTaskDependencyTree Started');
-        // Create a map for quick task lookup
-        const taskMap = new Map();
-        tasks.forEach(task => {
-            taskMap.set(task.task_id, task);
-        });
-        // Find root tasks (tasks with no upstream dependencies)
-        const rootTasks = tasks.filter(task => !task.upstream_task_ids || task.upstream_task_ids.length === 0);
-        if (rootTasks.length === 0) {
-            return "No task dependencies found or circular dependencies detected.";
-        }
-        // Build tree recursively
-        const visited = new Set();
-        let treeHtml = "";
-        const buildTree = (taskId) => {
-            if (visited.has(taskId)) {
-                return ""; // Prevent infinite loops and duplicates in this spanning tree view
-            }
-            visited.add(taskId);
-            const task = taskMap.get(taskId);
-            if (!task) {
-                return "";
-            }
-            let itemHtml = `<vscode-tree-item>\n`;
-            itemHtml += `${task.task_id} (${task.operator || ''})\n`;
-            // Get downstream tasks
-            const downstreamIds = task.downstream_task_ids || [];
-            if (downstreamIds.length > 0) {
-                downstreamIds.forEach((downstreamId) => {
-                    itemHtml += buildTree(downstreamId);
-                });
-            }
-            itemHtml += `</vscode-tree-item>\n`;
-            return itemHtml;
-        };
-        // Build tree for each root task
-        rootTasks.forEach((rootTask) => {
-            treeHtml += buildTree(rootTask.task_id);
-        });
-        return treeHtml || "No tasks to display.";
-    }
-}
-exports.DagView = DagView;
-
-
-/***/ }),
-/* 6 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.toISODateString = toISODateString;
-exports.toISODateTimeString = toISODateTimeString;
-exports.getUri = getUri;
-exports.showOutputMessage = showOutputMessage;
-exports.logToOutput = logToOutput;
-exports.showInfoMessage = showInfoMessage;
-exports.showWarningMessage = showWarningMessage;
-exports.showErrorMessage = showErrorMessage;
-exports.showApiErrorMessage = showApiErrorMessage;
-exports.getExtensionVersion = getExtensionVersion;
-exports.openFile = openFile;
-exports.getDuration = getDuration;
-exports.convertMsToTime = convertMsToTime;
-exports.isJsonString = isJsonString;
-exports.isValidDate = isValidDate;
-const vscode = __webpack_require__(1);
-const vscode_1 = __webpack_require__(1);
-const fs_1 = __webpack_require__(7);
-const path_1 = __webpack_require__(8);
-let outputChannel;
-let logsOutputChannel;
-const NEW_LINE = "\n\n";
-function toISODateString(date) {
-    if (!date) {
-        return "";
-    }
-    return date.toISOString().split('T')[0];
-}
-function toISODateTimeString(date) {
-    if (!date) {
-        return "";
-    }
-    return date.toISOString().replace('T', ' ').substring(0, 19);
-}
-function getUri(webview, extensionUri, pathList) {
-    return webview.asWebviewUri(vscode_1.Uri.joinPath(extensionUri, ...pathList));
-}
-function showOutputMessage(message, popupMessage = "Results are printed to OUTPUT / Airflow-Extension") {
-    if (!outputChannel) {
-        outputChannel = vscode.window.createOutputChannel("Airflow-Extension");
-    }
-    outputChannel.clear();
-    if (typeof message === "object") {
-        outputChannel.appendLine(JSON.stringify(message, null, 4));
-    }
-    else {
-        outputChannel.appendLine(message);
-    }
-    outputChannel.show();
-    showInfoMessage(popupMessage);
-}
-function logToOutput(message, error = undefined) {
-    const now = new Date().toLocaleString();
-    if (!logsOutputChannel) {
-        logsOutputChannel = vscode.window.createOutputChannel("Airflow-Log");
-    }
-    if (typeof message === "object") {
-        logsOutputChannel.appendLine("[" + now + "] " + JSON.stringify(message, null, 4));
-    }
-    else {
-        logsOutputChannel.appendLine("[" + now + "] " + message);
-    }
-    if (error) {
-        logsOutputChannel.appendLine(error.name);
-        logsOutputChannel.appendLine(error.message);
-        if (error.stack) {
-            logsOutputChannel.appendLine(error.stack);
-        }
-    }
-}
-function showInfoMessage(message) {
-    vscode.window.showInformationMessage(message);
-}
-function showWarningMessage(message) {
-    vscode.window.showWarningMessage(message);
-}
-function showErrorMessage(message, error = undefined) {
-    if (error) {
-        vscode.window.showErrorMessage(message + NEW_LINE + error.name + NEW_LINE + error.message);
-    }
-    else {
-        vscode.window.showErrorMessage(message);
-    }
-}
-function showApiErrorMessage(message, jsonResult) {
-    let preText = "";
-    if (jsonResult) {
-        if (jsonResult.status === 403) {
-            preText = "Permission Denied !!!";
-            vscode.window.showErrorMessage(preText);
-        }
-        else if (jsonResult.status === 401) {
-            preText = "Invalid Authentication Info !!!";
-            vscode.window.showErrorMessage(preText);
-        }
-        else if (jsonResult.status === 404) {
-            preText = "Resource Not Found !!!";
-            vscode.window.showErrorMessage(preText);
-        }
-        else {
-            vscode.window.showErrorMessage(preText);
-        }
-    }
-    else {
-        vscode.window.showErrorMessage(message);
-    }
-}
-function getExtensionVersion() {
-    const { version: extVersion } = JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(__dirname, '..', 'package.json'), { encoding: 'utf8' }));
-    return extVersion;
-}
-function openFile(file) {
-    // Use workspace API to open file in editor and show it in column one
-    (async () => {
-        try {
-            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
-            await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.One, preview: false });
-        }
-        catch (err) {
-            logToOutput('openFile Error', err);
-        }
-    })();
-}
-function padTo2Digits(num) {
-    return num.toString().padStart(2, '0');
-}
-function getDuration(startDate, endDate) {
-    if (!startDate) {
-        return "";
-    }
-    if (!endDate || endDate < startDate) {
-        endDate = new Date(); //now
-    }
-    const duration = endDate.valueOf() - startDate.valueOf();
-    return (convertMsToTime(duration));
-}
-function convertMsToTime(milliseconds) {
-    let seconds = Math.floor(milliseconds / 1000);
-    let minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    seconds = seconds % 60;
-    minutes = minutes % 60;
-    return `${padTo2Digits(hours)}:${padTo2Digits(minutes)}:${padTo2Digits(seconds)}`;
-}
-function isJsonString(jsonString) {
-    try {
-        const json = JSON.parse(jsonString);
-        return (typeof json === 'object');
-    }
-    catch (e) {
-        return false;
-    }
-}
-function isValidDate(dateString) {
-    const regEx = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateString.match(regEx)) {
-        return false; // Invalid format
-    }
-    const d = new Date(dateString);
-    const dNum = d.getTime();
-    if (!dNum && dNum !== 0) {
-        return false; // NaN value, Invalid date
-    }
-    return d.toISOString().slice(0, 10) === dateString;
-}
-
-
-/***/ }),
-/* 7 */
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("fs");
-
-/***/ }),
-/* 8 */
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("path");
-
-/***/ }),
-/* 9 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagTriggered = DagTriggered;
-exports.DagRunCancelled = DagRunCancelled;
-exports.DagPaused = DagPaused;
-exports.DagUnPaused = DagUnPaused;
-const DagView_1 = __webpack_require__(5);
-const DagTreeView_1 = __webpack_require__(2);
-function DagTriggered(source, dagId, dagRunId) {
-    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
-        DagView_1.DagView.Current.getDagRun(dagId, dagRunId);
-    }
-    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
-        DagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(dagId);
-    }
-}
-function DagRunCancelled(source, dagId, dagRunId) {
-    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
-        DagView_1.DagView.Current.getDagRun(dagId, dagRunId);
-    }
-    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
-        DagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(dagId);
-    }
-}
-function DagPaused(source, dagId) {
-    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
-        DagView_1.DagView.Current.loadDagInfoOnly();
-    }
-    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
-        DagTreeView_1.DagTreeView.Current?.notifyDagPaused(dagId);
-    }
-}
-function DagUnPaused(source, dagId) {
-    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
-        DagView_1.DagView.Current.loadDagInfoOnly();
-    }
-    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
-        DagTreeView_1.DagTreeView.Current?.notifyDagUnPaused(dagId);
-    }
-}
-
-
-/***/ }),
-/* 10 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /*!
@@ -2175,10 +913,10 @@ function DagUnPaused(source, dagId) {
 /*
  * Module dependencies.
  */
-const fs = __webpack_require__(7);
-const os = __webpack_require__(11);
-const path = __webpack_require__(8);
-const crypto = __webpack_require__(12);
+const fs = __webpack_require__(4);
+const os = __webpack_require__(5);
+const path = __webpack_require__(6);
+const crypto = __webpack_require__(7);
 const _c = { fs: fs.constants, os: os.constants };
 
 /*
@@ -3009,18 +1747,1269 @@ module.exports.setGracefulCleanup = setGracefulCleanup;
 
 
 /***/ }),
-/* 11 */
+/* 4 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("fs");
+
+/***/ }),
+/* 5 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("os");
 
 /***/ }),
-/* 12 */
+/* 6 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("path");
+
+/***/ }),
+/* 7 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("crypto");
+
+/***/ }),
+/* 8 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTreeDataProvider = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const DagTreeItem_1 = __webpack_require__(9);
+const DagTreeView_1 = __webpack_require__(2);
+class DagTreeDataProvider {
+    constructor() {
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+        this.dagTreeItemList = [];
+        this.visibleDagList = [];
+    }
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+    loadDagTreeItemsFromApiResponse() {
+        this.dagTreeItemList = [];
+        if (this.dagList) {
+            for (var dag of this.dagList) {
+                if (dag) {
+                    let treeItem = new DagTreeItem_1.DagTreeItem(dag);
+                    this.dagTreeItemList.push(treeItem);
+                }
+            }
+        }
+    }
+    getChildren(element) {
+        if (!element) {
+            this.visibleDagList = this.getVisibleDagList();
+            return Promise.resolve(this.visibleDagList);
+        }
+        return Promise.resolve([]);
+    }
+    getVisibleDagList() {
+        var result = [];
+        for (var node of this.dagTreeItemList) {
+            if (DagTreeView_1.DagTreeView.Current.filterString && !node.doesFilterMatch(DagTreeView_1.DagTreeView.Current.filterString)) {
+                continue;
+            }
+            if (DagTreeView_1.DagTreeView.Current.ShowOnlyActive && node.IsPaused) {
+                continue;
+            }
+            if (DagTreeView_1.DagTreeView.Current.ShowOnlyFavorite && !node.IsFav) {
+                continue;
+            }
+            result.push(node);
+        }
+        return result;
+    }
+    getTreeItem(element) {
+        return element;
+    }
+}
+exports.DagTreeDataProvider = DagTreeDataProvider;
+
+
+/***/ }),
+/* 9 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTreeItem = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+class DagTreeItem extends vscode.TreeItem {
+    constructor(apiResponse) {
+        super(apiResponse.dag_id);
+        this.LatestDagRunId = '';
+        this.LatestDagState = '';
+        this._IsFav = false;
+        this.IsFiltered = false;
+        this.ApiResponse = apiResponse;
+        this.DagId = apiResponse.dag_id;
+        this.IsActive = apiResponse.is_active;
+        this.IsPaused = apiResponse.is_paused;
+        this.Owners = apiResponse.owners;
+        this.Tags = apiResponse.tags;
+        this.FileToken = apiResponse.file_token;
+        this.setContextValue();
+        this.refreshUI();
+    }
+    set IsFav(value) {
+        this._IsFav = value;
+        this.setContextValue();
+    }
+    get IsFav() {
+        return this._IsFav;
+    }
+    isDagRunning() {
+        return (this.LatestDagState === 'queued' || this.LatestDagState === 'running');
+    }
+    setContextValue() {
+        let contextValue = "#";
+        contextValue += this.IsFav ? "IsFav#" : "!IsFav#";
+        contextValue += this.IsPaused ? "IsPaused#" : "!IsPaused#";
+        contextValue += this.IsActive ? "IsActive#" : "!IsActive#";
+        contextValue += this.IsFiltered ? "IsFiltered#" : "!IsFiltered#";
+        contextValue += this.isDagRunning() ? "IsRunning#" : "!IsRunning#";
+        this.contextValue = contextValue;
+    }
+    refreshUI() {
+        if (this.IsPaused) {
+            this.iconPath = new vscode.ThemeIcon('circle-outline');
+            this.ApiResponse.is_paused = true;
+        }
+        else {
+            //"queued" "running" "success" "failed"
+            if (this.LatestDagState === 'queued') {
+                this.iconPath = new vscode.ThemeIcon('loading~spin');
+            }
+            else if (this.LatestDagState === 'running') {
+                this.iconPath = new vscode.ThemeIcon('loading~spin');
+            }
+            else if (this.LatestDagState === 'success') {
+                this.iconPath = new vscode.ThemeIcon('check');
+            }
+            else if (this.LatestDagState === 'failed') {
+                this.iconPath = new vscode.ThemeIcon('error');
+            }
+            else {
+                this.iconPath = new vscode.ThemeIcon('circle-filled');
+            }
+            this.ApiResponse.is_paused = false;
+        }
+        // Update context value to reflect current running state
+        this.setContextValue();
+    }
+    doesFilterMatch(filterString) {
+        const words = filterString.split(',');
+        const matchingWords = [];
+        for (const word of words) {
+            if (word === 'active' && !this.IsPaused) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (word === 'paused' && this.IsPaused) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (this.DagId.includes(word)) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (this.Owners.includes(word)) {
+                matchingWords.push(word);
+                continue;
+            }
+            if (word === 'fav' && this.IsFav) {
+                matchingWords.push(word);
+                continue;
+            }
+            for (const t of this.Tags) {
+                if (t.name.includes(word)) {
+                    matchingWords.push(word);
+                    continue;
+                }
+            }
+        }
+        this.IsFiltered = (words.length === matchingWords.length);
+        return this.IsFiltered;
+    }
+}
+exports.DagTreeItem = DagTreeItem;
+
+
+/***/ }),
+/* 10 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const tmp = __webpack_require__(3);
+const fs = __webpack_require__(4);
+const ui = __webpack_require__(11);
+const DagTreeView_1 = __webpack_require__(2);
+const MessageHub = __webpack_require__(12);
+class DagView {
+    constructor(panel, extensionUri, dagId, api, dagRunId) {
+        this._disposables = [];
+        this.dagHistorySelectedDate = ui.toISODateString(new Date());
+        this.activetabid = "tab-1";
+        ui.logToOutput('DagView.constructor Started');
+        this.dagId = dagId;
+        this.extensionUri = extensionUri;
+        this.api = api;
+        this.dagRunId = dagRunId;
+        this._panel = panel;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadAllDagData();
+        ui.logToOutput('DagView.constructor Completed');
+    }
+    resetDagData() {
+        this.activetabid = "tab-1";
+        this.dagJson = undefined;
+        this.dagRunJson = undefined;
+        this.dagRunHistoryJson = undefined;
+        this.dagTaskInstancesJson = undefined;
+        this.dagTasksJson = undefined;
+        this.stopCheckingDagRunStatus();
+    }
+    async loadAllDagData() {
+        ui.logToOutput('DagView.loadAllDagData Started');
+        await this.getDagInfo();
+        if (this.dagRunId) {
+            await this.getDagRun(this.dagId, this.dagRunId);
+        }
+        else {
+            await this.getLastRun();
+        }
+        await this.getDagTasks();
+        //await this.getRunHistory();
+        await this.renderHmtl();
+    }
+    async loadDagInfoOnly() {
+        ui.logToOutput('DagView.loadDagInfoOnly Started');
+        await this.getDagInfo();
+        await this.renderHmtl();
+    }
+    async renderHmtl() {
+        ui.logToOutput('DagView.renderHmtl Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        //ui.showOutputMessage(this._panel.webview.html);
+        ui.logToOutput('DagView.renderHmtl Completed');
+    }
+    static render(extensionUri, dagId, api, dagRunId) {
+        ui.logToOutput('DagView.render Started');
+        if (DagView.Current) {
+            DagView.Current.api = api;
+            DagView.Current.dagId = dagId;
+            DagView.Current.dagRunId = dagRunId;
+            DagView.Current._panel.reveal(vscode.ViewColumn.Two);
+            DagView.Current.resetDagData();
+            DagView.Current.loadAllDagData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
+                enableScripts: true,
+            });
+            DagView.Current = new DagView(panel, extensionUri, dagId, api, dagRunId);
+        }
+    }
+    /**
+     * Helper method to create a temp file and open it
+     */
+    createAndOpenTempFile(content, prefix, extension) {
+        const tmpFile = tmp.fileSync({ mode: 0o644, prefix, postfix: extension });
+        fs.appendFileSync(tmpFile.name, content);
+        ui.openFile(tmpFile.name);
+    }
+    async getLastRun() {
+        ui.logToOutput('DagView.getLastRun Started');
+        const result = await this.api.getLastDagRun(this.dagId);
+        if (result.isSuccessful) {
+            this.dagRunJson = result.result;
+            this.dagRunId = this.dagRunJson.dag_run_id;
+            this.getTaskInstances(this.dagRunId);
+            if (this.dagRunJson && this.dagRunJson.state === "running") {
+                this.startCheckingDagRunStatus(this.dagRunId);
+            }
+        }
+    }
+    async getDagRun(dagId, dagRunId) {
+        ui.logToOutput('DagView.getDagRun Started');
+        const result = await this.api.getDagRun(dagId, dagRunId);
+        if (result.isSuccessful) {
+            this.dagRunJson = result.result;
+            this.dagRunId = this.dagRunJson.dag_run_id;
+            this.getTaskInstances(this.dagRunId);
+        }
+        await this.renderHmtl();
+    }
+    async getRunHistory(date) {
+        ui.logToOutput('DagView.getRunHistory Started');
+        const result = await this.api.getDagRunHistory(this.dagId, date);
+        if (result.isSuccessful) {
+            this.dagRunHistoryJson = result.result;
+        }
+    }
+    async getTaskInstances(dagRunId) {
+        ui.logToOutput('DagView.getTaskInstances Started');
+        const result = await this.api.getTaskInstances(this.dagId, dagRunId);
+        if (result.isSuccessful) {
+            this.dagTaskInstancesJson = result.result;
+        }
+    }
+    async getDagInfo() {
+        ui.logToOutput('DagView.getDagInfo Started');
+        const result = await this.api.getDagInfo(this.dagId);
+        if (result.isSuccessful) {
+            this.dagJson = result.result;
+        }
+    }
+    async getDagTasks() {
+        ui.logToOutput('DagView.getDagTasks Started');
+        const result = await this.api.getDagTasks(this.dagId);
+        if (result.isSuccessful) {
+            this.dagTasksJson = result.result;
+        }
+    }
+    dispose() {
+        ui.logToOutput('DagView.dispose Started');
+        DagView.Current = undefined;
+        // stop any running interval checks
+        this.stopCheckingDagRunStatus();
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('DagView._getWebviewContent Started');
+        //file URIs
+        const toolkitUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode-elements",
+            "elements",
+            "dist",
+            "bundled.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        //LATEST DAG RUN
+        let state = "";
+        let logical_date = undefined;
+        let start_date = undefined;
+        let end_date = undefined;
+        let logical_date_string = "";
+        let start_date_string = "";
+        let duration = "";
+        let isDagRunning = false;
+        let hasDagRun = false;
+        if (this.dagRunJson) {
+            state = this.dagRunJson.state;
+            logical_date = this.dagRunJson.logical_date;
+            start_date = this.dagRunJson.start_date;
+            end_date = this.dagRunJson.end_date;
+            logical_date_string = logical_date ? ui.toISODateTimeString(new Date(logical_date)) : "";
+            start_date_string = start_date ? ui.toISODateTimeString(new Date(start_date)) : "";
+            duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
+            isDagRunning = (state === "queued" || state === "running") ? true : false;
+            hasDagRun = true;
+        }
+        let runningOrFailedTasks = "";
+        if (this.dagTaskInstancesJson) {
+            for (const t of this.dagTaskInstancesJson["task_instances"]) {
+                if (t.state === "running" || t.state === "failed" || t.state === "up_for_retry" || t.state === "up_for_reschedule" || t.state === "deferred") {
+                    runningOrFailedTasks += t.task_id + ", ";
+                }
+            }
+        }
+        //INFO TAB
+        let owners = (this.dagJson && Array.isArray(this.dagJson["owners"])) ? this.dagJson["owners"].join(", ") : "";
+        let tags = "";
+        if (this.dagJson && Array.isArray(this.dagJson["tags"])) {
+            this.dagJson["tags"].forEach((item) => { tags += item.name + ", "; });
+        }
+        let schedule = (this.dagJson && this.dagJson["timetable_description"]) ? this.dagJson["timetable_description"] + " - " + this.dagJson["timetable_summary"] : "";
+        let next_run = (this.dagJson && this.dagJson["next_dagrun_data_interval_start"]) ? ui.toISODateTimeString(new Date(this.dagJson["next_dagrun_data_interval_start"])) : "None";
+        let isPausedText = (this.dagJson) ? (this.dagJson.is_paused ? "true" : "false") : "unknown";
+        let isPaused = isPausedText === "true";
+        //TASKS TAB
+        let taskRows = "";
+        if (this.dagTaskInstancesJson) {
+            for (const t of this.dagTaskInstancesJson["task_instances"].sort((a, b) => (a.start_date > b.start_date) ? 1 : -1)) {
+                taskRows += `
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center;">
+                            <div class="state-${t.state}" title="${t.state}" ></div>
+                            &nbsp; ${t.task_id} (${t.try_number})
+                        </div>
+                    </td>
+                    <td>
+                        <a href="#" id="task-log-link-${t.task_id}">Log</a> | 
+                        <a href="#" id="task-xcom-link-${t.task_id}">XCom</a>
+                    </td>
+                    <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
+                    <td>${t.operator}</td>
+                </tr>
+                `;
+            }
+        }
+        // BUILD TASK DEPENDENCY TREE
+        let taskDependencyTree = "";
+        if (this.dagTasksJson && this.dagTasksJson.tasks && this.dagTasksJson.tasks.length > 0) {
+            taskDependencyTree = this.buildTaskDependencyTree(this.dagTasksJson.tasks);
+        }
+        //HISTORY TAB
+        let runHistoryRows = "";
+        if (this.dagRunHistoryJson) {
+            for (const t of this.dagRunHistoryJson["dag_runs"]) {
+                runHistoryRows += `
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center;">
+                            <div class="state-${t.state}" title="${t.state}"></div>
+                            &nbsp; ${t.state}
+                        </div>
+                    </td>
+                    <td><a href="#" id="history-dag-run-id-${t.dag_run_id}">${ui.toISODateTimeString(new Date(t.start_date))}</a></td>
+                    <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
+                    <td>${t.note}</td>
+                </tr>
+                `;
+            }
+        }
+        let result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <style>
+            input[type="date"] {
+                padding: 6px 8px;
+                border: 1px solid var(--vscode-input-border);
+                background-color: var(--vscode-input-background);
+                color: var(--vscode-input-foreground);
+                border-radius: 4px;
+                font-size: 13px;
+            }
+        </style>
+        <title>DAG</title>
+      </head>
+      <body>  
+
+
+        <div style="display: flex; align-items: center;">
+            <div class="dag-paused-${isPausedText}"></div>
+            &nbsp; &nbsp; <h2>${this.dagId}</h2>
+            <div style="visibility: ${isDagRunning ? "visible" : "hidden"}; display: flex; align-items: center;">
+            &nbsp; &nbsp; <vscode-progress-ring></vscode-progress-ring>
+            </div>
+        </div>
+                    
+
+        <vscode-tabs id="tab-control" selected-index="${this.activetabid === 'tab-1' ? 0 : this.activetabid === 'tab-2' ? 1 : this.activetabid === 'tab-3' ? 2 : 3}">
+            <vscode-tab-header slot="header">RUN</vscode-tab-header>
+            <vscode-tab-header slot="header">TASKS</vscode-tab-header>
+            <vscode-tab-header slot="header">INFO</vscode-tab-header>
+            <vscode-tab-header slot="header">HISTORY</vscode-tab-header>
+            
+            <vscode-tab-panel>
+                
+            <section>
+
+                    <table class="dag-run-details-table">
+                        <tr>
+                            <th colspan=3>Dag Run Details</th>
+                        </tr>
+                        <tr>
+                            <td>State</td>
+                            <td>:</td>
+                            <td>
+                                <div style="display: flex; align-items: center;">
+                                    <div class="state-${state}"></div> &nbsp; ${state}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Tasks</td>
+                            <td>:</td>
+                            <td>${runningOrFailedTasks}</td>
+                        </tr>
+                        <tr>
+                            <td>Logical Date</td>
+                            <td>:</td>
+                            <td>${logical_date_string}</td>
+                        </tr>
+                        <tr>
+                            <td>StartDate</td>
+                            <td>:</td>
+                            <td>${start_date_string}</td>
+                        </tr>
+                        <tr>
+                            <td>Duration</td>
+                            <td>:</td>
+                            <td>${duration}</td>
+                        </tr>
+                        <tr>
+                            <td>Note</td>
+                            <td>:</td>
+                            <td><a href="#" id="run-update-note-link" title="Update Note">${this.dagRunJson?.note || '(No note)'}</a></td>
+                        </tr>
+                        <tr>
+                            <td>Config</td>
+                            <td>:</td>
+                            <td>${this.dagRunJson?.conf ? JSON.stringify(this.dagRunJson.conf, null, 2) : '(No config)'}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">
+                                <vscode-button appearance="secondary" id="run-ask-ai" ${!hasDagRun ? "disabled" : ""}>Ask AI</vscode-button>    
+                                <vscode-button appearance="secondary" id="run-view-log" ${!hasDagRun ? "disabled" : ""}>Log</vscode-button> 
+                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>  
+                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagRun ? "disabled" : ""}>More</vscode-button>
+                            </td>
+                        </tr>
+                    </table>
+            
+                    <br>
+            
+                    <table>
+                        <tr>
+                            <th colspan="3">Trigger</th>
+                        </tr>
+                        <tr>
+                            <td>Logical Date</td>
+                            <td>:</td>
+                            <td><vscode-textfield id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10" pattern="\d{4}-\d{2}-\d{2}"></vscode-textfield></td>
+                        </tr>
+                        <tr>
+                            <td>Config</td>
+                            <td>:</td>
+                            <td><vscode-textarea id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-textarea></td>
+                        </tr>
+                        <tr>           
+                            <td colspan="3">
+                            <vscode-button appearance="secondary" id="run-trigger-dag" ${isPaused ? "disabled" : ""}>Run</vscode-button>
+                            <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>  
+                            </td>
+                        </tr>
+                    </table>
+
+                    <br>
+
+                    <table>
+                        <tr>
+                            <th colspan="3">
+                            <vscode-button appearance="secondary" id="run-pause-dag" ${isPaused ? "disabled" : ""}>
+                            Pause
+                            </vscode-button>
+                            <vscode-button appearance="secondary" id="run-unpause-dag" ${!isPaused ? "disabled" : ""}>
+                            Un Pause
+                            </vscode-button>
+                            </th>
+                        </tr>
+                    </table>
+
+                    <br>
+                    <br>
+                    <br>
+                    
+                    <table>
+                        <tr>
+                            <td colspan="3">
+                                <a href="https://github.com/necatiarslan/airflow-vscode-extension/issues/new">Bug Report & Feature Request</a>
+                            </td>
+                        </tr>
+                    </table>
+                    <table>
+                        <tr>
+                            <td colspan="3">
+                                <a href="https://bit.ly/airflow-extension-survey">New Feature Survey</a>
+                            </td>
+                        </tr>
+                    </table>
+                    <table>
+                        <tr>
+                            <td colspan="3">
+                                <a href="https://github.com/sponsors/necatiarslan">Donate to support this extension</a>
+                            </td>
+                        </tr>
+                    </table>
+            </section>
+            </vscode-tab-panel>
+
+
+            <vscode-tab-panel>
+
+            <section>
+
+                    ${taskDependencyTree ? `
+                    <table>
+                        <tr>
+                            <th>Task Dependencies</th>
+                        </tr>
+                        <tr>
+                            <td>
+                                <vscode-tree>
+                                ${taskDependencyTree}
+                                </vscode-tree>
+                            </td>
+                        </tr>
+                    </table>
+                    <br>
+                    ` : ''}
+
+                    <table>
+                        <tr>
+                            <th colspan="4">Tasks</th>
+                        </tr>
+                        <tr>
+                            <td>Task</td>
+                            <td></td>
+                            <td>Duration</td>            
+                            <td>Operator</td>
+                        </tr>
+
+                        ${taskRows}
+
+                        <tr>          
+                            <td colspan="4">
+                                <vscode-button appearance="secondary" id="tasks-refresh">Refresh</vscode-button>
+                                <vscode-button appearance="secondary" id="tasks-more-detail" ${!this.dagTaskInstancesJson ? "disabled" : ""}>More</vscode-button>
+                            </td>
+                        </tr>
+                    </table>
+
+            </section>
+            </vscode-tab-panel>
+            
+            <vscode-tab-panel>
+            <section>
+
+                    <table>
+                    <tr>
+                        <th colspan=3>Other</th>
+                    </tr>
+                    <tr>
+                        <td>Owners</td>
+                        <td>:</td>
+                        <td>${owners}</td>
+                    </tr>
+                    <tr>
+                        <td>Tags</td>
+                        <td>:</td>
+                        <td>${tags}</td>
+                    </tr>
+                    <tr>
+                        <td>Schedule</td>
+                        <td>:</td>
+                        <td>${schedule}</td>
+                    </tr>
+                    <tr>
+                        <td>Next Run</td>
+                        <td>:</td>
+                        <td>${next_run}</td>
+                    </tr>
+                    <tr>           
+                        <td colspan="3"><vscode-button appearance="secondary" id="info-source-code">Source Code</vscode-button> <vscode-button appearance="secondary" id="other-dag-detail">More</vscode-button></td>
+                    </tr>
+                    </table>
+
+            </section>
+            </vscode-tab-panel>
+
+            <vscode-tab-panel>
+
+            <section>
+    
+                    <table>
+                        <tr>
+                            <th colspan=4>HISTORY</th>
+                        </tr>
+                        <tr>
+                            <td>Date</td>
+                            <td>:</td>
+                            <td>
+                            <input type="date" id="history_date" value="${this.dagHistorySelectedDate}">
+                            </td>
+                            <td><vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button></td>
+                        </tr>
+                    </table>
+
+                    <table>
+                        <tr>
+                            <th colspan=4>DAG RUNS</th>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td>Start Time</td>            
+                            <td>Duration</td>
+                            <td>Notes</td>
+                        </tr>
+                        ${runHistoryRows}
+                    </table>   
+    
+            </section>
+            </vscode-tab-panel>
+
+        </vscode-tabs>
+      </body>
+    </html>
+    `;
+        ui.logToOutput('DagView._getWebviewContent Completed');
+        return result;
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('DagView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            const command = message.command;
+            let activetabid = message.activetabid;
+            if (["tab-1", "tab-2", "tab-3", "tab-4"].includes(activetabid)) {
+                this.activetabid = message.activetabid;
+            }
+            ui.logToOutput('DagView._setWebviewMessageListener Message Received ' + message.command);
+            switch (command) {
+                case "run-trigger-dag":
+                    this.triggerDagWConfig(message.config, message.date);
+                    return;
+                case "run-view-log":
+                    this.showDAGRunLog();
+                    return;
+                case "run-more-dagrun-detail":
+                    ui.showOutputMessage(this.dagRunJson);
+                    return;
+                case "other-dag-detail":
+                    ui.showOutputMessage(this.dagJson);
+                    return;
+                case "tasks-more-detail":
+                    ui.showOutputMessage(this.dagTaskInstancesJson);
+                    return;
+                case "history-load-runs":
+                    this.getRunHistoryAndRenderHtml(message.date);
+                    return;
+                case "info-source-code":
+                    this.showSourceCode();
+                    return;
+                case "run-pause-dag":
+                    this.pauseDAG(true);
+                    return;
+                case "run-unpause-dag":
+                    this.pauseDAG(false);
+                    return;
+                case "run-ask-ai":
+                    this.askAI();
+                    return;
+                case "run-lastrun-check":
+                    this.getLastRun();
+                    if (this.dagRunJson) {
+                        this.startCheckingDagRunStatus(this.dagRunId);
+                    }
+                    return;
+                case "run-lastrun-cancel":
+                    if (this.dagRunJson) {
+                        this.cancelDagRun(this.dagRunId);
+                    }
+                    return;
+                case "run-update-note":
+                    if (this.dagRunJson) {
+                        this.updateDagRunNote("");
+                    }
+                    return;
+                case "history-dag-run-id":
+                    let dagRunId = message.id;
+                    dagRunId = dagRunId.replace("history-dag-run-id-", "");
+                    this.activetabid = "tab-1";
+                    this.getDagRun(this.dagId, dagRunId);
+                    return;
+                case "task-log-link":
+                    let taskId = message.id;
+                    taskId = taskId.replace("task-log-link-", "");
+                    this.showTaskInstanceLog(this.dagId, this.dagRunId, taskId);
+                    return;
+                case "task-xcom-link":
+                    let xcomTaskId = message.id;
+                    xcomTaskId = xcomTaskId.replace("task-xcom-link-", "");
+                    this.showTaskXComs(this.dagId, this.dagRunId, xcomTaskId);
+                    return;
+                case "tasks-refresh":
+                    this.getTasksAndRenderHtml();
+                    return;
+                case "tabControlChanged":
+                    this.activetabid = message.activeid;
+                    ui.logToOutput("tab changed to " + message.activeid);
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+    async getTasksAndRenderHtml() {
+        await this.getDagTasks();
+        await this.renderHmtl();
+    }
+    async cancelDagRun(dagRunId) {
+        ui.logToOutput('DagView.cancelDagRun Started');
+        const result = await this.api.cancelDagRun(this.dagId, dagRunId);
+        if (result.isSuccessful) {
+            ui.showInfoMessage(`Dag ${this.dagId} Run ${dagRunId} cancelled successfully.`);
+            ui.logToOutput(`Dag ${this.dagId} Run ${dagRunId} cancelled successfully.`);
+            await this.getDagRun(this.dagId, dagRunId);
+            MessageHub.DagRunCancelled(this, this.dagId, dagRunId);
+        }
+    }
+    async updateDagRunNote(note) {
+        ui.logToOutput('DagView.updateDagRunNote Started');
+        if (!this.api || !this.dagRunJson) {
+            return;
+        }
+        // Show input box with current note as default value
+        const newNote = await vscode.window.showInputBox({
+            prompt: 'Enter note for this DAG run',
+            value: this.dagRunJson.note || '',
+            placeHolder: 'Add a note for this DAG run'
+        });
+        // User cancelled the input
+        if (newNote === undefined) {
+            return;
+        }
+        const result = await this.api.updateDagRunNote(this.dagId, this.dagRunId, newNote);
+        if (result.isSuccessful) {
+            // Refresh the DAG run to get the updated note
+            await this.getDagRun(this.dagId, this.dagRunId);
+        }
+    }
+    async pauseDAG(is_paused) {
+        ui.logToOutput('DagView.pauseDAG Started');
+        if (is_paused && this.dagJson.is_paused) {
+            ui.showWarningMessage(this.dagId + 'Dag is already PAUSED');
+            return;
+        }
+        if (!is_paused && !this.dagJson.is_paused) {
+            ui.showWarningMessage(this.dagId + 'Dag is already ACTIVE');
+            return;
+        }
+        const result = await this.api.pauseDag(this.dagId, is_paused);
+        if (result.isSuccessful) {
+            this.loadDagInfoOnly();
+            is_paused ? MessageHub.DagPaused(this, this.dagId) : MessageHub.DagUnPaused(this, this.dagId);
+        }
+    }
+    async askAI() {
+        ui.logToOutput('DagView.askAI Started');
+        if (!DagTreeView_1.DagTreeView.Current) {
+            ui.showErrorMessage('DagTreeView is not available');
+            return;
+        }
+        if (!this.dagJson) {
+            ui.showErrorMessage('DAG information is not available');
+            return;
+        }
+        const code = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
+        if (!code.isSuccessful) {
+            ui.showErrorMessage('Failed to retrieve DAG source code for AI context');
+            return;
+        }
+        const logs = await this.api.getDagRunLog(this.dagId, this.dagRunId);
+        if (!logs.isSuccessful) {
+            ui.showErrorMessage('Failed to retrieve DAG logs for AI context');
+            return;
+        }
+        // Call the askAI function from DagTreeView
+        await DagTreeView_1.DagTreeView.Current?.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
+    }
+    async showSourceCode() {
+        ui.logToOutput('DagView.showSourceCode Started');
+        const result = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
+        if (result.isSuccessful) {
+            this.createAndOpenTempFile(result.result, this.dagId, '.py');
+        }
+        else {
+            ui.logToOutput(result.result);
+            ui.showErrorMessage(result.result);
+        }
+    }
+    async getRunHistoryAndRenderHtml(date) {
+        ui.logToOutput('DagView.getRunHistoryAndRenderHtml Started');
+        this.dagHistorySelectedDate = date;
+        await this.getRunHistory(date);
+        await this.renderHmtl();
+    }
+    async showDAGRunLog() {
+        ui.logToOutput('DagView.showDAGRunLog Started');
+        const result = await this.api.getDagRunLog(this.dagId, this.dagRunId);
+        if (result.isSuccessful) {
+            this.createAndOpenTempFile(result.result, this.dagId, '.log');
+        }
+    }
+    async showTaskInstanceLog(dagId, dagRunId, taskId) {
+        ui.logToOutput('DagView.showTaskInstanceLog Started');
+        const result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
+        if (result.isSuccessful) {
+            this.createAndOpenTempFile(result.result, dagId + '-' + taskId, '.log');
+        }
+    }
+    async showTaskXComs(dagId, dagRunId, taskId) {
+        ui.logToOutput('DagView.showTaskXComs Started');
+        const result = await this.api.getTaskXComs(dagId, dagRunId, taskId);
+        if (result.isSuccessful) {
+            this.createAndOpenTempFile(JSON.stringify(result.result, null, 2), dagId + '-' + taskId + '_xcom', '.json');
+        }
+        else {
+            ui.showInfoMessage(`No XCom entries found for task: ${taskId}`);
+        }
+    }
+    async triggerDagWConfig(config = "", date = "") {
+        ui.logToOutput('DagView.triggerDagWConfig Started');
+        if (config && !ui.isJsonString(config)) {
+            ui.showWarningMessage("Config is not a valid JSON");
+            return;
+        }
+        if (date && !ui.isValidDate(date)) {
+            ui.showWarningMessage("Date is not a valid DATE");
+            return;
+        }
+        if (!config) {
+            config = "{}";
+        }
+        if (config !== undefined) {
+            const result = await this.api.triggerDag(this.dagId, config, date);
+            if (result.isSuccessful) {
+                this.startCheckingDagRunStatus(result.result["dag_run_id"]);
+                MessageHub.DagTriggered(this, this.dagId, result.result["dag_run_id"]);
+            }
+        }
+    }
+    async startCheckingDagRunStatus(dagRunId) {
+        ui.logToOutput('DagView.startCheckingDagRunStatus Started');
+        this.dagRunId = dagRunId;
+        await this.refreshRunningDagState(this);
+        if (this.dagStatusInterval) {
+            clearInterval(this.dagStatusInterval); //stop prev checking
+        }
+        this.dagStatusInterval = setInterval(() => {
+            void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
+        }, 5 * 1000);
+    }
+    async stopCheckingDagRunStatus() {
+        ui.logToOutput('DagView.stopCheckingDagRunStatus Started');
+        if (this.dagStatusInterval) {
+            clearInterval(this.dagStatusInterval); //stop prev checking
+        }
+    }
+    async refreshRunningDagState(dagView) {
+        ui.logToOutput('DagView.refreshRunningDagState Started');
+        if (!dagView.dagId || !dagView.dagRunId) {
+            dagView.stopCheckingDagRunStatus();
+            return;
+        }
+        const result = await this.api.getDagRun(dagView.dagId, dagView.dagRunId);
+        if (result.isSuccessful) {
+            dagView.dagRunJson = result.result;
+            const resultTasks = await this.api.getTaskInstances(dagView.dagId, dagView.dagRunId);
+            if (resultTasks.isSuccessful) {
+                dagView.dagTaskInstancesJson = resultTasks.result;
+            }
+        }
+        else {
+            dagView.stopCheckingDagRunStatus();
+            return;
+        }
+        let state = (dagView.dagRunJson) ? dagView.dagRunJson.state : "";
+        //"queued" "running" "success" "failed"
+        if (state === "queued" || state === "running") {
+            //go on for the next check
+        }
+        else {
+            dagView.stopCheckingDagRunStatus();
+        }
+        dagView.renderHmtl();
+    }
+    buildTaskDependencyTree(tasks) {
+        ui.logToOutput('DagView.buildTaskDependencyTree Started');
+        // Create a map for quick task lookup
+        const taskMap = new Map();
+        tasks.forEach(task => {
+            taskMap.set(task.task_id, task);
+        });
+        // Find root tasks (tasks with no upstream dependencies)
+        const rootTasks = tasks.filter(task => !task.upstream_task_ids || task.upstream_task_ids.length === 0);
+        if (rootTasks.length === 0) {
+            return "No task dependencies found or circular dependencies detected.";
+        }
+        // Build tree recursively
+        const visited = new Set();
+        let treeHtml = "";
+        const buildTree = (taskId) => {
+            if (visited.has(taskId)) {
+                return ""; // Prevent infinite loops and duplicates in this spanning tree view
+            }
+            visited.add(taskId);
+            const task = taskMap.get(taskId);
+            if (!task) {
+                return "";
+            }
+            let itemHtml = `<vscode-tree-item>\n`;
+            itemHtml += `${task.task_id} (${task.operator || ''})\n`;
+            // Get downstream tasks
+            const downstreamIds = task.downstream_task_ids || [];
+            if (downstreamIds.length > 0) {
+                downstreamIds.forEach((downstreamId) => {
+                    itemHtml += buildTree(downstreamId);
+                });
+            }
+            itemHtml += `</vscode-tree-item>\n`;
+            return itemHtml;
+        };
+        // Build tree for each root task
+        rootTasks.forEach((rootTask) => {
+            treeHtml += buildTree(rootTask.task_id);
+        });
+        return treeHtml || "No tasks to display.";
+    }
+}
+exports.DagView = DagView;
+
+
+/***/ }),
+/* 11 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.toISODateString = toISODateString;
+exports.toISODateTimeString = toISODateTimeString;
+exports.getUri = getUri;
+exports.showOutputMessage = showOutputMessage;
+exports.logToOutput = logToOutput;
+exports.showInfoMessage = showInfoMessage;
+exports.showWarningMessage = showWarningMessage;
+exports.showErrorMessage = showErrorMessage;
+exports.showApiErrorMessage = showApiErrorMessage;
+exports.getExtensionVersion = getExtensionVersion;
+exports.openFile = openFile;
+exports.getDuration = getDuration;
+exports.convertMsToTime = convertMsToTime;
+exports.isJsonString = isJsonString;
+exports.isValidDate = isValidDate;
+const vscode = __webpack_require__(1);
+const vscode_1 = __webpack_require__(1);
+const fs_1 = __webpack_require__(4);
+const path_1 = __webpack_require__(6);
+let outputChannel;
+let logsOutputChannel;
+const NEW_LINE = "\n\n";
+function toISODateString(date) {
+    if (!date) {
+        return "";
+    }
+    return date.toISOString().split('T')[0];
+}
+function toISODateTimeString(date) {
+    if (!date) {
+        return "";
+    }
+    return date.toISOString().replace('T', ' ').substring(0, 19);
+}
+function getUri(webview, extensionUri, pathList) {
+    return webview.asWebviewUri(vscode_1.Uri.joinPath(extensionUri, ...pathList));
+}
+function showOutputMessage(message, popupMessage = "Results are printed to OUTPUT / Airflow-Extension") {
+    if (!outputChannel) {
+        outputChannel = vscode.window.createOutputChannel("Airflow-Extension");
+    }
+    outputChannel.clear();
+    if (typeof message === "object") {
+        outputChannel.appendLine(JSON.stringify(message, null, 4));
+    }
+    else {
+        outputChannel.appendLine(message);
+    }
+    outputChannel.show();
+    showInfoMessage(popupMessage);
+}
+function logToOutput(message, error = undefined) {
+    const now = new Date().toLocaleString();
+    if (!logsOutputChannel) {
+        logsOutputChannel = vscode.window.createOutputChannel("Airflow-Log");
+    }
+    if (typeof message === "object") {
+        logsOutputChannel.appendLine("[" + now + "] " + JSON.stringify(message, null, 4));
+    }
+    else {
+        logsOutputChannel.appendLine("[" + now + "] " + message);
+    }
+    if (error) {
+        logsOutputChannel.appendLine(error.name);
+        logsOutputChannel.appendLine(error.message);
+        if (error.stack) {
+            logsOutputChannel.appendLine(error.stack);
+        }
+    }
+}
+function showInfoMessage(message) {
+    vscode.window.showInformationMessage(message);
+}
+function showWarningMessage(message) {
+    vscode.window.showWarningMessage(message);
+}
+function showErrorMessage(message, error = undefined) {
+    if (error) {
+        vscode.window.showErrorMessage(message + NEW_LINE + error.name + NEW_LINE + error.message);
+    }
+    else {
+        vscode.window.showErrorMessage(message);
+    }
+}
+function showApiErrorMessage(message, jsonResult) {
+    let preText = "";
+    if (jsonResult) {
+        if (jsonResult.status === 403) {
+            preText = "Permission Denied !!!";
+            vscode.window.showErrorMessage(preText);
+        }
+        else if (jsonResult.status === 401) {
+            preText = "Invalid Authentication Info !!!";
+            vscode.window.showErrorMessage(preText);
+        }
+        else if (jsonResult.status === 404) {
+            preText = "Resource Not Found !!!";
+            vscode.window.showErrorMessage(preText);
+        }
+        else {
+            vscode.window.showErrorMessage(preText);
+        }
+    }
+    else {
+        vscode.window.showErrorMessage(message);
+    }
+}
+function getExtensionVersion() {
+    const { version: extVersion } = JSON.parse((0, fs_1.readFileSync)((0, path_1.join)(__dirname, '..', 'package.json'), { encoding: 'utf8' }));
+    return extVersion;
+}
+function openFile(file) {
+    // Use workspace API to open file in editor and show it in column one
+    (async () => {
+        try {
+            const doc = await vscode.workspace.openTextDocument(vscode.Uri.file(file));
+            await vscode.window.showTextDocument(doc, { viewColumn: vscode.ViewColumn.One, preview: false });
+        }
+        catch (err) {
+            logToOutput('openFile Error', err);
+        }
+    })();
+}
+function padTo2Digits(num) {
+    return num.toString().padStart(2, '0');
+}
+function getDuration(startDate, endDate) {
+    if (!startDate) {
+        return "";
+    }
+    if (!endDate || endDate < startDate) {
+        endDate = new Date(); //now
+    }
+    const duration = endDate.valueOf() - startDate.valueOf();
+    return (convertMsToTime(duration));
+}
+function convertMsToTime(milliseconds) {
+    let seconds = Math.floor(milliseconds / 1000);
+    let minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    seconds = seconds % 60;
+    minutes = minutes % 60;
+    return `${padTo2Digits(hours)}:${padTo2Digits(minutes)}:${padTo2Digits(seconds)}`;
+}
+function isJsonString(jsonString) {
+    try {
+        const json = JSON.parse(jsonString);
+        return (typeof json === 'object');
+    }
+    catch (e) {
+        return false;
+    }
+}
+function isValidDate(dateString) {
+    const regEx = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateString.match(regEx)) {
+        return false; // Invalid format
+    }
+    const d = new Date(dateString);
+    const dNum = d.getTime();
+    if (!dNum && dNum !== 0) {
+        return false; // NaN value, Invalid date
+    }
+    return d.toISOString().slice(0, 10) === dateString;
+}
+
+
+/***/ }),
+/* 12 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTriggered = DagTriggered;
+exports.DagRunCancelled = DagRunCancelled;
+exports.DagPaused = DagPaused;
+exports.DagUnPaused = DagUnPaused;
+const DagView_1 = __webpack_require__(10);
+const DagTreeView_1 = __webpack_require__(2);
+function DagTriggered(source, dagId, dagRunId) {
+    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
+        DagView_1.DagView.Current.getDagRun(dagId, dagRunId);
+    }
+    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
+        DagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(dagId);
+    }
+}
+function DagRunCancelled(source, dagId, dagRunId) {
+    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
+        DagView_1.DagView.Current.getDagRun(dagId, dagRunId);
+    }
+    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
+        DagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(dagId);
+    }
+}
+function DagPaused(source, dagId) {
+    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
+        DagView_1.DagView.Current.loadDagInfoOnly();
+    }
+    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
+        DagTreeView_1.DagTreeView.Current?.notifyDagPaused(dagId);
+    }
+}
+function DagUnPaused(source, dagId) {
+    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
+        DagView_1.DagView.Current.loadDagInfoOnly();
+    }
+    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
+        DagTreeView_1.DagTreeView.Current?.notifyDagUnPaused(dagId);
+    }
+}
+
 
 /***/ }),
 /* 13 */
@@ -3032,8 +3021,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DailyDagRunView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(6);
-const DagView_1 = __webpack_require__(5);
+const ui = __webpack_require__(11);
+const DagView_1 = __webpack_require__(10);
 class DailyDagRunView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
@@ -3362,8 +3351,8 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DagRunView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(6);
-const DagView_1 = __webpack_require__(5);
+const ui = __webpack_require__(11);
+const DagView_1 = __webpack_require__(10);
 class DagRunView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
@@ -3708,7 +3697,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AirflowApi = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const base_64_1 = __webpack_require__(16);
-const ui = __webpack_require__(6);
+const ui = __webpack_require__(11);
 const MethodResult_1 = __webpack_require__(17);
 // Wrapper for fetch to handle ESM node-fetch in CommonJS
 const fetch = async (url, init) => {
@@ -11597,7 +11586,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConnectionsView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(6);
+const ui = __webpack_require__(11);
 class ConnectionsView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
@@ -11706,7 +11695,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.VariablesView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(6);
+const ui = __webpack_require__(11);
 class VariablesView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
@@ -11888,7 +11877,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ProvidersView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(6);
+const ui = __webpack_require__(11);
 class ProvidersView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
@@ -12063,7 +12052,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConfigsView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(6);
+const ui = __webpack_require__(11);
 class ConfigsView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
@@ -12238,7 +12227,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PluginsView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(6);
+const ui = __webpack_require__(11);
 class PluginsView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
@@ -12405,7 +12394,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ServerHealthView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(6);
+const ui = __webpack_require__(11);
 class ServerHealthView {
     constructor(panel, extensionUri, api) {
         this._disposables = [];
@@ -12796,8 +12785,8 @@ exports.ReportTreeItem = ReportTreeItem;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AirflowClientAdapter = void 0;
 const DagTreeView_1 = __webpack_require__(2);
-const ui = __webpack_require__(6);
-const MessageHub = __webpack_require__(9);
+const ui = __webpack_require__(11);
+const MessageHub = __webpack_require__(12);
 class AirflowClientAdapter {
     /**
      * Dynamically retrieves the currently connected Airflow API instance.
@@ -13189,7 +13178,7 @@ exports.AirflowClientAdapter = AirflowClientAdapter;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TriggerDagRunTool = void 0;
 const vscode = __webpack_require__(1);
-const fs = __webpack_require__(7);
+const fs = __webpack_require__(4);
 /**
  * TriggerDagRunTool - Implements vscode.LanguageModelTool for DAG triggering
  */
@@ -13697,7 +13686,7 @@ exports.UnpauseDagTool = UnpauseDagTool;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetDagRunsTool = void 0;
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(6);
+const ui = __webpack_require__(11);
 /**
  * GetDagRunsTool - Implements vscode.LanguageModelTool for retrieving DAG runs
  */
@@ -14158,7 +14147,7 @@ exports.AnalyseDagLatestRunTool = AnalyseDagLatestRunTool;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetDagHistoryTool = void 0;
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(6);
+const ui = __webpack_require__(11);
 /**
  * GetDagHistoryTool - Implements vscode.LanguageModelTool for retrieving DAG history
  */
@@ -14715,7 +14704,7 @@ const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
 const AdminTreeView_1 = __webpack_require__(58);
 const ReportTreeView_1 = __webpack_require__(60);
-const ui = __webpack_require__(6);
+const ui = __webpack_require__(11);
 const AirflowClientAdapter_1 = __webpack_require__(62);
 const TriggerDagRunTool_1 = __webpack_require__(63);
 const GetFailedRunsTool_1 = __webpack_require__(64);

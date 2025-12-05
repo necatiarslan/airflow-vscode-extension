@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
+import * as tmp from 'tmp';
+import * as fs from 'fs';
 import { DagTreeItem } from './DagTreeItem';
 import { DagTreeDataProvider } from './DagTreeDataProvider';
 import { DagView } from './DagView';
@@ -98,6 +100,38 @@ export class DagTreeView {
 		this.treeDataProvider.refresh();
 	}
 
+	/**
+	 * Helper method to create a temp file and open it
+	 */
+	private createAndOpenTempFile(content: string, prefix: string, extension: string): void {
+		const tmpFile = tmp.fileSync({ mode: 0o644, prefix, postfix: extension });
+		fs.appendFileSync(tmpFile.name, content);
+		ui.openFile(tmpFile.name);
+	}
+
+	/**
+	 * Helper method to start the DAG status refresh interval
+	 */
+	private startDagStatusInterval(): void {
+		if (!this.dagStatusInterval) {
+			this.dagStatusInterval = setInterval(() => {
+				void this.refreshRunningDagState(this).catch((err: any) => ui.logToOutput('refreshRunningDagState Error', err));
+			}, 10 * 1000);
+		}
+	}
+
+	/**
+	 * Helper method to handle post-trigger state updates
+	 */
+	private handleTriggerSuccess(node: DagTreeItem, responseTrigger: any): void {
+		node.LatestDagRunId = responseTrigger['dag_run_id'];
+		node.LatestDagState = responseTrigger['state'];
+		node.refreshUI();
+		this.treeDataProvider.refresh();
+		this.startDagStatusInterval();
+		MessageHub.DagTriggered(this, node.DagId, node.LatestDagRunId);
+	}
+
 	async triggerDag(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.triggerDag Started');
 		if (!this.api) { return; }
@@ -115,17 +149,7 @@ export class DagTreeView {
 		const result = await this.api.triggerDag(node.DagId);
 
 		if (result.isSuccessful) {
-			const responseTrigger = result.result;
-			node.LatestDagRunId = responseTrigger['dag_run_id'];
-			node.LatestDagState = responseTrigger['state'];
-			node.refreshUI();
-			this.treeDataProvider.refresh();
-			if (!this.dagStatusInterval) {
-				this.dagStatusInterval = setInterval(() => {
-					void this.refreshRunningDagState(this).catch((err: any) => ui.logToOutput('refreshRunningDagState Error', err));
-				}, 10 * 1000);
-			}
-			MessageHub.DagTriggered(this, node.DagId, node.LatestDagRunId);
+			this.handleTriggerSuccess(node, result.result);
 		}
 	}
 
@@ -172,17 +196,7 @@ export class DagTreeView {
 			const result = await this.api.triggerDag(node.DagId, triggerDagConfig);
 
 			if (result.isSuccessful) {
-				const responseTrigger = result.result;
-				node.LatestDagRunId = responseTrigger['dag_run_id'];
-				node.LatestDagState = responseTrigger['state'];
-				node.refreshUI();
-				this.treeDataProvider.refresh();
-				if (!this.dagStatusInterval) {
-					this.dagStatusInterval = setInterval(() => {
-						void this.refreshRunningDagState(this).catch((err: any) => ui.logToOutput('refreshRunningDagState Error', err));
-					}, 10 * 1000);
-				}
-				MessageHub.DagTriggered(this, node.DagId, node.LatestDagRunId);
+				this.handleTriggerSuccess(node, result.result);
 			}
 		}
 	}
@@ -221,11 +235,7 @@ export class DagTreeView {
 			this.treeDataProvider.refresh();
 
 			if (node.isDagRunning()) {
-				if (!this.dagStatusInterval) {
-					this.dagStatusInterval = setInterval(() => {
-						void this.refreshRunningDagState(this).catch((err: any) => ui.logToOutput('refreshRunningDagState Error', err));
-					}, 10 * 1000);
-				}
+				this.startDagStatusInterval();
 			}
 		}
 	}
@@ -250,7 +260,7 @@ export class DagTreeView {
 	}
 
 	public async notifyDagUnPaused(dagId: string) {
-		ui.logToOutput('DagTreeView.notifyDagPaused Started');
+		ui.logToOutput('DagTreeView.notifyDagUnPaused Started');
 		this.refresh();
 	}
 
@@ -299,11 +309,7 @@ export class DagTreeView {
 
 		const result = await this.api.getLastDagRunLog(node.DagId);
 		if (result.isSuccessful) {
-			const tmp = require('tmp');
-			const fs = require('fs');
-			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.log' });
-			fs.appendFileSync(tmpFile.name, result.result);
-			ui.openFile(tmpFile.name);
+			this.createAndOpenTempFile(result.result, node.DagId, '.log');
 		}
 	}
 
@@ -314,12 +320,7 @@ export class DagTreeView {
 		const result = await this.api.getSourceCode(node.DagId, node.FileToken);
 
 		if (result.isSuccessful) {
-			const tmp = require('tmp');
-			const fs = require('fs');
-
-			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.py' });
-			fs.appendFileSync(tmpFile.name, result.result);
-			ui.openFile(tmpFile.name);
+			this.createAndOpenTempFile(result.result, node.DagId, '.py');
 		} else {
 			ui.logToOutput(result.result);
 			ui.showErrorMessage(result.result);
@@ -333,12 +334,7 @@ export class DagTreeView {
 		const result = await this.api.getDagInfo(node.DagId);
 
 		if (result.isSuccessful) {
-			const tmp = require('tmp');
-			const fs = require('fs');
-
-			const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId + '_info', postfix: '.json' });
-			fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
-			ui.openFile(tmpFile.name);
+			this.createAndOpenTempFile(JSON.stringify(result.result, null, 2), node.DagId + '_info', '.json');
 		} else {
 			ui.logToOutput(result.result);
 			ui.showErrorMessage('Failed to fetch DAG info');

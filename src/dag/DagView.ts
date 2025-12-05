@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
+import * as tmp from 'tmp';
+import * as fs from 'fs';
 import * as ui from '../common/UI';
 import { AirflowApi } from '../common/Api';
 import { DagTreeView } from "./DagTreeView";
@@ -93,10 +95,19 @@ export class DagView {
         }
     }
 
+    /**
+     * Helper method to create a temp file and open it
+     */
+    private createAndOpenTempFile(content: string, prefix: string, extension: string): void {
+        const tmpFile = tmp.fileSync({ mode: 0o644, prefix, postfix: extension });
+        fs.appendFileSync(tmpFile.name, content);
+        ui.openFile(tmpFile.name);
+    }
+
     public async getLastRun() {
         ui.logToOutput('DagView.getLastRun Started');
 
-        let result = await this.api.getLastDagRun(this.dagId);
+        const result = await this.api.getLastDagRun(this.dagId);
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
             this.dagRunId = this.dagRunJson.dag_run_id;
@@ -113,7 +124,7 @@ export class DagView {
     public async getDagRun(dagId: string, dagRunId: string) {
         ui.logToOutput('DagView.getDagRun Started');
 
-        let result = await this.api.getDagRun(dagId, dagRunId);
+        const result = await this.api.getDagRun(dagId, dagRunId);
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
             this.dagRunId = this.dagRunJson.dag_run_id;
@@ -125,7 +136,7 @@ export class DagView {
     public async getRunHistory(date?: string) {
         ui.logToOutput('DagView.getRunHistory Started');
 
-        let result = await this.api.getDagRunHistory(this.dagId, date);
+        const result = await this.api.getDagRunHistory(this.dagId, date);
         if (result.isSuccessful) {
             this.dagRunHistoryJson = result.result;
         }
@@ -135,7 +146,7 @@ export class DagView {
     public async getTaskInstances(dagRunId: string) {
         ui.logToOutput('DagView.getTaskInstances Started');
 
-        let result = await this.api.getTaskInstances(this.dagId, dagRunId); // Note: api.getTaskInstances was not implemented in my previous step, I need to check if I missed it.
+        const result = await this.api.getTaskInstances(this.dagId, dagRunId);
 
         if (result.isSuccessful) {
             this.dagTaskInstancesJson = result.result;
@@ -146,7 +157,7 @@ export class DagView {
     public async getDagInfo() {
         ui.logToOutput('DagView.getDagInfo Started');
 
-        let result = await this.api.getDagInfo(this.dagId); // Also need to check if this exists in new api.ts
+        const result = await this.api.getDagInfo(this.dagId);
         if (result.isSuccessful) {
             this.dagJson = result.result;
         }
@@ -155,7 +166,7 @@ export class DagView {
     public async getDagTasks() {
         ui.logToOutput('DagView.getDagTasks Started');
 
-        let result = await this.api.getDagTasks(this.dagId); // Need to check
+        const result = await this.api.getDagTasks(this.dagId);
         if (result.isSuccessful) {
             this.dagTasksJson = result.result;
         }
@@ -684,7 +695,7 @@ export class DagView {
     async cancelDagRun(dagRunId:string){
         ui.logToOutput('DagView.cancelDagRun Started');
 
-        let result = await this.api.cancelDagRun(this.dagId, dagRunId);
+        const result = await this.api.cancelDagRun(this.dagId, dagRunId);
         if (result.isSuccessful) {
             ui.showInfoMessage(`Dag ${this.dagId} Run ${dagRunId} cancelled successfully.`);
             ui.logToOutput(`Dag ${this.dagId} Run ${dagRunId} cancelled successfully.`);
@@ -718,12 +729,12 @@ export class DagView {
     }
 
     async pauseDAG(is_paused: boolean) {
-        ui.logToOutput('DagTreeView.pauseDAG Started');
+        ui.logToOutput('DagView.pauseDAG Started');
 
         if (is_paused && this.dagJson.is_paused) { ui.showWarningMessage(this.dagId + 'Dag is already PAUSED'); return; }
         if (!is_paused && !this.dagJson.is_paused) { ui.showWarningMessage(this.dagId + 'Dag is already ACTIVE'); return; }
 
-        let result = await this.api.pauseDag(this.dagId, is_paused);
+        const result = await this.api.pauseDag(this.dagId, is_paused);
         if (result.isSuccessful) {
             this.loadDagInfoOnly();
             is_paused ? MessageHub.DagPaused(this, this.dagId) : MessageHub.DagUnPaused(this, this.dagId);
@@ -744,13 +755,13 @@ export class DagView {
             return;
         }
         
-        let code = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
+        const code = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
         if (!code.isSuccessful) {
             ui.showErrorMessage('Failed to retrieve DAG source code for AI context');
             return;
         }
 
-        let logs = await this.api.getDagRunLog(this.dagId, this.dagRunId);
+        const logs = await this.api.getDagRunLog(this.dagId, this.dagRunId);
         if (!logs.isSuccessful) {
             ui.showErrorMessage('Failed to retrieve DAG logs for AI context');
             return;
@@ -763,15 +774,10 @@ export class DagView {
     public async showSourceCode() {
         ui.logToOutput('DagView.showSourceCode Started');
 
-        let result = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
+        const result = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
 
         if (result.isSuccessful) {
-            const tmp = require('tmp');
-            const fs = require('fs');
-
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.py' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
+            this.createAndOpenTempFile(result.result, this.dagId, '.py');
         }
         else
         {
@@ -788,41 +794,29 @@ export class DagView {
     }
 
     public async showDAGRunLog() {
-        ui.logToOutput('DagView.DAGRunLog Started');
+        ui.logToOutput('DagView.showDAGRunLog Started');
 
-        let result = await this.api.getDagRunLog(this.dagId, this.dagRunId);
+        const result = await this.api.getDagRunLog(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
-            const tmp = require('tmp');
-            const fs = require('fs');
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.log' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
+            this.createAndOpenTempFile(result.result, this.dagId, '.log');
         }
     }
 
     public async showTaskInstanceLog(dagId: string, dagRunId:string, taskId:string) {
         ui.logToOutput('DagView.showTaskInstanceLog Started');
 
-        let result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
+        const result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
         if (result.isSuccessful) {
-            const tmp = require('tmp');
-            const fs = require('fs');
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId, postfix: '.log' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
+            this.createAndOpenTempFile(result.result, dagId + '-' + taskId, '.log');
         }
     }
 
     public async showTaskXComs(dagId: string, dagRunId:string, taskId:string) {
         ui.logToOutput('DagView.showTaskXComs Started');
 
-        let result = await this.api.getTaskXComs(dagId, dagRunId, taskId);
+        const result = await this.api.getTaskXComs(dagId, dagRunId, taskId);
         if (result.isSuccessful) {
-            const tmp = require('tmp');
-            const fs = require('fs');
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId + '_xcom', postfix: '.json' });
-            fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
-            ui.openFile(tmpFile.name);
+            this.createAndOpenTempFile(JSON.stringify(result.result, null, 2), dagId + '-' + taskId + '_xcom', '.json');
         } else {
             ui.showInfoMessage(`No XCom entries found for task: ${taskId}`);
         }
@@ -848,7 +842,7 @@ export class DagView {
 
         if (config !== undefined) {
 
-            let result = await this.api.triggerDag(this.dagId, config, date);
+            const result = await this.api.triggerDag(this.dagId, config, date);
 
             if (result.isSuccessful) {
                 this.startCheckingDagRunStatus(result.result["dag_run_id"]);
@@ -884,11 +878,11 @@ export class DagView {
             return;
         }
 
-        let result = await this.api.getDagRun(dagView.dagId, dagView.dagRunId);
+        const result = await this.api.getDagRun(dagView.dagId, dagView.dagRunId);
         if (result.isSuccessful) {
             dagView.dagRunJson = result.result;
 
-            let resultTasks = await this.api.getTaskInstances(dagView.dagId, dagView.dagRunId);
+            const resultTasks = await this.api.getTaskInstances(dagView.dagId, dagView.dagRunId);
             if (resultTasks.isSuccessful) {
                 dagView.dagTaskInstancesJson = resultTasks.result;
             }
