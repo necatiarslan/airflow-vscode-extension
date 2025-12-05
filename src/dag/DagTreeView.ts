@@ -10,6 +10,7 @@ import { VariablesView } from '../admin/VariablesView';
 import { ProvidersView } from '../admin/ProvidersView';
 import { ConfigsView } from '../admin/ConfigsView';
 import { PluginsView } from '../admin/PluginsView';
+import { ServerHealthView } from '../admin/ServerHealthView';
 import * as ui from '../common/UI';
 import { AirflowApi } from '../common/Api';
 import { AskAIContext, ServerConfig } from '../common/Types';
@@ -907,6 +908,14 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.viewDagRunHistory Started');
 		if (this.api) {
 			DagRunView.render(this.context.extensionUri, this.api);
+		}
+	}
+
+	async viewServerHealth() {
+		ui.logToOutput('DagTreeView.viewServerHealth Started');
+		if (this.api) {
+			const { ServerHealthView } = await import('../admin/ServerHealthView');
+			ServerHealthView.render(this.context.extensionUri, this.api);
 		}
 	}
 }

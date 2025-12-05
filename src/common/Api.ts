@@ -512,6 +512,10 @@ export class AirflowApi {
         return this.genericGet('/plugins');
     }
 
+    public async getHealth(): Promise<MethodResult<any>> {
+        return this.genericGet('/monitor/health');
+    }
+
     private async genericGet(endpoint: string): Promise<MethodResult<any>> {
         const result = new MethodResult<any>();
         try {

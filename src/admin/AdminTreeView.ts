@@ -68,6 +68,16 @@ export class AdminTreeView implements vscode.TreeDataProvider<AdminTreeItem> {
             arguments: []
           },
           new vscode.ThemeIcon('extensions')
+        ),
+        new AdminTreeItem(
+          'Server Health',
+          vscode.TreeItemCollapsibleState.None,
+          {
+            command: 'dagTreeView.viewServerHealth',
+            title: 'View Server Health',
+            arguments: []
+          },
+          new vscode.ThemeIcon('pulse')
         )
       ]);
     }
