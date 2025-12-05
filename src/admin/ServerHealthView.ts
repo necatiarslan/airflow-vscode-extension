@@ -184,7 +184,7 @@ export class ServerHealthView {
       </head>
       <body>  
         <h2>Server Health</h2>
-        
+        <h3>${this.api.config.apiUrl}</h3>
         <div class="refresh-button">
             <vscode-button id="refresh-btn">Refresh</vscode-button>
         </div>

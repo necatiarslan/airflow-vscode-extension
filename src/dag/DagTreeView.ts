@@ -349,6 +349,15 @@ export class DagTreeView {
 				}
 			},
 			{
+				name: 'get_running_dags',
+				description: 'Lists all Airflow DAGs that currently have running or queued DAG runs. Use this when asked about running, executing, or in-progress DAGs. Returns DAG IDs with run states and run IDs.',
+				inputSchema: {
+					type: 'object',
+					properties: {},
+					required: []
+				}
+			},
+			{
 				name: 'pause_dag',
 				description: 'Pauses a specific Airflow DAG. Required input: dag_id (string).',
 				inputSchema: {
@@ -439,6 +448,18 @@ export class DagTreeView {
 						dag_id: { type: 'string', description: 'The DAG ID' }
 					},
 					required: ['dag_id']
+				}
+			},
+			{
+				name: 'get_dag_run_detail',
+				description: 'Comprehensive analysis of a specific DAG run by run ID. Analyzes tasks, source code, and logs for the specified run. Required: dag_id, dag_run_id.',
+				inputSchema: {
+					type: 'object',
+					properties: {
+						dag_id: { type: 'string', description: 'The DAG ID' },
+						dag_run_id: { type: 'string', description: 'The DAG run ID to analyze' }
+					},
+					required: ['dag_id', 'dag_run_id']
 				}
 			}
 		];

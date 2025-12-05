@@ -13,7 +13,7 @@ const fetch = async (url: string, init?: any) => {
 export class AirflowApi {
     private jwtToken: string | undefined;
 
-    constructor(private config: ServerConfig) {}
+    constructor(public config: ServerConfig) {}
 
     private get version(): 'v1' | 'v2' | 'unknown' {
         if (this.config.apiUrl.includes('v1')) { return 'v1'; }

@@ -2,7 +2,7 @@
   "name": "airflow-vscode-extension",
   "displayName": "Airflow",
   "description": "Apache Airflow Extension to List/Trigger DAGs, View Logs and much more",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "publisher": "NecatiARSLAN",
   "icon": "media/airflow-extension-logo.png",
   "repository": {
@@ -91,7 +91,7 @@
       {
         "name": "list_active_dags",
         "displayName": "List Active DAGs",
-        "modelDescription": "Lists all Airflow DAGs that are currently active (not paused). Use this tool when the user asks to see running or enabled DAGs. Returns a list of DAG IDs and their details.",
+        "modelDescription": "Lists all Airflow DAGs that are currently active (not paused). Use this tool when the user asks to see enabled or active DAGs. Returns a list of DAG IDs and their details.",
         "icon": "$(play)",
         "tags": [
           "airflow",
@@ -117,6 +117,26 @@
           "dags",
           "list",
           "paused"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "get_running_dags",
+        "displayName": "Get Running DAGs",
+        "modelDescription": "Lists all Airflow DAGs that currently have running or queued DAG runs. Use this tool when the user asks to see which DAGs are currently executing, running or in progress. Returns a list of DAG IDs with their run states and run IDs.",
+        "icon": "$(play-circle)",
+        "tags": [
+          "airflow",
+          "monitoring",
+          "dags",
+          "running",
+          "queued",
+          "executing",
+          "status"
         ],
         "inputSchema": {
           "type": "object",
@@ -280,6 +300,38 @@
           },
           "required": [
             "dag_id"
+          ]
+        }
+      },
+      {
+        "name": "get_dag_run_detail",
+        "displayName": "Get DAG Run Detail",
+        "modelDescription": "Performs a comprehensive analysis of a specific DAG run identified by its run ID. Retrieves and analyzes: DAG run details, all task instances with their states, DAG source code, and task logs (focusing on failed tasks). Use this tool when the user wants a complete diagnostic report of a specific DAG run execution, understand what went wrong in a particular run, or get detailed analysis of a specific run. Required inputs: dag_id (string), dag_run_id (string). This provides comprehensive diagnostic information for a specific run.",
+        "icon": "$(search-details)",
+        "tags": [
+          "airflow",
+          "analysis",
+          "debugging",
+          "dag",
+          "run",
+          "diagnostic",
+          "logs"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dag_id": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG"
+            },
+            "dag_run_id": {
+              "type": "string",
+              "description": "The unique identifier of the DAG run to analyze"
+            }
+          },
+          "required": [
+            "dag_id",
+            "dag_run_id"
           ]
         }
       }

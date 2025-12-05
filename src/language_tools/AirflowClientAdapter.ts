@@ -205,6 +205,56 @@ export class AirflowClientAdapter {
     }
 
     /**
+     * Retrieves a list of DAGs that are currently running
+     * 
+     * @returns Promise with array of DAG summaries that have running DAG runs
+     */
+    async getRunningDags(): Promise<Array<IDagSummary & { latest_run_state: string; latest_run_id: string }>> {
+        try {
+            const dagListResult = await this.api.getDagList();
+            if (!dagListResult.isSuccessful || !dagListResult.result) {
+                throw new Error(dagListResult.error?.message || 'Failed to fetch DAG list');
+            }
+
+            const resultData = dagListResult.result as any;
+            const dags = Array.isArray(resultData) ? resultData : (resultData.dags || []);
+
+            // Filter and enrich DAGs with their latest run info
+            const runningDags: Array<IDagSummary & { latest_run_state: string; latest_run_id: string }> = [];
+
+            for (const dag of dags) {
+                if (dag.is_paused) {
+                    continue; // Skip paused DAGs
+                }
+
+                try {
+                    const latestRun = await this.getLatestDagRun(dag.dag_id);
+                    if (latestRun && (latestRun.state === 'running' || latestRun.state === 'queued')) {
+                        runningDags.push({
+                            dag_id: dag.dag_id,
+                            is_paused: dag.is_paused,
+                            is_active: dag.is_active !== undefined ? dag.is_active : !dag.is_paused,
+                            description: dag.description,
+                            owners: dag.owners,
+                            tags: dag.tags,
+                            latest_run_state: latestRun.state,
+                            latest_run_id: latestRun.dag_run_id
+                        });
+                    }
+                } catch (error) {
+                    // Continue if we can't get the latest run for a DAG
+                    continue;
+                }
+            }
+
+            return runningDags;
+
+        } catch (error) {
+            throw new Error(`Failed to get running DAGs: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    /**
      * Pauses or unpauses a DAG
      * 
      * @param dagId - The DAG ID

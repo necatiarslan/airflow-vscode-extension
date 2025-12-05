@@ -212,7 +212,7 @@ export class DagView {
             logical_date = this.dagRunJson.logical_date;
             start_date = this.dagRunJson.start_date;
             end_date = this.dagRunJson.end_date;
-            logical_date_string = logical_date ? ui.toISODateString(new Date(logical_date)) : "";
+            logical_date_string = logical_date ? ui.toISODateTimeString(new Date(logical_date)) : "";
             start_date_string = start_date ? ui.toISODateTimeString(new Date(start_date)) : "";
             duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
             isDagRunning = (state === "queued" || state === "running") ? true : false;
@@ -235,7 +235,8 @@ export class DagView {
         if (this.dagJson && Array.isArray(this.dagJson["tags"])) {
             this.dagJson["tags"].forEach((item: any) => { tags += item.name + ", "; });
         }
-        let schedule_interval = (this.dagJson && this.dagJson["schedule_interval"] && this.dagJson["schedule_interval"].value) ? this.dagJson["schedule_interval"].value : "";
+        let schedule = (this.dagJson && this.dagJson["timetable_description"]) ? this.dagJson["timetable_description"] + " - " + this.dagJson["timetable_summary"]: "";
+        let next_run = (this.dagJson && this.dagJson["next_dagrun_data_interval_start"]) ? ui.toISODateTimeString(new Date(this.dagJson["next_dagrun_data_interval_start"])) : "None";
         let isPausedText = (this.dagJson) ? (this.dagJson.is_paused ? "true" : "false") : "unknown";
         let isPaused = isPausedText === "true";
         
@@ -298,6 +299,16 @@ export class DagView {
         <script type="module" src="${toolkitUri}"></script>
         <script type="module" src="${mainUri}"></script>
         <link rel="stylesheet" href="${styleUri}">
+        <style>
+            input[type="date"] {
+                padding: 6px 8px;
+                border: 1px solid var(--vscode-input-border);
+                background-color: var(--vscode-input-background);
+                color: var(--vscode-input-foreground);
+                border-radius: 4px;
+                font-size: 13px;
+            }
+        </style>
         <title>DAG</title>
       </head>
       <body>  
@@ -341,7 +352,7 @@ export class DagView {
                             <td>${runningOrFailedTasks}</td>
                         </tr>
                         <tr>
-                            <td>Date</td>
+                            <td>Logical Date</td>
                             <td>:</td>
                             <td>${logical_date_string}</td>
                         </tr>
@@ -382,7 +393,7 @@ export class DagView {
                             <th colspan="3">Trigger</th>
                         </tr>
                         <tr>
-                            <td>Date</td>
+                            <td>Logical Date</td>
                             <td>:</td>
                             <td><vscode-textfield id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10" pattern="\d{4}-\d{2}-\d{2}"></vscode-textfield></td>
                         </tr>
@@ -507,7 +518,12 @@ export class DagView {
                     <tr>
                         <td>Schedule</td>
                         <td>:</td>
-                        <td>${schedule_interval}</td>
+                        <td>${schedule}</td>
+                    </tr>
+                    <tr>
+                        <td>Next Run</td>
+                        <td>:</td>
+                        <td>${next_run}</td>
                     </tr>
                     <tr>           
                         <td colspan="3"><vscode-button appearance="secondary" id="info-source-code">Source Code</vscode-button> <vscode-button appearance="secondary" id="other-dag-detail">More</vscode-button></td>
@@ -529,7 +545,7 @@ export class DagView {
                             <td>Date</td>
                             <td>:</td>
                             <td>
-                            <vscode-textfield id="history_date" value="${this.dagHistorySelectedDate}" placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}" maxlength="10"></vscode-textfield>
+                            <input type="date" id="history_date" value="${this.dagHistorySelectedDate}">
                             </td>
                             <td><vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button></td>
                         </tr>

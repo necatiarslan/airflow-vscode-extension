@@ -11,12 +11,14 @@ import { TriggerDagRunTool } from './language_tools/TriggerDagRunTool';
 import { GetFailedRunsTool } from './language_tools/GetFailedRunsTool';
 import { ListActiveDagsTool } from './language_tools/ListActiveDagsTool';
 import { ListPausedDagsTool } from './language_tools/ListPausedDagsTool';
+import { GetRunningDagsTool } from './language_tools/GetRunningDagsTool';
 import { PauseDagTool } from './language_tools/PauseDagTool';
 import { UnpauseDagTool } from './language_tools/UnpauseDagTool';
 import { GetDagRunsTool } from './language_tools/GetDagRunsTool';
 import { StopDagRunTool } from './language_tools/StopDagRunTool';
 import { AnalyseDagLatestRunTool } from './language_tools/AnalyseDagLatestRunTool';
 import { GetDagHistoryTool } from './language_tools/GetDagHistoryTool';
+import { GetDagRunDetailTool } from './language_tools/GetDagRunDetailTool';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -111,7 +113,15 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(listPausedDagsTool);
 	ui.logToOutput('Registered tool: list_paused_dags');
 
-	// Register Tool 6: pause_dag (Control)
+	// Register Tool 6: get_running_dags (Monitoring)
+	const getRunningDagsTool = vscode.lm.registerTool(
+		'get_running_dags',
+		new GetRunningDagsTool(airflowClient)
+	);
+	context.subscriptions.push(getRunningDagsTool);
+	ui.logToOutput('Registered tool: get_running_dags');
+
+	// Register Tool 7: pause_dag (Control)
 	const pauseDagTool = vscode.lm.registerTool(
 		'pause_dag',
 		new PauseDagTool(airflowClient)
@@ -119,7 +129,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(pauseDagTool);
 	ui.logToOutput('Registered tool: pause_dag');
 
-	// Register Tool 7: unpause_dag (Control)
+	// Register Tool 8: unpause_dag (Control)
 	const unpauseDagTool = vscode.lm.registerTool(
 		'unpause_dag',
 		new UnpauseDagTool(airflowClient)
@@ -127,7 +137,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(unpauseDagTool);
 	ui.logToOutput('Registered tool: unpause_dag');
 
-	// Register Tool 8: get_dag_runs (Monitoring)
+	// Register Tool 9: get_dag_runs (Monitoring)
 	const getDagRunsTool = vscode.lm.registerTool(
 		'get_dag_runs',
 		new GetDagRunsTool(airflowClient)
@@ -135,7 +145,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(getDagRunsTool);
 	ui.logToOutput('Registered tool: get_dag_runs');
 
-	// Register Tool 9: stop_dag_run (Control)
+	// Register Tool 10: stop_dag_run (Control)
 	const stopDagRunTool = vscode.lm.registerTool(
 		'stop_dag_run',
 		new StopDagRunTool(airflowClient)
@@ -143,7 +153,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(stopDagRunTool);
 	ui.logToOutput('Registered tool: stop_dag_run');
 
-	// Register Tool 10: analyse_dag_latest_run (Analysis)
+	// Register Tool 11: analyse_dag_latest_run (Analysis)
 	const analyseDagLatestRunTool = vscode.lm.registerTool(
 		'analyse_dag_latest_run',
 		new AnalyseDagLatestRunTool(airflowClient)
@@ -151,13 +161,21 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(analyseDagLatestRunTool);
 	ui.logToOutput('Registered tool: analyse_dag_latest_run');
 
-	// Register Tool 11: get_dag_history (Monitoring)
+	// Register Tool 12: get_dag_history (Monitoring)
 	const getDagHistoryTool = vscode.lm.registerTool(
 		'get_dag_history',
 		new GetDagHistoryTool(airflowClient)
 	);
 	context.subscriptions.push(getDagHistoryTool);
 	ui.logToOutput('Registered tool: get_dag_history');
+
+	// Register Tool 13: get_dag_run_detail (Analysis)
+	const getDagRunDetailTool = vscode.lm.registerTool(
+		'get_dag_run_detail',
+		new GetDagRunDetailTool(airflowClient)
+	);
+	context.subscriptions.push(getDagRunDetailTool);
+	ui.logToOutput('Registered tool: get_dag_run_detail');
 
 	ui.logToOutput('All Language Model Tools registered successfully');
 
