@@ -62,8 +62,8 @@ export class DagView {
         await this.renderHmtl();
     }
 
-    public async loadDagDataOnly() {
-        ui.logToOutput('DagView.loadDagDataOnly Started');
+    public async loadDagInfoOnly() {
+        ui.logToOutput('DagView.loadDagInfoOnly Started');
         await this.getDagInfo();
         await this.renderHmtl();
     }
@@ -136,10 +136,7 @@ export class DagView {
         ui.logToOutput('DagView.getTaskInstances Started');
 
         let result = await this.api.getTaskInstances(this.dagId, dagRunId); // Note: api.getTaskInstances was not implemented in my previous step, I need to check if I missed it.
-        // Wait, I missed getTaskInstances in AirflowApi. I need to add it.
-        // I'll add it to AirflowApi later or assume I added it.
-        // Actually I should check api.ts again. I added getLastDagRunLog but maybe not getTaskInstances explicitly as public.
-        // I will add it to api.ts in a subsequent step if missing.
+
         if (result.isSuccessful) {
             this.dagTaskInstancesJson = result.result;
         }
@@ -687,13 +684,13 @@ export class DagView {
     async cancelDagRun(dagRunId:string){
         ui.logToOutput('DagView.cancelDagRun Started');
 
-        // Note: cancelDagRun is missing in AirflowApi, need to add it.
-        // I will add it to AirflowApi in the next step.
-        // For now I will comment it out or assume it exists.
-        // let result = await this.api.cancelDagRun(this.dagId, dagRunId);
-        // if (result.isSuccessful) {
-            
-        // }
+        let result = await this.api.cancelDagRun(this.dagId, dagRunId);
+        if (result.isSuccessful) {
+            ui.showInfoMessage(`Dag ${this.dagId} Run ${dagRunId} cancelled successfully.`);
+            ui.logToOutput(`Dag ${this.dagId} Run ${dagRunId} cancelled successfully.`);
+            await this.getDagRun(this.dagId, dagRunId);
+            DagTreeView.Current?.notifyDagStateWithDagId(this.dagId);
+        }
     }
 
     async updateDagRunNote(note: string) {
@@ -728,13 +725,13 @@ export class DagView {
 
         let result = await this.api.pauseDag(this.dagId, is_paused);
         if (result.isSuccessful) {
-            this.loadDagDataOnly();
+            this.loadDagInfoOnly();
             is_paused ? DagTreeView.Current?.notifyDagPaused(this.dagId) : DagTreeView.Current?.notifyDagUnPaused(this.dagId);
         }
 
     }
 
-    async askAI() {
+    public async askAI() {
         ui.logToOutput('DagView.askAI Started');
 
         if (!DagTreeView.Current) {
@@ -763,7 +760,7 @@ export class DagView {
         await DagTreeView.Current?.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
     }
 
-    async showSourceCode() {
+    public async showSourceCode() {
         ui.logToOutput('DagView.showSourceCode Started');
 
         let result = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
@@ -783,14 +780,14 @@ export class DagView {
         }
     }
 
-    async getRunHistoryAndRenderHtml(date?: string) {
+    public async getRunHistoryAndRenderHtml(date?: string) {
         ui.logToOutput('DagView.getRunHistoryAndRenderHtml Started');
         this.dagHistorySelectedDate = date;
         await this.getRunHistory(date);
         await this.renderHmtl();
     }
 
-    async showDAGRunLog() {
+    public async showDAGRunLog() {
         ui.logToOutput('DagView.DAGRunLog Started');
 
         let result = await this.api.getDagRunLog(this.dagId, this.dagRunId);
@@ -803,7 +800,7 @@ export class DagView {
         }
     }
 
-    async showTaskInstanceLog(dagId: string, dagRunId:string, taskId:string) {
+    public async showTaskInstanceLog(dagId: string, dagRunId:string, taskId:string) {
         ui.logToOutput('DagView.showTaskInstanceLog Started');
 
         let result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
@@ -816,7 +813,7 @@ export class DagView {
         }
     }
 
-    async showTaskXComs(dagId: string, dagRunId:string, taskId:string) {
+    public async showTaskXComs(dagId: string, dagRunId:string, taskId:string) {
         ui.logToOutput('DagView.showTaskXComs Started');
 
         let result = await this.api.getTaskXComs(dagId, dagRunId, taskId);
@@ -831,7 +828,7 @@ export class DagView {
         }
     }
 
-    async triggerDagWConfig(config: string = "", date: string = "") {
+    public async triggerDagWConfig(config: string = "", date: string = "") {
         ui.logToOutput('DagView.triggerDagWConfig Started');
 
         if (config && !ui.isJsonString(config)) {
@@ -860,7 +857,7 @@ export class DagView {
         }
     }
 
-    async startCheckingDagRunStatus(dagRunId:string) {
+    public async startCheckingDagRunStatus(dagRunId:string) {
         ui.logToOutput('DagView.startCheckingDagRunStatus Started');
         this.dagRunId = dagRunId;
         await this.refreshRunningDagState(this);
@@ -872,14 +869,14 @@ export class DagView {
         }, 5 * 1000);
     }
 
-    async stopCheckingDagRunStatus() {
+    public async stopCheckingDagRunStatus() {
         ui.logToOutput('DagView.stopCheckingDagRunStatus Started');
         if (this.dagStatusInterval) {
             clearInterval(this.dagStatusInterval);//stop prev checking
         }
     }
 
-    async refreshRunningDagState(dagView: DagView) {
+    public async refreshRunningDagState(dagView: DagView) {
         ui.logToOutput('DagView.refreshRunningDagState Started');
         if (!dagView.dagId || !dagView.dagRunId)
         {

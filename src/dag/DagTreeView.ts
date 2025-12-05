@@ -130,6 +130,9 @@ export class DagTreeView {
 					void this.refreshRunningDagState(this).catch((err: any) => ui.logToOutput('refreshRunningDagState Error', err));
 				}, 10 * 1000);
 			}
+			if (DagView.Current && DagView.Current.dagId === node.DagId) {
+				DagView.Current.refreshRunningDagState(DagView.Current);
+			}
 		}
 	}
 
@@ -185,6 +188,9 @@ export class DagTreeView {
 					this.dagStatusInterval = setInterval(() => {
 						void this.refreshRunningDagState(this).catch((err: any) => ui.logToOutput('refreshRunningDagState Error', err));
 					}, 10 * 1000);
+				}
+				if (DagView.Current && DagView.Current.dagId === node.DagId) {
+					DagView.Current.refreshRunningDagState(DagView.Current);
 				}
 			}
 		}
