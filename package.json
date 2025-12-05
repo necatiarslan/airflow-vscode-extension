@@ -224,23 +224,23 @@
         }
       },
       {
-        "name": "stop_dag_run",
-        "displayName": "Stop DAG Run",
-        "modelDescription": "Stops the currently running DAG run for a specific Airflow DAG. Use this tool when the user wants to stop, cancel, or terminate a running DAG execution. The DAG run will be marked as failed and stopped. Required input: dag_id (string). This is a state-changing operation that requires user confirmation.",
+        "name": "cancel_dag_run",
+        "displayName": "Cancel DAG Run",
+        "modelDescription": "Cancels the currently running DAG run for a specific Airflow DAG. Use this tool when the user wants to cancel, stop, or terminate a running DAG execution. The DAG run will be marked as failed and cancelled. Required input: dag_id (string). This is a state-changing operation that requires user confirmation.",
         "icon": "$(debug-stop)",
         "tags": [
           "airflow",
           "control",
           "dag",
-          "stop",
-          "cancel"
+          "cancel",
+          "stop"
         ],
         "inputSchema": {
           "type": "object",
           "properties": {
             "dag_id": {
               "type": "string",
-              "description": "The unique identifier (ID) of the DAG whose run should be stopped"
+              "description": "The unique identifier (ID) of the DAG whose run should be cancelled"
             }
           },
           "required": [
@@ -408,6 +408,11 @@
         "title": "UnPause DAG"
       },
       {
+        "command": "dagTreeView.cancelDagRun",
+        "title": "Cancel DAG Run",
+        "icon": "$(debug-stop)"
+      },
+      {
         "command": "dagTreeView.addToFavDAG",
         "title": "Fav DAG"
       },
@@ -510,7 +515,12 @@
         },
         {
           "command": "dagTreeView.triggerDag",
-          "when": "view == dagTreeView",
+          "when": "view == dagTreeView && viewItem =~ /#!IsRunning#/",
+          "group": "inline"
+        },
+        {
+          "command": "dagTreeView.cancelDagRun",
+          "when": "view == dagTreeView && viewItem =~ /#IsRunning#/",
           "group": "inline"
         },
         {
@@ -530,7 +540,7 @@
         },
         {
           "command": "dagTreeView.triggerDagWithConfig",
-          "when": "view == dagTreeView",
+          "when": "view == dagTreeView && viewItem =~ /#!IsRunning#/",
           "group": "trigger"
         },
         {

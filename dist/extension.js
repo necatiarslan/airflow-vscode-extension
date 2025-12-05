@@ -19,10 +19,11 @@ exports.DagTreeView = void 0;
 const vscode = __webpack_require__(1);
 const DagTreeDataProvider_1 = __webpack_require__(3);
 const DagView_1 = __webpack_require__(5);
-const DailyDagRunView_1 = __webpack_require__(12);
-const DagRunView_1 = __webpack_require__(13);
+const DailyDagRunView_1 = __webpack_require__(13);
+const DagRunView_1 = __webpack_require__(14);
 const ui = __webpack_require__(6);
-const Api_1 = __webpack_require__(14);
+const Api_1 = __webpack_require__(15);
+const MessageHub = __webpack_require__(9);
 class DagTreeView {
     constructor(context) {
         this.filterString = '';
@@ -114,9 +115,7 @@ class DagTreeView {
                     void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
                 }, 10 * 1000);
             }
-            if (DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === node.DagId) {
-                DagView_1.DagView.Current.refreshRunningDagState(DagView_1.DagView.Current);
-            }
+            MessageHub.DagTriggered(this, node.DagId, node.LatestDagRunId);
         }
     }
     async refreshRunningDagState(dagTreeView) {
@@ -169,9 +168,7 @@ class DagTreeView {
                         void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
                     }, 10 * 1000);
                 }
-                if (DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === node.DagId) {
-                    DagView_1.DagView.Current.refreshRunningDagState(DagView_1.DagView.Current);
-                }
+                MessageHub.DagTriggered(this, node.DagId, node.LatestDagRunId);
             }
         }
     }
@@ -238,6 +235,7 @@ class DagTreeView {
             node.IsPaused = true;
             node.refreshUI();
             this.treeDataProvider.refresh();
+            MessageHub.DagPaused(this, node.DagId);
         }
     }
     async notifyDagPaused(dagId) {
@@ -262,6 +260,29 @@ class DagTreeView {
             node.IsPaused = false;
             node.refreshUI();
             this.treeDataProvider.refresh();
+            MessageHub.DagUnPaused(this, node.DagId);
+        }
+    }
+    async cancelDagRun(node) {
+        ui.logToOutput('DagTreeView.cancelDagRun Started');
+        if (!this.api) {
+            return;
+        }
+        if (!node.isDagRunning()) {
+            ui.showWarningMessage('No running DAG to cancel');
+            return;
+        }
+        if (!node.LatestDagRunId) {
+            ui.showWarningMessage('No DAG run ID found');
+            return;
+        }
+        const result = await this.api.cancelDagRun(node.DagId, node.LatestDagRunId);
+        if (result.isSuccessful) {
+            node.LatestDagState = 'failed';
+            node.refreshUI();
+            this.treeDataProvider.refresh();
+            ui.showInfoMessage(`DAG Run ${node.LatestDagRunId} cancelled`);
+            MessageHub.DagRunCancelled(this, node.DagId, node.LatestDagRunId);
         }
     }
     async lastDAGRunLog(node) {
@@ -271,7 +292,7 @@ class DagTreeView {
         }
         const result = await this.api.getLastDagRunLog(node.DagId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(9);
+            const tmp = __webpack_require__(10);
             const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.log' });
             fs.appendFileSync(tmpFile.name, result.result);
@@ -285,7 +306,7 @@ class DagTreeView {
         }
         const result = await this.api.getSourceCode(node.DagId, node.FileToken);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(9);
+            const tmp = __webpack_require__(10);
             const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.py' });
             fs.appendFileSync(tmpFile.name, result.result);
@@ -303,7 +324,7 @@ class DagTreeView {
         }
         const result = await this.api.getDagInfo(node.DagId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(9);
+            const tmp = __webpack_require__(10);
             const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId + '_info', postfix: '.json' });
             fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
@@ -418,8 +439,8 @@ class DagTreeView {
                 }
             },
             {
-                name: 'stop_dag_run',
-                description: 'Stops the currently running DAG run for the given DAG. Required: dag_id.',
+                name: 'cancel_dag_run',
+                description: 'Cancels the currently running DAG run for the given DAG. Required: dag_id.',
                 inputSchema: {
                     type: 'object',
                     properties: {
@@ -708,8 +729,6 @@ class DagTreeView {
         if (result.isSuccessful) {
             this.treeDataProvider.dagList = result.result;
             this.treeDataProvider.loadDagTreeItemsFromApiResponse();
-            // Fetch latest run status for each DAG
-            await this.loadLatestRunStatusForAllDags();
         }
         this.treeDataProvider.refresh();
         this.setViewTitle();
@@ -829,35 +848,35 @@ class DagTreeView {
     async viewConnections() {
         ui.logToOutput('DagTreeView.viewConnections Started');
         if (this.api) {
-            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(51));
+            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(52));
             ConnectionsView.render(this.context.extensionUri, this.api);
         }
     }
     async viewVariables() {
         ui.logToOutput('DagTreeView.viewVariables Started');
         if (this.api) {
-            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(52));
+            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(53));
             VariablesView.render(this.context.extensionUri, this.api);
         }
     }
     async viewProviders() {
         ui.logToOutput('DagTreeView.viewProviders Started');
         if (this.api) {
-            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(53));
+            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(54));
             ProvidersView.render(this.context.extensionUri, this.api);
         }
     }
     async viewConfigs() {
         ui.logToOutput('DagTreeView.viewConfigs Started');
         if (this.api) {
-            const { ConfigsView } = await Promise.resolve().then(() => __webpack_require__(54));
+            const { ConfigsView } = await Promise.resolve().then(() => __webpack_require__(55));
             ConfigsView.render(this.context.extensionUri, this.api);
         }
     }
     async viewPlugins() {
         ui.logToOutput('DagTreeView.viewPlugins Started');
         if (this.api) {
-            const { PluginsView } = await Promise.resolve().then(() => __webpack_require__(55));
+            const { PluginsView } = await Promise.resolve().then(() => __webpack_require__(56));
             PluginsView.render(this.context.extensionUri, this.api);
         }
     }
@@ -876,7 +895,7 @@ class DagTreeView {
     async viewServerHealth() {
         ui.logToOutput('DagTreeView.viewServerHealth Started');
         if (this.api) {
-            const { ServerHealthView } = await Promise.resolve().then(() => __webpack_require__(56));
+            const { ServerHealthView } = await Promise.resolve().then(() => __webpack_require__(57));
             ServerHealthView.render(this.context.extensionUri, this.api);
         }
     }
@@ -990,6 +1009,7 @@ class DagTreeItem extends vscode.TreeItem {
         contextValue += this.IsPaused ? "IsPaused#" : "!IsPaused#";
         contextValue += this.IsActive ? "IsActive#" : "!IsActive#";
         contextValue += this.IsFiltered ? "IsFiltered#" : "!IsFiltered#";
+        contextValue += this.isDagRunning() ? "IsRunning#" : "!IsRunning#";
         this.contextValue = contextValue;
     }
     refreshUI() {
@@ -1016,6 +1036,8 @@ class DagTreeItem extends vscode.TreeItem {
             }
             this.ApiResponse.is_paused = false;
         }
+        // Update context value to reflect current running state
+        this.setContextValue();
     }
     doesFilterMatch(filterString) {
         const words = filterString.split(',');
@@ -1067,6 +1089,7 @@ exports.DagView = void 0;
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(6);
 const DagTreeView_1 = __webpack_require__(2);
+const MessageHub = __webpack_require__(9);
 class DagView {
     constructor(panel, extensionUri, dagId, api, dagRunId) {
         this._disposables = [];
@@ -1670,7 +1693,7 @@ class DagView {
             ui.showInfoMessage(`Dag ${this.dagId} Run ${dagRunId} cancelled successfully.`);
             ui.logToOutput(`Dag ${this.dagId} Run ${dagRunId} cancelled successfully.`);
             await this.getDagRun(this.dagId, dagRunId);
-            DagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(this.dagId);
+            MessageHub.DagRunCancelled(this, this.dagId, dagRunId);
         }
     }
     async updateDagRunNote(note) {
@@ -1707,7 +1730,7 @@ class DagView {
         let result = await this.api.pauseDag(this.dagId, is_paused);
         if (result.isSuccessful) {
             this.loadDagInfoOnly();
-            is_paused ? DagTreeView_1.DagTreeView.Current?.notifyDagPaused(this.dagId) : DagTreeView_1.DagTreeView.Current?.notifyDagUnPaused(this.dagId);
+            is_paused ? MessageHub.DagPaused(this, this.dagId) : MessageHub.DagUnPaused(this, this.dagId);
         }
     }
     async askAI() {
@@ -1737,7 +1760,7 @@ class DagView {
         ui.logToOutput('DagView.showSourceCode Started');
         let result = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(9);
+            const tmp = __webpack_require__(10);
             const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.py' });
             fs.appendFileSync(tmpFile.name, result.result);
@@ -1758,7 +1781,7 @@ class DagView {
         ui.logToOutput('DagView.DAGRunLog Started');
         let result = await this.api.getDagRunLog(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(9);
+            const tmp = __webpack_require__(10);
             const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.log' });
             fs.appendFileSync(tmpFile.name, result.result);
@@ -1769,7 +1792,7 @@ class DagView {
         ui.logToOutput('DagView.showTaskInstanceLog Started');
         let result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(9);
+            const tmp = __webpack_require__(10);
             const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId, postfix: '.log' });
             fs.appendFileSync(tmpFile.name, result.result);
@@ -1780,7 +1803,7 @@ class DagView {
         ui.logToOutput('DagView.showTaskXComs Started');
         let result = await this.api.getTaskXComs(dagId, dagRunId, taskId);
         if (result.isSuccessful) {
-            const tmp = __webpack_require__(9);
+            const tmp = __webpack_require__(10);
             const fs = __webpack_require__(7);
             const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId + '_xcom', postfix: '.json' });
             fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
@@ -1807,7 +1830,7 @@ class DagView {
             let result = await this.api.triggerDag(this.dagId, config, date);
             if (result.isSuccessful) {
                 this.startCheckingDagRunStatus(result.result["dag_run_id"]);
-                DagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(this.dagId);
+                MessageHub.DagTriggered(this, this.dagId, result.result["dag_run_id"]);
             }
         }
     }
@@ -2092,6 +2115,53 @@ module.exports = require("path");
 
 /***/ }),
 /* 9 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTriggered = DagTriggered;
+exports.DagRunCancelled = DagRunCancelled;
+exports.DagPaused = DagPaused;
+exports.DagUnPaused = DagUnPaused;
+const DagView_1 = __webpack_require__(5);
+const DagTreeView_1 = __webpack_require__(2);
+function DagTriggered(source, dagId, dagRunId) {
+    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
+        DagView_1.DagView.Current.getDagRun(dagId, dagRunId);
+    }
+    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
+        DagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(dagId);
+    }
+}
+function DagRunCancelled(source, dagId, dagRunId) {
+    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
+        DagView_1.DagView.Current.getDagRun(dagId, dagRunId);
+    }
+    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
+        DagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(dagId);
+    }
+}
+function DagPaused(source, dagId) {
+    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
+        DagView_1.DagView.Current.loadDagInfoOnly();
+    }
+    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
+        DagTreeView_1.DagTreeView.Current?.notifyDagPaused(dagId);
+    }
+}
+function DagUnPaused(source, dagId) {
+    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
+        DagView_1.DagView.Current.loadDagInfoOnly();
+    }
+    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
+        DagTreeView_1.DagTreeView.Current?.notifyDagUnPaused(dagId);
+    }
+}
+
+
+/***/ }),
+/* 10 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /*!
@@ -2106,9 +2176,9 @@ module.exports = require("path");
  * Module dependencies.
  */
 const fs = __webpack_require__(7);
-const os = __webpack_require__(10);
+const os = __webpack_require__(11);
 const path = __webpack_require__(8);
-const crypto = __webpack_require__(11);
+const crypto = __webpack_require__(12);
 const _c = { fs: fs.constants, os: os.constants };
 
 /*
@@ -2939,21 +3009,21 @@ module.exports.setGracefulCleanup = setGracefulCleanup;
 
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("os");
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("crypto");
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -3283,7 +3353,7 @@ exports.DailyDagRunView = DailyDagRunView;
 
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -3629,7 +3699,7 @@ exports.DagRunView = DagRunView;
 
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -3637,12 +3707,12 @@ exports.DagRunView = DagRunView;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AirflowApi = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
-const base_64_1 = __webpack_require__(15);
+const base_64_1 = __webpack_require__(16);
 const ui = __webpack_require__(6);
-const MethodResult_1 = __webpack_require__(16);
+const MethodResult_1 = __webpack_require__(17);
 // Wrapper for fetch to handle ESM node-fetch in CommonJS
 const fetch = async (url, init) => {
-    const module = await Promise.resolve().then(() => __webpack_require__(17));
+    const module = await Promise.resolve().then(() => __webpack_require__(18));
     return module.default(url, init);
 };
 class AirflowApi {
@@ -3855,33 +3925,6 @@ class AirflowApi {
         }
         catch (error) {
             ui.showErrorMessage(`${dagId} Pause Error`, error);
-            result.isSuccessful = false;
-            result.error = error;
-        }
-        return result;
-    }
-    async stopDagRun(dagId, dagRunId) {
-        const result = new MethodResult_1.MethodResult();
-        try {
-            const headers = await this.getHeaders();
-            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, {
-                method: 'PATCH',
-                headers,
-                body: JSON.stringify({ state: 'failed' })
-            });
-            const data = await response.json();
-            if (response.status === 200) {
-                ui.showInfoMessage(`DAG Run ${dagRunId} stopped.`);
-                result.result = data;
-                result.isSuccessful = true;
-            }
-            else {
-                ui.showApiErrorMessage(`Stop DAG Run Error`, data);
-                result.isSuccessful = false;
-            }
-        }
-        catch (error) {
-            ui.showErrorMessage(`Stop DAG Run Error`, error);
             result.isSuccessful = false;
             result.error = error;
         }
@@ -4157,7 +4200,7 @@ exports.AirflowApi = AirflowApi;
 
 
 /***/ }),
-/* 15 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* module decorator */ module = __webpack_require__.nmd(module);
@@ -4318,7 +4361,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/base64 v1.0.0 by @mathias 
 
 
 /***/ }),
-/* 16 */
+/* 17 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -4337,7 +4380,7 @@ exports.MethodResult = MethodResult;
 
 
 /***/ }),
-/* 17 */
+/* 18 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4358,23 +4401,23 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   fileFromSync: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.fileFromSync),
 /* harmony export */   isRedirect: () => (/* reexport safe */ _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__.isRedirect)
 /* harmony export */ });
-/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(18);
-/* harmony import */ var node_https__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(19);
-/* harmony import */ var node_zlib__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(20);
-/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(21);
-/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(22);
-/* harmony import */ var data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(23);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(24);
-/* harmony import */ var _response_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(37);
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(38);
-/* harmony import */ var _request_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(40);
-/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(34);
-/* harmony import */ var _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(45);
-/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(39);
-/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(32);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(36);
-/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(43);
-/* harmony import */ var fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(46);
+/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(19);
+/* harmony import */ var node_https__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(20);
+/* harmony import */ var node_zlib__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(21);
+/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(22);
+/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(23);
+/* harmony import */ var data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(24);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(25);
+/* harmony import */ var _response_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(38);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(39);
+/* harmony import */ var _request_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(41);
+/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(35);
+/* harmony import */ var _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(46);
+/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(40);
+/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(33);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(37);
+/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(44);
+/* harmony import */ var fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(47);
 /**
  * Index.js
  *
@@ -4788,42 +4831,42 @@ function fixResponseChunkedTransferBadEnding(request, errorCallback) {
 
 
 /***/ }),
-/* 18 */
+/* 19 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:http");
 
 /***/ }),
-/* 19 */
+/* 20 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:https");
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:zlib");
 
 /***/ }),
-/* 21 */
+/* 22 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:stream");
 
 /***/ }),
-/* 22 */
+/* 23 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:buffer");
 
 /***/ }),
-/* 23 */
+/* 24 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4887,7 +4930,7 @@ function dataUriToBuffer(uri) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4899,14 +4942,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   getTotalBytes: () => (/* binding */ getTotalBytes),
 /* harmony export */   writeToStream: () => (/* binding */ writeToStream)
 /* harmony export */ });
-/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(21);
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(25);
-/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(22);
-/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(26);
-/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(32);
-/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(34);
-/* harmony import */ var _errors_base_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(35);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(36);
+/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(22);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(26);
+/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(23);
+/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(27);
+/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(33);
+/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(35);
+/* harmony import */ var _errors_base_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(36);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(37);
 
 /**
  * Body.js
@@ -5030,7 +5073,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 74));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 75));
 		return toFormData(this.body, ct);
 	}
 
@@ -5307,14 +5350,14 @@ const writeToStream = async (dest, {body}) => {
 
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:util");
 
 /***/ }),
-/* 26 */
+/* 27 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -5323,7 +5366,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   Blob: () => (/* binding */ Blob),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _streams_cjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(27);
+/* harmony import */ var _streams_cjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(28);
 /*! fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 // TODO (jimmywarting): in the feature use conditional loading with top level await (requires 14.x)
@@ -5577,7 +5620,7 @@ const Blob = _Blob
 
 
 /***/ }),
-/* 27 */
+/* 28 */
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
 
 /* c8 ignore start */
@@ -5589,11 +5632,11 @@ if (!globalThis.ReadableStream) {
   // and it's preferred over the polyfilled version. So we also
   // suppress the warning that gets emitted by NodeJS for using it.
   try {
-    const process = __webpack_require__(28)
+    const process = __webpack_require__(29)
     const { emitWarning } = process
     try {
       process.emitWarning = () => {}
-      Object.assign(globalThis, __webpack_require__(29))
+      Object.assign(globalThis, __webpack_require__(30))
       process.emitWarning = emitWarning
     } catch (error) {
       process.emitWarning = emitWarning
@@ -5601,14 +5644,14 @@ if (!globalThis.ReadableStream) {
     }
   } catch (error) {
     // fallback to polyfill implementation
-    Object.assign(globalThis, __webpack_require__(30))
+    Object.assign(globalThis, __webpack_require__(31))
   }
 }
 
 try {
   // Don't use node: prefix for this, require+node: is not supported until node v14.14
   // Only `import()` can use prefix in 12.20 and later
-  const { Blob } = __webpack_require__(31)
+  const { Blob } = __webpack_require__(32)
   if (Blob && !Blob.prototype.stream) {
     Blob.prototype.stream = function name (params) {
       let position = 0
@@ -5634,21 +5677,21 @@ try {
 
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:process");
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:stream/web");
 
 /***/ }),
-/* 30 */
+/* 31 */
 /***/ (function(__unused_webpack_module, exports) {
 
 /**
@@ -9866,14 +9909,14 @@ module.exports = require("node:stream/web");
 
 
 /***/ }),
-/* 31 */
+/* 32 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("buffer");
 
 /***/ }),
-/* 32 */
+/* 33 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9883,8 +9926,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   FormData: () => (/* binding */ FormData),
 /* harmony export */   formDataToBlob: () => (/* binding */ formDataToBlob)
 /* harmony export */ });
-/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(26);
-/* harmony import */ var fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(33);
+/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(27);
+/* harmony import */ var fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(34);
 /*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 
@@ -9928,7 +9971,7 @@ return new B(c,{type:"multipart/form-data; boundary="+b})}
 
 
 /***/ }),
-/* 33 */
+/* 34 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9937,7 +9980,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   File: () => (/* binding */ File),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(26);
+/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(27);
 
 
 const _File = class File extends _index_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
@@ -9990,7 +10033,7 @@ const File = _File
 
 
 /***/ }),
-/* 34 */
+/* 35 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9998,7 +10041,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   FetchError: () => (/* binding */ FetchError)
 /* harmony export */ });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(35);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(36);
 
 
 
@@ -10028,7 +10071,7 @@ class FetchError extends _base_js__WEBPACK_IMPORTED_MODULE_0__.FetchBaseError {
 
 
 /***/ }),
-/* 35 */
+/* 36 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10056,7 +10099,7 @@ class FetchBaseError extends Error {
 
 
 /***/ }),
-/* 36 */
+/* 37 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10158,7 +10201,7 @@ const isSameProtocol = (destination, original) => {
 
 
 /***/ }),
-/* 37 */
+/* 38 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10166,9 +10209,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (/* binding */ Response)
 /* harmony export */ });
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(38);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(24);
-/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(39);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(39);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(25);
+/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(40);
 /**
  * Response.js
  *
@@ -10332,7 +10375,7 @@ Object.defineProperties(Response.prototype, {
 
 
 /***/ }),
-/* 38 */
+/* 39 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10341,8 +10384,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (/* binding */ Headers),
 /* harmony export */   fromRawHeaders: () => (/* binding */ fromRawHeaders)
 /* harmony export */ });
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(25);
-/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(18);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(26);
+/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(19);
 /**
  * Headers.js
  *
@@ -10613,7 +10656,7 @@ function fromRawHeaders(headers = []) {
 
 
 /***/ }),
-/* 39 */
+/* 40 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10635,7 +10678,7 @@ const isRedirect = code => {
 
 
 /***/ }),
-/* 40 */
+/* 41 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10644,13 +10687,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (/* binding */ Request),
 /* harmony export */   getNodeRequestOptions: () => (/* binding */ getNodeRequestOptions)
 /* harmony export */ });
-/* harmony import */ var node_url__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(41);
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(25);
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(38);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(24);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(36);
-/* harmony import */ var _utils_get_search_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(42);
-/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(43);
+/* harmony import */ var node_url__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(42);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(26);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(39);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(25);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(37);
+/* harmony import */ var _utils_get_search_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(43);
+/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(44);
 /**
  * Request.js
  *
@@ -10965,14 +11008,14 @@ const getNodeRequestOptions = request => {
 
 
 /***/ }),
-/* 41 */
+/* 42 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:url");
 
 /***/ }),
-/* 42 */
+/* 43 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10992,7 +11035,7 @@ const getSearch = parsedURL => {
 
 
 /***/ }),
-/* 43 */
+/* 44 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -11007,7 +11050,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   stripURLForUseAsAReferrer: () => (/* binding */ stripURLForUseAsAReferrer),
 /* harmony export */   validateReferrerPolicy: () => (/* binding */ validateReferrerPolicy)
 /* harmony export */ });
-/* harmony import */ var node_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(44);
+/* harmony import */ var node_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(45);
 
 
 /**
@@ -11351,14 +11394,14 @@ function parseReferrerPolicyFromHeader(headers) {
 
 
 /***/ }),
-/* 44 */
+/* 45 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:net");
 
 /***/ }),
-/* 45 */
+/* 46 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -11366,7 +11409,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   AbortError: () => (/* binding */ AbortError)
 /* harmony export */ });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(35);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(36);
 
 
 /**
@@ -11380,7 +11423,7 @@ class AbortError extends _base_js__WEBPACK_IMPORTED_MODULE_0__.FetchBaseError {
 
 
 /***/ }),
-/* 46 */
+/* 47 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -11394,11 +11437,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   fileFrom: () => (/* binding */ fileFrom),
 /* harmony export */   fileFromSync: () => (/* binding */ fileFromSync)
 /* harmony export */ });
-/* harmony import */ var node_fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(47);
-/* harmony import */ var node_path__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(48);
-/* harmony import */ var node_domexception__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(49);
-/* harmony import */ var _file_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(33);
-/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(26);
+/* harmony import */ var node_fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(48);
+/* harmony import */ var node_path__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(49);
+/* harmony import */ var node_domexception__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(50);
+/* harmony import */ var _file_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(34);
+/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(27);
 
 
 
@@ -11502,28 +11545,28 @@ class BlobDataItem {
 
 
 /***/ }),
-/* 47 */
+/* 48 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:fs");
 
 /***/ }),
-/* 48 */
+/* 49 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:path");
 
 /***/ }),
-/* 49 */
+/* 50 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /*! node-domexception. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 if (!globalThis.DOMException) {
   try {
-    const { MessageChannel } = __webpack_require__(50),
+    const { MessageChannel } = __webpack_require__(51),
     port = new MessageChannel().port1,
     ab = new ArrayBuffer()
     port.postMessage(ab, [ab, ab])
@@ -11538,14 +11581,14 @@ module.exports = globalThis.DOMException
 
 
 /***/ }),
-/* 50 */
+/* 51 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("worker_threads");
 
 /***/ }),
-/* 51 */
+/* 52 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11654,7 +11697,7 @@ exports.ConnectionsView = ConnectionsView;
 
 
 /***/ }),
-/* 52 */
+/* 53 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11836,7 +11879,7 @@ exports.VariablesView = VariablesView;
 
 
 /***/ }),
-/* 53 */
+/* 54 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12011,7 +12054,7 @@ exports.ProvidersView = ProvidersView;
 
 
 /***/ }),
-/* 54 */
+/* 55 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12186,7 +12229,7 @@ exports.ConfigsView = ConfigsView;
 
 
 /***/ }),
-/* 55 */
+/* 56 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12353,7 +12396,7 @@ exports.PluginsView = PluginsView;
 
 
 /***/ }),
-/* 56 */
+/* 57 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12586,7 +12629,7 @@ exports.ServerHealthView = ServerHealthView;
 
 
 /***/ }),
-/* 57 */
+/* 58 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12594,7 +12637,7 @@ exports.ServerHealthView = ServerHealthView;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AdminTreeView = void 0;
 const vscode = __webpack_require__(1);
-const AdminTreeItem_1 = __webpack_require__(58);
+const AdminTreeItem_1 = __webpack_require__(59);
 class AdminTreeView {
     constructor(context) {
         this.context = context;
@@ -12650,7 +12693,7 @@ exports.AdminTreeView = AdminTreeView;
 
 
 /***/ }),
-/* 58 */
+/* 59 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12673,7 +12716,7 @@ exports.AdminTreeItem = AdminTreeItem;
 
 
 /***/ }),
-/* 59 */
+/* 60 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12681,7 +12724,7 @@ exports.AdminTreeItem = AdminTreeItem;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ReportTreeView = void 0;
 const vscode = __webpack_require__(1);
-const ReportTreeItem_1 = __webpack_require__(60);
+const ReportTreeItem_1 = __webpack_require__(61);
 class ReportTreeView {
     constructor(context) {
         this.context = context;
@@ -12717,7 +12760,7 @@ exports.ReportTreeView = ReportTreeView;
 
 
 /***/ }),
-/* 60 */
+/* 61 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12740,7 +12783,7 @@ exports.ReportTreeItem = ReportTreeItem;
 
 
 /***/ }),
-/* 61 */
+/* 62 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12754,6 +12797,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AirflowClientAdapter = void 0;
 const DagTreeView_1 = __webpack_require__(2);
 const ui = __webpack_require__(6);
+const MessageHub = __webpack_require__(9);
 class AirflowClientAdapter {
     /**
      * Dynamically retrieves the currently connected Airflow API instance.
@@ -12789,6 +12833,7 @@ class AirflowClientAdapter {
         if (!result.isSuccessful) {
             throw new Error(result.error?.message || 'Failed to trigger DAG run');
         }
+        MessageHub.DagTriggered(this, dagId, result.result.dag_run_id);
         // Map the API response to our interface
         const apiResponse = result.result;
         return {
@@ -12940,6 +12985,7 @@ class AirflowClientAdapter {
             if (!result.isSuccessful) {
                 throw new Error(result.error?.message || `Failed to ${isPaused ? 'pause' : 'unpause'} DAG`);
             }
+            MessageHub.DagPaused(this, dagId);
         }
         catch (error) {
             throw new Error(`Failed to change DAG state: ${error instanceof Error ? error.message : String(error)}`);
@@ -13074,12 +13120,13 @@ class AirflowClientAdapter {
      * @param dagId - The DAG ID
      * @param dagRunId - The DAG run ID to stop
      */
-    async stopDagRun(dagId, dagRunId) {
+    async cancelDagRun(dagId, dagRunId) {
         try {
-            const result = await this.api.stopDagRun(dagId, dagRunId);
+            const result = await this.api.cancelDagRun(dagId, dagRunId);
             if (!result.isSuccessful) {
-                throw new Error(result.error?.message || 'Failed to stop DAG run');
+                throw new Error(result.error?.message || 'Failed to cancel DAG run');
             }
+            MessageHub.DagRunCancelled(this, dagId, dagRunId);
         }
         catch (error) {
             throw new Error(`Failed to stop DAG run: ${error instanceof Error ? error.message : String(error)}`);
@@ -13127,7 +13174,7 @@ exports.AirflowClientAdapter = AirflowClientAdapter;
 
 
 /***/ }),
-/* 62 */
+/* 63 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13255,7 +13302,7 @@ exports.TriggerDagRunTool = TriggerDagRunTool;
 
 
 /***/ }),
-/* 63 */
+/* 64 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13374,7 +13421,7 @@ exports.GetFailedRunsTool = GetFailedRunsTool;
 
 
 /***/ }),
-/* 64 */
+/* 65 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13426,7 +13473,7 @@ exports.ListActiveDagsTool = ListActiveDagsTool;
 
 
 /***/ }),
-/* 65 */
+/* 66 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13478,7 +13525,7 @@ exports.ListPausedDagsTool = ListPausedDagsTool;
 
 
 /***/ }),
-/* 66 */
+/* 67 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13534,7 +13581,7 @@ exports.GetRunningDagsTool = GetRunningDagsTool;
 
 
 /***/ }),
-/* 67 */
+/* 68 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13585,7 +13632,7 @@ exports.PauseDagTool = PauseDagTool;
 
 
 /***/ }),
-/* 68 */
+/* 69 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13636,7 +13683,7 @@ exports.UnpauseDagTool = UnpauseDagTool;
 
 
 /***/ }),
-/* 69 */
+/* 70 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13777,24 +13824,24 @@ exports.GetDagRunsTool = GetDagRunsTool;
 
 
 /***/ }),
-/* 70 */
+/* 71 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 /**
- * StopDagRunTool - Language Model Tool for stopping a running DAG run
+ * CancelDagRunTool - Language Model Tool for cancelling a running DAG run
  *
- * This tool stops the currently running DAG run for a specific DAG.
+ * This tool cancels the currently running DAG run for a specific DAG.
  * It requires user confirmation since it's a state-changing operation.
  */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.StopDagRunTool = void 0;
+exports.CancelDagRunTool = void 0;
 const vscode = __webpack_require__(1);
 /**
- * StopDagRunTool - Implements vscode.LanguageModelTool for stopping DAG runs
+ * CancelDagRunTool - Implements vscode.LanguageModelTool for cancelling DAG runs
  */
-class StopDagRunTool {
+class CancelDagRunTool {
     constructor(client) {
         this.client = client;
     }
@@ -13816,24 +13863,24 @@ class StopDagRunTool {
         }
         const confirmationMessage = new vscode.MarkdownString();
         confirmationMessage.isTrusted = true;
-        confirmationMessage.appendMarkdown('## ⚠️ Stop DAG Run Confirmation\n\n');
-        confirmationMessage.appendMarkdown(`You are about to **STOP** the running DAG run for:\n\n`);
+        confirmationMessage.appendMarkdown('## ⚠️ Cancel DAG Run Confirmation\n\n');
+        confirmationMessage.appendMarkdown(`You are about to **CANCEL** the running DAG run for:\n\n`);
         confirmationMessage.appendMarkdown(`**DAG ID:** \`${dag_id}\`\n`);
         if (runInfo) {
             confirmationMessage.appendMarkdown(runInfo);
         }
-        confirmationMessage.appendMarkdown('**Effect:** The current DAG run will be marked as failed and stopped.\n\n');
+        confirmationMessage.appendMarkdown('**Effect:** The current DAG run will be marked as failed and cancelled.\n\n');
         confirmationMessage.appendMarkdown('Do you want to proceed?');
         return {
-            invocationMessage: `Stopping DAG run: ${dag_id}`,
+            invocationMessage: `Cancelling DAG run: ${dag_id}`,
             confirmationMessages: {
-                title: 'Confirm Stop DAG Run',
+                title: 'Confirm Cancel DAG Run',
                 message: confirmationMessage
             }
         };
     }
     /**
-     * Execute the stop DAG run action
+     * Execute the cancel DAG run action
      */
     async invoke(options, token) {
         const { dag_id } = options.input;
@@ -13851,16 +13898,16 @@ class StopDagRunTool {
                     new vscode.LanguageModelTextPart(`ℹ️ DAG '${dag_id}' is not currently running.\n\nLatest run state: **${latestRun.state}**\nRun ID: \`${latestRun.dag_run_id}\``)
                 ]);
             }
-            // Stop the DAG run
-            await this.client.stopDagRun(dag_id, latestRun.dag_run_id);
+            // Cancel the DAG run
+            await this.client.cancelDagRun(dag_id, latestRun.dag_run_id);
             const message = [
-                `✅ **Success!** DAG run stopped.`,
+                `✅ **Success!** DAG run cancelled.`,
                 ``,
                 `- **DAG ID:** ${dag_id}`,
                 `- **Run ID:** ${latestRun.dag_run_id}`,
                 `- **Previous State:** ${latestRun.state}`,
                 ``,
-                `The DAG run has been marked as failed and stopped.`
+                `The DAG run has been marked as failed and cancelled.`
             ].join('\n');
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(message)
@@ -13868,16 +13915,16 @@ class StopDagRunTool {
         }
         catch (error) {
             return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(`❌ Failed to stop DAG run for ${dag_id}: ${error instanceof Error ? error.message : String(error)}`)
+                new vscode.LanguageModelTextPart(`❌ Failed to cancel DAG run for ${dag_id}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
         }
     }
 }
-exports.StopDagRunTool = StopDagRunTool;
+exports.CancelDagRunTool = CancelDagRunTool;
 
 
 /***/ }),
-/* 71 */
+/* 72 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14097,7 +14144,7 @@ exports.AnalyseDagLatestRunTool = AnalyseDagLatestRunTool;
 
 
 /***/ }),
-/* 72 */
+/* 73 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14248,7 +14295,7 @@ exports.GetDagHistoryTool = GetDagHistoryTool;
 
 
 /***/ }),
-/* 73 */
+/* 74 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14666,22 +14713,22 @@ exports.deactivate = deactivate;
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
-const AdminTreeView_1 = __webpack_require__(57);
-const ReportTreeView_1 = __webpack_require__(59);
+const AdminTreeView_1 = __webpack_require__(58);
+const ReportTreeView_1 = __webpack_require__(60);
 const ui = __webpack_require__(6);
-const AirflowClientAdapter_1 = __webpack_require__(61);
-const TriggerDagRunTool_1 = __webpack_require__(62);
-const GetFailedRunsTool_1 = __webpack_require__(63);
-const ListActiveDagsTool_1 = __webpack_require__(64);
-const ListPausedDagsTool_1 = __webpack_require__(65);
-const GetRunningDagsTool_1 = __webpack_require__(66);
-const PauseDagTool_1 = __webpack_require__(67);
-const UnpauseDagTool_1 = __webpack_require__(68);
-const GetDagRunsTool_1 = __webpack_require__(69);
-const StopDagRunTool_1 = __webpack_require__(70);
-const AnalyseDagLatestRunTool_1 = __webpack_require__(71);
-const GetDagHistoryTool_1 = __webpack_require__(72);
-const GetDagRunDetailTool_1 = __webpack_require__(73);
+const AirflowClientAdapter_1 = __webpack_require__(62);
+const TriggerDagRunTool_1 = __webpack_require__(63);
+const GetFailedRunsTool_1 = __webpack_require__(64);
+const ListActiveDagsTool_1 = __webpack_require__(65);
+const ListPausedDagsTool_1 = __webpack_require__(66);
+const GetRunningDagsTool_1 = __webpack_require__(67);
+const PauseDagTool_1 = __webpack_require__(68);
+const UnpauseDagTool_1 = __webpack_require__(69);
+const GetDagRunsTool_1 = __webpack_require__(70);
+const CancelDagRunTool_1 = __webpack_require__(71);
+const AnalyseDagLatestRunTool_1 = __webpack_require__(72);
+const GetDagHistoryTool_1 = __webpack_require__(73);
+const GetDagRunDetailTool_1 = __webpack_require__(74);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
@@ -14712,6 +14759,7 @@ function activate(context) {
     commands.push(vscode.commands.registerCommand('dagTreeView.checkAllDagsRunState', () => { dagTreeView.checkAllDagsRunState(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.pauseDAG', (node) => { dagTreeView.pauseDAG(node); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.unPauseDAG', (node) => { dagTreeView.unPauseDAG(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.cancelDagRun', (node) => { dagTreeView.cancelDagRun(node); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.lastDAGRunLog', (node) => { dagTreeView.lastDAGRunLog(node); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.dagSourceCode', (node) => { dagTreeView.dagSourceCode(node); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.showDagInfo', (node) => { dagTreeView.showDagInfo(node); }));
@@ -14766,10 +14814,10 @@ function activate(context) {
     const getDagRunsTool = vscode.lm.registerTool('get_dag_runs', new GetDagRunsTool_1.GetDagRunsTool(airflowClient));
     context.subscriptions.push(getDagRunsTool);
     ui.logToOutput('Registered tool: get_dag_runs');
-    // Register Tool 10: stop_dag_run (Control)
-    const stopDagRunTool = vscode.lm.registerTool('stop_dag_run', new StopDagRunTool_1.StopDagRunTool(airflowClient));
-    context.subscriptions.push(stopDagRunTool);
-    ui.logToOutput('Registered tool: stop_dag_run');
+    // Register Tool 10: cancel_dag_run (Control)
+    const cancelDagRunTool = vscode.lm.registerTool('cancel_dag_run', new CancelDagRunTool_1.CancelDagRunTool(airflowClient));
+    context.subscriptions.push(cancelDagRunTool);
+    ui.logToOutput('Registered tool: cancel_dag_run');
     // Register Tool 11: analyse_dag_latest_run (Analysis)
     const analyseDagLatestRunTool = vscode.lm.registerTool('analyse_dag_latest_run', new AnalyseDagLatestRunTool_1.AnalyseDagLatestRunTool(airflowClient));
     context.subscriptions.push(analyseDagLatestRunTool);

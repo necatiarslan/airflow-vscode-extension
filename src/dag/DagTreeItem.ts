@@ -48,6 +48,7 @@ export class DagTreeItem extends vscode.TreeItem {
         contextValue += this.IsPaused ? "IsPaused#" : "!IsPaused#";
         contextValue += this.IsActive ? "IsActive#" : "!IsActive#";
         contextValue += this.IsFiltered ? "IsFiltered#" : "!IsFiltered#";
+        contextValue += this.isDagRunning() ? "IsRunning#" : "!IsRunning#";
 
         this.contextValue = contextValue;
     }
@@ -77,6 +78,9 @@ export class DagTreeItem extends vscode.TreeItem {
             }
             this.ApiResponse.is_paused = false;
         }
+        
+        // Update context value to reflect current running state
+        this.setContextValue();
     }
 
     public doesFilterMatch(filterString: string): boolean {

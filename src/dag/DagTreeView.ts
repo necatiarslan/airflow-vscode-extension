@@ -5,15 +5,10 @@ import { DagTreeDataProvider } from './DagTreeDataProvider';
 import { DagView } from './DagView';
 import { DailyDagRunView } from '../report/DailyDagRunView';
 import { DagRunView } from '../report/DagRunView';
-import { ConnectionsView } from '../admin/ConnectionsView';
-import { VariablesView } from '../admin/VariablesView';
-import { ProvidersView } from '../admin/ProvidersView';
-import { ConfigsView } from '../admin/ConfigsView';
-import { PluginsView } from '../admin/PluginsView';
-import { ServerHealthView } from '../admin/ServerHealthView';
 import * as ui from '../common/UI';
 import { AirflowApi } from '../common/Api';
 import { AskAIContext, ServerConfig } from '../common/Types';
+import * as MessageHub from '../common/MessageHub';
 
 export class DagTreeView {
 
@@ -66,7 +61,7 @@ export class DagTreeView {
 			progress.report({ increment: 0 });
 			await this.loadDags();
 		});
-
+		
 		await this.getImportErrors();
 	}
 
@@ -130,9 +125,7 @@ export class DagTreeView {
 					void this.refreshRunningDagState(this).catch((err: any) => ui.logToOutput('refreshRunningDagState Error', err));
 				}, 10 * 1000);
 			}
-			if (DagView.Current && DagView.Current.dagId === node.DagId) {
-				DagView.Current.refreshRunningDagState(DagView.Current);
-			}
+			MessageHub.DagTriggered(this, node.DagId, node.LatestDagRunId);
 		}
 	}
 
@@ -189,14 +182,12 @@ export class DagTreeView {
 						void this.refreshRunningDagState(this).catch((err: any) => ui.logToOutput('refreshRunningDagState Error', err));
 					}, 10 * 1000);
 				}
-				if (DagView.Current && DagView.Current.dagId === node.DagId) {
-					DagView.Current.refreshRunningDagState(DagView.Current);
-				}
+				MessageHub.DagTriggered(this, node.DagId, node.LatestDagRunId);
 			}
 		}
 	}
 
-	async checkAllDagsRunState() {
+	public async checkAllDagsRunState() {
 		ui.logToOutput('DagTreeView.checkAllDagsRunState Started');
 		if (!this.treeDataProvider) { return; }
 		for (const node of this.treeDataProvider.visibleDagList) {
@@ -249,6 +240,7 @@ export class DagTreeView {
 			node.IsPaused = true;
 			node.refreshUI();
 			this.treeDataProvider.refresh();
+			MessageHub.DagPaused(this, node.DagId);
 		}
 	}
 
@@ -272,6 +264,32 @@ export class DagTreeView {
 			node.IsPaused = false;
 			node.refreshUI();
 			this.treeDataProvider.refresh();
+			MessageHub.DagUnPaused(this, node.DagId);
+		}
+	}
+
+	async cancelDagRun(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.cancelDagRun Started');
+		if (!this.api) { return; }
+		
+		if (!node.isDagRunning()) {
+			ui.showWarningMessage('No running DAG to cancel');
+			return;
+		}
+
+		if (!node.LatestDagRunId) {
+			ui.showWarningMessage('No DAG run ID found');
+			return;
+		}
+
+		const result = await this.api.cancelDagRun(node.DagId, node.LatestDagRunId);
+		if (result.isSuccessful) {
+			node.LatestDagState = 'failed';
+			node.refreshUI();
+			this.treeDataProvider.refresh();
+			ui.showInfoMessage(`DAG Run ${node.LatestDagRunId} cancelled`);
+			
+			MessageHub.DagRunCancelled(this, node.DagId, node.LatestDagRunId);
 		}
 	}
 
@@ -435,8 +453,8 @@ export class DagTreeView {
 				}
 			},
 			{
-				name: 'stop_dag_run',
-				description: 'Stops the currently running DAG run for the given DAG. Required: dag_id.',
+				name: 'cancel_dag_run',
+				description: 'Cancels the currently running DAG run for the given DAG. Required: dag_id.',
 				inputSchema: {
 					type: 'object',
 					properties: {
@@ -759,9 +777,6 @@ export class DagTreeView {
 		if (result.isSuccessful) {
 			this.treeDataProvider.dagList = result.result;
 			this.treeDataProvider.loadDagTreeItemsFromApiResponse();
-			
-			// Fetch latest run status for each DAG
-			await this.loadLatestRunStatusForAllDags();
 		}
 		this.treeDataProvider.refresh();
 		this.setViewTitle();

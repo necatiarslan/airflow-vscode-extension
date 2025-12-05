@@ -7,6 +7,7 @@
 import { AirflowApi } from '../common/Api';
 import { DagTreeView } from '../dag/DagTreeView';
 import * as ui from '../common/UI';
+import * as MessageHub from '../common/MessageHub';
 
 export interface IDagRunResult {
     dag_id: string;
@@ -101,6 +102,8 @@ export class AirflowClientAdapter {
         if (!result.isSuccessful) {
             throw new Error(result.error?.message || 'Failed to trigger DAG run');
         }
+
+        MessageHub.DagTriggered(this, dagId, result.result.dag_run_id);
 
         // Map the API response to our interface
         const apiResponse = result.result;
@@ -266,6 +269,7 @@ export class AirflowClientAdapter {
             if (!result.isSuccessful) {
                 throw new Error(result.error?.message || `Failed to ${isPaused ? 'pause' : 'unpause'} DAG`);
             }
+            MessageHub.DagPaused(this, dagId);
         } catch (error) {
             throw new Error(`Failed to change DAG state: ${error instanceof Error ? error.message : String(error)}`);
         }
@@ -411,12 +415,13 @@ export class AirflowClientAdapter {
      * @param dagId - The DAG ID
      * @param dagRunId - The DAG run ID to stop
      */
-    async stopDagRun(dagId: string, dagRunId: string): Promise<void> {
+    async cancelDagRun(dagId: string, dagRunId: string): Promise<void> {
         try {
-            const result = await this.api.stopDagRun(dagId, dagRunId);
+            const result = await this.api.cancelDagRun(dagId, dagRunId);
             if (!result.isSuccessful) {
-                throw new Error(result.error?.message || 'Failed to stop DAG run');
+                throw new Error(result.error?.message || 'Failed to cancel DAG run');
             }
+            MessageHub.DagRunCancelled(this, dagId, dagRunId);
         } catch (error) {
             throw new Error(`Failed to stop DAG run: ${error instanceof Error ? error.message : String(error)}`);
         }

@@ -15,7 +15,7 @@ import { GetRunningDagsTool } from './language_tools/GetRunningDagsTool';
 import { PauseDagTool } from './language_tools/PauseDagTool';
 import { UnpauseDagTool } from './language_tools/UnpauseDagTool';
 import { GetDagRunsTool } from './language_tools/GetDagRunsTool';
-import { StopDagRunTool } from './language_tools/StopDagRunTool';
+import { CancelDagRunTool } from './language_tools/CancelDagRunTool';
 import { AnalyseDagLatestRunTool } from './language_tools/AnalyseDagLatestRunTool';
 import { GetDagHistoryTool } from './language_tools/GetDagHistoryTool';
 import { GetDagRunDetailTool } from './language_tools/GetDagRunDetailTool';
@@ -55,6 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
 	commands.push(vscode.commands.registerCommand('dagTreeView.checkAllDagsRunState', () => { dagTreeView.checkAllDagsRunState(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.pauseDAG', (node: DagTreeItem) => { dagTreeView.pauseDAG(node); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.unPauseDAG', (node: DagTreeItem) => { dagTreeView.unPauseDAG(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.cancelDagRun', (node: DagTreeItem) => { dagTreeView.cancelDagRun(node); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.lastDAGRunLog', (node: DagTreeItem) => { dagTreeView.lastDAGRunLog(node); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.dagSourceCode', (node: DagTreeItem) => { dagTreeView.dagSourceCode(node); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.showDagInfo', (node: DagTreeItem) => { dagTreeView.showDagInfo(node); }));
@@ -145,13 +146,13 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(getDagRunsTool);
 	ui.logToOutput('Registered tool: get_dag_runs');
 
-	// Register Tool 10: stop_dag_run (Control)
-	const stopDagRunTool = vscode.lm.registerTool(
-		'stop_dag_run',
-		new StopDagRunTool(airflowClient)
+	// Register Tool 10: cancel_dag_run (Control)
+	const cancelDagRunTool = vscode.lm.registerTool(
+		'cancel_dag_run',
+		new CancelDagRunTool(airflowClient)
 	);
-	context.subscriptions.push(stopDagRunTool);
-	ui.logToOutput('Registered tool: stop_dag_run');
+	context.subscriptions.push(cancelDagRunTool);
+	ui.logToOutput('Registered tool: cancel_dag_run');
 
 	// Register Tool 11: analyse_dag_latest_run (Analysis)
 	const analyseDagLatestRunTool = vscode.lm.registerTool(

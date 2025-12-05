@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import * as ui from '../common/UI';
 import { AirflowApi } from '../common/Api';
 import { DagTreeView } from "./DagTreeView";
-import { MethodResult } from '../common/MethodResult';
+import * as MessageHub from '../common/MessageHub';
 
 export class DagView {
     public static Current: DagView | undefined;
@@ -689,7 +689,7 @@ export class DagView {
             ui.showInfoMessage(`Dag ${this.dagId} Run ${dagRunId} cancelled successfully.`);
             ui.logToOutput(`Dag ${this.dagId} Run ${dagRunId} cancelled successfully.`);
             await this.getDagRun(this.dagId, dagRunId);
-            DagTreeView.Current?.notifyDagStateWithDagId(this.dagId);
+            MessageHub.DagRunCancelled(this, this.dagId, dagRunId);
         }
     }
 
@@ -726,7 +726,7 @@ export class DagView {
         let result = await this.api.pauseDag(this.dagId, is_paused);
         if (result.isSuccessful) {
             this.loadDagInfoOnly();
-            is_paused ? DagTreeView.Current?.notifyDagPaused(this.dagId) : DagTreeView.Current?.notifyDagUnPaused(this.dagId);
+            is_paused ? MessageHub.DagPaused(this, this.dagId) : MessageHub.DagUnPaused(this, this.dagId);
         }
 
     }
@@ -852,7 +852,7 @@ export class DagView {
 
             if (result.isSuccessful) {
                 this.startCheckingDagRunStatus(result.result["dag_run_id"]);
-                DagTreeView.Current?.notifyDagStateWithDagId(this.dagId);
+                MessageHub.DagTriggered(this, this.dagId, result.result["dag_run_id"]);
             }
         }
     }
