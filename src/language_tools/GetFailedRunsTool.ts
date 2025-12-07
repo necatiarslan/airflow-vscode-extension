@@ -13,8 +13,8 @@ import { AirflowClientAdapter, IFailedRunSummary } from './AirflowClientAdapter'
  * Input parameters for querying failed runs
  */
 export interface IQueryRunsParams {
-    time_range_hours?: number;
-    dag_id_filter?: string;
+    timeRangeHours?: number;
+    dagIdFilter?: string;
 }
 
 /**
@@ -41,8 +41,8 @@ export class GetFailedRunsTool implements vscode.LanguageModelTool<IQueryRunsPar
         options: vscode.LanguageModelToolInvocationPrepareOptions<IQueryRunsParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation | undefined> {
-        const timeRange = options.input.time_range_hours || 24;
-        const dagFilter = options.input.dag_id_filter;
+        const timeRange = options.input.timeRangeHours || 24;
+        const dagFilter = options.input.dagIdFilter;
 
         const message = dagFilter
             ? `Querying failed runs for DAG '${dagFilter}' (last ${timeRange} hours)`
@@ -64,8 +64,8 @@ export class GetFailedRunsTool implements vscode.LanguageModelTool<IQueryRunsPar
         options: vscode.LanguageModelToolInvocationOptions<IQueryRunsParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
-        const timeRange = options.input.time_range_hours || 24;
-        const dagFilter = options.input.dag_id_filter;
+        const timeRange = options.input.timeRangeHours || 24;
+        const dagFilter = options.input.dagIdFilter;
 
         try {
             // Call the mock API client to get failed runs

@@ -10,15 +10,15 @@ import { DagTreeView } from '../dag/DagTreeView';
 import { DagView } from '../dag/DagView';
 
 export interface IGoToDagViewParams {
-    dag_id: string;
-    dag_run_id?: string;
+    dagId: string;
+    dagRunId?: string;
 }
 
 /**
  * GoToDagViewTool - Implements vscode.LanguageModelTool for opening DAG View
  * 
  * This tool opens the DagView panel to display information about a specific DAG.
- * If a dag_run_id is provided, it will navigate to that specific run.
+ * If a dagRunId is provided, it will navigate to that specific run.
  */
 export class GoToDagViewTool implements vscode.LanguageModelTool<IGoToDagViewParams> {
 
@@ -30,11 +30,11 @@ export class GoToDagViewTool implements vscode.LanguageModelTool<IGoToDagViewPar
         options: vscode.LanguageModelToolInvocationPrepareOptions<IGoToDagViewParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation> {
-        const { dag_id, dag_run_id } = options.input;
+        const { dagId, dagRunId } = options.input;
 
-        let message = `Opening DAG View for: **${dag_id}**`;
-        if (dag_run_id) {
-            message += `\nDAG Run ID: **${dag_run_id}**`;
+        let message = `Opening DAG View for: **${dagId}**`;
+        if (dagRunId) {
+            message += `\nDAG Run ID: **${dagRunId}**`;
         }
 
         return {
@@ -46,7 +46,7 @@ export class GoToDagViewTool implements vscode.LanguageModelTool<IGoToDagViewPar
         options: vscode.LanguageModelToolInvocationOptions<IGoToDagViewParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
-        const { dag_id, dag_run_id } = options.input;
+        const { dagId, dagRunId } = options.input;
 
         try {
             // Check if DagTreeView is available
@@ -67,11 +67,11 @@ export class GoToDagViewTool implements vscode.LanguageModelTool<IGoToDagViewPar
             const extensionUri = DagTreeView.Current.context.extensionUri;
 
             // Open the DagView with the specified DAG ID and optional run ID
-            DagView.render(extensionUri, dag_id, api, dag_run_id);
+            DagView.render(extensionUri, dagId, api, dagRunId);
 
-            let successMessage = `✅ Opened DAG View for: **${dag_id}**`;
-            if (dag_run_id) {
-                successMessage += `\n📋 Showing DAG Run: **${dag_run_id}**`;
+            let successMessage = `✅ Opened DAG View for: **${dagId}**`;
+            if (dagRunId) {
+                successMessage += `\n📋 Showing DAG Run: **${dagRunId}**`;
             } else {
                 successMessage += `\n📋 Showing latest DAG run`;
             }
@@ -82,7 +82,7 @@ export class GoToDagViewTool implements vscode.LanguageModelTool<IGoToDagViewPar
 
         } catch (error) {
             return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(`❌ Failed to open DAG View for ${dag_id}: ${error instanceof Error ? error.message : String(error)}`)
+                new vscode.LanguageModelTextPart(`❌ Failed to open DAG View for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
         }
     }

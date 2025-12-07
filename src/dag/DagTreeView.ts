@@ -124,7 +124,7 @@ export class DagTreeView {
 	 * Helper method to handle post-trigger state updates
 	 */
 	private handleTriggerSuccess(node: DagTreeItem, responseTrigger: any): void {
-		node.LatestDagRunId = responseTrigger['dag_run_id'];
+		node.LatestDagRunId = responseTrigger['dagRunId'];
 		node.LatestDagState = responseTrigger['state'];
 		node.refreshUI();
 		this.treeDataProvider.refresh();
@@ -177,7 +177,7 @@ export class DagTreeView {
 		if (noDagIsRunning && dagTreeView.dagStatusInterval) {
 			clearInterval(dagTreeView.dagStatusInterval);
 			dagTreeView.dagStatusInterval = undefined;
-			ui.showInfoMessage('All Dag Run(s) Completed');
+			//ui.showInfoMessage('All Dag Run(s) Completed');
 			ui.logToOutput('All Dag Run(s) Completed');
 		}
 	}
@@ -383,9 +383,9 @@ export class DagTreeView {
 				inputSchema: {
 					type: 'object',
 					properties: {
-						dag_id: { type: 'string', description: 'The unique identifier (ID) of the DAG to pause' }
+						dagId: { type: 'string', description: 'The unique identifier (ID) of the DAG to pause' }
 					},
-					required: ['dag_id']
+					required: ['dagId']
 				}
 			},
 			{
@@ -394,9 +394,9 @@ export class DagTreeView {
 				inputSchema: {
 					type: 'object',
 					properties: {
-						dag_id: { type: 'string', description: 'The unique identifier (ID) of the DAG to unpause' }
+						dagId: { type: 'string', description: 'The unique identifier (ID) of the DAG to unpause' }
 					},
-					required: ['dag_id']
+					required: ['dagId']
 				}
 			},
 			{
@@ -405,11 +405,11 @@ export class DagTreeView {
 				inputSchema: {
 					type: 'object',
 					properties: {
-						dag_id: { type: 'string', description: 'The DAG ID' },
-						config_json: { type: 'string', description: 'JSON configuration or file path' },
+						dagId: { type: 'string', description: 'The DAG ID' },
+						configJson: { type: 'string', description: 'JSON configuration or file path' },
 						date: { type: 'string', description: 'Logical date in ISO 8601 format' }
 					},
-					required: ['dag_id']
+					required: ['dagId']
 				}
 			},
 			{
@@ -418,8 +418,8 @@ export class DagTreeView {
 				inputSchema: {
 					type: 'object',
 					properties: {
-						time_range_hours: { type: 'number' },
-						dag_id_filter: { type: 'string' }
+						timeRangeHours: { type: 'number' },
+						dagIdFilter: { type: 'string' }
 					},
 					required: []
 				}
@@ -430,10 +430,10 @@ export class DagTreeView {
 				inputSchema: {
 					type: 'object',
 					properties: {
-						dag_id: { type: 'string', description: 'The DAG ID' },
+						dagId: { type: 'string', description: 'The DAG ID' },
 						date: { type: 'string', description: 'Optional date filter YYYY-MM-DD' }
 					},
-					required: ['dag_id']
+					required: ['dagId']
 				}
 			},
 			{
@@ -442,10 +442,10 @@ export class DagTreeView {
 				inputSchema: {
 					type: 'object',
 					properties: {
-						dag_id: { type: 'string', description: 'The DAG ID' },
+						dagId: { type: 'string', description: 'The DAG ID' },
 						date: { type: 'string', description: 'Optional date filter YYYY-MM-DD' }
 					},
-					required: ['dag_id']
+					required: ['dagId']
 				}
 			},
 			{
@@ -454,9 +454,9 @@ export class DagTreeView {
 				inputSchema: {
 					type: 'object',
 					properties: {
-						dag_id: { type: 'string', description: 'The DAG ID' }
+						dagId: { type: 'string', description: 'The DAG ID' }
 					},
-					required: ['dag_id']
+					required: ['dagId']
 				}
 			},
 			{
@@ -465,9 +465,9 @@ export class DagTreeView {
 				inputSchema: {
 					type: 'object',
 					properties: {
-						dag_id: { type: 'string', description: 'The DAG ID' }
+						dagId: { type: 'string', description: 'The DAG ID' }
 					},
-					required: ['dag_id']
+					required: ['dagId']
 				}
 			},
 			{
@@ -476,10 +476,10 @@ export class DagTreeView {
 				inputSchema: {
 					type: 'object',
 					properties: {
-						dag_id: { type: 'string', description: 'The DAG ID' },
-						dag_run_id: { type: 'string', description: 'The DAG run ID to analyze' }
+						dagId: { type: 'string', description: 'The DAG ID' },
+						dagRunId: { type: 'string', description: 'The DAG run ID to analyze' }
 					},
-					required: ['dag_id', 'dag_run_id']
+					required: ['dagId', 'dagRunId']
 				}
 			},
 			{
@@ -488,10 +488,10 @@ export class DagTreeView {
 				inputSchema: {
 					type: 'object',
 					properties: {
-						dag_id: { type: 'string', description: 'The DAG ID to view' },
-						dag_run_id: { type: 'string', description: 'Optional DAG run ID to navigate to a specific run' }
+						dagId: { type: 'string', description: 'The DAG ID to view' },
+						dagRunId: { type: 'string', description: 'Optional DAG run ID to navigate to a specific run' }
 					},
-					required: ['dag_id']
+					required: ['dagId']
 				}
 			},
 			{
@@ -500,12 +500,12 @@ export class DagTreeView {
 				inputSchema: {
 					type: 'object',
 					properties: {
-						dag_id: { type: 'string', description: 'The DAG ID to view history for' },
-						start_date: { type: 'string', description: 'Optional start date filter (YYYY-MM-DD format)' },
-						end_date: { type: 'string', description: 'Optional end date filter (YYYY-MM-DD format)' },
+						dagId: { type: 'string', description: 'The DAG ID to view history for' },
+						startDate: { type: 'string', description: 'Optional start date filter (YYYY-MM-DD format)' },
+						endDate: { type: 'string', description: 'Optional end date filter (YYYY-MM-DD format)' },
 						status: { type: 'string', description: 'Optional status filter (success, failed, running, queued, upstream_failed)' }
 					},
-					required: ['dag_id']
+					required: ['dagId']
 				}
 			},
 			{

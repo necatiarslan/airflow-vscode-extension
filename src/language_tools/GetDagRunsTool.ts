@@ -13,7 +13,7 @@ import * as ui from '../common/UI';
  * Input parameters for querying DAG runs
  */
 export interface IGetDagRunsParams {
-    dag_id: string;
+    dagId: string;
     date?: string; // Optional date in ISO format (defaults to today)
 }
 
@@ -34,11 +34,11 @@ export class GetDagRunsTool implements vscode.LanguageModelTool<IGetDagRunsParam
         options: vscode.LanguageModelToolInvocationPrepareOptions<IGetDagRunsParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation | undefined> {
-        const { dag_id, date } = options.input;
+        const { dagId, date } = options.input;
         const dateStr = date ||  ui.toISODateString(new Date());
 
         return {
-            invocationMessage: `Retrieving runs for DAG '${dag_id}' (date: ${dateStr})`
+            invocationMessage: `Retrieving runs for DAG '${dagId}' (date: ${dateStr})`
         };
     }
 
@@ -49,15 +49,15 @@ export class GetDagRunsTool implements vscode.LanguageModelTool<IGetDagRunsParam
         options: vscode.LanguageModelToolInvocationOptions<IGetDagRunsParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
-        const { dag_id, date } = options.input;
+        const { dagId, date } = options.input;
 
         try {
             // Get DAG run history from the API
-            const result = await this.client.getDagRunHistory(dag_id);
+            const result = await this.client.getDagRunHistory(dagId);
 
             if (!result || !result.dag_runs || result.dag_runs.length === 0) {
                 return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart(`ℹ️ No runs found for DAG '${dag_id}'.`)
+                    new vscode.LanguageModelTextPart(`ℹ️ No runs found for DAG '${dagId}'.`)
                 ]);
             }
 
@@ -73,13 +73,13 @@ export class GetDagRunsTool implements vscode.LanguageModelTool<IGetDagRunsParam
 
                 if (runs.length === 0) {
                     return new vscode.LanguageModelToolResult([
-                        new vscode.LanguageModelTextPart(`ℹ️ No runs found for DAG '${dag_id}' on ${date}.`)
+                        new vscode.LanguageModelTextPart(`ℹ️ No runs found for DAG '${dagId}' on ${date}.`)
                     ]);
                 }
             }
 
             // Build detailed summary
-            let summaryMessage = `## 📊 DAG Runs for '${dag_id}'\n\n`;
+            let summaryMessage = `## 📊 DAG Runs for '${dagId}'\n\n`;
             if (date) {
                 summaryMessage += `**Date Filter:** ${date}\n`;
             } else {

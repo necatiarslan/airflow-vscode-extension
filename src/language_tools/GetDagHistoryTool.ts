@@ -13,7 +13,7 @@ import * as ui from '../common/UI';
  * Input parameters for querying DAG history
  */
 export interface IGetDagHistoryParams {
-    dag_id: string;
+    dagId: string;
     date?: string; // Optional date in YYYY-MM-DD format (defaults to today)
 }
 
@@ -34,11 +34,11 @@ export class GetDagHistoryTool implements vscode.LanguageModelTool<IGetDagHistor
         options: vscode.LanguageModelToolInvocationPrepareOptions<IGetDagHistoryParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation | undefined> {
-        const { dag_id, date } = options.input;
+        const { dagId, date } = options.input;
         const dateStr = date || ui.toISODateString(new Date());
 
         return {
-            invocationMessage: `Retrieving history for DAG '${dag_id}' (date: ${dateStr})`
+            invocationMessage: `Retrieving history for DAG '${dagId}' (date: ${dateStr})`
         };
     }
 
@@ -49,25 +49,25 @@ export class GetDagHistoryTool implements vscode.LanguageModelTool<IGetDagHistor
         options: vscode.LanguageModelToolInvocationOptions<IGetDagHistoryParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
-        const { dag_id, date } = options.input;
+        const { dagId, date } = options.input;
         
         // Use today's date if not provided
         const queryDate = date ||  ui.toISODateString(new Date());
 
         try {
             // Get DAG run history from the API
-            const result = await this.client.getDagRunHistory(dag_id, queryDate);
+            const result = await this.client.getDagRunHistory(dagId, queryDate);
 
             if (!result || !result.dag_runs || result.dag_runs.length === 0) {
                 return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart(`ℹ️ No run history found for DAG '${dag_id}' on ${queryDate}.`)
+                    new vscode.LanguageModelTextPart(`ℹ️ No run history found for DAG '${dagId}' on ${queryDate}.`)
                 ]);
             }
 
             const runs = result.dag_runs;
 
             // Build detailed summary
-            let summaryMessage = `## 📜 DAG Run History for '${dag_id}'\n\n`;
+            let summaryMessage = `## 📜 DAG Run History for '${dagId}'\n\n`;
             summaryMessage += `**Date Filter:** ${queryDate}\n`;
             summaryMessage += `**Total Runs:** ${runs.length}\n\n`;
             summaryMessage += `---\n\n`;

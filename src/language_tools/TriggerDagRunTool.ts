@@ -14,8 +14,8 @@ import { AirflowClientAdapter } from './AirflowClientAdapter';
  * Input parameters for triggering a DAG run
  */
 export interface ITriggerParams {
-    dag_id: string;
-    config_json?: string;
+    dagId: string;
+    configJson?: string;
     date?: string;
 }
 
@@ -43,17 +43,17 @@ export class TriggerDagRunTool implements vscode.LanguageModelTool<ITriggerParam
         options: vscode.LanguageModelToolInvocationPrepareOptions<ITriggerParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation | undefined> {
-        const { dag_id, config_json, date } = options.input;
+        const { dagId, configJson, date } = options.input;
         
-        // Process config_json: check if it's a file path
-        let finalConfig = config_json || '{}';
+        // Process configJson: check if it's a file path
+        let finalConfig = configJson || '{}';
         let configSource = 'Inline';
 
-        if (config_json && !config_json.trim().startsWith('{')) {
+        if (configJson && !configJson.trim().startsWith('{')) {
             // Assume it's a file path if it doesn't start with {
             try {
                 // Remove quotes if present
-                const filePath = config_json.replace(/^['"]|['"]$/g, '');
+                const filePath = configJson.replace(/^['"]|['"]$/g, '');
                 if (fs.existsSync(filePath)) {
                     finalConfig = fs.readFileSync(filePath, 'utf8');
                     configSource = `File: ${filePath}`;
@@ -75,7 +75,7 @@ export class TriggerDagRunTool implements vscode.LanguageModelTool<ITriggerParam
         confirmationMessage.isTrusted = true;
         confirmationMessage.appendMarkdown('## ⚠️ Trigger DAG Confirmation\n\n');
         confirmationMessage.appendMarkdown(`You are about to trigger the following DAG:\n\n`);
-        confirmationMessage.appendMarkdown(`**DAG ID:** \`${dag_id}\`\n`);
+        confirmationMessage.appendMarkdown(`**DAG ID:** \`${dagId}\`\n`);
         if (date) {
             confirmationMessage.appendMarkdown(`**Logical Date:** \`${date}\`\n`);
         }
@@ -85,7 +85,7 @@ export class TriggerDagRunTool implements vscode.LanguageModelTool<ITriggerParam
         confirmationMessage.appendMarkdown('\nDo you want to proceed?');
 
         return {
-            invocationMessage: `Triggering DAG: ${dag_id}`,
+            invocationMessage: `Triggering DAG: ${dagId}`,
             confirmationMessages: {
                 title: 'Confirm DAG Trigger',
                 message: confirmationMessage
@@ -104,14 +104,14 @@ export class TriggerDagRunTool implements vscode.LanguageModelTool<ITriggerParam
         options: vscode.LanguageModelToolInvocationOptions<ITriggerParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
-        const { dag_id, config_json, date } = options.input;
+        const { dagId, configJson, date } = options.input;
 
         try {
             // Re-process config for invoke (same logic as prepare)
-            let finalConfig = config_json || '{}';
-            if (config_json && !config_json.trim().startsWith('{')) {
+            let finalConfig = configJson || '{}';
+            if (configJson && !configJson.trim().startsWith('{')) {
                 try {
-                    const filePath = config_json.replace(/^['"]|['"]$/g, '');
+                    const filePath = configJson.replace(/^['"]|['"]$/g, '');
                     if (fs.existsSync(filePath)) {
                         finalConfig = fs.readFileSync(filePath, 'utf8');
                     }
@@ -120,7 +120,7 @@ export class TriggerDagRunTool implements vscode.LanguageModelTool<ITriggerParam
                 }
             }
 
-            const result = await this.client.triggerDagRun(dag_id, finalConfig, date);
+            const result = await this.client.triggerDagRun(dagId, finalConfig, date);
 
             const message = [
                 `✅ **Success!** DAG Run triggered.`,
@@ -138,7 +138,7 @@ export class TriggerDagRunTool implements vscode.LanguageModelTool<ITriggerParam
 
         } catch (error) {
             return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(`❌ Failed to trigger DAG ${dag_id}: ${error instanceof Error ? error.message : String(error)}`)
+                new vscode.LanguageModelTextPart(`❌ Failed to trigger DAG ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
         }
     }

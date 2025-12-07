@@ -17,7 +17,7 @@ import { AirflowClientAdapter } from './AirflowClientAdapter';
  * Input parameters for analyzing latest DAG run
  */
 export interface IAnalyseDagLatestRunParams {
-    dag_id: string;
+    dagId: string;
 }
 
 /**
@@ -37,10 +37,10 @@ export class AnalyseDagLatestRunTool implements vscode.LanguageModelTool<IAnalys
         options: vscode.LanguageModelToolInvocationPrepareOptions<IAnalyseDagLatestRunParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation | undefined> {
-        const { dag_id } = options.input;
+        const { dagId } = options.input;
 
         return {
-            invocationMessage: `Analyzing latest run for DAG '${dag_id}'...`
+            invocationMessage: `Analyzing latest run for DAG '${dagId}'...`
         };
     }
 
@@ -51,25 +51,25 @@ export class AnalyseDagLatestRunTool implements vscode.LanguageModelTool<IAnalys
         options: vscode.LanguageModelToolInvocationOptions<IAnalyseDagLatestRunParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
-        const { dag_id } = options.input;
+        const { dagId } = options.input;
 
         try {
             // Step 1: Get the latest DAG run
-            const dagRun = await this.client.getLatestDagRun(dag_id);
+            const dagRun = await this.client.getLatestDagRun(dagId);
 
             if (!dagRun) {
                 return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart(`ℹ️ No DAG run found for '${dag_id}'.`)
+                    new vscode.LanguageModelTextPart(`ℹ️ No DAG run found for '${dagId}'.`)
                 ]);
             }
 
             // Step 2: Get task instances for this run
-            const taskInstances = await this.client.getTaskInstances(dag_id, dagRun.dag_run_id);
+            const taskInstances = await this.client.getTaskInstances(dagId, dagRun.dag_run_id);
 
             // Step 3: Get DAG source code
             let dagSourceCode = 'N/A';
             try {
-                dagSourceCode = await this.client.getDagSource(dag_id);
+                dagSourceCode = await this.client.getDagSource(dagId);
             } catch (error) {
                 dagSourceCode = `Failed to retrieve source code: ${error instanceof Error ? error.message : String(error)}`;
             }
@@ -93,7 +93,7 @@ export class AnalyseDagLatestRunTool implements vscode.LanguageModelTool<IAnalys
             for (const task of tasksToLog) {
                 try {
                     const log = await this.client.getTaskLog(
-                        dag_id, 
+                        dagId, 
                         dagRun.dag_run_id, 
                         task.task_id, 
                         task.try_number?.toString() || '1'
@@ -113,7 +113,7 @@ export class AnalyseDagLatestRunTool implements vscode.LanguageModelTool<IAnalys
             }
 
             // Build comprehensive analysis report
-            let report = this.buildAnalysisReport(dag_id, dagRun, taskInstances, dagSourceCode, taskLogs);
+            let report = this.buildAnalysisReport(dagId, dagRun, taskInstances, dagSourceCode, taskLogs);
 
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(report)

@@ -43,11 +43,11 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "dag_id": {
+            "dagId": {
               "type": "string",
               "description": "The unique identifier (ID) of the DAG to trigger"
             },
-            "config_json": {
+            "configJson": {
               "type": "string",
               "description": "JSON string containing configuration parameters OR an absolute file path to a JSON file."
             },
@@ -57,7 +57,7 @@
             }
           },
           "required": [
-            "dag_id"
+            "dagId"
           ]
         }
       },
@@ -76,12 +76,12 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "time_range_hours": {
+            "timeRangeHours": {
               "type": "integer",
               "description": "Number of hours to look back for failed runs (default: 24)",
               "default": 24
             },
-            "dag_id_filter": {
+            "dagIdFilter": {
               "type": "string",
               "description": "Optional: Filter by specific DAG ID"
             }
@@ -159,13 +159,13 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "dag_id": {
+            "dagId": {
               "type": "string",
               "description": "The unique identifier (ID) of the DAG to pause"
             }
           },
           "required": [
-            "dag_id"
+            "dagId"
           ]
         }
       },
@@ -184,13 +184,13 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "dag_id": {
+            "dagId": {
               "type": "string",
               "description": "The unique identifier (ID) of the DAG to unpause"
             }
           },
           "required": [
-            "dag_id"
+            "dagId"
           ]
         }
       },
@@ -209,7 +209,7 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "dag_id": {
+            "dagId": {
               "type": "string",
               "description": "The unique identifier (ID) of the DAG to query"
             },
@@ -219,7 +219,7 @@
             }
           },
           "required": [
-            "dag_id"
+            "dagId"
           ]
         }
       },
@@ -238,13 +238,13 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "dag_id": {
+            "dagId": {
               "type": "string",
               "description": "The unique identifier (ID) of the DAG whose run should be cancelled"
             }
           },
           "required": [
-            "dag_id"
+            "dagId"
           ]
         }
       },
@@ -264,13 +264,13 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "dag_id": {
+            "dagId": {
               "type": "string",
               "description": "The unique identifier (ID) of the DAG to analyze"
             }
           },
           "required": [
-            "dag_id"
+            "dagId"
           ]
         }
       },
@@ -289,7 +289,7 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "dag_id": {
+            "dagId": {
               "type": "string",
               "description": "The unique identifier (ID) of the DAG to query"
             },
@@ -299,7 +299,7 @@
             }
           },
           "required": [
-            "dag_id"
+            "dagId"
           ]
         }
       },
@@ -320,18 +320,18 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "dag_id": {
+            "dagId": {
               "type": "string",
               "description": "The unique identifier (ID) of the DAG"
             },
-            "dag_run_id": {
+            "dagRunId": {
               "type": "string",
               "description": "The unique identifier of the DAG run to analyze"
             }
           },
           "required": [
-            "dag_id",
-            "dag_run_id"
+            "dagId",
+            "dagRunId"
           ]
         }
       },
@@ -351,17 +351,17 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "dag_id": {
+            "dagId": {
               "type": "string",
               "description": "The unique identifier (ID) of the DAG to view"
             },
-            "dag_run_id": {
+            "dagRunId": {
               "type": "string",
               "description": "Optional: The DAG run ID to navigate to. If not provided, shows the latest run."
             }
           },
           "required": [
-            "dag_id"
+            "dagId"
           ]
         }
       },
@@ -381,15 +381,15 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "dag_id": {
+            "dagId": {
               "type": "string",
               "description": "The unique identifier (ID) of the DAG to view history for"
             },
-            "start_date": {
+            "startDate": {
               "type": "string",
               "description": "Optional: Start date for the filter in YYYY-MM-DD format"
             },
-            "end_date": {
+            "endDate": {
               "type": "string",
               "description": "Optional: End date for the filter in YYYY-MM-DD format"
             },
@@ -399,7 +399,7 @@
             }
           },
           "required": [
-            "dag_id"
+            "dagId"
           ]
         }
       },

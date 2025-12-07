@@ -10,9 +10,9 @@ import { DagTreeView } from '../dag/DagTreeView';
 import { DagRunView } from '../report/DagRunView';
 
 export interface IGoToDagRunHistoryParams {
-    dag_id: string;
-    start_date?: string;
-    end_date?: string;
+    dagId: string;
+    startDate?: string;
+    endDate?: string;
     status?: string;
 }
 
@@ -32,14 +32,14 @@ export class GoToDagRunHistoryTool implements vscode.LanguageModelTool<IGoToDagR
         options: vscode.LanguageModelToolInvocationPrepareOptions<IGoToDagRunHistoryParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation> {
-        const { dag_id, start_date, end_date, status } = options.input;
+        const { dagId, startDate, endDate, status } = options.input;
 
-        let message = `Opening DAG Run History for: **${dag_id}**`;
-        if (start_date) {
-            message += `\nStart Date: **${start_date}**`;
+        let message = `Opening DAG Run History for: **${dagId}**`;
+        if (startDate) {
+            message += `\nStart Date: **${startDate}**`;
         }
-        if (end_date) {
-            message += `\nEnd Date: **${end_date}**`;
+        if (endDate) {
+            message += `\nEnd Date: **${endDate}**`;
         }
         if (status) {
             message += `\nStatus Filter: **${status}**`;
@@ -54,7 +54,7 @@ export class GoToDagRunHistoryTool implements vscode.LanguageModelTool<IGoToDagR
         options: vscode.LanguageModelToolInvocationOptions<IGoToDagRunHistoryParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
-        const { dag_id, start_date, end_date, status } = options.input;
+        const { dagId, startDate, endDate, status } = options.input;
 
         try {
             // Check if DagTreeView is available
@@ -76,14 +76,14 @@ export class GoToDagRunHistoryTool implements vscode.LanguageModelTool<IGoToDagR
 
             // Validate date format if provided (YYYY-MM-DD)
             const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-            if (start_date && !dateRegex.test(start_date)) {
+            if (startDate && !dateRegex.test(startDate)) {
                 return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart(`❌ Invalid start_date format: "${start_date}". Expected format: YYYY-MM-DD`)
+                    new vscode.LanguageModelTextPart(`❌ Invalid startDate format: "${startDate}". Expected format: YYYY-MM-DD`)
                 ]);
             }
-            if (end_date && !dateRegex.test(end_date)) {
+            if (endDate && !dateRegex.test(endDate)) {
                 return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart(`❌ Invalid end_date format: "${end_date}". Expected format: YYYY-MM-DD`)
+                    new vscode.LanguageModelTextPart(`❌ Invalid endDate format: "${endDate}". Expected format: YYYY-MM-DD`)
                 ]);
             }
 
@@ -96,15 +96,15 @@ export class GoToDagRunHistoryTool implements vscode.LanguageModelTool<IGoToDagR
             }
 
             // Open the DagRunView with the specified parameters
-            DagRunView.render(extensionUri, api, dag_id, start_date, end_date, status?.toLowerCase());
+            DagRunView.render(extensionUri, api, dagId, startDate, endDate, status?.toLowerCase());
 
-            let successMessage = `✅ Opened DAG Run History for: **${dag_id}**`;
+            let successMessage = `✅ Opened DAG Run History for: **${dagId}**`;
             const filters: string[] = [];
-            if (start_date) {
-                filters.push(`Start Date: ${start_date}`);
+            if (startDate) {
+                filters.push(`Start Date: ${startDate}`);
             }
-            if (end_date) {
-                filters.push(`End Date: ${end_date}`);
+            if (endDate) {
+                filters.push(`End Date: ${endDate}`);
             }
             if (status) {
                 filters.push(`Status: ${status}`);
@@ -119,7 +119,7 @@ export class GoToDagRunHistoryTool implements vscode.LanguageModelTool<IGoToDagR
 
         } catch (error) {
             return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(`❌ Failed to open DAG Run History for ${dag_id}: ${error instanceof Error ? error.message : String(error)}`)
+                new vscode.LanguageModelTextPart(`❌ Failed to open DAG Run History for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
         }
     }

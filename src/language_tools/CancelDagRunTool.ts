@@ -12,7 +12,7 @@ import { AirflowClientAdapter } from './AirflowClientAdapter';
  * Input parameters for cancelling a DAG run
  */
 export interface ICancelDagRunParams {
-    dag_id: string;
+    dagId: string;
 }
 
 /**
@@ -32,12 +32,12 @@ export class CancelDagRunTool implements vscode.LanguageModelTool<ICancelDagRunP
         options: vscode.LanguageModelToolInvocationPrepareOptions<ICancelDagRunParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation> {
-        const { dag_id } = options.input;
+        const { dagId } = options.input;
 
         // Try to get the current running DAG run
         let runInfo = '';
         try {
-            const latestRun = await this.client.getLatestDagRun(dag_id);
+            const latestRun = await this.client.getLatestDagRun(dagId);
             if (latestRun && (latestRun.state === 'running' || latestRun.state === 'queued')) {
                 runInfo = `\n**Current Run:** \`${latestRun.dag_run_id}\`\n**State:** ${latestRun.state}\n\n`;
             }
@@ -49,7 +49,7 @@ export class CancelDagRunTool implements vscode.LanguageModelTool<ICancelDagRunP
         confirmationMessage.isTrusted = true;
         confirmationMessage.appendMarkdown('## ⚠️ Cancel DAG Run Confirmation\n\n');
         confirmationMessage.appendMarkdown(`You are about to **CANCEL** the running DAG run for:\n\n`);
-        confirmationMessage.appendMarkdown(`**DAG ID:** \`${dag_id}\`\n`);
+        confirmationMessage.appendMarkdown(`**DAG ID:** \`${dagId}\`\n`);
         if (runInfo) {
             confirmationMessage.appendMarkdown(runInfo);
         }
@@ -57,7 +57,7 @@ export class CancelDagRunTool implements vscode.LanguageModelTool<ICancelDagRunP
         confirmationMessage.appendMarkdown('Do you want to proceed?');
 
         return {
-            invocationMessage: `Cancelling DAG run: ${dag_id}`,
+            invocationMessage: `Cancelling DAG run: ${dagId}`,
             confirmationMessages: {
                 title: 'Confirm Cancel DAG Run',
                 message: confirmationMessage
@@ -72,32 +72,32 @@ export class CancelDagRunTool implements vscode.LanguageModelTool<ICancelDagRunP
         options: vscode.LanguageModelToolInvocationOptions<ICancelDagRunParams>,
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
-        const { dag_id } = options.input;
+        const { dagId } = options.input;
 
         try {
             // First, get the latest DAG run to find the running one
-            const latestRun = await this.client.getLatestDagRun(dag_id);
+            const latestRun = await this.client.getLatestDagRun(dagId);
 
             if (!latestRun) {
                 return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart(`ℹ️ No DAG run found for '${dag_id}'.`)
+                    new vscode.LanguageModelTextPart(`ℹ️ No DAG run found for '${dagId}'.`)
                 ]);
             }
 
             // Check if the latest run is actually running
             if (latestRun.state !== 'running' && latestRun.state !== 'queued') {
                 return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart(`ℹ️ DAG '${dag_id}' is not currently running.\n\nLatest run state: **${latestRun.state}**\nRun ID: \`${latestRun.dag_run_id}\``)
+                    new vscode.LanguageModelTextPart(`ℹ️ DAG '${dagId}' is not currently running.\n\nLatest run state: **${latestRun.state}**\nRun ID: \`${latestRun.dag_run_id}\``)
                 ]);
             }
 
             // Cancel the DAG run
-            await this.client.cancelDagRun(dag_id, latestRun.dag_run_id);
+            await this.client.cancelDagRun(dagId, latestRun.dag_run_id);
 
             const message = [
                 `✅ **Success!** DAG run cancelled.`,
                 ``,
-                `- **DAG ID:** ${dag_id}`,
+                `- **DAG ID:** ${dagId}`,
                 `- **Run ID:** ${latestRun.dag_run_id}`,
                 `- **Previous State:** ${latestRun.state}`,
                 ``,
@@ -110,7 +110,7 @@ export class CancelDagRunTool implements vscode.LanguageModelTool<ICancelDagRunP
 
         } catch (error) {
             return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(`❌ Failed to cancel DAG run for ${dag_id}: ${error instanceof Error ? error.message : String(error)}`)
+                new vscode.LanguageModelTextPart(`❌ Failed to cancel DAG run for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
         }
     }
