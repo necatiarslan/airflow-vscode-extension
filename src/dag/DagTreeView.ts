@@ -211,12 +211,20 @@ export class DagTreeView {
 		}
 	}
 
-	public async notifyDagStateWithDagId(dagId: string) {
-		ui.logToOutput('DagTreeView.checDagStateWitDagId Started');
+	public async notifyDagStateWithDagId(dagId: string, dagRunId?: string, dagState?: string) {
+		ui.logToOutput('DagTreeView.notifyDagStateWithDagId Started');
 		if (!this.treeDataProvider) { return; }
 		for (const node of this.treeDataProvider.visibleDagList) {
 			if (node.DagId === dagId) {
-				this.checkDagRunState(node);
+				//this.checkDagRunState(node);
+				node.LatestDagRunId = dagRunId;
+				node.LatestDagState = dagState;
+				node.refreshUI();	
+				this.treeDataProvider.refresh();
+
+				if (node.isDagRunning()) {
+					this.startDagStatusInterval();
+				}
 			}
 		}
 	}

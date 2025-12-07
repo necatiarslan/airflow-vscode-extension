@@ -5,11 +5,11 @@ import { DagTreeView } from "../dag/DagTreeView";
 export function DagTriggered(source: any, dagId: string, dagRunId: string) {
 	
     if (!(source instanceof DagView) && DagView.Current && DagView.Current.dagId === dagId) {
-        DagView.Current.getDagRun(dagId, dagRunId);
+        DagView.Current.goToDagRun(dagId, dagRunId);
     }
 
     if (!(source instanceof DagTreeView) && DagTreeView.Current) {
-        DagTreeView.Current?.notifyDagStateWithDagId(dagId);
+        DagTreeView.Current?.notifyDagStateWithDagId(dagId, dagRunId, "queued");
     }
     
 }
@@ -17,11 +17,11 @@ export function DagTriggered(source: any, dagId: string, dagRunId: string) {
 export function DagRunCancelled(source: any, dagId: string, dagRunId: string) {
 	
     if (!(source instanceof DagView) && DagView.Current && DagView.Current.dagId === dagId) {
-        DagView.Current.getDagRun(dagId, dagRunId);
+        DagView.Current.goToDagRun(dagId, dagRunId);
     }
 
     if (!(source instanceof DagTreeView) && DagTreeView.Current) {
-        DagTreeView.Current?.notifyDagStateWithDagId(dagId);
+        DagTreeView.Current?.notifyDagStateWithDagId(dagId, dagRunId, "failed");
     }
     
 }
