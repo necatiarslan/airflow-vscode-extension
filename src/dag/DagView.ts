@@ -708,7 +708,7 @@ export class DagView {
 
         const result = await Session.Current.Api.cancelDagRun(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
-            ui.showInfoMessage(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
+            //ui.showInfoMessage(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
             ui.logToOutput(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
             await this.getDagRun();
             MessageHub.DagRunCancelled(this, this.dagId, this.dagRunId);

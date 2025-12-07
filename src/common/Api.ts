@@ -127,7 +127,7 @@ export class AirflowApi {
 
             const data = await response.json();
             if (response.status === 200 || response.status === 201) { // 201 Created is typical for POST
-                ui.showInfoMessage(`${dagId} Triggered.`);
+                //ui.showInfoMessage(`${dagId} Triggered.`);
                 result.result = data;
                 result.isSuccessful = true;
             } else {
@@ -213,7 +213,7 @@ export class AirflowApi {
             const data = await response.json();
 
             if (response.status === 200) {
-                ui.showInfoMessage(`${dagId} ${isPaused ? "PAUSED" : "UN-PAUSED"}`);
+                //ui.showInfoMessage(`${dagId} ${isPaused ? "PAUSED" : "UN-PAUSED"}`);
                 result.result = data;
                 result.isSuccessful = true;
             } else {

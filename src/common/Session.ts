@@ -46,22 +46,28 @@ export class Session {
     public SetServer(server: ServerConfig) {
         this.Server = server;
         this.Api = new AirflowApi(this.Server);
-    }
-
-    public ChangeServer(apiUrl: string) {
-        this.Server = this.ServerList.find((server) => server.apiUrl === apiUrl);   
-        this.Api = new AirflowApi(this.Server);
         this.SaveState();
     }
 
-    public RemoveServer(apiUrl: string) {
-        this.ServerList = this.ServerList.filter((server) => server.apiUrl !== apiUrl);   
+    public ChangeServer(apiUrl: string, apiUserName: string) {
+        this.Server = this.ServerList.find((server) => server.apiUrl === apiUrl && server.apiUserName === apiUserName);   
+        if (this.Server) {
+            this.Api = new AirflowApi(this.Server);
+            this.SaveState();
+        }
+    }
+
+    public RemoveServer(apiUrl: string, apiUserName: string) {
+        this.ServerList = this.ServerList.filter((server) => !(server.apiUrl === apiUrl && server.apiUserName === apiUserName));   
         this.SaveState();
     }
 
     public AddServer(server: ServerConfig) {
-        this.ServerList.push(server);
-        this.SaveState();
+        const exists = this.ServerList.some((s) => s.apiUrl === server.apiUrl && s.apiUserName === server.apiUserName);
+        if (!exists) {
+            this.ServerList.push(server);
+            this.SaveState();
+        }
     }
 
     public TestServer(serverConfig: ServerConfig) {
@@ -75,6 +81,10 @@ export class Session {
         this.Server = undefined;
         this.Api = undefined;
         this.SaveState();
+    }
+
+    public GetServer(apiUrl: string, apiUserName: string) {
+        return this.ServerList.find((server) => server.apiUrl === apiUrl && server.apiUserName === apiUserName);
     }
 
 	public dispose() {

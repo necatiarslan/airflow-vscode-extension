@@ -278,7 +278,7 @@ export class DagTreeView {
 			node.LatestDagState = 'failed';
 			node.refreshUI();
 			this.treeDataProvider.refresh();
-			ui.showInfoMessage(`DAG Run ${node.LatestDagRunId} cancelled`);
+			//ui.showInfoMessage(`DAG Run ${node.LatestDagRunId} cancelled`);
 			
 			MessageHub.DagRunCancelled(this, node.DagId, node.LatestDagRunId);
 		}
@@ -387,17 +387,8 @@ export class DagTreeView {
 
 		const selectedItems = selected.split(' - ');
 		if (selectedItems[0]) {
-			Session.Current.ServerList = Session.Current.ServerList.filter(item => !(item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]));
+			Session.Current.RemoveServer(selectedItems[0], selectedItems[1]);
 			
-			// If we removed the current server, reset
-			if (Session.Current.Server && Session.Current.Server.apiUrl === selectedItems[0] && Session.Current.Server.apiUserName === selectedItems[1]) {
-				Session.Current.Server = undefined;
-				Session.Current.Api = undefined;
-				this.treeDataProvider.dagList = undefined;
-				this.treeDataProvider.refresh();
-			}
-			
-			this.saveState();
 			ui.showInfoMessage("Server removed.");
 		}
 	}
@@ -421,7 +412,7 @@ export class DagTreeView {
 		const selectedItems = selected.split(' - ');
 
 		if (selectedItems[0]) {
-			const server = Session.Current.ServerList.find(item => item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]);
+			const server = Session.Current.GetServer(selectedItems[0], selectedItems[1]);
 			if (server) {
 				let result = await Session.Current.TestServer(server);
 				if (result) 

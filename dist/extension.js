@@ -234,19 +234,25 @@ class Session {
     SetServer(server) {
         this.Server = server;
         this.Api = new Api_1.AirflowApi(this.Server);
-    }
-    ChangeServer(apiUrl) {
-        this.Server = this.ServerList.find((server) => server.apiUrl === apiUrl);
-        this.Api = new Api_1.AirflowApi(this.Server);
         this.SaveState();
     }
-    RemoveServer(apiUrl) {
-        this.ServerList = this.ServerList.filter((server) => server.apiUrl !== apiUrl);
+    ChangeServer(apiUrl, apiUserName) {
+        this.Server = this.ServerList.find((server) => server.apiUrl === apiUrl && server.apiUserName === apiUserName);
+        if (this.Server) {
+            this.Api = new Api_1.AirflowApi(this.Server);
+            this.SaveState();
+        }
+    }
+    RemoveServer(apiUrl, apiUserName) {
+        this.ServerList = this.ServerList.filter((server) => !(server.apiUrl === apiUrl && server.apiUserName === apiUserName));
         this.SaveState();
     }
     AddServer(server) {
-        this.ServerList.push(server);
-        this.SaveState();
+        const exists = this.ServerList.some((s) => s.apiUrl === server.apiUrl && s.apiUserName === server.apiUserName);
+        if (!exists) {
+            this.ServerList.push(server);
+            this.SaveState();
+        }
     }
     TestServer(serverConfig) {
         let api = new Api_1.AirflowApi(serverConfig);
@@ -258,6 +264,9 @@ class Session {
         this.Server = undefined;
         this.Api = undefined;
         this.SaveState();
+    }
+    GetServer(apiUrl, apiUserName) {
+        return this.ServerList.find((server) => server.apiUrl === apiUrl && server.apiUserName === apiUserName);
     }
     dispose() {
         Session.Current = undefined;
@@ -399,7 +408,7 @@ class AirflowApi {
             });
             const data = await response.json();
             if (response.status === 200 || response.status === 201) { // 201 Created is typical for POST
-                ui.showInfoMessage(`${dagId} Triggered.`);
+                //ui.showInfoMessage(`${dagId} Triggered.`);
                 result.result = data;
                 result.isSuccessful = true;
             }
@@ -482,7 +491,7 @@ class AirflowApi {
             });
             const data = await response.json();
             if (response.status === 200) {
-                ui.showInfoMessage(`${dagId} ${isPaused ? "PAUSED" : "UN-PAUSED"}`);
+                //ui.showInfoMessage(`${dagId} ${isPaused ? "PAUSED" : "UN-PAUSED"}`);
                 result.result = data;
                 result.isSuccessful = true;
             }
@@ -8421,7 +8430,7 @@ class DagTreeView {
             node.LatestDagState = 'failed';
             node.refreshUI();
             this.treeDataProvider.refresh();
-            ui.showInfoMessage(`DAG Run ${node.LatestDagRunId} cancelled`);
+            //ui.showInfoMessage(`DAG Run ${node.LatestDagRunId} cancelled`);
             MessageHub.DagRunCancelled(this, node.DagId, node.LatestDagRunId);
         }
     }
@@ -8524,15 +8533,7 @@ class DagTreeView {
         }
         const selectedItems = selected.split(' - ');
         if (selectedItems[0]) {
-            Session_1.Session.Current.ServerList = Session_1.Session.Current.ServerList.filter(item => !(item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]));
-            // If we removed the current server, reset
-            if (Session_1.Session.Current.Server && Session_1.Session.Current.Server.apiUrl === selectedItems[0] && Session_1.Session.Current.Server.apiUserName === selectedItems[1]) {
-                Session_1.Session.Current.Server = undefined;
-                Session_1.Session.Current.Api = undefined;
-                this.treeDataProvider.dagList = undefined;
-                this.treeDataProvider.refresh();
-            }
-            this.saveState();
+            Session_1.Session.Current.RemoveServer(selectedItems[0], selectedItems[1]);
             ui.showInfoMessage("Server removed.");
         }
     }
@@ -8552,7 +8553,7 @@ class DagTreeView {
         }
         const selectedItems = selected.split(' - ');
         if (selectedItems[0]) {
-            const server = Session_1.Session.Current.ServerList.find(item => item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]);
+            const server = Session_1.Session.Current.GetServer(selectedItems[0], selectedItems[1]);
             if (server) {
                 let result = await Session_1.Session.Current.TestServer(server);
                 if (result) {
@@ -10399,7 +10400,7 @@ class DagView {
         ui.logToOutput('DagView.cancelDagRun Started');
         const result = await Session_1.Session.Current.Api.cancelDagRun(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
-            ui.showInfoMessage(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
+            //ui.showInfoMessage(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
             ui.logToOutput(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
             await this.getDagRun();
             MessageHub.DagRunCancelled(this, this.dagId, this.dagRunId);
