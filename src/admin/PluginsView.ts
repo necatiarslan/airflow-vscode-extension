@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
-import { AirflowApi } from '../common/Api';
+import { Session } from '../common/Session';
 
 export class PluginsView {
     public static Current: PluginsView | undefined;
@@ -9,13 +9,11 @@ export class PluginsView {
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
     private pluginsJson: any;
-    private api: AirflowApi;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, api: AirflowApi) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
         ui.logToOutput('PluginsView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -25,7 +23,7 @@ export class PluginsView {
     public async loadData() {
         ui.logToOutput('PluginsView.loadData Started');
 
-        const result = await this.api.getPlugins();
+        const result = await Session.Current!.Api.getPlugins();
         if (result.isSuccessful) {
             this.pluginsJson = result.result;
         }
@@ -38,10 +36,9 @@ export class PluginsView {
         ui.logToOutput('PluginsView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri, api: AirflowApi) {
+    public static render(extensionUri: vscode.Uri) {
         ui.logToOutput('PluginsView.render Started');
         if (PluginsView.Current) {
-            PluginsView.Current.api = api;
             PluginsView.Current._panel.reveal(vscode.ViewColumn.One);
             PluginsView.Current.loadData();
         } else {
@@ -49,7 +46,7 @@ export class PluginsView {
                 enableScripts: true,
             });
 
-            PluginsView.Current = new PluginsView(panel, extensionUri, api);
+            PluginsView.Current = new PluginsView(panel, extensionUri);
         }
     }
 

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
-import { AirflowApi } from '../common/Api';
 import { DagView } from '../dag/DagView';
+import { Session } from '../common/Session';
 
 export class DailyDagRunView {
     public static Current: DailyDagRunView | undefined;
@@ -10,7 +10,6 @@ export class DailyDagRunView {
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
     private dagRunsJson: any;
-    private api: AirflowApi;
     
     // Filters
     private selectedDate: string = ui.toISODateString(new Date());
@@ -18,11 +17,10 @@ export class DailyDagRunView {
     private selectedDagId: string = '';
     private allDagIds: string[] = [];
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, api: AirflowApi) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
         ui.logToOutput('DailyDagRunView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -33,7 +31,7 @@ export class DailyDagRunView {
         ui.logToOutput('DailyDagRunView.loadData Started');
 
         // Fetch all DAGs to populate dag_id filter
-        const dagsResult = await this.api.getDagList();
+        const dagsResult = await Session.Current!.Api.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
             this.allDagIds = dagsResult.result.map((dag: any) => dag.dag_id).sort();
         }
@@ -41,7 +39,7 @@ export class DailyDagRunView {
         // Fetch DAG runs for the selected date
         // If a specific DAG is selected, query that DAG, otherwise query all
         if (this.selectedDagId) {
-            const result = await this.api.getDagRunHistory(this.selectedDagId, this.selectedDate);
+            const result = await Session.Current!.Api.getDagRunHistory(this.selectedDagId, this.selectedDate);
             if (result.isSuccessful && result.result && result.result.dag_runs) {
                 this.dagRunsJson = result.result.dag_runs;
             }
@@ -49,7 +47,7 @@ export class DailyDagRunView {
             // Query all DAGs for runs on the selected date
             const allRuns: any[] = [];
             for (const dagId of this.allDagIds) {
-                const result = await this.api.getDagRunHistory(dagId, this.selectedDate);
+                const result = await Session.Current!.Api.getDagRunHistory(dagId, this.selectedDate);
                 if (result.isSuccessful && result.result && result.result.dag_runs) {
                     allRuns.push(...result.result.dag_runs);
                 }
@@ -66,10 +64,9 @@ export class DailyDagRunView {
         ui.logToOutput('DailyDagRunView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri, api: AirflowApi) {
+    public static render(extensionUri: vscode.Uri) {
         ui.logToOutput('DailyDagRunView.render Started');
         if (DailyDagRunView.Current) {
-            DailyDagRunView.Current.api = api;
             DailyDagRunView.Current._panel.reveal(vscode.ViewColumn.One);
             DailyDagRunView.Current.loadData();
         } else {
@@ -77,7 +74,7 @@ export class DailyDagRunView {
                 enableScripts: true,
             });
 
-            DailyDagRunView.Current = new DailyDagRunView(panel, extensionUri, api);
+            DailyDagRunView.Current = new DailyDagRunView(panel, extensionUri);
         }
     }
 
@@ -341,8 +338,8 @@ export class DailyDagRunView {
                         return;
                     case "open-dag-view":
                         // Open DagView with specific dag and run
-                        if (this.api && message.dagId) {
-                            DagView.render(this.extensionUri, message.dagId, this.api, message.dagRunId);
+                        if (Session.Current?.Api && message.dagId) {
+                            DagView.render(this.extensionUri, message.dagId, message.dagRunId);
                         }
                         return;
                 }

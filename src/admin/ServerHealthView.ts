@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
-import { AirflowApi } from '../common/Api';
+import { Session } from '../common/Session';
 
 export class ServerHealthView {
     public static Current: ServerHealthView | undefined;
@@ -9,13 +9,11 @@ export class ServerHealthView {
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
     private healthJson: any;
-    private api: AirflowApi;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, api: AirflowApi) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
         ui.logToOutput('ServerHealthView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -25,7 +23,7 @@ export class ServerHealthView {
     public async loadData() {
         ui.logToOutput('ServerHealthView.loadData Started');
 
-        const result = await this.api.getHealth();
+        const result = await Session.Current!.Api.getHealth();
         if (result.isSuccessful) {
             this.healthJson = result.result;
         }
@@ -38,10 +36,9 @@ export class ServerHealthView {
         ui.logToOutput('ServerHealthView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri, api: AirflowApi) {
+    public static render(extensionUri: vscode.Uri) {
         ui.logToOutput('ServerHealthView.render Started');
         if (ServerHealthView.Current) {
-            ServerHealthView.Current.api = api;
             ServerHealthView.Current._panel.reveal(vscode.ViewColumn.One);
             ServerHealthView.Current.loadData();
         } else {
@@ -49,7 +46,7 @@ export class ServerHealthView {
                 enableScripts: true,
             });
 
-            ServerHealthView.Current = new ServerHealthView(panel, extensionUri, api);
+            ServerHealthView.Current = new ServerHealthView(panel, extensionUri);
         }
     }
 
@@ -184,7 +181,7 @@ export class ServerHealthView {
       </head>
       <body>  
         <h2>Server Health</h2>
-        <h3>${this.api.config.apiUrl}</h3>
+        <h3>${Session.Current?.Server?.apiUrl}</h3>
         <div class="refresh-button">
             <vscode-button id="refresh-btn">Refresh</vscode-button>
         </div>

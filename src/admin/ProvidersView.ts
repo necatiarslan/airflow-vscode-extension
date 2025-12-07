@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
-import { AirflowApi } from '../common/Api';
-import { MethodResult } from '../common/MethodResult';
+import { Session } from '../common/Session';
 
 export class ProvidersView {
     public static Current: ProvidersView | undefined;
@@ -10,13 +9,12 @@ export class ProvidersView {
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
     private providersJson: any;
-    private api: AirflowApi;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, api: AirflowApi) {
+
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
         ui.logToOutput('ProvidersView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -26,7 +24,7 @@ export class ProvidersView {
     public async loadData() {
         ui.logToOutput('ProvidersView.loadData Started');
 
-        const result = await this.api.getProviders();
+        const result = await Session.Current!.Api.getProviders();
         if (result.isSuccessful) {
             this.providersJson = result.result;
         }
@@ -39,10 +37,9 @@ export class ProvidersView {
         ui.logToOutput('ProvidersView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri, api: AirflowApi) {
+    public static render(extensionUri: vscode.Uri) {
         ui.logToOutput('ProvidersView.render Started');
         if (ProvidersView.Current) {
-            ProvidersView.Current.api = api;
             ProvidersView.Current._panel.reveal(vscode.ViewColumn.One);
             ProvidersView.Current.loadData();
         } else {
@@ -50,7 +47,7 @@ export class ProvidersView {
                 enableScripts: true,
             });
 
-            ProvidersView.Current = new ProvidersView(panel, extensionUri, api);
+            ProvidersView.Current = new ProvidersView(panel, extensionUri);
         }
     }
 

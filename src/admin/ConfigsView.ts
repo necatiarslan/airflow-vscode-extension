@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
-import { AirflowApi } from '../common/Api';
+import { Session } from '../common/Session';
 
 export class ConfigsView {
     public static Current: ConfigsView | undefined;
@@ -9,13 +9,11 @@ export class ConfigsView {
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
     private configJson: any;
-    private api: AirflowApi;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, api: AirflowApi) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
         ui.logToOutput('ConfigsView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -25,7 +23,7 @@ export class ConfigsView {
     public async loadData() {
         ui.logToOutput('ConfigsView.loadData Started');
 
-        const result = await this.api.getConfig();
+        const result = await Session.Current!.Api.getConfig();
         if (result.isSuccessful) {
             this.configJson = result.result;
         }
@@ -38,10 +36,9 @@ export class ConfigsView {
         ui.logToOutput('ConfigsView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri, api: AirflowApi) {
+    public static render(extensionUri: vscode.Uri) {
         ui.logToOutput('ConfigsView.render Started');
         if (ConfigsView.Current) {
-            ConfigsView.Current.api = api;
             ConfigsView.Current._panel.reveal(vscode.ViewColumn.One);
             ConfigsView.Current.loadData();
         } else {
@@ -49,7 +46,7 @@ export class ConfigsView {
                 enableScripts: true,
             });
 
-            ConfigsView.Current = new ConfigsView(panel, extensionUri, api);
+            ConfigsView.Current = new ConfigsView(panel, extensionUri);
         }
     }
 

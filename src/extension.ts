@@ -1,11 +1,12 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as ui from './common/UI';
+import {Session} from './common/Session';
 import { DagTreeView } from './dag/DagTreeView';
 import { DagTreeItem } from './dag/DagTreeItem';
 import { AdminTreeView } from './admin/AdminTreeView';
 import { ReportTreeView } from './report/ReportTreeView';
-import * as ui from './common/UI';
 import { AirflowClientAdapter } from './language_tools/AirflowClientAdapter';
 import { TriggerDagRunTool } from './language_tools/TriggerDagRunTool';
 import { GetFailedRunsTool } from './language_tools/GetFailedRunsTool';
@@ -32,6 +33,9 @@ import { GoToServerHealthViewTool } from './language_tools/GoToServerHealthViewT
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 	ui.logToOutput('Extension activation started');
+
+
+	Session.Current = new Session(context);
 
 	let dagTreeView:DagTreeView = new DagTreeView(context);
 	let adminTreeView:AdminTreeView = new AdminTreeView(context);

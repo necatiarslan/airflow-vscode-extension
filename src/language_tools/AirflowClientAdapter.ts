@@ -1,12 +1,5 @@
-/**
- * AirflowClientAdapter - Adapter to bridge AirflowApi with Language Model Tools
- * 
- * This class adapts the existing AirflowApi class to work with the Language Model Tools.
- */
 
-import { AirflowApi } from '../common/Api';
-import { DagTreeView } from '../dag/DagTreeView';
-import * as ui from '../common/UI';
+import { Session } from '../common/Session';
 import * as MessageHub from '../common/MessageHub';
 
 export interface IDagRunResult {
@@ -67,19 +60,6 @@ export interface ITaskInstance {
 export class AirflowClientAdapter {
     
     /**
-     * Dynamically retrieves the currently connected Airflow API instance.
-     * Throws an error if no server is connected.
-     */
-    private get api(): AirflowApi {
-        if (!DagTreeView.Current || !DagTreeView.Current.api) {
-            const msg = "No Airflow server connected. Please connect to a server in the Airflow view.";
-            ui.showErrorMessage(msg);
-            throw new Error(msg);
-        }
-        return DagTreeView.Current.api;
-    }
-
-    /**
      * Triggers a DAG run via POST /dags/{dag_id}/dagRuns
      * 
      * @param dagId - The DAG identifier
@@ -95,9 +75,7 @@ export class AirflowClientAdapter {
             throw new Error(`Invalid JSON in config_json parameter: ${error instanceof Error ? error.message : String(error)}`);
         }
 
-        // Call the actual AirflowApi.triggerDag method
-        // Note: AirflowApi.triggerDag already accepts date as the 3rd argument
-        const result = await this.api.triggerDag(dagId, configJson, date);
+        const result = await Session.Current!.Api.triggerDag(dagId, configJson, date);
 
         if (!result.isSuccessful) {
             throw new Error(result.error?.message || 'Failed to trigger DAG run');
@@ -132,13 +110,13 @@ export class AirflowClientAdapter {
         try {
             // If dagIdFilter is specified, query only that DAG
             if (dagIdFilter) {
-                const result = await this.api.getDagRunHistory(dagIdFilter);
+                const result = await Session.Current!.Api.getDagRunHistory(dagIdFilter);
                 if (result.isSuccessful && result.result?.dag_runs) {
                     failedRuns.push(...this.filterFailedRuns(result.result.dag_runs, timeRangeHours));
                 }
             } else {
                 // If no filter, we need to get the DAG list first, then query each
-                const dagListResult = await this.api.getDagList();
+                const dagListResult = await Session.Current!.Api.getDagList();
                 if (dagListResult.isSuccessful && dagListResult.result) {
                     // Handle both v1 (array) and v2 (object with dags property) responses
                     const resultData = dagListResult.result as any;
@@ -151,7 +129,7 @@ export class AirflowClientAdapter {
                     const runPromises = dagsToCheck.map(async (dag: any) => {
                         try {
                             const dagId = dag.dag_id;
-                            const runResult = await this.api.getDagRunHistory(dagId);
+                            const runResult = await Session.Current!.Api.getDagRunHistory(dagId);
                             if (runResult.isSuccessful && runResult.result?.dag_runs) {
                                 return this.filterFailedRuns(runResult.result.dag_runs, timeRangeHours);
                             }
@@ -182,7 +160,7 @@ export class AirflowClientAdapter {
      */
     async getDags(isPaused: boolean): Promise<IDagSummary[]> {
         try {
-            const dagListResult = await this.api.getDagList();
+            const dagListResult = await Session.Current!.Api.getDagList();
             if (!dagListResult.isSuccessful || !dagListResult.result) {
                 throw new Error(dagListResult.error?.message || 'Failed to fetch DAG list');
             }
@@ -214,7 +192,7 @@ export class AirflowClientAdapter {
      */
     async getRunningDags(): Promise<Array<IDagSummary & { latest_run_state: string; latest_run_id: string }>> {
         try {
-            const dagListResult = await this.api.getDagList();
+            const dagListResult = await Session.Current!.Api.getDagList();
             if (!dagListResult.isSuccessful || !dagListResult.result) {
                 throw new Error(dagListResult.error?.message || 'Failed to fetch DAG list');
             }
@@ -265,7 +243,7 @@ export class AirflowClientAdapter {
      */
     async pauseDag(dagId: string, isPaused: boolean): Promise<void> {
         try {
-            const result = await this.api.pauseDag(dagId, isPaused);
+            const result = await Session.Current!.Api.pauseDag(dagId, isPaused);
             if (!result.isSuccessful) {
                 throw new Error(result.error?.message || `Failed to ${isPaused ? 'pause' : 'unpause'} DAG`);
             }
@@ -283,7 +261,7 @@ export class AirflowClientAdapter {
      */
     async getLatestDagRun(dagId: string): Promise<IDagRunResult | undefined> {
         try {
-            const result = await this.api.getLastDagRun(dagId);
+            const result = await Session.Current!.Api.getLastDagRun(dagId);
             if (!result.isSuccessful || !result.result) {
                 return undefined;
             }
@@ -314,7 +292,7 @@ export class AirflowClientAdapter {
      */
     async getTaskInstances(dagId: string, dagRunId: string): Promise<any[]> {
         try {
-            const result = await this.api.getTaskInstances(dagId, dagRunId);
+            const result = await Session.Current!.Api.getTaskInstances(dagId, dagRunId);
             if (!result.isSuccessful || !result.result) {
                 return [];
             }
@@ -338,7 +316,7 @@ export class AirflowClientAdapter {
     async getTaskLog(dagId: string, dagRunId: string, taskId: string, tryNumber: string): Promise<string> {
         try {
             // Use the existing getTaskInstanceLog method
-            const result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
+            const result = await Session.Current!.Api.getTaskInstanceLog(dagId, dagRunId, taskId);
 
             if (!result.isSuccessful) {
                 throw new Error(result.error?.message || 'Failed to retrieve task log');
@@ -399,7 +377,7 @@ export class AirflowClientAdapter {
      */
     async getDagRunHistory(dagId: string, date?: string): Promise<any> {
         try {
-            const result = await this.api.getDagRunHistory(dagId, date);
+            const result = await Session.Current!.Api.getDagRunHistory(dagId, date);
             if (!result.isSuccessful || !result.result) {
                 throw new Error(result.error?.message || 'Failed to fetch DAG run history');
             }
@@ -417,7 +395,7 @@ export class AirflowClientAdapter {
      */
     async cancelDagRun(dagId: string, dagRunId: string): Promise<void> {
         try {
-            const result = await this.api.cancelDagRun(dagId, dagRunId);
+            const result = await Session.Current!.Api.cancelDagRun(dagId, dagRunId);
             if (!result.isSuccessful) {
                 throw new Error(result.error?.message || 'Failed to cancel DAG run');
             }
@@ -435,7 +413,7 @@ export class AirflowClientAdapter {
      */
     async getDagSource(dagId: string): Promise<string> {
         try {
-            const result = await this.api.getSourceCode(dagId);
+            const result = await Session.Current!.Api.getSourceCode(dagId);
             if (!result.isSuccessful || !result.result) {
                 throw new Error(result.error?.message || 'Failed to fetch DAG source code');
             }

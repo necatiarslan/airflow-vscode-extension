@@ -4,6 +4,7 @@
 
 import * as vscode from 'vscode';
 import { DagTreeView } from '../dag/DagTreeView';
+import { Session } from '../common/Session';
 import { VariablesView } from '../admin/VariablesView';
 
 /**
@@ -33,16 +34,15 @@ export class GoToVariablesViewTool implements vscode.LanguageModelTool<void> {
                 ]);
             }
 
-            if (!DagTreeView.Current.api) {
+            if (!Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
 
-            const api = DagTreeView.Current.api;
             const extensionUri = DagTreeView.Current.context.extensionUri;
-
-            VariablesView.render(extensionUri, api);
+            
+            VariablesView.render(extensionUri);
 
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart('✅ Opened Variables View - showing Airflow variables (key-value configuration settings)')

@@ -4,6 +4,7 @@
 
 import * as vscode from 'vscode';
 import { DagTreeView } from '../dag/DagTreeView';
+import { Session } from '../common/Session';
 import { ProvidersView } from '../admin/ProvidersView';
 
 /**
@@ -33,16 +34,15 @@ export class GoToProvidersViewTool implements vscode.LanguageModelTool<void> {
                 ]);
             }
 
-            if (!DagTreeView.Current.api) {
+            if (!Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
 
-            const api = DagTreeView.Current.api;
             const extensionUri = DagTreeView.Current.context.extensionUri;
-
-            ProvidersView.render(extensionUri, api);
+            
+            ProvidersView.render(extensionUri);
 
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart('✅ Opened Providers View - showing installed Airflow providers with their versions')

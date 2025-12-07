@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
-import { AirflowApi } from '../common/Api';
 import { DagView } from '../dag/DagView';
+import { Session } from '../common/Session';
 
 export class DagRunView {
     public static Current: DagRunView | undefined;
@@ -10,7 +10,6 @@ export class DagRunView {
     private _disposables: vscode.Disposable[] = [];
     private extensionUri: vscode.Uri;
     private dagRunsJson: any;
-    private api: AirflowApi;
     
     // Filters
     private selectedDagId: string = '';
@@ -19,11 +18,10 @@ export class DagRunView {
     private selectedStatus: string = '';
     private allDagIds: string[] = [];
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, api: AirflowApi) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
         ui.logToOutput('DagRunView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -34,7 +32,7 @@ export class DagRunView {
         ui.logToOutput('DagRunView.loadData Started');
 
         // Fetch all DAGs to populate dag_id filter
-        const dagsResult = await this.api.getDagList();
+        const dagsResult = await Session.Current!.Api.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
             this.allDagIds = dagsResult.result.map((dag: any) => dag.dag_id).sort();
             
@@ -46,7 +44,7 @@ export class DagRunView {
 
         // Fetch DAG runs for the selected DAG and date range
         if (this.selectedDagId) {
-            const result = await this.api.getDagRunHistory(this.selectedDagId);
+            const result = await Session.Current!.Api.getDagRunHistory(this.selectedDagId);
             if (result.isSuccessful && result.result && result.result.dag_runs) {
                 // Filter runs by date range on the client side
                 const startDateTime = new Date(this.selectedStartDate + 'T00:00:00Z').getTime();
@@ -73,10 +71,9 @@ export class DagRunView {
         ui.logToOutput('DagRunView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri, api: AirflowApi, dagId?: string, startDate?: string, endDate?: string, status?: string) {
+    public static render(extensionUri: vscode.Uri, dagId?: string, startDate?: string, endDate?: string, status?: string) {
         ui.logToOutput('DagRunView.render Started');
         if (DagRunView.Current) {
-            DagRunView.Current.api = api;
             // Apply optional filter parameters
             if (dagId) { DagRunView.Current.selectedDagId = dagId; }
             if (startDate) { DagRunView.Current.selectedStartDate = startDate; }
@@ -89,7 +86,7 @@ export class DagRunView {
                 enableScripts: true,
             });
 
-            DagRunView.Current = new DagRunView(panel, extensionUri, api);
+            DagRunView.Current = new DagRunView(panel, extensionUri);
             // Apply optional filter parameters after creation
             if (dagId) { DagRunView.Current.selectedDagId = dagId; }
             if (startDate) { DagRunView.Current.selectedStartDate = startDate; }
@@ -374,8 +371,8 @@ export class DagRunView {
                         return;
                     case "open-dag-view":
                         // Open DagView with specific dag and run
-                        if (this.api && message.dagId) {
-                            DagView.render(this.extensionUri, message.dagId, this.api, message.dagRunId);
+                        if (Session.Current?.Api && message.dagId) {
+                            DagView.render(this.extensionUri, message.dagId, message.dagRunId);
                         }
                         return;
                 }

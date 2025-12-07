@@ -7,6 +7,7 @@
 
 import * as vscode from 'vscode';
 import { DagTreeView } from '../dag/DagTreeView';
+import { Session } from '../common/Session';
 import { DagView } from '../dag/DagView';
 
 export interface IGoToDagViewParams {
@@ -57,17 +58,17 @@ export class GoToDagViewTool implements vscode.LanguageModelTool<IGoToDagViewPar
             }
 
             // Check if API is available
-            if (!DagTreeView.Current.api) {
+            if (!Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
 
-            const api = DagTreeView.Current.api;
+            const api = Session.Current?.Api;
             const extensionUri = DagTreeView.Current.context.extensionUri;
 
             // Open the DagView with the specified DAG ID and optional run ID
-            DagView.render(extensionUri, dagId, api, dagRunId);
+            DagView.render(extensionUri, dagId, dagRunId);
 
             let successMessage = `✅ Opened DAG View for: **${dagId}**`;
             if (dagRunId) {

@@ -24,14 +24,13 @@ const DagView_1 = __webpack_require__(10);
 const DailyDagRunView_1 = __webpack_require__(13);
 const DagRunView_1 = __webpack_require__(14);
 const ui = __webpack_require__(11);
-const Api_1 = __webpack_require__(15);
 const MessageHub = __webpack_require__(12);
+const Session_1 = __webpack_require__(84);
 class DagTreeView {
     constructor(context) {
         this.FilterString = '';
         this.ShowOnlyActive = true;
         this.ShowOnlyFavorite = false;
-        this.ServerList = [];
         ui.logToOutput('DagTreeView.constructor Started');
         this.context = context;
         this.treeDataProvider = new DagTreeDataProvider_1.DagTreeDataProvider();
@@ -51,7 +50,7 @@ class DagTreeView {
     }
     async refresh() {
         ui.logToOutput('DagTreeView.refresh Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             this.treeDataProvider.dagList = [];
             this.treeDataProvider.refresh();
             return;
@@ -65,21 +64,10 @@ class DagTreeView {
         });
         await this.getImportErrors();
     }
-    resetView() {
-        ui.logToOutput('DagTreeView.resetView Started');
-        this.api = undefined;
-        this.currentServer = undefined;
-        this.FilterString = '';
-        this.treeDataProvider.dagList = undefined;
-        this.treeDataProvider.refresh();
-        this.setViewTitle();
-        this.saveState();
-        this.refresh();
-    }
     viewDagView(node) {
         ui.logToOutput('DagTreeView.viewDagView Started');
-        if (this.api) {
-            DagView_1.DagView.render(this.context.extensionUri, node.DagId, this.api);
+        if (Session_1.Session.Current?.Api) {
+            DagView_1.DagView.render(this.context.extensionUri, node.DagId);
         }
     }
     async addToFavDAG(node) {
@@ -114,7 +102,7 @@ class DagTreeView {
     }
     async triggerDag(node) {
         ui.logToOutput('DagTreeView.triggerDag Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
         if (node.IsPaused) {
@@ -125,21 +113,21 @@ class DagTreeView {
             ui.showWarningMessage('Dag is ALREADY RUNNING !!!');
             return;
         }
-        const result = await this.api.triggerDag(node.DagId);
+        const result = await Session_1.Session.Current?.Api.triggerDag(node.DagId);
         if (result.isSuccessful) {
             this.handleTriggerSuccess(node, result.result);
         }
     }
     async refreshRunningDagState(dagTreeView) {
         ui.logToOutput('DagTreeView.refreshRunningDagState Started');
-        if (!dagTreeView.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
         let noDagIsRunning = true;
         for (const node of dagTreeView.treeDataProvider.visibleDagList) {
             if (node.isDagRunning()) {
                 noDagIsRunning = false;
-                const result = await dagTreeView.api.getDagRun(node.DagId, node.LatestDagRunId);
+                const result = await Session_1.Session.Current?.Api.getDagRun(node.DagId, node.LatestDagRunId);
                 if (result.isSuccessful) {
                     node.LatestDagState = result.result['state'];
                     node.refreshUI();
@@ -160,7 +148,7 @@ class DagTreeView {
     }
     async triggerDagWConfig(node) {
         ui.logToOutput('DagTreeView.triggerDagWConfig Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
         let triggerDagConfig = await vscode.window.showInputBox({ placeHolder: 'Enter Configuration JSON (Optional, must be a dict object) or Press Enter' });
@@ -168,7 +156,7 @@ class DagTreeView {
             triggerDagConfig = "{}";
         }
         if (triggerDagConfig !== undefined) {
-            const result = await this.api.triggerDag(node.DagId, triggerDagConfig);
+            const result = await Session_1.Session.Current?.Api.triggerDag(node.DagId, triggerDagConfig);
             if (result.isSuccessful) {
                 this.handleTriggerSuccess(node, result.result);
             }
@@ -205,7 +193,7 @@ class DagTreeView {
     }
     async checkDagRunState(node) {
         ui.logToOutput('DagTreeView.checkDagRunState Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
         if (!node) {
@@ -215,7 +203,7 @@ class DagTreeView {
             ui.showWarningMessage(node.DagId + 'Dag is PAUSED');
             return;
         }
-        const result = await this.api.getLastDagRun(node.DagId);
+        const result = await Session_1.Session.Current?.Api.getLastDagRun(node.DagId);
         if (result.isSuccessful) {
             node.LatestDagRunId = result.result.dag_run_id;
             node.LatestDagState = result.result.state;
@@ -228,14 +216,14 @@ class DagTreeView {
     }
     async pauseDAG(node) {
         ui.logToOutput('DagTreeView.pauseDAG Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
         if (node.IsPaused) {
             ui.showWarningMessage(node.DagId + 'Dag is already PAUSED');
             return;
         }
-        const result = await this.api.pauseDag(node.DagId, true);
+        const result = await Session_1.Session.Current?.Api.pauseDag(node.DagId, true);
         if (result.isSuccessful) {
             node.IsPaused = true;
             node.refreshUI();
@@ -253,14 +241,14 @@ class DagTreeView {
     }
     async unPauseDAG(node) {
         ui.logToOutput('DagTreeView.unPauseDAG Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
         if (!node.IsPaused) {
             ui.showInfoMessage(node.DagId + 'Dag is already UNPAUSED');
             return;
         }
-        const result = await this.api.pauseDag(node.DagId, false);
+        const result = await Session_1.Session.Current?.Api.pauseDag(node.DagId, false);
         if (result.isSuccessful) {
             node.IsPaused = false;
             node.refreshUI();
@@ -270,7 +258,7 @@ class DagTreeView {
     }
     async cancelDagRun(node) {
         ui.logToOutput('DagTreeView.cancelDagRun Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
         if (!node.isDagRunning()) {
@@ -281,7 +269,7 @@ class DagTreeView {
             ui.showWarningMessage('No DAG run ID found');
             return;
         }
-        const result = await this.api.cancelDagRun(node.DagId, node.LatestDagRunId);
+        const result = await Session_1.Session.Current?.Api.cancelDagRun(node.DagId, node.LatestDagRunId);
         if (result.isSuccessful) {
             node.LatestDagState = 'failed';
             node.refreshUI();
@@ -292,20 +280,20 @@ class DagTreeView {
     }
     async lastDAGRunLog(node) {
         ui.logToOutput('DagTreeView.lastDAGRunLog Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
-        const result = await this.api.getLastDagRunLog(node.DagId);
+        const result = await Session_1.Session.Current?.Api.getLastDagRunLog(node.DagId);
         if (result.isSuccessful) {
             this.createAndOpenTempFile(result.result, node.DagId, '.log');
         }
     }
     async dagSourceCode(node) {
         ui.logToOutput('DagTreeView.dagSourceCode Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
-        const result = await this.api.getSourceCode(node.DagId, node.FileToken);
+        const result = await Session_1.Session.Current?.Api.getSourceCode(node.DagId, node.FileToken);
         if (result.isSuccessful) {
             this.createAndOpenTempFile(result.result, node.DagId, '.py');
         }
@@ -316,10 +304,10 @@ class DagTreeView {
     }
     async showDagInfo(node) {
         ui.logToOutput('DagTreeView.showDagInfo Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
-        const result = await this.api.getDagInfo(node.DagId);
+        const result = await Session_1.Session.Current?.Api.getDagInfo(node.DagId);
         if (result.isSuccessful) {
             this.createAndOpenTempFile(JSON.stringify(result.result, null, 2), node.DagId + '_info', '.json');
         }
@@ -623,7 +611,7 @@ class DagTreeView {
     }
     async askAI(node) {
         ui.logToOutput('DagTreeView.askAI Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
         if (!await this.isChatCommandAvailable()) {
@@ -633,7 +621,7 @@ class DagTreeView {
         let dagSourceCode = '';
         let latestDagLogs = '';
         // Fetch DAG Source Code
-        const sourceResult = await this.api.getSourceCode(node.DagId, node.FileToken);
+        const sourceResult = await Session_1.Session.Current?.Api.getSourceCode(node.DagId, node.FileToken);
         if (sourceResult.isSuccessful) {
             dagSourceCode = sourceResult.result;
         }
@@ -642,7 +630,7 @@ class DagTreeView {
             return;
         }
         // Fetch Latest DAG Run Logs
-        const logResult = await this.api.getLastDagRunLog(node.DagId);
+        const logResult = await Session_1.Session.Current?.Api.getLastDagRunLog(node.DagId);
         if (logResult.isSuccessful) {
             latestDagLogs = logResult.result;
         }
@@ -701,7 +689,7 @@ class DagTreeView {
     }
     async addServer() {
         ui.logToOutput('DagTreeView.addServer Started');
-        const apiUrlTemp = await vscode.window.showInputBox({ value: 'http://localhost:8080/api/v2', placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
+        const apiUrlTemp = await vscode.window.showInputBox({ value: 'http://localhost:8080/api/v2', placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v2)' });
         if (!apiUrlTemp) {
             return;
         }
@@ -714,35 +702,32 @@ class DagTreeView {
             return;
         }
         const newServer = { apiUrl: apiUrlTemp, apiUserName: userNameTemp, apiPassword: passwordTemp };
-        this.ServerList.push(newServer);
-        let api = new Api_1.AirflowApi(newServer);
-        let result = await api.checkConnection();
+        let result = await Session_1.Session.Current.TestServer(newServer);
         if (!result) {
             ui.showErrorMessage("Failed to connect to server.");
             return;
         }
-        this.currentServer = newServer;
-        this.api = api;
-        this.saveState();
+        Session_1.Session.Current.AddServer(newServer);
+        Session_1.Session.Current.SetServer(newServer);
         this.refresh();
     }
     async removeServer() {
         ui.logToOutput('DagTreeView.removeServer Started');
-        if (this.ServerList.length === 0) {
+        if (Session_1.Session.Current.ServerList.length === 0) {
             return;
         }
-        const items = this.ServerList.map(s => `${s.apiUrl} - ${s.apiUserName}`);
+        const items = Session_1.Session.Current.ServerList.map(s => `${s.apiUrl} - ${s.apiUserName}`);
         const selected = await vscode.window.showQuickPick(items, { canPickMany: false, placeHolder: 'Select To Remove' });
         if (!selected) {
             return;
         }
         const selectedItems = selected.split(' - ');
         if (selectedItems[0]) {
-            this.ServerList = this.ServerList.filter(item => !(item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]));
+            Session_1.Session.Current.ServerList = Session_1.Session.Current.ServerList.filter(item => !(item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]));
             // If we removed the current server, reset
-            if (this.currentServer && this.currentServer.apiUrl === selectedItems[0] && this.currentServer.apiUserName === selectedItems[1]) {
-                this.currentServer = undefined;
-                this.api = undefined;
+            if (Session_1.Session.Current?.Server && Session_1.Session.Current?.Server.apiUrl === selectedItems[0] && Session_1.Session.Current?.Server.apiUserName === selectedItems[1]) {
+                Session_1.Session.Current.Server = undefined;
+                Session_1.Session.Current.Api = undefined;
                 this.treeDataProvider.dagList = undefined;
                 this.treeDataProvider.refresh();
             }
@@ -752,12 +737,12 @@ class DagTreeView {
     }
     async connectServer() {
         ui.logToOutput('DagTreeView.connectServer Started');
-        if (this.ServerList.length === 0) {
+        if (Session_1.Session.Current.ServerList.length === 0) {
             this.addServer();
             return;
         }
         const items = [];
-        for (const s of this.ServerList) {
+        for (const s of Session_1.Session.Current.ServerList) {
             items.push(s.apiUrl + " - " + s.apiUserName);
         }
         const selected = await vscode.window.showQuickPick(items, { canPickMany: false, placeHolder: 'Select To Connect' });
@@ -766,14 +751,11 @@ class DagTreeView {
         }
         const selectedItems = selected.split(' - ');
         if (selectedItems[0]) {
-            const item = this.ServerList.find(item => item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]);
-            if (item) {
-                let api = new Api_1.AirflowApi(item);
-                let result = await api.checkConnection();
+            const server = Session_1.Session.Current.ServerList.find(item => item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]);
+            if (server) {
+                let result = await Session_1.Session.Current.TestServer(server);
                 if (result) {
-                    this.currentServer = item;
-                    this.api = new Api_1.AirflowApi(this.currentServer);
-                    this.saveState();
+                    Session_1.Session.Current.SetServer(server);
                     this.refresh();
                 }
                 else {
@@ -784,9 +766,9 @@ class DagTreeView {
     }
     async clearServers() {
         ui.logToOutput('DagTreeView.clearServers Started');
-        this.ServerList = [];
-        this.currentServer = undefined;
-        this.api = undefined;
+        Session_1.Session.Current.ServerList = [];
+        Session_1.Session.Current.Server = undefined;
+        Session_1.Session.Current.Api = undefined;
         this.treeDataProvider.dagList = undefined;
         this.treeDataProvider.refresh();
         this.saveState();
@@ -794,11 +776,11 @@ class DagTreeView {
     }
     async loadDags() {
         ui.logToOutput('DagTreeView.loadDags Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
         this.treeDataProvider.dagList = undefined;
-        const result = await this.api.getDagList();
+        const result = await Session_1.Session.Current?.Api.getDagList();
         if (result.isSuccessful) {
             this.treeDataProvider.dagList = result.result;
             this.treeDataProvider.loadDagTreeItemsFromApiResponse();
@@ -808,7 +790,7 @@ class DagTreeView {
     }
     async loadLatestRunStatusForAllDags() {
         ui.logToOutput('DagTreeView.loadLatestRunStatusForAllDags Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
         // Fetch latest run status for each visible DAG (limit to avoid too many API calls)
@@ -816,7 +798,7 @@ class DagTreeView {
         for (const dagItem of visibleDags) {
             if (!dagItem.IsPaused) {
                 try {
-                    const runResult = await this.api.getLastDagRun(dagItem.DagId);
+                    const runResult = await Session_1.Session.Current?.Api.getLastDagRun(dagItem.DagId);
                     if (runResult.isSuccessful && runResult.result) {
                         dagItem.LatestDagRunId = runResult.result.dag_run_id;
                         dagItem.LatestDagState = runResult.result.state;
@@ -832,8 +814,8 @@ class DagTreeView {
         this.treeDataProvider.refresh();
     }
     async setViewTitle() {
-        if (this.currentServer) {
-            this.view.title = this.currentServer.apiUrl + " - " + this.currentServer.apiUserName;
+        if (Session_1.Session.Current?.Server) {
+            this.view.title = Session_1.Session.Current?.Server.apiUrl + " - " + Session_1.Session.Current?.Server.apiUserName;
         }
         else {
             this.view.title = "Airflow";
@@ -841,10 +823,10 @@ class DagTreeView {
     }
     async getImportErrors() {
         ui.logToOutput('DagTreeView.getImportErrors Started');
-        if (!this.api) {
+        if (!Session_1.Session.Current?.Api) {
             return;
         }
-        const result = await this.api.getImportErrors();
+        const result = await Session_1.Session.Current?.Api.getImportErrors();
         if (result.isSuccessful) {
             const importErrors = result.result;
             if (importErrors.total_entries > 0) {
@@ -855,27 +837,16 @@ class DagTreeView {
     saveState() {
         ui.logToOutput('DagTreeView.saveState Started');
         try {
-            if (this.currentServer) {
-                this.context.globalState.update('apiUrl', this.currentServer.apiUrl);
-                this.context.globalState.update('apiUserName', this.currentServer.apiUserName);
-                this.context.globalState.update('apiPassword', this.currentServer.apiPassword);
-            }
-            else {
-                this.context.globalState.update('apiUrl', undefined);
-                this.context.globalState.update('apiUserName', undefined);
-                this.context.globalState.update('apiPassword', undefined);
-            }
             this.context.globalState.update('filterString', this.FilterString);
             this.context.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
             this.context.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
-            this.context.globalState.update('ServerList', this.ServerList);
         }
         catch (error) {
             ui.logToOutput("dagTreeView.saveState Error !!!", error);
         }
     }
     setFilterMessage() {
-        if (this.currentServer) {
+        if (Session_1.Session.Current?.Server) {
             this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, ' + this.getBoolenSign(this.ShowOnlyActive) + 'Active, Filter : ' + this.FilterString;
         }
     }
@@ -885,13 +856,6 @@ class DagTreeView {
     loadState() {
         ui.logToOutput('DagTreeView.loadState Started');
         try {
-            const apiUrlTemp = this.context.globalState.get('apiUrl') || '';
-            const apiUserNameTemp = this.context.globalState.get('apiUserName') || '';
-            const apiPasswordTemp = this.context.globalState.get('apiPassword') || '';
-            if (apiUrlTemp && apiUserNameTemp) {
-                this.currentServer = { apiUrl: apiUrlTemp, apiUserName: apiUserNameTemp, apiPassword: apiPasswordTemp };
-                this.api = new Api_1.AirflowApi(this.currentServer);
-            }
             const filterStringTemp = this.context.globalState.get('filterString') || '';
             if (filterStringTemp) {
                 this.FilterString = filterStringTemp;
@@ -905,14 +869,6 @@ class DagTreeView {
             if (ShowOnlyFavoriteTemp !== undefined) {
                 this.ShowOnlyFavorite = ShowOnlyFavoriteTemp;
             }
-            const ServerListTemp = this.context.globalState.get('ServerList') || [];
-            if (ServerListTemp) {
-                this.ServerList = ServerListTemp;
-            }
-            // Ensure current server is in the list
-            if (this.currentServer && !this.ServerList.find(e => e.apiUrl === this.currentServer?.apiUrl && e.apiUserName === this.currentServer?.apiUserName)) {
-                this.ServerList.push(this.currentServer);
-            }
         }
         catch (error) {
             ui.logToOutput("dagTreeView.loadState Error !!!", error);
@@ -920,56 +876,56 @@ class DagTreeView {
     }
     async viewConnections() {
         ui.logToOutput('DagTreeView.viewConnections Started');
-        if (this.api) {
+        if (Session_1.Session.Current?.Api) {
             const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(52));
-            ConnectionsView.render(this.context.extensionUri, this.api);
+            ConnectionsView.render(this.context.extensionUri);
         }
     }
     async viewVariables() {
         ui.logToOutput('DagTreeView.viewVariables Started');
-        if (this.api) {
+        if (Session_1.Session.Current?.Api) {
             const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(53));
-            VariablesView.render(this.context.extensionUri, this.api);
+            VariablesView.render(this.context.extensionUri);
         }
     }
     async viewProviders() {
         ui.logToOutput('DagTreeView.viewProviders Started');
-        if (this.api) {
+        if (Session_1.Session.Current?.Api) {
             const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(54));
-            ProvidersView.render(this.context.extensionUri, this.api);
+            ProvidersView.render(this.context.extensionUri);
         }
     }
     async viewConfigs() {
         ui.logToOutput('DagTreeView.viewConfigs Started');
-        if (this.api) {
+        if (Session_1.Session.Current?.Api) {
             const { ConfigsView } = await Promise.resolve().then(() => __webpack_require__(55));
-            ConfigsView.render(this.context.extensionUri, this.api);
+            ConfigsView.render(this.context.extensionUri);
         }
     }
     async viewPlugins() {
         ui.logToOutput('DagTreeView.viewPlugins Started');
-        if (this.api) {
+        if (Session_1.Session.Current?.Api) {
             const { PluginsView } = await Promise.resolve().then(() => __webpack_require__(56));
-            PluginsView.render(this.context.extensionUri, this.api);
+            PluginsView.render(this.context.extensionUri);
         }
     }
     async viewDagRuns() {
         ui.logToOutput('DagTreeView.viewDagRuns Started');
-        if (this.api) {
-            DailyDagRunView_1.DailyDagRunView.render(this.context.extensionUri, this.api);
+        if (Session_1.Session.Current?.Api) {
+            DailyDagRunView_1.DailyDagRunView.render(this.context.extensionUri);
         }
     }
     async viewDagRunHistory() {
         ui.logToOutput('DagTreeView.viewDagRunHistory Started');
-        if (this.api) {
-            DagRunView_1.DagRunView.render(this.context.extensionUri, this.api);
+        if (Session_1.Session.Current?.Api) {
+            DagRunView_1.DagRunView.render(this.context.extensionUri);
         }
     }
     async viewServerHealth() {
         ui.logToOutput('DagTreeView.viewServerHealth Started');
-        if (this.api) {
+        if (Session_1.Session.Current?.Api) {
             const { ServerHealthView } = await Promise.resolve().then(() => __webpack_require__(57));
-            ServerHealthView.render(this.context.extensionUri, this.api);
+            ServerHealthView.render(this.context.extensionUri);
         }
     }
 }
@@ -2041,15 +1997,15 @@ const fs = __webpack_require__(4);
 const ui = __webpack_require__(11);
 const DagTreeView_1 = __webpack_require__(2);
 const MessageHub = __webpack_require__(12);
+const Session_1 = __webpack_require__(84);
 class DagView {
-    constructor(panel, extensionUri, dagId, api, dagRunId) {
+    constructor(panel, extensionUri, dagId, dagRunId) {
         this._disposables = [];
         this.dagHistorySelectedDate = ui.toISODateString(new Date());
         this.activetabid = "tab-1";
         ui.logToOutput('DagView.constructor Started');
         this.dagId = dagId;
         this.extensionUri = extensionUri;
-        this.api = api;
         this.dagRunId = dagRunId;
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -2073,7 +2029,7 @@ class DagView {
             await this.getDagRun();
         }
         else {
-            await this.getLastDagRun();
+            await this.getLastRun();
         }
         await this.getDagTasks();
         //await this.getRunHistory();
@@ -2090,10 +2046,9 @@ class DagView {
         //ui.showOutputMessage(this._panel.webview.html);
         ui.logToOutput('DagView.renderHmtl Completed');
     }
-    static render(extensionUri, dagId, api, dagRunId) {
+    static render(extensionUri, dagId, dagRunId) {
         ui.logToOutput('DagView.render Started');
         if (DagView.Current) {
-            DagView.Current.api = api;
             DagView.Current.dagId = dagId;
             DagView.Current.dagRunId = dagRunId;
             DagView.Current._panel.reveal(vscode.ViewColumn.Two);
@@ -2104,7 +2059,7 @@ class DagView {
             const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
                 enableScripts: true,
             });
-            DagView.Current = new DagView(panel, extensionUri, dagId, api, dagRunId);
+            DagView.Current = new DagView(panel, extensionUri, dagId, dagRunId);
         }
     }
     /**
@@ -2115,9 +2070,9 @@ class DagView {
         fs.appendFileSync(tmpFile.name, content);
         ui.openFile(tmpFile.name);
     }
-    async getLastDagRun() {
+    async getLastRun() {
         ui.logToOutput('DagView.getLastRun Started');
-        const result = await this.api.getLastDagRun(this.dagId);
+        const result = await Session_1.Session.Current.Api.getLastDagRun(this.dagId);
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
             this.dagRunId = this.dagRunJson.dag_run_id;
@@ -2135,11 +2090,11 @@ class DagView {
     goToDag(dagId) {
         this.dagId = dagId;
         this.dagRunId = undefined;
-        this.getLastDagRun();
+        this.getLastRun();
     }
     async getDagRun() {
         ui.logToOutput('DagView.getDagRun Started');
-        const result = await this.api.getDagRun(this.dagId, this.dagRunId);
+        const result = await Session_1.Session.Current.Api.getDagRun(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
             this.dagRunId = this.dagRunJson.dag_run_id;
@@ -2149,28 +2104,28 @@ class DagView {
     }
     async getRunHistory(date) {
         ui.logToOutput('DagView.getRunHistory Started');
-        const result = await this.api.getDagRunHistory(this.dagId, date);
+        const result = await Session_1.Session.Current.Api.getDagRunHistory(this.dagId, date);
         if (result.isSuccessful) {
             this.dagRunHistoryJson = result.result;
         }
     }
     async getTaskInstances() {
         ui.logToOutput('DagView.getTaskInstances Started');
-        const result = await this.api.getTaskInstances(this.dagId, this.dagRunId);
+        const result = await Session_1.Session.Current.Api.getTaskInstances(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
             this.dagTaskInstancesJson = result.result;
         }
     }
     async getDagInfo() {
         ui.logToOutput('DagView.getDagInfo Started');
-        const result = await this.api.getDagInfo(this.dagId);
+        const result = await Session_1.Session.Current.Api.getDagInfo(this.dagId);
         if (result.isSuccessful) {
             this.dagJson = result.result;
         }
     }
     async getDagTasks() {
         ui.logToOutput('DagView.getDagTasks Started');
-        const result = await this.api.getDagTasks(this.dagId);
+        const result = await Session_1.Session.Current.Api.getDagTasks(this.dagId);
         if (result.isSuccessful) {
             this.dagTasksJson = result.result;
         }
@@ -2610,7 +2565,7 @@ class DagView {
                     this.askAI();
                     return;
                 case "run-lastrun-check":
-                    this.getLastDagRun();
+                    this.getLastRun();
                     if (this.dagRunJson) {
                         this.startCheckingDagRunStatus();
                     }
@@ -2658,7 +2613,7 @@ class DagView {
     }
     async cancelDagRun() {
         ui.logToOutput('DagView.cancelDagRun Started');
-        const result = await this.api.cancelDagRun(this.dagId, this.dagRunId);
+        const result = await Session_1.Session.Current.Api.cancelDagRun(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
             ui.showInfoMessage(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
             ui.logToOutput(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
@@ -2668,7 +2623,7 @@ class DagView {
     }
     async updateDagRunNote() {
         ui.logToOutput('DagView.updateDagRunNote Started');
-        if (!this.api || !this.dagRunJson) {
+        if (!Session_1.Session.Current.Api || !this.dagRunJson) {
             return;
         }
         // Show input box with current note as default value
@@ -2681,7 +2636,7 @@ class DagView {
         if (newNote === undefined) {
             return;
         }
-        const result = await this.api.updateDagRunNote(this.dagId, this.dagRunId, newNote);
+        const result = await Session_1.Session.Current.Api.updateDagRunNote(this.dagId, this.dagRunId, newNote);
         if (result.isSuccessful) {
             // Refresh the DAG run to get the updated note
             await this.getDagRun();
@@ -2697,7 +2652,7 @@ class DagView {
             ui.showWarningMessage(this.dagId + 'Dag is already ACTIVE');
             return;
         }
-        const result = await this.api.pauseDag(this.dagId, is_paused);
+        const result = await Session_1.Session.Current.Api.pauseDag(this.dagId, is_paused);
         if (result.isSuccessful) {
             this.loadDagInfoOnly();
             is_paused ? MessageHub.DagPaused(this, this.dagId) : MessageHub.DagUnPaused(this, this.dagId);
@@ -2713,12 +2668,12 @@ class DagView {
             ui.showErrorMessage('DAG information is not available');
             return;
         }
-        const code = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
+        const code = await Session_1.Session.Current.Api.getSourceCode(this.dagId, this.dagJson.file_token);
         if (!code.isSuccessful) {
             ui.showErrorMessage('Failed to retrieve DAG source code for AI context');
             return;
         }
-        const logs = await this.api.getDagRunLog(this.dagId, this.dagRunId);
+        const logs = await Session_1.Session.Current.Api.getDagRunLog(this.dagId, this.dagRunId);
         if (!logs.isSuccessful) {
             ui.showErrorMessage('Failed to retrieve DAG logs for AI context');
             return;
@@ -2728,7 +2683,7 @@ class DagView {
     }
     async showSourceCode() {
         ui.logToOutput('DagView.showSourceCode Started');
-        const result = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
+        const result = await Session_1.Session.Current.Api.getSourceCode(this.dagId, this.dagJson.file_token);
         if (result.isSuccessful) {
             this.createAndOpenTempFile(result.result, this.dagId, '.py');
         }
@@ -2745,21 +2700,21 @@ class DagView {
     }
     async showDAGRunLog() {
         ui.logToOutput('DagView.showDAGRunLog Started');
-        const result = await this.api.getDagRunLog(this.dagId, this.dagRunId);
+        const result = await Session_1.Session.Current.Api.getDagRunLog(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
             this.createAndOpenTempFile(result.result, this.dagId, '.log');
         }
     }
     async showTaskInstanceLog(dagId, dagRunId, taskId) {
         ui.logToOutput('DagView.showTaskInstanceLog Started');
-        const result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
+        const result = await Session_1.Session.Current.Api.getTaskInstanceLog(dagId, dagRunId, taskId);
         if (result.isSuccessful) {
             this.createAndOpenTempFile(result.result, dagId + '-' + taskId, '.log');
         }
     }
     async showTaskXComs(dagId, dagRunId, taskId) {
         ui.logToOutput('DagView.showTaskXComs Started');
-        const result = await this.api.getTaskXComs(dagId, dagRunId, taskId);
+        const result = await Session_1.Session.Current.Api.getTaskXComs(dagId, dagRunId, taskId);
         if (result.isSuccessful) {
             this.createAndOpenTempFile(JSON.stringify(result.result, null, 2), dagId + '-' + taskId + '_xcom', '.json');
         }
@@ -2781,7 +2736,7 @@ class DagView {
             config = "{}";
         }
         if (config !== undefined) {
-            const result = await this.api.triggerDag(this.dagId, config, date);
+            const result = await Session_1.Session.Current.Api.triggerDag(this.dagId, config, date);
             if (result.isSuccessful) {
                 this.dagRunId = result.result["dag_run_id"];
                 this.startCheckingDagRunStatus();
@@ -2811,10 +2766,10 @@ class DagView {
             dagView.stopCheckingDagRunStatus();
             return;
         }
-        const result = await this.api.getDagRun(dagView.dagId, dagView.dagRunId);
+        const result = await Session_1.Session.Current.Api.getDagRun(dagView.dagId, dagView.dagRunId);
         if (result.isSuccessful) {
             dagView.dagRunJson = result.result;
-            const resultTasks = await this.api.getTaskInstances(dagView.dagId, dagView.dagRunId);
+            const resultTasks = await Session_1.Session.Current.Api.getTaskInstances(dagView.dagId, dagView.dagRunId);
             if (resultTasks.isSuccessful) {
                 dagView.dagTaskInstancesJson = resultTasks.result;
             }
@@ -3112,8 +3067,9 @@ exports.DailyDagRunView = void 0;
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(11);
 const DagView_1 = __webpack_require__(10);
+const Session_1 = __webpack_require__(84);
 class DailyDagRunView {
-    constructor(panel, extensionUri, api) {
+    constructor(panel, extensionUri) {
         this._disposables = [];
         // Filters
         this.selectedDate = ui.toISODateString(new Date());
@@ -3123,7 +3079,6 @@ class DailyDagRunView {
         ui.logToOutput('DailyDagRunView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -3132,14 +3087,14 @@ class DailyDagRunView {
     async loadData() {
         ui.logToOutput('DailyDagRunView.loadData Started');
         // Fetch all DAGs to populate dag_id filter
-        const dagsResult = await this.api.getDagList();
+        const dagsResult = await Session_1.Session.Current.Api.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
             this.allDagIds = dagsResult.result.map((dag) => dag.dag_id).sort();
         }
         // Fetch DAG runs for the selected date
         // If a specific DAG is selected, query that DAG, otherwise query all
         if (this.selectedDagId) {
-            const result = await this.api.getDagRunHistory(this.selectedDagId, this.selectedDate);
+            const result = await Session_1.Session.Current.Api.getDagRunHistory(this.selectedDagId, this.selectedDate);
             if (result.isSuccessful && result.result && result.result.dag_runs) {
                 this.dagRunsJson = result.result.dag_runs;
             }
@@ -3148,7 +3103,7 @@ class DailyDagRunView {
             // Query all DAGs for runs on the selected date
             const allRuns = [];
             for (const dagId of this.allDagIds) {
-                const result = await this.api.getDagRunHistory(dagId, this.selectedDate);
+                const result = await Session_1.Session.Current.Api.getDagRunHistory(dagId, this.selectedDate);
                 if (result.isSuccessful && result.result && result.result.dag_runs) {
                     allRuns.push(...result.result.dag_runs);
                 }
@@ -3162,10 +3117,9 @@ class DailyDagRunView {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
         ui.logToOutput('DailyDagRunView.renderHtml Completed');
     }
-    static render(extensionUri, api) {
+    static render(extensionUri) {
         ui.logToOutput('DailyDagRunView.render Started');
         if (DailyDagRunView.Current) {
-            DailyDagRunView.Current.api = api;
             DailyDagRunView.Current._panel.reveal(vscode.ViewColumn.One);
             DailyDagRunView.Current.loadData();
         }
@@ -3173,7 +3127,7 @@ class DailyDagRunView {
             const panel = vscode.window.createWebviewPanel("dailyDagRunView", "Daily DAG Runs", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
-            DailyDagRunView.Current = new DailyDagRunView(panel, extensionUri, api);
+            DailyDagRunView.Current = new DailyDagRunView(panel, extensionUri);
         }
     }
     dispose() {
@@ -3419,8 +3373,8 @@ class DailyDagRunView {
                     return;
                 case "open-dag-view":
                     // Open DagView with specific dag and run
-                    if (this.api && message.dagId) {
-                        DagView_1.DagView.render(this.extensionUri, message.dagId, this.api, message.dagRunId);
+                    if (Session_1.Session.Current?.Api && message.dagId) {
+                        DagView_1.DagView.render(this.extensionUri, message.dagId, message.dagRunId);
                     }
                     return;
             }
@@ -3442,8 +3396,9 @@ exports.DagRunView = void 0;
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(11);
 const DagView_1 = __webpack_require__(10);
+const Session_1 = __webpack_require__(84);
 class DagRunView {
-    constructor(panel, extensionUri, api) {
+    constructor(panel, extensionUri) {
         this._disposables = [];
         // Filters
         this.selectedDagId = '';
@@ -3454,7 +3409,6 @@ class DagRunView {
         ui.logToOutput('DagRunView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -3463,7 +3417,7 @@ class DagRunView {
     async loadData() {
         ui.logToOutput('DagRunView.loadData Started');
         // Fetch all DAGs to populate dag_id filter
-        const dagsResult = await this.api.getDagList();
+        const dagsResult = await Session_1.Session.Current.Api.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
             this.allDagIds = dagsResult.result.map((dag) => dag.dag_id).sort();
             // If no DAG is selected yet, select the first one
@@ -3473,7 +3427,7 @@ class DagRunView {
         }
         // Fetch DAG runs for the selected DAG and date range
         if (this.selectedDagId) {
-            const result = await this.api.getDagRunHistory(this.selectedDagId);
+            const result = await Session_1.Session.Current.Api.getDagRunHistory(this.selectedDagId);
             if (result.isSuccessful && result.result && result.result.dag_runs) {
                 // Filter runs by date range on the client side
                 const startDateTime = new Date(this.selectedStartDate + 'T00:00:00Z').getTime();
@@ -3497,10 +3451,9 @@ class DagRunView {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
         ui.logToOutput('DagRunView.renderHtml Completed');
     }
-    static render(extensionUri, api, dagId, startDate, endDate, status) {
+    static render(extensionUri, dagId, startDate, endDate, status) {
         ui.logToOutput('DagRunView.render Started');
         if (DagRunView.Current) {
-            DagRunView.Current.api = api;
             // Apply optional filter parameters
             if (dagId) {
                 DagRunView.Current.selectedDagId = dagId;
@@ -3521,7 +3474,7 @@ class DagRunView {
             const panel = vscode.window.createWebviewPanel("dagRunView", "DAG Run History", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
-            DagRunView.Current = new DagRunView(panel, extensionUri, api);
+            DagRunView.Current = new DagRunView(panel, extensionUri);
             // Apply optional filter parameters after creation
             if (dagId) {
                 DagRunView.Current.selectedDagId = dagId;
@@ -3795,8 +3748,8 @@ class DagRunView {
                     return;
                 case "open-dag-view":
                     // Open DagView with specific dag and run
-                    if (this.api && message.dagId) {
-                        DagView_1.DagView.render(this.extensionUri, message.dagId, this.api, message.dagRunId);
+                    if (Session_1.Session.Current?.Api && message.dagId) {
+                        DagView_1.DagView.render(this.extensionUri, message.dagId, message.dagRunId);
                     }
                     return;
             }
@@ -11706,13 +11659,13 @@ exports.ConnectionsView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(11);
+const Session_1 = __webpack_require__(84);
 class ConnectionsView {
-    constructor(panel, extensionUri, api) {
+    constructor(panel, extensionUri) {
         this._disposables = [];
         ui.logToOutput('ConnectionsView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -11720,7 +11673,7 @@ class ConnectionsView {
     }
     async loadData() {
         ui.logToOutput('ConnectionsView.loadData Started');
-        const result = await this.api.getConnections();
+        const result = await Session_1.Session.Current.Api.getConnections();
         if (result.isSuccessful) {
             this.connectionsJson = result.result;
         }
@@ -11731,10 +11684,9 @@ class ConnectionsView {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
         ui.logToOutput('ConnectionsView.renderHtml Completed');
     }
-    static render(extensionUri, api) {
+    static render(extensionUri) {
         ui.logToOutput('ConnectionsView.render Started');
         if (ConnectionsView.Current) {
-            ConnectionsView.Current.api = api;
             ConnectionsView.Current._panel.reveal(vscode.ViewColumn.One);
             ConnectionsView.Current.loadData();
         }
@@ -11742,7 +11694,7 @@ class ConnectionsView {
             const panel = vscode.window.createWebviewPanel("connectionsView", "Connections", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
-            ConnectionsView.Current = new ConnectionsView(panel, extensionUri, api);
+            ConnectionsView.Current = new ConnectionsView(panel, extensionUri);
         }
     }
     dispose() {
@@ -11815,13 +11767,13 @@ exports.VariablesView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(11);
+const Session_1 = __webpack_require__(84);
 class VariablesView {
-    constructor(panel, extensionUri, api) {
+    constructor(panel, extensionUri) {
         this._disposables = [];
         ui.logToOutput('VariablesView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -11829,7 +11781,7 @@ class VariablesView {
     }
     async loadData() {
         ui.logToOutput('VariablesView.loadData Started');
-        const result = await this.api.getVariables();
+        const result = await Session_1.Session.Current.Api.getVariables();
         if (result.isSuccessful) {
             this.variablesJson = result.result;
         }
@@ -11840,10 +11792,9 @@ class VariablesView {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
         ui.logToOutput('VariablesView.renderHtml Completed');
     }
-    static render(extensionUri, api) {
+    static render(extensionUri) {
         ui.logToOutput('VariablesView.render Started');
         if (VariablesView.Current) {
-            VariablesView.Current.api = api;
             VariablesView.Current._panel.reveal(vscode.ViewColumn.One);
             VariablesView.Current.loadData();
         }
@@ -11851,7 +11802,7 @@ class VariablesView {
             const panel = vscode.window.createWebviewPanel("variablesView", "Variables", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
-            VariablesView.Current = new VariablesView(panel, extensionUri, api);
+            VariablesView.Current = new VariablesView(panel, extensionUri);
         }
     }
     dispose() {
@@ -11997,13 +11948,13 @@ exports.ProvidersView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(11);
+const Session_1 = __webpack_require__(84);
 class ProvidersView {
-    constructor(panel, extensionUri, api) {
+    constructor(panel, extensionUri) {
         this._disposables = [];
         ui.logToOutput('ProvidersView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -12011,7 +11962,7 @@ class ProvidersView {
     }
     async loadData() {
         ui.logToOutput('ProvidersView.loadData Started');
-        const result = await this.api.getProviders();
+        const result = await Session_1.Session.Current.Api.getProviders();
         if (result.isSuccessful) {
             this.providersJson = result.result;
         }
@@ -12022,10 +11973,9 @@ class ProvidersView {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
         ui.logToOutput('ProvidersView.renderHtml Completed');
     }
-    static render(extensionUri, api) {
+    static render(extensionUri) {
         ui.logToOutput('ProvidersView.render Started');
         if (ProvidersView.Current) {
-            ProvidersView.Current.api = api;
             ProvidersView.Current._panel.reveal(vscode.ViewColumn.One);
             ProvidersView.Current.loadData();
         }
@@ -12033,7 +11983,7 @@ class ProvidersView {
             const panel = vscode.window.createWebviewPanel("providersView", "Providers", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
-            ProvidersView.Current = new ProvidersView(panel, extensionUri, api);
+            ProvidersView.Current = new ProvidersView(panel, extensionUri);
         }
     }
     dispose() {
@@ -12172,13 +12122,13 @@ exports.ConfigsView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(11);
+const Session_1 = __webpack_require__(84);
 class ConfigsView {
-    constructor(panel, extensionUri, api) {
+    constructor(panel, extensionUri) {
         this._disposables = [];
         ui.logToOutput('ConfigsView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -12186,7 +12136,7 @@ class ConfigsView {
     }
     async loadData() {
         ui.logToOutput('ConfigsView.loadData Started');
-        const result = await this.api.getConfig();
+        const result = await Session_1.Session.Current.Api.getConfig();
         if (result.isSuccessful) {
             this.configJson = result.result;
         }
@@ -12197,10 +12147,9 @@ class ConfigsView {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
         ui.logToOutput('ConfigsView.renderHtml Completed');
     }
-    static render(extensionUri, api) {
+    static render(extensionUri) {
         ui.logToOutput('ConfigsView.render Started');
         if (ConfigsView.Current) {
-            ConfigsView.Current.api = api;
             ConfigsView.Current._panel.reveal(vscode.ViewColumn.One);
             ConfigsView.Current.loadData();
         }
@@ -12208,7 +12157,7 @@ class ConfigsView {
             const panel = vscode.window.createWebviewPanel("configsView", "Configs", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
-            ConfigsView.Current = new ConfigsView(panel, extensionUri, api);
+            ConfigsView.Current = new ConfigsView(panel, extensionUri);
         }
     }
     dispose() {
@@ -12347,13 +12296,13 @@ exports.PluginsView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(11);
+const Session_1 = __webpack_require__(84);
 class PluginsView {
-    constructor(panel, extensionUri, api) {
+    constructor(panel, extensionUri) {
         this._disposables = [];
         ui.logToOutput('PluginsView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -12361,7 +12310,7 @@ class PluginsView {
     }
     async loadData() {
         ui.logToOutput('PluginsView.loadData Started');
-        const result = await this.api.getPlugins();
+        const result = await Session_1.Session.Current.Api.getPlugins();
         if (result.isSuccessful) {
             this.pluginsJson = result.result;
         }
@@ -12372,10 +12321,9 @@ class PluginsView {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
         ui.logToOutput('PluginsView.renderHtml Completed');
     }
-    static render(extensionUri, api) {
+    static render(extensionUri) {
         ui.logToOutput('PluginsView.render Started');
         if (PluginsView.Current) {
-            PluginsView.Current.api = api;
             PluginsView.Current._panel.reveal(vscode.ViewColumn.One);
             PluginsView.Current.loadData();
         }
@@ -12383,7 +12331,7 @@ class PluginsView {
             const panel = vscode.window.createWebviewPanel("pluginsView", "Plugins", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
-            PluginsView.Current = new PluginsView(panel, extensionUri, api);
+            PluginsView.Current = new PluginsView(panel, extensionUri);
         }
     }
     dispose() {
@@ -12514,13 +12462,13 @@ exports.ServerHealthView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(11);
+const Session_1 = __webpack_require__(84);
 class ServerHealthView {
-    constructor(panel, extensionUri, api) {
+    constructor(panel, extensionUri) {
         this._disposables = [];
         ui.logToOutput('ServerHealthView.constructor Started');
         this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -12528,7 +12476,7 @@ class ServerHealthView {
     }
     async loadData() {
         ui.logToOutput('ServerHealthView.loadData Started');
-        const result = await this.api.getHealth();
+        const result = await Session_1.Session.Current.Api.getHealth();
         if (result.isSuccessful) {
             this.healthJson = result.result;
         }
@@ -12539,10 +12487,9 @@ class ServerHealthView {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
         ui.logToOutput('ServerHealthView.renderHtml Completed');
     }
-    static render(extensionUri, api) {
+    static render(extensionUri) {
         ui.logToOutput('ServerHealthView.render Started');
         if (ServerHealthView.Current) {
-            ServerHealthView.Current.api = api;
             ServerHealthView.Current._panel.reveal(vscode.ViewColumn.One);
             ServerHealthView.Current.loadData();
         }
@@ -12550,7 +12497,7 @@ class ServerHealthView {
             const panel = vscode.window.createWebviewPanel("serverHealthView", "Server Health", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
-            ServerHealthView.Current = new ServerHealthView(panel, extensionUri, api);
+            ServerHealthView.Current = new ServerHealthView(panel, extensionUri);
         }
     }
     dispose() {
@@ -12674,7 +12621,7 @@ class ServerHealthView {
       </head>
       <body>  
         <h2>Server Health</h2>
-        <h3>${this.api.config.apiUrl}</h3>
+        <h3>${Session_1.Session.Current?.Server?.apiUrl}</h3>
         <div class="refresh-button">
             <vscode-button id="refresh-btn">Refresh</vscode-button>
         </div>
@@ -12896,29 +12843,11 @@ exports.ReportTreeItem = ReportTreeItem;
 
 "use strict";
 
-/**
- * AirflowClientAdapter - Adapter to bridge AirflowApi with Language Model Tools
- *
- * This class adapts the existing AirflowApi class to work with the Language Model Tools.
- */
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AirflowClientAdapter = void 0;
-const DagTreeView_1 = __webpack_require__(2);
-const ui = __webpack_require__(11);
+const Session_1 = __webpack_require__(84);
 const MessageHub = __webpack_require__(12);
 class AirflowClientAdapter {
-    /**
-     * Dynamically retrieves the currently connected Airflow API instance.
-     * Throws an error if no server is connected.
-     */
-    get api() {
-        if (!DagTreeView_1.DagTreeView.Current || !DagTreeView_1.DagTreeView.Current.api) {
-            const msg = "No Airflow server connected. Please connect to a server in the Airflow view.";
-            ui.showErrorMessage(msg);
-            throw new Error(msg);
-        }
-        return DagTreeView_1.DagTreeView.Current.api;
-    }
     /**
      * Triggers a DAG run via POST /dags/{dag_id}/dagRuns
      *
@@ -12935,9 +12864,7 @@ class AirflowClientAdapter {
         catch (error) {
             throw new Error(`Invalid JSON in config_json parameter: ${error instanceof Error ? error.message : String(error)}`);
         }
-        // Call the actual AirflowApi.triggerDag method
-        // Note: AirflowApi.triggerDag already accepts date as the 3rd argument
-        const result = await this.api.triggerDag(dagId, configJson, date);
+        const result = await Session_1.Session.Current.Api.triggerDag(dagId, configJson, date);
         if (!result.isSuccessful) {
             throw new Error(result.error?.message || 'Failed to trigger DAG run');
         }
@@ -12967,14 +12894,14 @@ class AirflowClientAdapter {
         try {
             // If dagIdFilter is specified, query only that DAG
             if (dagIdFilter) {
-                const result = await this.api.getDagRunHistory(dagIdFilter);
+                const result = await Session_1.Session.Current.Api.getDagRunHistory(dagIdFilter);
                 if (result.isSuccessful && result.result?.dag_runs) {
                     failedRuns.push(...this.filterFailedRuns(result.result.dag_runs, timeRangeHours));
                 }
             }
             else {
                 // If no filter, we need to get the DAG list first, then query each
-                const dagListResult = await this.api.getDagList();
+                const dagListResult = await Session_1.Session.Current.Api.getDagList();
                 if (dagListResult.isSuccessful && dagListResult.result) {
                     // Handle both v1 (array) and v2 (object with dags property) responses
                     const resultData = dagListResult.result;
@@ -12985,7 +12912,7 @@ class AirflowClientAdapter {
                     const runPromises = dagsToCheck.map(async (dag) => {
                         try {
                             const dagId = dag.dag_id;
-                            const runResult = await this.api.getDagRunHistory(dagId);
+                            const runResult = await Session_1.Session.Current.Api.getDagRunHistory(dagId);
                             if (runResult.isSuccessful && runResult.result?.dag_runs) {
                                 return this.filterFailedRuns(runResult.result.dag_runs, timeRangeHours);
                             }
@@ -13014,7 +12941,7 @@ class AirflowClientAdapter {
      */
     async getDags(isPaused) {
         try {
-            const dagListResult = await this.api.getDagList();
+            const dagListResult = await Session_1.Session.Current.Api.getDagList();
             if (!dagListResult.isSuccessful || !dagListResult.result) {
                 throw new Error(dagListResult.error?.message || 'Failed to fetch DAG list');
             }
@@ -13043,7 +12970,7 @@ class AirflowClientAdapter {
      */
     async getRunningDags() {
         try {
-            const dagListResult = await this.api.getDagList();
+            const dagListResult = await Session_1.Session.Current.Api.getDagList();
             if (!dagListResult.isSuccessful || !dagListResult.result) {
                 throw new Error(dagListResult.error?.message || 'Failed to fetch DAG list');
             }
@@ -13089,7 +13016,7 @@ class AirflowClientAdapter {
      */
     async pauseDag(dagId, isPaused) {
         try {
-            const result = await this.api.pauseDag(dagId, isPaused);
+            const result = await Session_1.Session.Current.Api.pauseDag(dagId, isPaused);
             if (!result.isSuccessful) {
                 throw new Error(result.error?.message || `Failed to ${isPaused ? 'pause' : 'unpause'} DAG`);
             }
@@ -13107,7 +13034,7 @@ class AirflowClientAdapter {
      */
     async getLatestDagRun(dagId) {
         try {
-            const result = await this.api.getLastDagRun(dagId);
+            const result = await Session_1.Session.Current.Api.getLastDagRun(dagId);
             if (!result.isSuccessful || !result.result) {
                 return undefined;
             }
@@ -13137,7 +13064,7 @@ class AirflowClientAdapter {
      */
     async getTaskInstances(dagId, dagRunId) {
         try {
-            const result = await this.api.getTaskInstances(dagId, dagRunId);
+            const result = await Session_1.Session.Current.Api.getTaskInstances(dagId, dagRunId);
             if (!result.isSuccessful || !result.result) {
                 return [];
             }
@@ -13160,7 +13087,7 @@ class AirflowClientAdapter {
     async getTaskLog(dagId, dagRunId, taskId, tryNumber) {
         try {
             // Use the existing getTaskInstanceLog method
-            const result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
+            const result = await Session_1.Session.Current.Api.getTaskInstanceLog(dagId, dagRunId, taskId);
             if (!result.isSuccessful) {
                 throw new Error(result.error?.message || 'Failed to retrieve task log');
             }
@@ -13212,7 +13139,7 @@ class AirflowClientAdapter {
      */
     async getDagRunHistory(dagId, date) {
         try {
-            const result = await this.api.getDagRunHistory(dagId, date);
+            const result = await Session_1.Session.Current.Api.getDagRunHistory(dagId, date);
             if (!result.isSuccessful || !result.result) {
                 throw new Error(result.error?.message || 'Failed to fetch DAG run history');
             }
@@ -13230,7 +13157,7 @@ class AirflowClientAdapter {
      */
     async cancelDagRun(dagId, dagRunId) {
         try {
-            const result = await this.api.cancelDagRun(dagId, dagRunId);
+            const result = await Session_1.Session.Current.Api.cancelDagRun(dagId, dagRunId);
             if (!result.isSuccessful) {
                 throw new Error(result.error?.message || 'Failed to cancel DAG run');
             }
@@ -13248,7 +13175,7 @@ class AirflowClientAdapter {
      */
     async getDagSource(dagId) {
         try {
-            const result = await this.api.getSourceCode(dagId);
+            const result = await Session_1.Session.Current.Api.getSourceCode(dagId);
             if (!result.isSuccessful || !result.result) {
                 throw new Error(result.error?.message || 'Failed to fetch DAG source code');
             }
@@ -14686,6 +14613,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToDagViewTool = void 0;
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
+const Session_1 = __webpack_require__(84);
 const DagView_1 = __webpack_require__(10);
 /**
  * GoToDagViewTool - Implements vscode.LanguageModelTool for opening DAG View
@@ -14717,15 +14645,15 @@ class GoToDagViewTool {
                 ]);
             }
             // Check if API is available
-            if (!DagTreeView_1.DagTreeView.Current.api) {
+            if (!Session_1.Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
-            const api = DagTreeView_1.DagTreeView.Current.api;
+            const api = Session_1.Session.Current?.Api;
             const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
             // Open the DagView with the specified DAG ID and optional run ID
-            DagView_1.DagView.render(extensionUri, dagId, api, dagRunId);
+            DagView_1.DagView.render(extensionUri, dagId, dagRunId);
             let successMessage = `✅ Opened DAG View for: **${dagId}**`;
             if (dagRunId) {
                 successMessage += `\n📋 Showing DAG Run: **${dagRunId}**`;
@@ -14763,6 +14691,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToDagRunHistoryTool = void 0;
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
+const Session_1 = __webpack_require__(84);
 const DagRunView_1 = __webpack_require__(14);
 /**
  * GoToDagRunHistoryTool - Implements vscode.LanguageModelTool for opening DAG Run History View
@@ -14800,12 +14729,11 @@ class GoToDagRunHistoryTool {
                 ]);
             }
             // Check if API is available
-            if (!DagTreeView_1.DagTreeView.Current.api) {
+            if (!Session_1.Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
-            const api = DagTreeView_1.DagTreeView.Current.api;
             const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
             // Validate date format if provided (YYYY-MM-DD)
             const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -14827,7 +14755,7 @@ class GoToDagRunHistoryTool {
                 ]);
             }
             // Open the DagRunView with the specified parameters
-            DagRunView_1.DagRunView.render(extensionUri, api, dagId, startDate, endDate, status?.toLowerCase());
+            DagRunView_1.DagRunView.render(extensionUri, dagId, startDate, endDate, status?.toLowerCase());
             let successMessage = `✅ Opened DAG Run History for: **${dagId}**`;
             const filters = [];
             if (startDate) {
@@ -14869,6 +14797,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToProvidersViewTool = void 0;
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
+const Session_1 = __webpack_require__(84);
 const ProvidersView_1 = __webpack_require__(54);
 /**
  * GoToProvidersViewTool - Opens the Providers panel
@@ -14887,14 +14816,13 @@ class GoToProvidersViewTool {
                     new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
                 ]);
             }
-            if (!DagTreeView_1.DagTreeView.Current.api) {
+            if (!Session_1.Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
-            const api = DagTreeView_1.DagTreeView.Current.api;
             const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
-            ProvidersView_1.ProvidersView.render(extensionUri, api);
+            ProvidersView_1.ProvidersView.render(extensionUri);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart('✅ Opened Providers View - showing installed Airflow providers with their versions')
             ]);
@@ -14922,6 +14850,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToConnectionsViewTool = void 0;
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
+const Session_1 = __webpack_require__(84);
 const ConnectionsView_1 = __webpack_require__(52);
 /**
  * GoToConnectionsViewTool - Opens the Connections panel
@@ -14940,14 +14869,13 @@ class GoToConnectionsViewTool {
                     new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
                 ]);
             }
-            if (!DagTreeView_1.DagTreeView.Current.api) {
+            if (!Session_1.Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
-            const api = DagTreeView_1.DagTreeView.Current.api;
             const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
-            ConnectionsView_1.ConnectionsView.render(extensionUri, api);
+            ConnectionsView_1.ConnectionsView.render(extensionUri);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart('✅ Opened Connections View - showing Airflow connections (databases, APIs, cloud services, etc.)')
             ]);
@@ -14975,6 +14903,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToVariablesViewTool = void 0;
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
+const Session_1 = __webpack_require__(84);
 const VariablesView_1 = __webpack_require__(53);
 /**
  * GoToVariablesViewTool - Opens the Variables panel
@@ -14993,14 +14922,13 @@ class GoToVariablesViewTool {
                     new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
                 ]);
             }
-            if (!DagTreeView_1.DagTreeView.Current.api) {
+            if (!Session_1.Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
-            const api = DagTreeView_1.DagTreeView.Current.api;
             const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
-            VariablesView_1.VariablesView.render(extensionUri, api);
+            VariablesView_1.VariablesView.render(extensionUri);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart('✅ Opened Variables View - showing Airflow variables (key-value configuration settings)')
             ]);
@@ -15028,6 +14956,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToConfigsViewTool = void 0;
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
+const Session_1 = __webpack_require__(84);
 const ConfigsView_1 = __webpack_require__(55);
 /**
  * GoToConfigsViewTool - Opens the Configs panel
@@ -15046,14 +14975,13 @@ class GoToConfigsViewTool {
                     new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
                 ]);
             }
-            if (!DagTreeView_1.DagTreeView.Current.api) {
+            if (!Session_1.Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
-            const api = DagTreeView_1.DagTreeView.Current.api;
             const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
-            ConfigsView_1.ConfigsView.render(extensionUri, api);
+            ConfigsView_1.ConfigsView.render(extensionUri);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart('✅ Opened Configs View - showing Airflow configuration settings (airflow.cfg)')
             ]);
@@ -15081,6 +15009,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToPluginsViewTool = void 0;
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
+const Session_1 = __webpack_require__(84);
 const PluginsView_1 = __webpack_require__(56);
 /**
  * GoToPluginsViewTool - Opens the Plugins panel
@@ -15099,14 +15028,13 @@ class GoToPluginsViewTool {
                     new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
                 ]);
             }
-            if (!DagTreeView_1.DagTreeView.Current.api) {
+            if (!Session_1.Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
-            const api = DagTreeView_1.DagTreeView.Current.api;
             const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
-            PluginsView_1.PluginsView.render(extensionUri, api);
+            PluginsView_1.PluginsView.render(extensionUri);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart('✅ Opened Plugins View - showing installed Airflow plugins')
             ]);
@@ -15134,6 +15062,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToServerHealthViewTool = void 0;
 const vscode = __webpack_require__(1);
 const DagTreeView_1 = __webpack_require__(2);
+const Session_1 = __webpack_require__(84);
 const ServerHealthView_1 = __webpack_require__(57);
 /**
  * GoToServerHealthViewTool - Opens the Server Health panel
@@ -15152,14 +15081,13 @@ class GoToServerHealthViewTool {
                     new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
                 ]);
             }
-            if (!DagTreeView_1.DagTreeView.Current.api) {
+            if (!Session_1.Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
-            const api = DagTreeView_1.DagTreeView.Current.api;
             const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
-            ServerHealthView_1.ServerHealthView.render(extensionUri, api);
+            ServerHealthView_1.ServerHealthView.render(extensionUri);
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart('✅ Opened Server Health View - showing Airflow server health status, scheduler status, and metadata database status')
             ]);
@@ -15172,6 +15100,70 @@ class GoToServerHealthViewTool {
     }
 }
 exports.GoToServerHealthViewTool = GoToServerHealthViewTool;
+
+
+/***/ }),
+/* 84 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Session = void 0;
+const Api_1 = __webpack_require__(15);
+const ui = __webpack_require__(11);
+class Session {
+    constructor(context) {
+        this.ServerList = [];
+        Session.Current = this;
+        this.Context = context;
+        this.LoadState();
+    }
+    SaveState() {
+        ui.logToOutput('Saving state...');
+        this.Context.globalState.update('apiUrl', this.Server?.apiUrl);
+        this.Context.globalState.update('apiUserName', this.Server?.apiUserName);
+        this.Context.globalState.update('apiPassword', this.Server?.apiPassword);
+        this.Context.globalState.update('serverList', this.ServerList);
+    }
+    LoadState() {
+        ui.logToOutput('Loading state...');
+        const apiUrlTemp = this.Context.globalState.get('apiUrl') || '';
+        const apiUserNameTemp = this.Context.globalState.get('apiUserName') || '';
+        const apiPasswordTemp = this.Context.globalState.get('apiPassword') || '';
+        if (apiUrlTemp && apiUserNameTemp) {
+            this.Server = { apiUrl: apiUrlTemp, apiUserName: apiUserNameTemp, apiPassword: apiPasswordTemp };
+            this.Api = new Api_1.AirflowApi(this.Server);
+        }
+        this.ServerList = this.Context.globalState.get('serverList') || [];
+    }
+    SetServer(server) {
+        this.Server = server;
+        this.Api = new Api_1.AirflowApi(this.Server);
+    }
+    ChangeServer(apiUrl) {
+        this.Server = this.ServerList.find((server) => server.apiUrl === apiUrl);
+        this.Api = new Api_1.AirflowApi(this.Server);
+        this.SaveState();
+    }
+    RemoveServer(apiUrl) {
+        this.ServerList = this.ServerList.filter((server) => server.apiUrl !== apiUrl);
+        this.SaveState();
+    }
+    AddServer(server) {
+        this.ServerList.push(server);
+        this.SaveState();
+    }
+    TestServer(serverConfig) {
+        let api = new Api_1.AirflowApi(serverConfig);
+        let result = api.checkConnection();
+        return result;
+    }
+    dispose() {
+        Session.Current = undefined;
+    }
+}
+exports.Session = Session;
 
 
 /***/ })
@@ -15325,10 +15317,11 @@ exports.deactivate = deactivate;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
+const ui = __webpack_require__(11);
+const Session_1 = __webpack_require__(84);
 const DagTreeView_1 = __webpack_require__(2);
 const AdminTreeView_1 = __webpack_require__(58);
 const ReportTreeView_1 = __webpack_require__(60);
-const ui = __webpack_require__(11);
 const AirflowClientAdapter_1 = __webpack_require__(62);
 const TriggerDagRunTool_1 = __webpack_require__(63);
 const GetFailedRunsTool_1 = __webpack_require__(64);
@@ -15354,6 +15347,7 @@ const GoToServerHealthViewTool_1 = __webpack_require__(83);
 // your extension is activated the very first time the command is executed
 function activate(context) {
     ui.logToOutput('Extension activation started');
+    Session_1.Session.Current = new Session_1.Session(context);
     let dagTreeView = new DagTreeView_1.DagTreeView(context);
     let adminTreeView = new AdminTreeView_1.AdminTreeView(context);
     let reportTreeView = new ReportTreeView_1.ReportTreeView(context);
