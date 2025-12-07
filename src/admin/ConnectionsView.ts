@@ -7,12 +7,10 @@ export class ConnectionsView {
     public static Current: ConnectionsView | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
-    private extensionUri: vscode.Uri;
     private connectionsJson: any;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('ConnectionsView.constructor Started');
-        this.extensionUri = extensionUri;
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -23,7 +21,7 @@ export class ConnectionsView {
     public async loadData() {
         ui.logToOutput('ConnectionsView.loadData Started');
 
-        const result = await Session.Current!.Api.getConnections();
+        const result = await Session.Current!.Api!.getConnections();
         if (result.isSuccessful) {
             this.connectionsJson = result.result;
         }
@@ -32,11 +30,11 @@ export class ConnectionsView {
 
     public async renderHtml() {
         ui.logToOutput('ConnectionsView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
         ui.logToOutput('ConnectionsView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri) {
+    public static render() {
         ui.logToOutput('ConnectionsView.render Started');
         if (ConnectionsView.Current) {
             ConnectionsView.Current._panel.reveal(vscode.ViewColumn.One);
@@ -46,7 +44,7 @@ export class ConnectionsView {
                 enableScripts: true,
             });
 
-            ConnectionsView.Current = new ConnectionsView(panel, extensionUri);
+            ConnectionsView.Current = new ConnectionsView(panel);
         }
     }
 

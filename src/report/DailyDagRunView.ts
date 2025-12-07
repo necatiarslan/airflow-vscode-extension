@@ -8,7 +8,7 @@ export class DailyDagRunView {
     public static Current: DailyDagRunView | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
-    private extensionUri: vscode.Uri;
+
     private dagRunsJson: any;
     
     // Filters
@@ -17,9 +17,8 @@ export class DailyDagRunView {
     private selectedDagId: string = '';
     private allDagIds: string[] = [];
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('DailyDagRunView.constructor Started');
-        this.extensionUri = extensionUri;
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -60,11 +59,11 @@ export class DailyDagRunView {
 
     public async renderHtml() {
         ui.logToOutput('DailyDagRunView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
         ui.logToOutput('DailyDagRunView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri) {
+    public static render() {
         ui.logToOutput('DailyDagRunView.render Started');
         if (DailyDagRunView.Current) {
             DailyDagRunView.Current._panel.reveal(vscode.ViewColumn.One);
@@ -74,7 +73,7 @@ export class DailyDagRunView {
                 enableScripts: true,
             });
 
-            DailyDagRunView.Current = new DailyDagRunView(panel, extensionUri);
+            DailyDagRunView.Current = new DailyDagRunView(panel);
         }
     }
 
@@ -339,7 +338,7 @@ export class DailyDagRunView {
                     case "open-dag-view":
                         // Open DagView with specific dag and run
                         if (Session.Current?.Api && message.dagId) {
-                            DagView.render(this.extensionUri, message.dagId, message.dagRunId);
+                            DagView.render(message.dagId, message.dagRunId);
                         }
                         return;
                 }

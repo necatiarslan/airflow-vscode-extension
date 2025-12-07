@@ -37,9 +37,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 	Session.Current = new Session(context);
 
-	let dagTreeView:DagTreeView = new DagTreeView(context);
-	let adminTreeView:AdminTreeView = new AdminTreeView(context);
-	let reportTreeView:ReportTreeView = new ReportTreeView(context);
+	let dagTreeView:DagTreeView = new DagTreeView();
+	let adminTreeView:AdminTreeView = new AdminTreeView();
+	let reportTreeView:ReportTreeView = new ReportTreeView();
 
 	// Register the Admin Tree View
 	vscode.window.registerTreeDataProvider('adminTreeView', adminTreeView);

@@ -3,7 +3,6 @@
  */
 
 import * as vscode from 'vscode';
-import { DagTreeView } from '../dag/DagTreeView';
 import { Session } from '../common/Session';
 import { ServerHealthView } from '../admin/ServerHealthView';
 
@@ -28,21 +27,13 @@ export class GoToServerHealthViewTool implements vscode.LanguageModelTool<void> 
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         try {
-            if (!DagTreeView.Current) {
-                return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
-                ]);
-            }
-
             if (!Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
 
-            const extensionUri = DagTreeView.Current.context.extensionUri;
-            
-            ServerHealthView.render(extensionUri);
+            ServerHealthView.render();
 
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart('✅ Opened Server Health View - showing Airflow server health status, scheduler status, and metadata database status')

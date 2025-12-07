@@ -8,7 +8,7 @@ export class DagRunView {
     public static Current: DagRunView | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
-    private extensionUri: vscode.Uri;
+
     private dagRunsJson: any;
     
     // Filters
@@ -18,9 +18,8 @@ export class DagRunView {
     private selectedStatus: string = '';
     private allDagIds: string[] = [];
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('DagRunView.constructor Started');
-        this.extensionUri = extensionUri;
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -67,11 +66,11 @@ export class DagRunView {
 
     public async renderHtml() {
         ui.logToOutput('DagRunView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
         ui.logToOutput('DagRunView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri, dagId?: string, startDate?: string, endDate?: string, status?: string) {
+    public static render(dagId?: string, startDate?: string, endDate?: string, status?: string) {
         ui.logToOutput('DagRunView.render Started');
         if (DagRunView.Current) {
             // Apply optional filter parameters
@@ -86,7 +85,7 @@ export class DagRunView {
                 enableScripts: true,
             });
 
-            DagRunView.Current = new DagRunView(panel, extensionUri);
+            DagRunView.Current = new DagRunView(panel);
             // Apply optional filter parameters after creation
             if (dagId) { DagRunView.Current.selectedDagId = dagId; }
             if (startDate) { DagRunView.Current.selectedStartDate = startDate; }
@@ -372,7 +371,7 @@ export class DagRunView {
                     case "open-dag-view":
                         // Open DagView with specific dag and run
                         if (Session.Current?.Api && message.dagId) {
-                            DagView.render(this.extensionUri, message.dagId, message.dagRunId);
+                            DagView.render(message.dagId, message.dagRunId);
                         }
                         return;
                 }

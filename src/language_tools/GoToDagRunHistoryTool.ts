@@ -6,7 +6,6 @@
  */
 
 import * as vscode from 'vscode';
-import { DagTreeView } from '../dag/DagTreeView';
 import { Session } from '../common/Session';
 import { DagRunView } from '../report/DagRunView';
 
@@ -58,21 +57,12 @@ export class GoToDagRunHistoryTool implements vscode.LanguageModelTool<IGoToDagR
         const { dagId, startDate, endDate, status } = options.input;
 
         try {
-            // Check if DagTreeView is available
-            if (!DagTreeView.Current) {
-                return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active and connected to a server.')
-                ]);
-            }
-
             // Check if API is available
             if (!Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
-
-            const extensionUri = DagTreeView.Current.context.extensionUri;
 
             // Validate date format if provided (YYYY-MM-DD)
             const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
@@ -96,7 +86,7 @@ export class GoToDagRunHistoryTool implements vscode.LanguageModelTool<IGoToDagR
             }
 
             // Open the DagRunView with the specified parameters
-            DagRunView.render(extensionUri, dagId, startDate, endDate, status?.toLowerCase());
+            DagRunView.render(dagId, startDate, endDate, status?.toLowerCase());
 
             let successMessage = `✅ Opened DAG Run History for: **${dagId}**`;
             const filters: string[] = [];

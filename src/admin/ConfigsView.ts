@@ -7,12 +7,10 @@ export class ConfigsView {
     public static Current: ConfigsView | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
-    private extensionUri: vscode.Uri;
     private configJson: any;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('ConfigsView.constructor Started');
-        this.extensionUri = extensionUri;
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -23,7 +21,7 @@ export class ConfigsView {
     public async loadData() {
         ui.logToOutput('ConfigsView.loadData Started');
 
-        const result = await Session.Current!.Api.getConfig();
+        const result = await Session.Current!.Api!.getConfig();
         if (result.isSuccessful) {
             this.configJson = result.result;
         }
@@ -32,11 +30,11 @@ export class ConfigsView {
 
     public async renderHtml() {
         ui.logToOutput('ConfigsView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
         ui.logToOutput('ConfigsView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri) {
+    public static render() {
         ui.logToOutput('ConfigsView.render Started');
         if (ConfigsView.Current) {
             ConfigsView.Current._panel.reveal(vscode.ViewColumn.One);
@@ -46,7 +44,7 @@ export class ConfigsView {
                 enableScripts: true,
             });
 
-            ConfigsView.Current = new ConfigsView(panel, extensionUri);
+            ConfigsView.Current = new ConfigsView(panel);
         }
     }
 

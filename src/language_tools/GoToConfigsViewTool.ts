@@ -3,7 +3,6 @@
  */
 
 import * as vscode from 'vscode';
-import { DagTreeView } from '../dag/DagTreeView';
 import { Session } from '../common/Session';
 import { ConfigsView } from '../admin/ConfigsView';
 
@@ -28,11 +27,6 @@ export class GoToConfigsViewTool implements vscode.LanguageModelTool<void> {
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         try {
-            if (!DagTreeView.Current) {
-                return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
-                ]);
-            }
 
             if (!Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
@@ -40,9 +34,7 @@ export class GoToConfigsViewTool implements vscode.LanguageModelTool<void> {
                 ]);
             }
 
-            const extensionUri = DagTreeView.Current.context.extensionUri;
-            
-            ConfigsView.render(extensionUri);
+            ConfigsView.render();
 
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart('✅ Opened Configs View - showing Airflow configuration settings (airflow.cfg)')

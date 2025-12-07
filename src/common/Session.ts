@@ -9,11 +9,13 @@ export class Session {
     public Api: AirflowApi | undefined;
     public Server: ServerConfig | undefined;
     public Context: vscode.ExtensionContext | undefined;
+    public ExtensionUri: vscode.Uri | undefined;
     public ServerList: ServerConfig[] = [];
 
 	public constructor(context: vscode.ExtensionContext) {
 		Session.Current = this;
         this.Context = context;
+        this.ExtensionUri = context.extensionUri;
         this.LoadState();
 	}
 

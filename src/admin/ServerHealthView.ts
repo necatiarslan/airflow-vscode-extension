@@ -7,12 +7,10 @@ export class ServerHealthView {
     public static Current: ServerHealthView | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
-    private extensionUri: vscode.Uri;
     private healthJson: any;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('ServerHealthView.constructor Started');
-        this.extensionUri = extensionUri;
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -23,7 +21,7 @@ export class ServerHealthView {
     public async loadData() {
         ui.logToOutput('ServerHealthView.loadData Started');
 
-        const result = await Session.Current!.Api.getHealth();
+        const result = await Session.Current!.Api!.getHealth();
         if (result.isSuccessful) {
             this.healthJson = result.result;
         }
@@ -32,11 +30,11 @@ export class ServerHealthView {
 
     public async renderHtml() {
         ui.logToOutput('ServerHealthView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
         ui.logToOutput('ServerHealthView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri) {
+    public static render() {
         ui.logToOutput('ServerHealthView.render Started');
         if (ServerHealthView.Current) {
             ServerHealthView.Current._panel.reveal(vscode.ViewColumn.One);
@@ -46,7 +44,7 @@ export class ServerHealthView {
                 enableScripts: true,
             });
 
-            ServerHealthView.Current = new ServerHealthView(panel, extensionUri);
+            ServerHealthView.Current = new ServerHealthView(panel);
         }
     }
 

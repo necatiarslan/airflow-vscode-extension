@@ -3,7 +3,7 @@
  */
 
 import * as vscode from 'vscode';
-import { AirflowClientAdapter, IDagSummary } from './AirflowClientAdapter';
+import { AirflowClientAdapter } from './AirflowClientAdapter';
 
 export class ListPausedDagsTool implements vscode.LanguageModelTool<void> {
     private client: AirflowClientAdapter;

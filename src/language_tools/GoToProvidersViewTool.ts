@@ -3,7 +3,6 @@
  */
 
 import * as vscode from 'vscode';
-import { DagTreeView } from '../dag/DagTreeView';
 import { Session } from '../common/Session';
 import { ProvidersView } from '../admin/ProvidersView';
 
@@ -28,21 +27,13 @@ export class GoToProvidersViewTool implements vscode.LanguageModelTool<void> {
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         try {
-            if (!DagTreeView.Current) {
-                return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
-                ]);
-            }
-
             if (!Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
 
-            const extensionUri = DagTreeView.Current.context.extensionUri;
-            
-            ProvidersView.render(extensionUri);
+            ProvidersView.render();
 
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart('✅ Opened Providers View - showing installed Airflow providers with their versions')

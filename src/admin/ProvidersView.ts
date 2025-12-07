@@ -7,13 +7,11 @@ export class ProvidersView {
     public static Current: ProvidersView | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
-    private extensionUri: vscode.Uri;
     private providersJson: any;
 
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('ProvidersView.constructor Started');
-        this.extensionUri = extensionUri;
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -24,7 +22,7 @@ export class ProvidersView {
     public async loadData() {
         ui.logToOutput('ProvidersView.loadData Started');
 
-        const result = await Session.Current!.Api.getProviders();
+        const result = await Session.Current!.Api!.getProviders();
         if (result.isSuccessful) {
             this.providersJson = result.result;
         }
@@ -33,11 +31,11 @@ export class ProvidersView {
 
     public async renderHtml() {
         ui.logToOutput('ProvidersView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
         ui.logToOutput('ProvidersView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri) {
+    public static render() {
         ui.logToOutput('ProvidersView.render Started');
         if (ProvidersView.Current) {
             ProvidersView.Current._panel.reveal(vscode.ViewColumn.One);
@@ -47,7 +45,7 @@ export class ProvidersView {
                 enableScripts: true,
             });
 
-            ProvidersView.Current = new ProvidersView(panel, extensionUri);
+            ProvidersView.Current = new ProvidersView(panel);
         }
     }
 

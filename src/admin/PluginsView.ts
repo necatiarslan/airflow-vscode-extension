@@ -7,12 +7,10 @@ export class PluginsView {
     public static Current: PluginsView | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
-    private extensionUri: vscode.Uri;
     private pluginsJson: any;
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('PluginsView.constructor Started');
-        this.extensionUri = extensionUri;
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -23,7 +21,7 @@ export class PluginsView {
     public async loadData() {
         ui.logToOutput('PluginsView.loadData Started');
 
-        const result = await Session.Current!.Api.getPlugins();
+        const result = await Session.Current!.Api!.getPlugins();
         if (result.isSuccessful) {
             this.pluginsJson = result.result;
         }
@@ -32,11 +30,11 @@ export class PluginsView {
 
     public async renderHtml() {
         ui.logToOutput('PluginsView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
         ui.logToOutput('PluginsView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri) {
+    public static render() {
         ui.logToOutput('PluginsView.render Started');
         if (PluginsView.Current) {
             PluginsView.Current._panel.reveal(vscode.ViewColumn.One);
@@ -46,7 +44,7 @@ export class PluginsView {
                 enableScripts: true,
             });
 
-            PluginsView.Current = new PluginsView(panel, extensionUri);
+            PluginsView.Current = new PluginsView(panel);
         }
     }
 

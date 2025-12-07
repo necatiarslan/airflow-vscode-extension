@@ -3,7 +3,6 @@
  */
 
 import * as vscode from 'vscode';
-import { DagTreeView } from '../dag/DagTreeView';
 import { Session } from '../common/Session';
 import { ConnectionsView } from '../admin/ConnectionsView';
 
@@ -28,21 +27,13 @@ export class GoToConnectionsViewTool implements vscode.LanguageModelTool<void> {
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         try {
-            if (!DagTreeView.Current) {
-                return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
-                ]);
-            }
-
             if (!Session.Current?.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
             }
 
-            const extensionUri = DagTreeView.Current.context.extensionUri;
-            
-            ConnectionsView.render(extensionUri);
+            ConnectionsView.render();
 
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart('✅ Opened Connections View - showing Airflow connections (databases, APIs, cloud services, etc.)')

@@ -16,7 +16,7 @@ export class DagTreeView {
 
 	public static Current: DagTreeView | undefined;
 
-	public context: vscode.ExtensionContext;
+
 	public FilterString: string = '';
 	public ShowOnlyActive: boolean = true;
 	public ShowOnlyFavorite: boolean = false;
@@ -25,15 +25,14 @@ export class DagTreeView {
 	private view: vscode.TreeView<DagTreeItem>;
 	private treeDataProvider: DagTreeDataProvider;
 
-	public constructor(context: vscode.ExtensionContext) {
+	public constructor() {
 		ui.logToOutput('DagTreeView.constructor Started');
-		this.context = context;
 		this.treeDataProvider = new DagTreeDataProvider();
 		this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
 		this.loadState();
 		
-		context.subscriptions.push(this.view);
-		context.subscriptions.push({ dispose: () => this.dispose() });
+		Session.Current!.Context!.subscriptions.push(this.view);
+		Session.Current!.Context!.subscriptions.push({ dispose: () => this.dispose() });
 		DagTreeView.Current = this;
 		this.setFilterMessage();
 		this.refresh();
@@ -68,7 +67,7 @@ export class DagTreeView {
 	public viewDagView(node: DagTreeItem): void {
 		ui.logToOutput('DagTreeView.viewDagView Started');
 		if (Session.Current?.Api) {
-			DagView.render(this.context.extensionUri, node.DagId);
+			DagView.render(node.DagId);
 		}
 	}
 
@@ -887,9 +886,9 @@ export class DagTreeView {
 	private saveState() {
 		ui.logToOutput('DagTreeView.saveState Started');
 		try {
-			this.context.globalState.update('filterString', this.FilterString);
-			this.context.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
-			this.context.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
+			Session.Current!.Context!.globalState.update('filterString', this.FilterString);
+			Session.Current!.Context!.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
+			Session.Current!.Context!.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
 		} catch (error) {
 			ui.logToOutput("dagTreeView.saveState Error !!!", error as Error);
 		}
@@ -908,16 +907,16 @@ export class DagTreeView {
 	private loadState() {
 		ui.logToOutput('DagTreeView.loadState Started');
 		try {
-			const filterStringTemp: string = this.context.globalState.get('filterString') || '';
+			const filterStringTemp: string = Session.Current!.Context!.globalState.get('filterString') || '';
 			if (filterStringTemp) {
 				this.FilterString = filterStringTemp;
 				this.setFilterMessage();
 			}
 
-			const ShowOnlyActiveTemp: boolean | undefined = this.context.globalState.get('ShowOnlyActive');
+			const ShowOnlyActiveTemp: boolean | undefined = Session.Current!.Context!.globalState.get('ShowOnlyActive');
 			if (ShowOnlyActiveTemp !== undefined) { this.ShowOnlyActive = ShowOnlyActiveTemp; }
 
-			const ShowOnlyFavoriteTemp: boolean | undefined = this.context.globalState.get('ShowOnlyFavorite');
+			const ShowOnlyFavoriteTemp: boolean | undefined = Session.Current!.Context!.globalState.get('ShowOnlyFavorite');
 			if (ShowOnlyFavoriteTemp !== undefined) { this.ShowOnlyFavorite = ShowOnlyFavoriteTemp; }
 
 		} catch (error) {
@@ -929,7 +928,7 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.viewConnections Started');
 		if (Session.Current?.Api) {
 			const { ConnectionsView } = await import('../admin/ConnectionsView');
-			ConnectionsView.render(this.context.extensionUri);
+			ConnectionsView.render();
 		}
 	}
 
@@ -937,7 +936,7 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.viewVariables Started');
 		if (Session.Current?.Api) {
 			const { VariablesView } = await import('../admin/VariablesView');
-			VariablesView.render(this.context.extensionUri);
+			VariablesView.render();
 		}
 	}
 
@@ -945,7 +944,7 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.viewProviders Started');
 		if (Session.Current?.Api) {
 			const { ProvidersView } = await import('../admin/ProvidersView');
-			ProvidersView.render(this.context.extensionUri);
+			ProvidersView.render();
 		}
 	}
 
@@ -953,7 +952,7 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.viewConfigs Started');
 		if (Session.Current?.Api) {
 			const { ConfigsView } = await import('../admin/ConfigsView');
-			ConfigsView.render(this.context.extensionUri);
+			ConfigsView.render();
 		}
 	}
 
@@ -961,21 +960,21 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.viewPlugins Started');
 		if (Session.Current?.Api) {
 			const { PluginsView } = await import('../admin/PluginsView');
-			PluginsView.render(this.context.extensionUri);
+			PluginsView.render();
 		}
 	}
 
 	public async viewDagRuns() {
 		ui.logToOutput('DagTreeView.viewDagRuns Started');
 		if (Session.Current?.Api) {
-			DailyDagRunView.render(this.context.extensionUri);
+			DailyDagRunView.render();
 		}
 	}
 
 	public async viewDagRunHistory() {
 		ui.logToOutput('DagTreeView.viewDagRunHistory Started');
 		if (Session.Current?.Api) {
-			DagRunView.render(this.context.extensionUri);
+			DagRunView.render();
 		}
 	}
 
@@ -983,7 +982,7 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.viewServerHealth Started');
 		if (Session.Current?.Api) {
 			const { ServerHealthView } = await import('../admin/ServerHealthView');
-			ServerHealthView.render(this.context.extensionUri);
+			ServerHealthView.render();
 		}
 	}
 }

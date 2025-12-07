@@ -5,7 +5,7 @@ export class ReportTreeView implements vscode.TreeDataProvider<ReportTreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<ReportTreeItem | undefined | null | void> = new vscode.EventEmitter<ReportTreeItem | undefined | null | void>();
   readonly onDidChangeTreeData: vscode.Event<ReportTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
-  constructor(private context: vscode.ExtensionContext) {}
+  constructor() {}
 
   refresh(): void {
     this._onDidChangeTreeData.fire();

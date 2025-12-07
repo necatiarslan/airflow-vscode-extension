@@ -287,7 +287,7 @@ export class AirflowApi {
     public async getLastDagRunLog(dagId: string): Promise<MethodResult<string>> {
         const result = new MethodResult<string>();
         try {
-            ui.showInfoMessage('Fetching Latest DAG Run Logs...');
+            //ui.showInfoMessage('Fetching Latest DAG Run Logs...');
             const history = await this.getDagRunHistory(dagId);
             if (!history.isSuccessful || !history.result.dag_runs.length) {
                 throw new Error("No DAG runs found");
@@ -312,7 +312,7 @@ export class AirflowApi {
     
     public async getDagRunLog(dagId: string, dagRunId: string) : Promise<MethodResult<string>>{
         const result = new MethodResult<string>();
-        ui.showInfoMessage('Fetching DAG Run Logs...');
+        //ui.showInfoMessage('Fetching DAG Run Logs...');
         try {
             const headers = await this.getHeaders();
 
@@ -381,7 +381,7 @@ export class AirflowApi {
     public async getTaskInstanceLog(dagId: string, dagRunId: string, taskId: string): Promise<MethodResult<string>> {
         const result = new MethodResult<string>();
         try {
-            ui.showInfoMessage('Fetching Task Logs...');
+            //ui.showInfoMessage('Fetching Task Logs...');
             const headers = await this.getHeaders();
             
             // First get the try number from task instance details

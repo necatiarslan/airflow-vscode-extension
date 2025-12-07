@@ -5,7 +5,7 @@ export class AdminTreeView implements vscode.TreeDataProvider<AdminTreeItem> {
   private _onDidChangeTreeData: vscode.EventEmitter<AdminTreeItem | undefined | null | void> = new vscode.EventEmitter<AdminTreeItem | undefined | null | void>();
   readonly onDidChangeTreeData: vscode.Event<AdminTreeItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
-  constructor(private context: vscode.ExtensionContext) {}
+  constructor() {}
 
   refresh(): void {
     this._onDidChangeTreeData.fire();

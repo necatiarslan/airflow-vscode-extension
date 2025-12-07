@@ -11,7 +11,7 @@ export class DagView {
     public static Current: DagView | undefined;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
-    private extensionUri: vscode.Uri;
+
 
 
     public dagId: string;
@@ -27,10 +27,9 @@ export class DagView {
     private dagStatusInterval: NodeJS.Timeout | undefined;
     private activetabid: string = "tab-1";
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, dagId: string, dagRunId?: string) {
+    private constructor(panel: vscode.WebviewPanel, dagId: string, dagRunId?: string) {
         ui.logToOutput('DagView.constructor Started');
         this.dagId = dagId;
-        this.extensionUri = extensionUri;
         this.dagRunId = dagRunId;
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -71,12 +70,12 @@ export class DagView {
 
     private async renderHmtl() {
         ui.logToOutput('DagView.renderHmtl Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
         //ui.showOutputMessage(this._panel.webview.html);
         ui.logToOutput('DagView.renderHmtl Completed');
     }
 
-    public static render(extensionUri: vscode.Uri, dagId: string, dagRunId?: string) {
+    public static render(dagId: string, dagRunId?: string) {
         ui.logToOutput('DagView.render Started');
         if (DagView.Current) {
             DagView.Current.dagId = dagId;
@@ -90,7 +89,7 @@ export class DagView {
             });
 
 
-            DagView.Current = new DagView(panel, extensionUri, dagId, dagRunId);
+            DagView.Current = new DagView(panel, dagId, dagRunId);
         }
     }
 
