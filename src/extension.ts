@@ -28,6 +28,7 @@ import { GoToVariablesViewTool } from './language_tools/GoToVariablesViewTool';
 import { GoToConfigsViewTool } from './language_tools/GoToConfigsViewTool';
 import { GoToPluginsViewTool } from './language_tools/GoToPluginsViewTool';
 import { GoToServerHealthViewTool } from './language_tools/GoToServerHealthViewTool';
+import { AIHandler } from './language_tools/AIHandler';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -36,6 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 	Session.Current = new Session(context);
+	AIHandler.Current = new AIHandler();
 
 	let dagTreeView:DagTreeView = new DagTreeView();
 	let adminTreeView:AdminTreeView = new AdminTreeView();
@@ -82,9 +84,9 @@ export function activate(context: vscode.ExtensionContext) {
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewServerHealth', () => { dagTreeView.viewServerHealth(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRuns', () => { dagTreeView.viewDagRuns(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRunHistory', () => { dagTreeView.viewDagRunHistory(); }));
-	commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node: DagTreeItem) => { dagTreeView.askAI(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node: DagTreeItem) => { AIHandler.Current.askAI(node.DagId, node.FileToken); }));
 
-	const participant = vscode.chat.createChatParticipant('airflow-ext.participant', dagTreeView.aIHandler.bind(dagTreeView));
+	const participant = vscode.chat.createChatParticipant('airflow-ext.participant', AIHandler.Current.aIHandler.bind(AIHandler.Current));
 	participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'airflow-extension-logo.png');
 	context.subscriptions.push(participant);
 

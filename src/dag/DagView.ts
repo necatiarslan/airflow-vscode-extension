@@ -6,6 +6,7 @@ import * as ui from '../common/UI';
 import { DagTreeView } from "./DagTreeView";
 import * as MessageHub from '../common/MessageHub';
 import { Session } from '../common/Session';
+import { AIHandler } from '../language_tools/AIHandler';
 
 export class DagView {
     public static Current: DagView;
@@ -778,7 +779,7 @@ export class DagView {
         }
 
         // Call the askAI function from DagTreeView
-        await DagTreeView.Current?.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
+        await AIHandler.Current.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
     }
 
     private async showSourceCode() {

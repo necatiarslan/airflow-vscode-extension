@@ -1641,7 +1641,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 84));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 85));
 		return toFormData(this.body, ct);
 	}
 
@@ -8169,8 +8169,8 @@ const tmp = __webpack_require__(44);
 const fs = __webpack_require__(3);
 const DagTreeDataProvider_1 = __webpack_require__(47);
 const DagView_1 = __webpack_require__(49);
-const DailyDagRunView_1 = __webpack_require__(51);
-const DagRunView_1 = __webpack_require__(52);
+const DailyDagRunView_1 = __webpack_require__(52);
+const DagRunView_1 = __webpack_require__(53);
 const ui = __webpack_require__(2);
 const MessageHub = __webpack_require__(50);
 const Session_1 = __webpack_require__(5);
@@ -8463,352 +8463,6 @@ class DagTreeView {
             ui.showErrorMessage('Failed to fetch DAG info');
         }
     }
-    async aIHandler(request, context, stream, token) {
-        const aiContext = DagTreeView.Current?.askAIContext;
-        // 1. Define the tools we want to expose to the model
-        // These must match the definitions in package.json
-        const tools = [
-            {
-                name: 'list_active_dags',
-                description: 'Lists all Airflow DAGs that are currently active (not paused). Returns a list of DAG IDs and their details.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {},
-                    required: []
-                }
-            },
-            {
-                name: 'list_paused_dags',
-                description: 'Lists all Airflow DAGs that are currently paused. Returns a list of DAG IDs and their details.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {},
-                    required: []
-                }
-            },
-            {
-                name: 'get_running_dags',
-                description: 'Lists all Airflow DAGs that currently have running or queued DAG runs. Use this when asked about running, executing, or in-progress DAGs. Returns DAG IDs with run states and run IDs.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {},
-                    required: []
-                }
-            },
-            {
-                name: 'pause_dag',
-                description: 'Pauses a specific Airflow DAG. Required input: dag_id (string).',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        dagId: { type: 'string', description: 'The unique identifier (ID) of the DAG to pause' }
-                    },
-                    required: ['dagId']
-                }
-            },
-            {
-                name: 'unpause_dag',
-                description: 'Unpauses (activates) a specific Airflow DAG. Required input: dag_id (string).',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        dagId: { type: 'string', description: 'The unique identifier (ID) of the DAG to unpause' }
-                    },
-                    required: ['dagId']
-                }
-            },
-            {
-                name: 'trigger_dag_run',
-                description: 'Triggers a DAG run. Inputs: dag_id (string), config_json (string, optional), date (string, optional).',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        dagId: { type: 'string', description: 'The DAG ID' },
-                        configJson: { type: 'string', description: 'JSON configuration or file path' },
-                        date: { type: 'string', description: 'Logical date in ISO 8601 format' }
-                    },
-                    required: ['dagId']
-                }
-            },
-            {
-                name: 'get_failed_runs',
-                description: 'Gets failed DAG runs. Inputs: time_range_hours (number), dag_id_filter (string).',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        timeRangeHours: { type: 'number' },
-                        dagIdFilter: { type: 'string' }
-                    },
-                    required: []
-                }
-            },
-            {
-                name: 'get_dag_runs',
-                description: 'Retrieves DAG runs for a given DAG. Optional date (YYYY-MM-DD). Returns run id, start time, duration, status.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        dagId: { type: 'string', description: 'The DAG ID' },
-                        date: { type: 'string', description: 'Optional date filter YYYY-MM-DD' }
-                    },
-                    required: ['dagId']
-                }
-            },
-            {
-                name: 'get_dag_history',
-                description: 'Retrieves DAG run history for a given date (defaults to today). Returns date/time, status, duration, note.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        dagId: { type: 'string', description: 'The DAG ID' },
-                        date: { type: 'string', description: 'Optional date filter YYYY-MM-DD' }
-                    },
-                    required: ['dagId']
-                }
-            },
-            {
-                name: 'cancel_dag_run',
-                description: 'Cancels the currently running DAG run for the given DAG. Required: dag_id.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        dagId: { type: 'string', description: 'The DAG ID' }
-                    },
-                    required: ['dagId']
-                }
-            },
-            {
-                name: 'analyse_dag_latest_run',
-                description: 'Comprehensive analysis of the latest DAG run including tasks, source code, and logs. Required: dag_id.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        dagId: { type: 'string', description: 'The DAG ID' }
-                    },
-                    required: ['dagId']
-                }
-            },
-            {
-                name: 'get_dag_run_detail',
-                description: 'Comprehensive analysis of a specific DAG run by run ID. Analyzes tasks, source code, and logs for the specified run. Required: dag_id, dag_run_id.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        dagId: { type: 'string', description: 'The DAG ID' },
-                        dagRunId: { type: 'string', description: 'The DAG run ID to analyze' }
-                    },
-                    required: ['dagId', 'dagRunId']
-                }
-            },
-            {
-                name: 'go_to_dag_view',
-                description: 'Opens the DAG View panel to display information about a specific DAG. Optional: provide dag_run_id to view a specific run. Required: dag_id.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        dagId: { type: 'string', description: 'The DAG ID to view' },
-                        dagRunId: { type: 'string', description: 'Optional DAG run ID to navigate to a specific run' }
-                    },
-                    required: ['dagId']
-                }
-            },
-            {
-                name: 'go_to_dag_run_history',
-                description: 'Opens the DAG Run History panel with optional filters. Shows run history for a DAG with optional date range and status filters. Required: dag_id.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {
-                        dagId: { type: 'string', description: 'The DAG ID to view history for' },
-                        startDate: { type: 'string', description: 'Optional start date filter (YYYY-MM-DD format)' },
-                        endDate: { type: 'string', description: 'Optional end date filter (YYYY-MM-DD format)' },
-                        status: { type: 'string', description: 'Optional status filter (success, failed, running, queued, upstream_failed)' }
-                    },
-                    required: ['dagId']
-                }
-            },
-            {
-                name: 'go_to_providers_view',
-                description: 'Opens the Providers View panel to display installed Airflow providers. No inputs required.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {},
-                    required: []
-                }
-            },
-            {
-                name: 'go_to_connections_view',
-                description: 'Opens the Connections View panel to display Airflow connections. No inputs required.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {},
-                    required: []
-                }
-            },
-            {
-                name: 'go_to_variables_view',
-                description: 'Opens the Variables View panel to display Airflow variables. No inputs required.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {},
-                    required: []
-                }
-            },
-            {
-                name: 'go_to_configs_view',
-                description: 'Opens the Configs View panel to display Airflow configuration settings. No inputs required.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {},
-                    required: []
-                }
-            },
-            {
-                name: 'go_to_plugins_view',
-                description: 'Opens the Plugins View panel to display installed Airflow plugins. No inputs required.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {},
-                    required: []
-                }
-            },
-            {
-                name: 'go_to_server_health_view',
-                description: 'Opens the Server Health View panel to display Airflow server health status. No inputs required.',
-                inputSchema: {
-                    type: 'object',
-                    properties: {},
-                    required: []
-                }
-            }
-        ];
-        // 2. Construct the Initial Messages
-        const messages = [
-            vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. You have access to tools to manage DAGs, view logs, and check status. Use them when appropriate.`)
-        ];
-        // Add context if available
-        if (aiContext) {
-            messages.push(vscode.LanguageModelChatMessage.User(`Context:\nDAG: ${aiContext.dag || 'N/A'}\nLogs: ${aiContext.logs || 'N/A'}\nCode: ${aiContext.code || 'N/A'}`));
-        }
-        messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
-        // 3. Select Model and Send Request
-        try {
-            const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4' });
-            if (!model) {
-                stream.markdown("No suitable AI model found.");
-                return;
-            }
-            // Tool calling loop
-            let keepGoing = true;
-            while (keepGoing && !token.isCancellationRequested) {
-                keepGoing = false; // Default to stop unless we get a tool call
-                const chatResponse = await model.sendRequest(messages, { tools }, token);
-                let toolCalls = [];
-                for await (const fragment of chatResponse.text) {
-                    stream.markdown(fragment);
-                }
-                // Collect tool calls from the response
-                for await (const part of chatResponse.stream) {
-                    if (part instanceof vscode.LanguageModelToolCallPart) {
-                        toolCalls.push(part);
-                    }
-                }
-                // Execute tools if any were called
-                if (toolCalls.length > 0) {
-                    keepGoing = true; // We need to send results back to the model
-                    // Add the model's response (including tool calls) to history
-                    messages.push(vscode.LanguageModelChatMessage.Assistant(toolCalls));
-                    for (const toolCall of toolCalls) {
-                        stream.progress(`Running tool: ${toolCall.name}...`);
-                        try {
-                            // Invoke the tool using VS Code LM API
-                            const result = await vscode.lm.invokeTool(toolCall.name, { input: toolCall.input }, token);
-                            // Convert result to string/text part
-                            const resultText = result.content
-                                .filter(part => part instanceof vscode.LanguageModelTextPart)
-                                .map(part => part.value)
-                                .join('\n');
-                            // Add result to history
-                            messages.push(vscode.LanguageModelChatMessage.User([
-                                new vscode.LanguageModelToolResultPart(toolCall.callId, [new vscode.LanguageModelTextPart(resultText)])
-                            ]));
-                        }
-                        catch (err) {
-                            const errorMessage = `Tool execution failed: ${err instanceof Error ? err.message : String(err)}`;
-                            messages.push(vscode.LanguageModelChatMessage.User([
-                                new vscode.LanguageModelToolResultPart(toolCall.callId, [new vscode.LanguageModelTextPart(errorMessage)])
-                            ]));
-                        }
-                    }
-                }
-            }
-        }
-        catch (err) {
-            if (err instanceof Error) {
-                stream.markdown(`I'm sorry, I couldn't connect to the AI model: ${err.message}`);
-            }
-            else {
-                stream.markdown("I'm sorry, I couldn't connect to the AI model.");
-            }
-        }
-    }
-    ;
-    async isChatCommandAvailable() {
-        const commands = await vscode.commands.getCommands(true); // 'true' includes internal commands
-        return commands.includes('workbench.action.chat.open');
-    }
-    async askAI(node) {
-        ui.logToOutput('DagTreeView.askAI Started');
-        if (!Session_1.Session.Current.Api) {
-            return;
-        }
-        if (!await this.isChatCommandAvailable()) {
-            ui.showErrorMessage('Chat command is not available. Please ensure you have access to VS Code AI features.');
-            return;
-        }
-        let dagSourceCode = '';
-        let latestDagLogs = '';
-        // Fetch DAG Source Code
-        const sourceResult = await Session_1.Session.Current.Api.getSourceCode(node.DagId, node.FileToken);
-        if (sourceResult.isSuccessful) {
-            dagSourceCode = sourceResult.result;
-        }
-        else {
-            ui.showErrorMessage('Failed to fetch DAG source code for AI analysis.');
-            return;
-        }
-        // Fetch Latest DAG Run Logs
-        const logResult = await Session_1.Session.Current.Api.getLastDagRunLog(node.DagId);
-        if (logResult.isSuccessful) {
-            latestDagLogs = logResult.result;
-        }
-        else {
-            ui.showErrorMessage('Failed to fetch latest DAG run logs for AI analysis.');
-            return;
-        }
-        await this.askAIWithContext({ code: dagSourceCode, logs: latestDagLogs, dag: node.DagId, dagRun: node.LatestDagRunId, tasks: null, taskInstances: null });
-    }
-    async askAIWithContext(askAIContext) {
-        this.askAIContext = askAIContext;
-        const appName = vscode.env.appName;
-        let commandId = '';
-        if (appName.includes('Antigravity')) {
-            // Antigravity replaces the Chat with an Agent workflow.
-            // We must use the Agent Manager command instead.
-            // **REPLACE WITH THE ACTUAL ANTIGRAVITY AGENT COMMAND ID**
-            commandId = 'antigravity.startAgentTask';
-        }
-        else if (appName.includes('Code - OSS') || appName.includes('Visual Studio Code')) {
-            // This is standard VS Code or VSCodium. Check for the legacy Chat command.
-            commandId = 'workbench.action.chat.open';
-        }
-        else {
-            // Unknown environment, default to checking if the command exists at all.
-            commandId = 'workbench.action.chat.open';
-        }
-        await vscode.commands.executeCommand(commandId, {
-            query: '@airflow Analyze the current logs'
-        });
-    }
     async filter() {
         ui.logToOutput('DagTreeView.filter Started');
         const filterStringTemp = await vscode.window.showInputBox({ value: this.FilterString, placeHolder: 'Enter your filters seperated by comma' });
@@ -9021,35 +8675,35 @@ class DagTreeView {
     async viewConnections() {
         ui.logToOutput('DagTreeView.viewConnections Started');
         if (Session_1.Session.Current.Api) {
-            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(53));
+            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(54));
             ConnectionsView.render();
         }
     }
     async viewVariables() {
         ui.logToOutput('DagTreeView.viewVariables Started');
         if (Session_1.Session.Current.Api) {
-            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(54));
+            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(55));
             VariablesView.render();
         }
     }
     async viewProviders() {
         ui.logToOutput('DagTreeView.viewProviders Started');
         if (Session_1.Session.Current.Api) {
-            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(55));
+            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(56));
             ProvidersView.render();
         }
     }
     async viewConfigs() {
         ui.logToOutput('DagTreeView.viewConfigs Started');
         if (Session_1.Session.Current.Api) {
-            const { ConfigsView } = await Promise.resolve().then(() => __webpack_require__(56));
+            const { ConfigsView } = await Promise.resolve().then(() => __webpack_require__(57));
             ConfigsView.render();
         }
     }
     async viewPlugins() {
         ui.logToOutput('DagTreeView.viewPlugins Started');
         if (Session_1.Session.Current.Api) {
-            const { PluginsView } = await Promise.resolve().then(() => __webpack_require__(57));
+            const { PluginsView } = await Promise.resolve().then(() => __webpack_require__(58));
             PluginsView.render();
         }
     }
@@ -9068,7 +8722,7 @@ class DagTreeView {
     async viewServerHealth() {
         ui.logToOutput('DagTreeView.viewServerHealth Started');
         if (Session_1.Session.Current.Api) {
-            const { ServerHealthView } = await Promise.resolve().then(() => __webpack_require__(58));
+            const { ServerHealthView } = await Promise.resolve().then(() => __webpack_require__(59));
             ServerHealthView.render();
         }
     }
@@ -10128,6 +9782,7 @@ const ui = __webpack_require__(2);
 const DagTreeView_1 = __webpack_require__(43);
 const MessageHub = __webpack_require__(50);
 const Session_1 = __webpack_require__(5);
+const AIHandler_1 = __webpack_require__(51);
 class DagView {
     constructor(panel, dagId, dagRunId) {
         this._disposables = [];
@@ -10808,7 +10463,7 @@ class DagView {
             return;
         }
         // Call the askAI function from DagTreeView
-        await DagTreeView_1.DagTreeView.Current?.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
+        await AIHandler_1.AIHandler.Current.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
     }
     async showSourceCode() {
         ui.logToOutput('DagView.showSourceCode Started');
@@ -11012,6 +10667,371 @@ function DagUnPaused(source, dagId) {
 
 /***/ }),
 /* 51 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AIHandler = void 0;
+const Session_1 = __webpack_require__(5);
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(2);
+class AIHandler {
+    constructor() {
+        AIHandler.Current = this;
+    }
+    async aIHandler(request, context, stream, token) {
+        const aiContext = AIHandler.Current?.askAIContext;
+        // 1. Define the tools we want to expose to the model
+        // These must match the definitions in package.json
+        const tools = [
+            {
+                name: 'list_active_dags',
+                description: 'Lists all Airflow DAGs that are currently active (not paused). Returns a list of DAG IDs and their details.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'list_paused_dags',
+                description: 'Lists all Airflow DAGs that are currently paused. Returns a list of DAG IDs and their details.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'get_running_dags',
+                description: 'Lists all Airflow DAGs that currently have running or queued DAG runs. Use this when asked about running, executing, or in-progress DAGs. Returns DAG IDs with run states and run IDs.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'pause_dag',
+                description: 'Pauses a specific Airflow DAG. Required input: dag_id (string).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The unique identifier (ID) of the DAG to pause' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'unpause_dag',
+                description: 'Unpauses (activates) a specific Airflow DAG. Required input: dag_id (string).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The unique identifier (ID) of the DAG to unpause' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'trigger_dag_run',
+                description: 'Triggers a DAG run. Inputs: dag_id (string), config_json (string, optional), date (string, optional).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' },
+                        configJson: { type: 'string', description: 'JSON configuration or file path' },
+                        date: { type: 'string', description: 'Logical date in ISO 8601 format' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'get_failed_runs',
+                description: 'Gets failed DAG runs. Inputs: time_range_hours (number), dag_id_filter (string).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        timeRangeHours: { type: 'number' },
+                        dagIdFilter: { type: 'string' }
+                    },
+                    required: []
+                }
+            },
+            {
+                name: 'get_dag_runs',
+                description: 'Retrieves DAG runs for a given DAG. Optional date (YYYY-MM-DD). Returns run id, start time, duration, status.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' },
+                        date: { type: 'string', description: 'Optional date filter YYYY-MM-DD' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'get_dag_history',
+                description: 'Retrieves DAG run history for a given date (defaults to today). Returns date/time, status, duration, note.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' },
+                        date: { type: 'string', description: 'Optional date filter YYYY-MM-DD' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'cancel_dag_run',
+                description: 'Cancels the currently running DAG run for the given DAG. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'analyse_dag_latest_run',
+                description: 'Comprehensive analysis of the latest DAG run including tasks, source code, and logs. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'get_dag_run_detail',
+                description: 'Comprehensive analysis of a specific DAG run by run ID. Analyzes tasks, source code, and logs for the specified run. Required: dag_id, dag_run_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' },
+                        dagRunId: { type: 'string', description: 'The DAG run ID to analyze' }
+                    },
+                    required: ['dagId', 'dagRunId']
+                }
+            },
+            {
+                name: 'go_to_dag_view',
+                description: 'Opens the DAG View panel to display information about a specific DAG. Optional: provide dag_run_id to view a specific run. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID to view' },
+                        dagRunId: { type: 'string', description: 'Optional DAG run ID to navigate to a specific run' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'go_to_dag_run_history',
+                description: 'Opens the DAG Run History panel with optional filters. Shows run history for a DAG with optional date range and status filters. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID to view history for' },
+                        startDate: { type: 'string', description: 'Optional start date filter (YYYY-MM-DD format)' },
+                        endDate: { type: 'string', description: 'Optional end date filter (YYYY-MM-DD format)' },
+                        status: { type: 'string', description: 'Optional status filter (success, failed, running, queued, upstream_failed)' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'go_to_providers_view',
+                description: 'Opens the Providers View panel to display installed Airflow providers. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_connections_view',
+                description: 'Opens the Connections View panel to display Airflow connections. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_variables_view',
+                description: 'Opens the Variables View panel to display Airflow variables. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_configs_view',
+                description: 'Opens the Configs View panel to display Airflow configuration settings. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_plugins_view',
+                description: 'Opens the Plugins View panel to display installed Airflow plugins. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_server_health_view',
+                description: 'Opens the Server Health View panel to display Airflow server health status. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            }
+        ];
+        // 2. Construct the Initial Messages
+        const messages = [
+            vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. You have access to tools to manage DAGs, view logs, and check status. Use them when appropriate.`)
+        ];
+        // Add context if available
+        if (aiContext) {
+            messages.push(vscode.LanguageModelChatMessage.User(`Context:\nDAG: ${aiContext.dag || 'N/A'}\nLogs: ${aiContext.logs || 'N/A'}\nCode: ${aiContext.code || 'N/A'}`));
+        }
+        messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
+        // 3. Select Model and Send Request
+        try {
+            const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4' });
+            if (!model) {
+                stream.markdown("No suitable AI model found.");
+                return;
+            }
+            // Tool calling loop
+            let keepGoing = true;
+            while (keepGoing && !token.isCancellationRequested) {
+                keepGoing = false; // Default to stop unless we get a tool call
+                const chatResponse = await model.sendRequest(messages, { tools }, token);
+                let toolCalls = [];
+                for await (const fragment of chatResponse.text) {
+                    stream.markdown(fragment);
+                }
+                // Collect tool calls from the response
+                for await (const part of chatResponse.stream) {
+                    if (part instanceof vscode.LanguageModelToolCallPart) {
+                        toolCalls.push(part);
+                    }
+                }
+                // Execute tools if any were called
+                if (toolCalls.length > 0) {
+                    keepGoing = true; // We need to send results back to the model
+                    // Add the model's response (including tool calls) to history
+                    messages.push(vscode.LanguageModelChatMessage.Assistant(toolCalls));
+                    for (const toolCall of toolCalls) {
+                        stream.progress(`Running tool: ${toolCall.name}...`);
+                        try {
+                            // Invoke the tool using VS Code LM API
+                            const result = await vscode.lm.invokeTool(toolCall.name, { input: toolCall.input }, token);
+                            // Convert result to string/text part
+                            const resultText = result.content
+                                .filter(part => part instanceof vscode.LanguageModelTextPart)
+                                .map(part => part.value)
+                                .join('\n');
+                            // Add result to history
+                            messages.push(vscode.LanguageModelChatMessage.User([
+                                new vscode.LanguageModelToolResultPart(toolCall.callId, [new vscode.LanguageModelTextPart(resultText)])
+                            ]));
+                        }
+                        catch (err) {
+                            const errorMessage = `Tool execution failed: ${err instanceof Error ? err.message : String(err)}`;
+                            messages.push(vscode.LanguageModelChatMessage.User([
+                                new vscode.LanguageModelToolResultPart(toolCall.callId, [new vscode.LanguageModelTextPart(errorMessage)])
+                            ]));
+                        }
+                    }
+                }
+            }
+        }
+        catch (err) {
+            if (err instanceof Error) {
+                stream.markdown(`I'm sorry, I couldn't connect to the AI model: ${err.message}`);
+            }
+            else {
+                stream.markdown("I'm sorry, I couldn't connect to the AI model.");
+            }
+        }
+    }
+    ;
+    async isChatCommandAvailable() {
+        const commands = await vscode.commands.getCommands(true); // 'true' includes internal commands
+        return commands.includes('workbench.action.chat.open');
+    }
+    async askAI(dagId, fileToken) {
+        ui.logToOutput('DagTreeView.askAI Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        if (!await this.isChatCommandAvailable()) {
+            ui.showErrorMessage('Chat command is not available. Please ensure you have access to VS Code AI features.');
+            return;
+        }
+        let dagSourceCode = '';
+        let latestDagLogs = '';
+        // Fetch DAG Source Code
+        const sourceResult = await Session_1.Session.Current.Api.getSourceCode(dagId, fileToken);
+        if (sourceResult.isSuccessful) {
+            dagSourceCode = sourceResult.result;
+        }
+        else {
+            ui.showErrorMessage('Failed to fetch DAG source code for AI analysis.');
+            return;
+        }
+        // Fetch Latest DAG Run Logs
+        const logResult = await Session_1.Session.Current.Api.getLastDagRunLog(dagId);
+        if (logResult.isSuccessful) {
+            latestDagLogs = logResult.result;
+        }
+        else {
+            ui.showErrorMessage('Failed to fetch latest DAG run logs for AI analysis.');
+            return;
+        }
+        await this.askAIWithContext({ code: dagSourceCode, logs: latestDagLogs, dag: dagId, dagRun: null, tasks: null, taskInstances: null });
+    }
+    async askAIWithContext(askAIContext) {
+        this.askAIContext = askAIContext;
+        const appName = vscode.env.appName;
+        let commandId = '';
+        if (appName.includes('Antigravity')) {
+            // Antigravity replaces the Chat with an Agent workflow.
+            // We must use the Agent Manager command instead.
+            // **REPLACE WITH THE ACTUAL ANTIGRAVITY AGENT COMMAND ID**
+            commandId = 'antigravity.startAgentTask';
+        }
+        else if (appName.includes('Code - OSS') || appName.includes('Visual Studio Code')) {
+            // This is standard VS Code or VSCodium. Check for the legacy Chat command.
+            commandId = 'workbench.action.chat.open';
+        }
+        else {
+            // Unknown environment, default to checking if the command exists at all.
+            commandId = 'workbench.action.chat.open';
+        }
+        await vscode.commands.executeCommand(commandId, {
+            query: '@airflow Analyze the current logs'
+        });
+    }
+}
+exports.AIHandler = AIHandler;
+
+
+/***/ }),
+/* 52 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11339,7 +11359,7 @@ exports.DailyDagRunView = DailyDagRunView;
 
 
 /***/ }),
-/* 52 */
+/* 53 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11713,7 +11733,7 @@ exports.DagRunView = DagRunView;
 
 
 /***/ }),
-/* 53 */
+/* 54 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11820,7 +11840,7 @@ exports.ConnectionsView = ConnectionsView;
 
 
 /***/ }),
-/* 54 */
+/* 55 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12000,7 +12020,7 @@ exports.VariablesView = VariablesView;
 
 
 /***/ }),
-/* 55 */
+/* 56 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12173,7 +12193,7 @@ exports.ProvidersView = ProvidersView;
 
 
 /***/ }),
-/* 56 */
+/* 57 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12346,7 +12366,7 @@ exports.ConfigsView = ConfigsView;
 
 
 /***/ }),
-/* 57 */
+/* 58 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12511,7 +12531,7 @@ exports.PluginsView = PluginsView;
 
 
 /***/ }),
-/* 58 */
+/* 59 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12742,7 +12762,7 @@ exports.ServerHealthView = ServerHealthView;
 
 
 /***/ }),
-/* 59 */
+/* 60 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12750,7 +12770,7 @@ exports.ServerHealthView = ServerHealthView;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AdminTreeView = void 0;
 const vscode = __webpack_require__(1);
-const AdminTreeItem_1 = __webpack_require__(60);
+const AdminTreeItem_1 = __webpack_require__(61);
 class AdminTreeView {
     constructor() {
         this._onDidChangeTreeData = new vscode.EventEmitter();
@@ -12805,7 +12825,7 @@ exports.AdminTreeView = AdminTreeView;
 
 
 /***/ }),
-/* 60 */
+/* 61 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12828,7 +12848,7 @@ exports.AdminTreeItem = AdminTreeItem;
 
 
 /***/ }),
-/* 61 */
+/* 62 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12836,7 +12856,7 @@ exports.AdminTreeItem = AdminTreeItem;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ReportTreeView = void 0;
 const vscode = __webpack_require__(1);
-const ReportTreeItem_1 = __webpack_require__(62);
+const ReportTreeItem_1 = __webpack_require__(63);
 class ReportTreeView {
     constructor() {
         this._onDidChangeTreeData = new vscode.EventEmitter();
@@ -12871,7 +12891,7 @@ exports.ReportTreeView = ReportTreeView;
 
 
 /***/ }),
-/* 62 */
+/* 63 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12894,7 +12914,7 @@ exports.ReportTreeItem = ReportTreeItem;
 
 
 /***/ }),
-/* 63 */
+/* 64 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13265,7 +13285,7 @@ exports.AirflowClientAdapter = AirflowClientAdapter;
 
 
 /***/ }),
-/* 64 */
+/* 65 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13393,7 +13413,7 @@ exports.TriggerDagRunTool = TriggerDagRunTool;
 
 
 /***/ }),
-/* 65 */
+/* 66 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13512,7 +13532,7 @@ exports.GetFailedRunsTool = GetFailedRunsTool;
 
 
 /***/ }),
-/* 66 */
+/* 67 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13564,7 +13584,7 @@ exports.ListActiveDagsTool = ListActiveDagsTool;
 
 
 /***/ }),
-/* 67 */
+/* 68 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13616,7 +13636,7 @@ exports.ListPausedDagsTool = ListPausedDagsTool;
 
 
 /***/ }),
-/* 68 */
+/* 69 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13672,7 +13692,7 @@ exports.GetRunningDagsTool = GetRunningDagsTool;
 
 
 /***/ }),
-/* 69 */
+/* 70 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13723,7 +13743,7 @@ exports.PauseDagTool = PauseDagTool;
 
 
 /***/ }),
-/* 70 */
+/* 71 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13774,7 +13794,7 @@ exports.UnpauseDagTool = UnpauseDagTool;
 
 
 /***/ }),
-/* 71 */
+/* 72 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13915,7 +13935,7 @@ exports.GetDagRunsTool = GetDagRunsTool;
 
 
 /***/ }),
-/* 72 */
+/* 73 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14015,7 +14035,7 @@ exports.CancelDagRunTool = CancelDagRunTool;
 
 
 /***/ }),
-/* 73 */
+/* 74 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14235,7 +14255,7 @@ exports.AnalyseDagLatestRunTool = AnalyseDagLatestRunTool;
 
 
 /***/ }),
-/* 74 */
+/* 75 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14386,7 +14406,7 @@ exports.GetDagHistoryTool = GetDagHistoryTool;
 
 
 /***/ }),
-/* 75 */
+/* 76 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14653,7 +14673,7 @@ exports.GetDagRunDetailTool = GetDagRunDetailTool;
 
 
 /***/ }),
-/* 76 */
+/* 77 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14722,7 +14742,7 @@ exports.GoToDagViewTool = GoToDagViewTool;
 
 
 /***/ }),
-/* 77 */
+/* 78 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14737,7 +14757,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToDagRunHistoryTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const DagRunView_1 = __webpack_require__(52);
+const DagRunView_1 = __webpack_require__(53);
 /**
  * GoToDagRunHistoryTool - Implements vscode.LanguageModelTool for opening DAG Run History View
  *
@@ -14823,7 +14843,7 @@ exports.GoToDagRunHistoryTool = GoToDagRunHistoryTool;
 
 
 /***/ }),
-/* 78 */
+/* 79 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14835,7 +14855,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToProvidersViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const ProvidersView_1 = __webpack_require__(55);
+const ProvidersView_1 = __webpack_require__(56);
 /**
  * GoToProvidersViewTool - Opens the Providers panel
  */
@@ -14869,7 +14889,7 @@ exports.GoToProvidersViewTool = GoToProvidersViewTool;
 
 
 /***/ }),
-/* 79 */
+/* 80 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14881,7 +14901,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToConnectionsViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const ConnectionsView_1 = __webpack_require__(53);
+const ConnectionsView_1 = __webpack_require__(54);
 /**
  * GoToConnectionsViewTool - Opens the Connections panel
  */
@@ -14915,7 +14935,7 @@ exports.GoToConnectionsViewTool = GoToConnectionsViewTool;
 
 
 /***/ }),
-/* 80 */
+/* 81 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14927,7 +14947,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToVariablesViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const VariablesView_1 = __webpack_require__(54);
+const VariablesView_1 = __webpack_require__(55);
 /**
  * GoToVariablesViewTool - Opens the Variables panel
  */
@@ -14961,7 +14981,7 @@ exports.GoToVariablesViewTool = GoToVariablesViewTool;
 
 
 /***/ }),
-/* 81 */
+/* 82 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14973,7 +14993,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToConfigsViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const ConfigsView_1 = __webpack_require__(56);
+const ConfigsView_1 = __webpack_require__(57);
 /**
  * GoToConfigsViewTool - Opens the Configs panel
  */
@@ -15007,7 +15027,7 @@ exports.GoToConfigsViewTool = GoToConfigsViewTool;
 
 
 /***/ }),
-/* 82 */
+/* 83 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -15019,7 +15039,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToPluginsViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const PluginsView_1 = __webpack_require__(57);
+const PluginsView_1 = __webpack_require__(58);
 /**
  * GoToPluginsViewTool - Opens the Plugins panel
  */
@@ -15053,7 +15073,7 @@ exports.GoToPluginsViewTool = GoToPluginsViewTool;
 
 
 /***/ }),
-/* 83 */
+/* 84 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -15065,7 +15085,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToServerHealthViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const ServerHealthView_1 = __webpack_require__(58);
+const ServerHealthView_1 = __webpack_require__(59);
 /**
  * GoToServerHealthViewTool - Opens the Server Health panel
  */
@@ -15252,34 +15272,36 @@ const vscode = __webpack_require__(1);
 const ui = __webpack_require__(2);
 const Session_1 = __webpack_require__(5);
 const DagTreeView_1 = __webpack_require__(43);
-const AdminTreeView_1 = __webpack_require__(59);
-const ReportTreeView_1 = __webpack_require__(61);
-const AirflowClientAdapter_1 = __webpack_require__(63);
-const TriggerDagRunTool_1 = __webpack_require__(64);
-const GetFailedRunsTool_1 = __webpack_require__(65);
-const ListActiveDagsTool_1 = __webpack_require__(66);
-const ListPausedDagsTool_1 = __webpack_require__(67);
-const GetRunningDagsTool_1 = __webpack_require__(68);
-const PauseDagTool_1 = __webpack_require__(69);
-const UnpauseDagTool_1 = __webpack_require__(70);
-const GetDagRunsTool_1 = __webpack_require__(71);
-const CancelDagRunTool_1 = __webpack_require__(72);
-const AnalyseDagLatestRunTool_1 = __webpack_require__(73);
-const GetDagHistoryTool_1 = __webpack_require__(74);
-const GetDagRunDetailTool_1 = __webpack_require__(75);
-const GoToDagViewTool_1 = __webpack_require__(76);
-const GoToDagRunHistoryTool_1 = __webpack_require__(77);
-const GoToProvidersViewTool_1 = __webpack_require__(78);
-const GoToConnectionsViewTool_1 = __webpack_require__(79);
-const GoToVariablesViewTool_1 = __webpack_require__(80);
-const GoToConfigsViewTool_1 = __webpack_require__(81);
-const GoToPluginsViewTool_1 = __webpack_require__(82);
-const GoToServerHealthViewTool_1 = __webpack_require__(83);
+const AdminTreeView_1 = __webpack_require__(60);
+const ReportTreeView_1 = __webpack_require__(62);
+const AirflowClientAdapter_1 = __webpack_require__(64);
+const TriggerDagRunTool_1 = __webpack_require__(65);
+const GetFailedRunsTool_1 = __webpack_require__(66);
+const ListActiveDagsTool_1 = __webpack_require__(67);
+const ListPausedDagsTool_1 = __webpack_require__(68);
+const GetRunningDagsTool_1 = __webpack_require__(69);
+const PauseDagTool_1 = __webpack_require__(70);
+const UnpauseDagTool_1 = __webpack_require__(71);
+const GetDagRunsTool_1 = __webpack_require__(72);
+const CancelDagRunTool_1 = __webpack_require__(73);
+const AnalyseDagLatestRunTool_1 = __webpack_require__(74);
+const GetDagHistoryTool_1 = __webpack_require__(75);
+const GetDagRunDetailTool_1 = __webpack_require__(76);
+const GoToDagViewTool_1 = __webpack_require__(77);
+const GoToDagRunHistoryTool_1 = __webpack_require__(78);
+const GoToProvidersViewTool_1 = __webpack_require__(79);
+const GoToConnectionsViewTool_1 = __webpack_require__(80);
+const GoToVariablesViewTool_1 = __webpack_require__(81);
+const GoToConfigsViewTool_1 = __webpack_require__(82);
+const GoToPluginsViewTool_1 = __webpack_require__(83);
+const GoToServerHealthViewTool_1 = __webpack_require__(84);
+const AIHandler_1 = __webpack_require__(51);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
     ui.logToOutput('Extension activation started');
     Session_1.Session.Current = new Session_1.Session(context);
+    AIHandler_1.AIHandler.Current = new AIHandler_1.AIHandler();
     let dagTreeView = new DagTreeView_1.DagTreeView();
     let adminTreeView = new AdminTreeView_1.AdminTreeView();
     let reportTreeView = new ReportTreeView_1.ReportTreeView();
@@ -15321,8 +15343,8 @@ function activate(context) {
     commands.push(vscode.commands.registerCommand('dagTreeView.viewServerHealth', () => { dagTreeView.viewServerHealth(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRuns', () => { dagTreeView.viewDagRuns(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRunHistory', () => { dagTreeView.viewDagRunHistory(); }));
-    commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node) => { dagTreeView.askAI(node); }));
-    const participant = vscode.chat.createChatParticipant('airflow-ext.participant', dagTreeView.aIHandler.bind(dagTreeView));
+    commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node) => { AIHandler_1.AIHandler.Current.askAI(node.DagId, node.FileToken); }));
+    const participant = vscode.chat.createChatParticipant('airflow-ext.participant', AIHandler_1.AIHandler.Current.aIHandler.bind(AIHandler_1.AIHandler.Current));
     participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'airflow-extension-logo.png');
     context.subscriptions.push(participant);
     // Register Language Model Tools for AI-powered control, monitoring, and debugging
