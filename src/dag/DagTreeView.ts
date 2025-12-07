@@ -15,19 +15,21 @@ import * as MessageHub from '../common/MessageHub';
 export class DagTreeView {
 
 	public static Current: DagTreeView | undefined;
-	public view: vscode.TreeView<DagTreeItem>;
-	public treeDataProvider: DagTreeDataProvider;
+
 	public context: vscode.ExtensionContext;
-	public filterString: string = '';
-	public dagStatusInterval: NodeJS.Timeout | undefined;
+	public FilterString: string = '';
 	public ShowOnlyActive: boolean = true;
 	public ShowOnlyFavorite: boolean = false;
-	
-	public ServerList: ServerConfig[] = [];
 	public api: AirflowApi | undefined;
-	public currentServer: ServerConfig | undefined;
+	
+	private dagStatusInterval: NodeJS.Timeout | undefined;
+	private view: vscode.TreeView<DagTreeItem>;
+	private treeDataProvider: DagTreeDataProvider;
 
-	constructor(context: vscode.ExtensionContext) {
+	private ServerList: ServerConfig[] = [];
+	private currentServer: ServerConfig | undefined;
+
+	public constructor(context: vscode.ExtensionContext) {
 		ui.logToOutput('DagTreeView.constructor Started');
 		this.context = context;
 		this.treeDataProvider = new DagTreeDataProvider();
@@ -41,14 +43,14 @@ export class DagTreeView {
 		this.refresh();
 	}
 
-	public dispose() {
+	private dispose() {
 		ui.logToOutput('DagTreeView.dispose Started');
 		if (this.dagStatusInterval) {
 			clearInterval(this.dagStatusInterval);
 		}
 	}
 
-	async refresh(): Promise<void> {
+	public async refresh(): Promise<void> {
 		ui.logToOutput('DagTreeView.refresh Started');
 		if (!this.api) {
 			this.treeDataProvider.dagList = [];
@@ -67,11 +69,11 @@ export class DagTreeView {
 		await this.getImportErrors();
 	}
 
-	resetView(): void {
+	public resetView(): void {
 		ui.logToOutput('DagTreeView.resetView Started');
 		this.api = undefined;
 		this.currentServer = undefined;
-		this.filterString = '';
+		this.FilterString = '';
 
 		this.treeDataProvider.dagList = undefined;
 		this.treeDataProvider.refresh();
@@ -81,37 +83,31 @@ export class DagTreeView {
 		this.refresh();
 	}
 
-	viewDagView(node: DagTreeItem): void {
+	public viewDagView(node: DagTreeItem): void {
 		ui.logToOutput('DagTreeView.viewDagView Started');
 		if (this.api) {
 			DagView.render(this.context.extensionUri, node.DagId, this.api);
 		}
 	}
 
-	async addToFavDAG(node: DagTreeItem) {
+	public async addToFavDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.addToFavDAG Started');
 		node.IsFav = true;
 		this.treeDataProvider.refresh();
 	}
 
-	async deleteFromFavDAG(node: DagTreeItem) {
+	public async deleteFromFavDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.deleteFromFavDAG Started');
 		node.IsFav = false;
 		this.treeDataProvider.refresh();
 	}
 
-	/**
-	 * Helper method to create a temp file and open it
-	 */
 	private createAndOpenTempFile(content: string, prefix: string, extension: string): void {
 		const tmpFile = tmp.fileSync({ mode: 0o644, prefix, postfix: extension });
 		fs.appendFileSync(tmpFile.name, content);
 		ui.openFile(tmpFile.name);
 	}
 
-	/**
-	 * Helper method to start the DAG status refresh interval
-	 */
 	private startDagStatusInterval(): void {
 		if (!this.dagStatusInterval) {
 			this.dagStatusInterval = setInterval(() => {
@@ -120,9 +116,6 @@ export class DagTreeView {
 		}
 	}
 
-	/**
-	 * Helper method to handle post-trigger state updates
-	 */
 	private handleTriggerSuccess(node: DagTreeItem, responseTrigger: any): void {
 		node.LatestDagRunId = responseTrigger['dagRunId'];
 		node.LatestDagState = responseTrigger['state'];
@@ -132,7 +125,7 @@ export class DagTreeView {
 		MessageHub.DagTriggered(this, node.DagId, node.LatestDagRunId);
 	}
 
-	async triggerDag(node: DagTreeItem) {
+	public async triggerDag(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.triggerDag Started');
 		if (!this.api) { return; }
 
@@ -153,7 +146,7 @@ export class DagTreeView {
 		}
 	}
 
-	async refreshRunningDagState(dagTreeView: DagTreeView) {
+	private async refreshRunningDagState(dagTreeView: DagTreeView) {
 		ui.logToOutput('DagTreeView.refreshRunningDagState Started');
 		if (!dagTreeView.api) { return; }
 
@@ -182,7 +175,7 @@ export class DagTreeView {
 		}
 	}
 
-	async triggerDagWConfig(node: DagTreeItem) {
+	public async triggerDagWConfig(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.triggerDagWConfig Started');
 		if (!this.api) { return; }
 
@@ -229,7 +222,7 @@ export class DagTreeView {
 		}
 	}
 
-	async checkDagRunState(node: DagTreeItem) {
+	public async checkDagRunState(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.checkDagRunState Started');
 		if (!this.api) { return; }
 		if (!node) { return; }
@@ -248,7 +241,7 @@ export class DagTreeView {
 		}
 	}
 
-	async pauseDAG(node: DagTreeItem) {
+	public async pauseDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.pauseDAG Started');
 		if (!this.api) { return; }
 		if (node.IsPaused) { ui.showWarningMessage(node.DagId + 'Dag is already PAUSED'); return; }
@@ -272,7 +265,7 @@ export class DagTreeView {
 		this.refresh();
 	}
 
-	async unPauseDAG(node: DagTreeItem) {
+	public async unPauseDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.unPauseDAG Started');
 		if (!this.api) { return; }
 		if (!node.IsPaused) { ui.showInfoMessage(node.DagId + 'Dag is already UNPAUSED'); return; }
@@ -286,7 +279,7 @@ export class DagTreeView {
 		}
 	}
 
-	async cancelDagRun(node: DagTreeItem) {
+	public async cancelDagRun(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.cancelDagRun Started');
 		if (!this.api) { return; }
 		
@@ -311,7 +304,7 @@ export class DagTreeView {
 		}
 	}
 
-	async lastDAGRunLog(node: DagTreeItem) {
+	public async lastDAGRunLog(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.lastDAGRunLog Started');
 		if (!this.api) { return; }
 
@@ -321,7 +314,7 @@ export class DagTreeView {
 		}
 	}
 
-	async dagSourceCode(node: DagTreeItem) {
+	public async dagSourceCode(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.dagSourceCode Started');
 		if (!this.api) { return; }
 
@@ -335,7 +328,7 @@ export class DagTreeView {
 		}
 	}
 
-	async showDagInfo(node: DagTreeItem) {
+	public async showDagInfo(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.showDagInfo Started');
 		if (!this.api) { return; }
 
@@ -659,7 +652,7 @@ export class DagTreeView {
 		}
 	};
 	
-	async isChatCommandAvailable(): Promise<boolean> {
+	public async isChatCommandAvailable(): Promise<boolean> {
 		const commands = await vscode.commands.getCommands(true); // 'true' includes internal commands
 		return commands.includes('workbench.action.chat.open');
 	}
@@ -721,19 +714,19 @@ export class DagTreeView {
 		});
 	}
 
-	async filter() {
+	public async filter() {
 		ui.logToOutput('DagTreeView.filter Started');
-		const filterStringTemp = await vscode.window.showInputBox({ value: this.filterString, placeHolder: 'Enter your filters seperated by comma' });
+		const filterStringTemp = await vscode.window.showInputBox({ value: this.FilterString, placeHolder: 'Enter your filters seperated by comma' });
 
 		if (filterStringTemp === undefined) { return; }
 
-		this.filterString = filterStringTemp;
+		this.FilterString = filterStringTemp;
 		this.treeDataProvider.refresh();
 		this.setFilterMessage();
 		this.saveState();
 	}
 
-	async showOnlyActive() {
+	public async showOnlyActive() {
 		ui.logToOutput('DagTreeView.showOnlyActive Started');
 		this.ShowOnlyActive = !this.ShowOnlyActive;
 		this.treeDataProvider.refresh();
@@ -741,7 +734,7 @@ export class DagTreeView {
 		this.saveState();
 	}
 
-	async showOnlyFavorite() {
+	public async showOnlyFavorite() {
 		ui.logToOutput('DagTreeView.showOnlyFavorite Started');
 		this.ShowOnlyFavorite = !this.ShowOnlyFavorite;
 		this.treeDataProvider.refresh();
@@ -749,7 +742,7 @@ export class DagTreeView {
 		this.saveState();
 	}
 
-	async addServer() {
+	public async addServer() {
 		ui.logToOutput('DagTreeView.addServer Started');
 
 		const apiUrlTemp = await vscode.window.showInputBox({ value: 'http://localhost:8080/api/v2', placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
@@ -778,7 +771,7 @@ export class DagTreeView {
 		this.refresh();
 	}
 
-	async removeServer() {
+	public async removeServer() {
 		ui.logToOutput('DagTreeView.removeServer Started');
 		if (this.ServerList.length === 0) { return; }
 
@@ -804,7 +797,7 @@ export class DagTreeView {
 		}
 	}
 
-	async connectServer() {
+	public async connectServer() {
 		ui.logToOutput('DagTreeView.connectServer Started');
 
 		if (this.ServerList.length === 0) {
@@ -840,7 +833,7 @@ export class DagTreeView {
 		}
 	}
 
-	async clearServers() {
+	public async clearServers() {
 		ui.logToOutput('DagTreeView.clearServers Started');
 		this.ServerList = [];
 		this.currentServer = undefined;
@@ -851,7 +844,7 @@ export class DagTreeView {
 		ui.showInfoMessage("Server List Cleared");
 	}
 
-	async loadDags() {
+	public async loadDags() {
 		ui.logToOutput('DagTreeView.loadDags Started');
 		if (!this.api) { return; }
 
@@ -866,7 +859,7 @@ export class DagTreeView {
 		this.setViewTitle();
 	}
 
-	async loadLatestRunStatusForAllDags() {
+	public async loadLatestRunStatusForAllDags() {
 		ui.logToOutput('DagTreeView.loadLatestRunStatusForAllDags Started');
 		if (!this.api) { return; }
 
@@ -892,7 +885,7 @@ export class DagTreeView {
 		this.treeDataProvider.refresh();
 	}
 
-	async setViewTitle() {
+	public async setViewTitle() {
 		if (this.currentServer) {
 			this.view.title = this.currentServer.apiUrl + " - " + this.currentServer.apiUserName;
 		} else {
@@ -900,7 +893,7 @@ export class DagTreeView {
 		}
 	}
 
-	async getImportErrors() {
+	public async getImportErrors() {
 		ui.logToOutput('DagTreeView.getImportErrors Started');
 		if (!this.api) { return; }
 
@@ -913,7 +906,7 @@ export class DagTreeView {
 		}
 	}
 
-	saveState() {
+	private saveState() {
 		ui.logToOutput('DagTreeView.saveState Started');
 		try {
 			if (this.currentServer) {
@@ -926,7 +919,7 @@ export class DagTreeView {
 				this.context.globalState.update('apiPassword', undefined);
 			}
 
-			this.context.globalState.update('filterString', this.filterString);
+			this.context.globalState.update('filterString', this.FilterString);
 			this.context.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
 			this.context.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
 			this.context.globalState.update('ServerList', this.ServerList);
@@ -936,17 +929,17 @@ export class DagTreeView {
 		}
 	}
 
-	setFilterMessage() {
+	private setFilterMessage() {
 		if (this.currentServer) {
-			this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, ' + this.getBoolenSign(this.ShowOnlyActive) + 'Active, Filter : ' + this.filterString;
+			this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, ' + this.getBoolenSign(this.ShowOnlyActive) + 'Active, Filter : ' + this.FilterString;
 		}
 	}
 
-	getBoolenSign(variable: boolean) {
+	private getBoolenSign(variable: boolean) {
 		return variable ? "✓" : "𐄂";
 	}
 
-	loadState() {
+	private loadState() {
 		ui.logToOutput('DagTreeView.loadState Started');
 		try {
 			const apiUrlTemp: string = this.context.globalState.get('apiUrl') || '';
@@ -960,7 +953,7 @@ export class DagTreeView {
 
 			const filterStringTemp: string = this.context.globalState.get('filterString') || '';
 			if (filterStringTemp) {
-				this.filterString = filterStringTemp;
+				this.FilterString = filterStringTemp;
 				this.setFilterMessage();
 			}
 
@@ -983,7 +976,7 @@ export class DagTreeView {
 		}
 	}
 
-	async viewConnections() {
+	public async viewConnections() {
 		ui.logToOutput('DagTreeView.viewConnections Started');
 		if (this.api) {
 			const { ConnectionsView } = await import('../admin/ConnectionsView');
@@ -991,7 +984,7 @@ export class DagTreeView {
 		}
 	}
 
-	async viewVariables() {
+	public async viewVariables() {
 		ui.logToOutput('DagTreeView.viewVariables Started');
 		if (this.api) {
 			const { VariablesView } = await import('../admin/VariablesView');
@@ -999,7 +992,7 @@ export class DagTreeView {
 		}
 	}
 
-	async viewProviders() {
+	public async viewProviders() {
 		ui.logToOutput('DagTreeView.viewProviders Started');
 		if (this.api) {
 			const { ProvidersView } = await import('../admin/ProvidersView');
@@ -1007,7 +1000,7 @@ export class DagTreeView {
 		}
 	}
 
-	async viewConfigs() {
+	public async viewConfigs() {
 		ui.logToOutput('DagTreeView.viewConfigs Started');
 		if (this.api) {
 			const { ConfigsView } = await import('../admin/ConfigsView');
@@ -1015,7 +1008,7 @@ export class DagTreeView {
 		}
 	}
 
-	async viewPlugins() {
+	public async viewPlugins() {
 		ui.logToOutput('DagTreeView.viewPlugins Started');
 		if (this.api) {
 			const { PluginsView } = await import('../admin/PluginsView');
@@ -1023,21 +1016,21 @@ export class DagTreeView {
 		}
 	}
 
-	async viewDagRuns() {
+	public async viewDagRuns() {
 		ui.logToOutput('DagTreeView.viewDagRuns Started');
 		if (this.api) {
 			DailyDagRunView.render(this.context.extensionUri, this.api);
 		}
 	}
 
-	async viewDagRunHistory() {
+	public async viewDagRunHistory() {
 		ui.logToOutput('DagTreeView.viewDagRunHistory Started');
 		if (this.api) {
 			DagRunView.render(this.context.extensionUri, this.api);
 		}
 	}
 
-	async viewServerHealth() {
+	public async viewServerHealth() {
 		ui.logToOutput('DagTreeView.viewServerHealth Started');
 		if (this.api) {
 			const { ServerHealthView } = await import('../admin/ServerHealthView');

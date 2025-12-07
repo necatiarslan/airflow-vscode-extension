@@ -28,7 +28,7 @@ const Api_1 = __webpack_require__(15);
 const MessageHub = __webpack_require__(12);
 class DagTreeView {
     constructor(context) {
-        this.filterString = '';
+        this.FilterString = '';
         this.ShowOnlyActive = true;
         this.ShowOnlyFavorite = false;
         this.ServerList = [];
@@ -69,7 +69,7 @@ class DagTreeView {
         ui.logToOutput('DagTreeView.resetView Started');
         this.api = undefined;
         this.currentServer = undefined;
-        this.filterString = '';
+        this.FilterString = '';
         this.treeDataProvider.dagList = undefined;
         this.treeDataProvider.refresh();
         this.setViewTitle();
@@ -92,17 +92,11 @@ class DagTreeView {
         node.IsFav = false;
         this.treeDataProvider.refresh();
     }
-    /**
-     * Helper method to create a temp file and open it
-     */
     createAndOpenTempFile(content, prefix, extension) {
         const tmpFile = tmp.fileSync({ mode: 0o644, prefix, postfix: extension });
         fs.appendFileSync(tmpFile.name, content);
         ui.openFile(tmpFile.name);
     }
-    /**
-     * Helper method to start the DAG status refresh interval
-     */
     startDagStatusInterval() {
         if (!this.dagStatusInterval) {
             this.dagStatusInterval = setInterval(() => {
@@ -110,9 +104,6 @@ class DagTreeView {
             }, 10 * 1000);
         }
     }
-    /**
-     * Helper method to handle post-trigger state updates
-     */
     handleTriggerSuccess(node, responseTrigger) {
         node.LatestDagRunId = responseTrigger['dagRunId'];
         node.LatestDagState = responseTrigger['state'];
@@ -685,11 +676,11 @@ class DagTreeView {
     }
     async filter() {
         ui.logToOutput('DagTreeView.filter Started');
-        const filterStringTemp = await vscode.window.showInputBox({ value: this.filterString, placeHolder: 'Enter your filters seperated by comma' });
+        const filterStringTemp = await vscode.window.showInputBox({ value: this.FilterString, placeHolder: 'Enter your filters seperated by comma' });
         if (filterStringTemp === undefined) {
             return;
         }
-        this.filterString = filterStringTemp;
+        this.FilterString = filterStringTemp;
         this.treeDataProvider.refresh();
         this.setFilterMessage();
         this.saveState();
@@ -874,7 +865,7 @@ class DagTreeView {
                 this.context.globalState.update('apiUserName', undefined);
                 this.context.globalState.update('apiPassword', undefined);
             }
-            this.context.globalState.update('filterString', this.filterString);
+            this.context.globalState.update('filterString', this.FilterString);
             this.context.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
             this.context.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
             this.context.globalState.update('ServerList', this.ServerList);
@@ -885,7 +876,7 @@ class DagTreeView {
     }
     setFilterMessage() {
         if (this.currentServer) {
-            this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, ' + this.getBoolenSign(this.ShowOnlyActive) + 'Active, Filter : ' + this.filterString;
+            this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, ' + this.getBoolenSign(this.ShowOnlyActive) + 'Active, Filter : ' + this.FilterString;
         }
     }
     getBoolenSign(variable) {
@@ -903,7 +894,7 @@ class DagTreeView {
             }
             const filterStringTemp = this.context.globalState.get('filterString') || '';
             if (filterStringTemp) {
-                this.filterString = filterStringTemp;
+                this.FilterString = filterStringTemp;
                 this.setFilterMessage();
             }
             const ShowOnlyActiveTemp = this.context.globalState.get('ShowOnlyActive');
@@ -1904,7 +1895,7 @@ class DagTreeDataProvider {
     getVisibleDagList() {
         var result = [];
         for (var node of this.dagTreeItemList) {
-            if (DagTreeView_1.DagTreeView.Current.filterString && !node.doesFilterMatch(DagTreeView_1.DagTreeView.Current.filterString)) {
+            if (DagTreeView_1.DagTreeView.Current.FilterString && !node.doesFilterMatch(DagTreeView_1.DagTreeView.Current.FilterString)) {
                 continue;
             }
             if (DagTreeView_1.DagTreeView.Current.ShowOnlyActive && node.IsPaused) {
@@ -5190,7 +5181,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 76));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 75));
 		return toFormData(this.body, ct);
 	}
 
@@ -14679,7 +14670,8 @@ exports.GetDagRunDetailTool = GetDagRunDetailTool;
 
 
 /***/ }),
-/* 75 */
+/* 75 */,
+/* 76 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14756,7 +14748,6 @@ exports.GoToDagViewTool = GoToDagViewTool;
 
 
 /***/ }),
-/* 76 */,
 /* 77 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
@@ -15351,7 +15342,7 @@ const CancelDagRunTool_1 = __webpack_require__(71);
 const AnalyseDagLatestRunTool_1 = __webpack_require__(72);
 const GetDagHistoryTool_1 = __webpack_require__(73);
 const GetDagRunDetailTool_1 = __webpack_require__(74);
-const GoToDagViewTool_1 = __webpack_require__(75);
+const GoToDagViewTool_1 = __webpack_require__(76);
 const GoToDagRunHistoryTool_1 = __webpack_require__(77);
 const GoToProvidersViewTool_1 = __webpack_require__(78);
 const GoToConnectionsViewTool_1 = __webpack_require__(79);
