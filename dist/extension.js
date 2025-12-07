@@ -1682,7 +1682,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 86));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 87));
 		return toFormData(this.body, ct);
 	}
 
@@ -8210,12 +8210,12 @@ const tmp = __webpack_require__(44);
 const fs = __webpack_require__(3);
 const DagTreeDataProvider_1 = __webpack_require__(47);
 const DagView_1 = __webpack_require__(49);
-const DailyDagRunView_1 = __webpack_require__(52);
-const DagRunView_1 = __webpack_require__(53);
+const DailyDagRunView_1 = __webpack_require__(53);
+const DagRunView_1 = __webpack_require__(54);
 const ui = __webpack_require__(2);
 const MessageHub = __webpack_require__(50);
 const Session_1 = __webpack_require__(5);
-const DagLogView_1 = __webpack_require__(54);
+const DagLogView_1 = __webpack_require__(52);
 class DagTreeView {
     constructor() {
         this.FilterString = '';
@@ -9819,7 +9819,7 @@ const DagTreeView_1 = __webpack_require__(43);
 const MessageHub = __webpack_require__(50);
 const Session_1 = __webpack_require__(5);
 const AIHandler_1 = __webpack_require__(51);
-const DagLogView_1 = __webpack_require__(54);
+const DagLogView_1 = __webpack_require__(52);
 class DagView {
     constructor(panel, dagId, dagRunId) {
         this._disposables = [];
@@ -11277,13 +11277,422 @@ exports.AIHandler = AIHandler;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagLogView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(2);
+const Session_1 = __webpack_require__(5);
+class DagLogView {
+    constructor(panel, dagId, dagRunId, taskId, tryNumber) {
+        this._disposables = [];
+        this.logs = new Map(); // taskId -> logJson
+        ui.logToOutput('DagLogView.constructor Started');
+        this._panel = panel;
+        this.dagId = dagId;
+        this.dagRunId = dagRunId;
+        this.taskId = taskId;
+        this.tryNumber = tryNumber;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('DagLogView.constructor Completed');
+    }
+    static render(dagId, dagRunId, taskId, tryNumber) {
+        ui.logToOutput('DagLogView.render Started');
+        if (DagLogView.Current) {
+            DagLogView.Current.dagId = dagId;
+            DagLogView.Current.dagRunId = dagRunId;
+            DagLogView.Current.taskId = taskId;
+            DagLogView.Current.tryNumber = tryNumber;
+            DagLogView.Current._panel.reveal(vscode.ViewColumn.One);
+            DagLogView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("dagLogView", "DAG Logs", vscode.ViewColumn.One, {
+                enableScripts: true,
+                retainContextWhenHidden: true
+            });
+            DagLogView.Current = new DagLogView(panel, dagId, dagRunId, taskId, tryNumber);
+        }
+    }
+    async loadData() {
+        ui.logToOutput('DagLogView.loadData Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        // 1. Resolve dagRunId if missing
+        if (!this.dagRunId) {
+            const lastRunResult = await Session_1.Session.Current.Api.getLastDagRun(this.dagId);
+            if (lastRunResult.isSuccessful && lastRunResult.result) {
+                this.dagRunJson = lastRunResult.result;
+                this.dagRunId = this.dagRunJson.dag_run_id;
+            }
+            else {
+                ui.showErrorMessage("Could not fetch latest DAG run.");
+                return;
+            }
+        }
+        else {
+            // Fetch specific dag run details
+            const runResult = await Session_1.Session.Current.Api.getDagRun(this.dagId, this.dagRunId);
+            if (runResult.isSuccessful) {
+                this.dagRunJson = runResult.result;
+            }
+        }
+        // 2. Fetch Task Instances
+        if (this.dagRunId) {
+            const tasksResult = await Session_1.Session.Current.Api.getTaskInstances(this.dagId, this.dagRunId);
+            if (tasksResult.isSuccessful && tasksResult.result) {
+                this.taskInstancesJson = tasksResult.result;
+            }
+        }
+        // 3. Clear logs cache on reload
+        this.logs.clear();
+        // 4. Fetch logs for tasks
+        const tasks = this._getTasks();
+        // Use Promise.all to fetch concurrently
+        await Promise.all(tasks.map(t => {
+            let tryNum = t.try_number;
+            // If specific task requested AND specific try requested, use that.
+            if (this.taskId && t.task_id === this.taskId && this.tryNumber !== undefined) {
+                tryNum = this.tryNumber;
+            }
+            return this.fetchLogForTask(t.task_id, tryNum);
+        }));
+        await this.renderHtml();
+    }
+    _getTasks() {
+        if (!this.taskInstancesJson || !this.taskInstancesJson.task_instances) {
+            return [];
+        }
+        let tasks = [...this.taskInstancesJson.task_instances];
+        // Filter by taskId if provided
+        if (this.taskId) {
+            tasks = tasks.filter((t) => t.task_id === this.taskId);
+        }
+        return tasks.sort((a, b) => {
+            const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+            const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+            return dateA - dateB;
+        });
+    }
+    async fetchLogForTask(taskId, tryNum) {
+        if (!this.dagRunId) {
+            return;
+        }
+        let targetTryNumber = tryNum;
+        if (targetTryNumber === undefined) {
+            const task = this.taskInstancesJson.task_instances.find((t) => t.task_id === taskId);
+            if (task) {
+                targetTryNumber = task.try_number;
+            }
+            else {
+                targetTryNumber = 1;
+            }
+        }
+        if (this.logs.has(taskId)) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api?.getTaskInstanceLog(this.dagId, this.dagRunId, taskId, targetTryNumber);
+        if (result?.isSuccessful) {
+            this.logs.set(taskId, result.result);
+        }
+    }
+    async renderHtml() {
+        ui.logToOutput('DagLogView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
+    }
+    dispose() {
+        DagLogView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        const elementsUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode-elements",
+            "elements",
+            "dist",
+            "bundled.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        const tasks = this._getTasks();
+        // Metadata
+        const dagRun = this.dagRunJson || {};
+        const startDate = dagRun.start_date ? ui.toISODateTimeString(new Date(dagRun.start_date)) : 'N/A';
+        const endDate = dagRun.end_date ? ui.toISODateTimeString(new Date(dagRun.end_date)) : 'Running';
+        const duration = dagRun.start_date ? ui.getDuration(new Date(dagRun.start_date), dagRun.end_date ? new Date(dagRun.end_date) : new Date()) : 'N/A';
+        const status = dagRun.state || 'N/A';
+        const taskSections = tasks.map(t => {
+            const logData = this.logs.get(t.task_id);
+            let contentHtml = '';
+            const isSuccess = t.state === 'success';
+            const isError = ['failed', 'upstream_failed', 'shutdown', 'restart'].includes(t.state);
+            let statusClass = 'status-other';
+            if (isSuccess)
+                statusClass = 'status-success';
+            if (isError)
+                statusClass = 'status-error';
+            let displayTry = t.try_number;
+            if (this.taskId && t.task_id === this.taskId && this.tryNumber !== undefined) {
+                displayTry = this.tryNumber;
+            }
+            if (logData) {
+                if (logData.content && Array.isArray(logData.content)) {
+                    contentHtml = logData.content.map((entry) => {
+                        const ts = entry.timestamp ? `[${entry.timestamp}]` : '';
+                        const lvl = entry.level ? `[${entry.level}]` : '';
+                        const logger = entry.logger ? `[${entry.logger}]` : '';
+                        const evt = entry.event || '';
+                        let extra = '';
+                        // Error detail
+                        if (entry.error_detail) {
+                            extra = `<pre class="error-detail">${JSON.stringify(entry.error_detail, null, 2)}</pre>`;
+                        }
+                        let lineClass = 'log-line';
+                        if (lvl.toLowerCase().includes('error')) {
+                            lineClass += ' log-error';
+                        }
+                        if (lvl.toLowerCase().includes('warn')) {
+                            lineClass += ' log-warn';
+                        }
+                        return `<div class="${lineClass}"><span class="log-ts">${ts}</span> <span class="log-lvl">${lvl}</span> <span class="log-logger">${logger}</span> <span class="log-msg">${this._escapeHtml(evt)}</span>${extra}</div>`;
+                    }).join('');
+                }
+                else if (logData.detail) {
+                    contentHtml = `<div class="log-error">${this._escapeHtml(logData.detail)}</div>`;
+                }
+                else {
+                    contentHtml = `<pre>${this._escapeHtml(JSON.stringify(logData, null, 2))}</pre>`;
+                }
+            }
+            else {
+                contentHtml = '<div class="loading-logs">Loading logs...</div>';
+            }
+            return `
+            <div class="task-section ${statusClass}">
+                <div class="task-header">
+                    <div class="header-left">
+                        <span class="status-indicator"></span>
+                        <span class="task-title">${this._escapeHtml(t.task_id)}</span>
+                        <span class="status-pill">${this._escapeHtml(t.state)}</span>
+                    </div>
+                    <div class="header-right">
+                        <span class="task-try">Try: ${displayTry}</span>
+                    </div>
+                </div>
+                <div class="log-container" id="log-${t.task_id}">
+                    ${contentHtml}
+                </div>
+            </div>`;
+        }).join('\n');
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <script type="module" src="${elementsUri}"></script>
+    <script type="module" src="${mainUri}"></script>
+    <link rel="stylesheet" href="${styleUri}">
+    <style>
+        :root {
+            --font-size-sm: 12px;
+            --font-size-md: 13px;
+            --font-size-lg: 15px;
+            --border-radius: 4px;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+        }
+
+        body { 
+            padding: var(--spacing-md); 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            box-sizing: border-box; 
+            background: var(--vscode-editor-background); 
+            color: var(--vscode-editor-foreground);
+            font-family: var(--vscode-font-family);
+        }
+
+        .metadata { 
+            margin-bottom: var(--spacing-lg); 
+            padding: var(--spacing-md); 
+            background: var(--vscode-editor-inactiveSelectionBackground); 
+            border-radius: var(--border-radius); 
+        }
+        .metadata-row { display: flex; gap: 32px; font-size: 13px; margin-bottom: 4px; }
+        .label { font-weight: 600; color: var(--vscode-descriptionForeground); width: 70px; display: inline-block; text-transform: uppercase; font-size: 11px; }
+        
+        .task-container { display: flex; flex-direction: column; gap: 16px; padding-bottom: 20px; }
+        
+        .task-section { 
+            border: 1px solid var(--vscode-widget-border); 
+            border-radius: var(--border-radius); 
+            overflow: hidden; 
+            background: var(--vscode-editor-background);
+        }
+        
+        .task-header { 
+            padding: 8px 16px; 
+            display: flex; 
+            justify-content: space-between;
+            align-items: center; 
+            border-bottom: 1px solid var(--vscode-widget-border);
+        }
+
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+
+        .task-title { font-weight: 600; font-size: 14px; }
+        .task-try { font-size: 11px; color: var(--vscode-descriptionForeground); }
+        
+        .status-indicator {
+            width: 8px; height: 8px; border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-pill {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Status Colors */
+        .task-section.status-success .task-header {
+            background-color: var(--vscode-notebook-cellEditorBackground); 
+        }
+        .task-section.status-success .status-indicator {
+            background-color: var(--vscode-testing-iconPassed);
+        }
+        .task-section.status-success .status-pill {
+            background-color: var(--vscode-testing-iconPassed);
+            color: var(--vscode-editor-background);
+        }
+
+        .task-section.status-error .task-header {
+            background-color: rgba(255, 0, 0, 0.1); 
+        }
+        .task-section.status-error .status-indicator {
+            background-color: var(--vscode-errorForeground);
+        }
+        .task-section.status-error .status-pill {
+            background-color: var(--vscode-errorForeground);
+            color: white;
+        }
+
+        .task-section.status-other .task-header {
+            background-color: var(--vscode-sideBarSectionHeader-background);
+        }
+        .task-section.status-other .status-indicator {
+            background-color: var(--vscode-descriptionForeground);
+        }
+        .task-section.status-other .status-pill {
+            background-color: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+        }
+
+        .log-container { 
+            padding: 16px;
+            max-height: 500px;
+            overflow-y: auto; 
+            font-family: var(--vscode-editor-font-family);
+            font-size: 12px;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        
+        .log-line { margin-bottom: 2px; }
+        .log-ts { color: var(--vscode-debugConsole-infoForeground); margin-right: 8px; opacity: 0.8; font-size: 0.9em; }
+        .log-lvl { font-weight: bold; margin-right: 8px; }
+        .log-logger { color: var(--vscode-textLink-foreground); margin-right: 8px; }
+        
+        .log-error { color: var(--vscode-errorForeground); }
+        .log-warn { color: var(--vscode-editorWarning-foreground); }
+        
+        .error-detail { 
+            color: var(--vscode-textPreformat-foreground); 
+            background-color: var(--vscode-textBlockQuote-background);
+            padding: 12px;
+            margin: 8px 0 8px 16px;
+            border-left: 3px solid var(--vscode-errorForeground);
+            border-radius: 3px;
+        }
+        .loading-logs { font-style: italic; color: var(--vscode-descriptionForeground); padding: 20px; text-align: center; }
+
+    </style>
+    <title>DAG Logs</title>
+</head>
+<body>
+    <div class="metadata">
+        <div class="metadata-row">
+            <div><span class="label">DAG ID:</span> <span>${this.dagId}</span></div>
+            <div><span class="label">Run ID:</span> <span>${this.dagRunId}</span></div>
+            <div><span class="label">Status:</span> <span>${status}</span></div>
+        </div>
+        <div class="metadata-row">
+            <div><span class="label">Start:</span> <span>${startDate}</span></div>
+            <div><span class="label">End:</span> <span>${endDate}</span></div>
+            <div><span class="label">Duration:</span> <span>${duration}</span></div>
+        </div>
+    </div>
+
+    <div class="task-container">
+        ${taskSections}
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        // Just listener for now if we want to add interactivity later e.g. collapse/expand
+    </script>
+</body>
+</html>`;
+    }
+    _escapeHtml(text) {
+        if (!text)
+            return '';
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+    _setWebviewMessageListener(webview) {
+        webview.onDidReceiveMessage(async (message) => {
+            // No messages expected for now
+        }, undefined, this._disposables);
+    }
+}
+exports.DagLogView = DagLogView;
+
+
+/***/ }),
+/* 53 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DailyDagRunView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(2);
 const DagView_1 = __webpack_require__(49);
 const Session_1 = __webpack_require__(5);
-const DagLogView_1 = __webpack_require__(54);
+const DagLogView_1 = __webpack_require__(52);
 class DailyDagRunView {
     constructor(panel) {
         this._disposables = [];
@@ -11695,7 +12104,7 @@ exports.DailyDagRunView = DailyDagRunView;
 
 
 /***/ }),
-/* 53 */
+/* 54 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11707,7 +12116,7 @@ const vscode = __webpack_require__(1);
 const ui = __webpack_require__(2);
 const DagView_1 = __webpack_require__(49);
 const Session_1 = __webpack_require__(5);
-const DagLogView_1 = __webpack_require__(54);
+const DagLogView_1 = __webpack_require__(52);
 class DagRunView {
     constructor(panel) {
         this._disposables = [];
@@ -12170,415 +12579,6 @@ class DagRunView {
     }
 }
 exports.DagRunView = DagRunView;
-
-
-/***/ }),
-/* 54 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagLogView = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-const ui = __webpack_require__(2);
-const Session_1 = __webpack_require__(5);
-class DagLogView {
-    constructor(panel, dagId, dagRunId, taskId, tryNumber) {
-        this._disposables = [];
-        this.logs = new Map(); // taskId -> logJson
-        ui.logToOutput('DagLogView.constructor Started');
-        this._panel = panel;
-        this.dagId = dagId;
-        this.dagRunId = dagRunId;
-        this.taskId = taskId;
-        this.tryNumber = tryNumber;
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-        this._setWebviewMessageListener(this._panel.webview);
-        this.loadData();
-        ui.logToOutput('DagLogView.constructor Completed');
-    }
-    static render(dagId, dagRunId, taskId, tryNumber) {
-        ui.logToOutput('DagLogView.render Started');
-        if (DagLogView.Current) {
-            DagLogView.Current.dagId = dagId;
-            DagLogView.Current.dagRunId = dagRunId;
-            DagLogView.Current.taskId = taskId;
-            DagLogView.Current.tryNumber = tryNumber;
-            DagLogView.Current._panel.reveal(vscode.ViewColumn.One);
-            DagLogView.Current.loadData();
-        }
-        else {
-            const panel = vscode.window.createWebviewPanel("dagLogView", "DAG Logs", vscode.ViewColumn.One, {
-                enableScripts: true,
-                retainContextWhenHidden: true
-            });
-            DagLogView.Current = new DagLogView(panel, dagId, dagRunId, taskId, tryNumber);
-        }
-    }
-    async loadData() {
-        ui.logToOutput('DagLogView.loadData Started');
-        if (!Session_1.Session.Current.Api) {
-            return;
-        }
-        // 1. Resolve dagRunId if missing
-        if (!this.dagRunId) {
-            const lastRunResult = await Session_1.Session.Current.Api.getLastDagRun(this.dagId);
-            if (lastRunResult.isSuccessful && lastRunResult.result) {
-                this.dagRunJson = lastRunResult.result;
-                this.dagRunId = this.dagRunJson.dag_run_id;
-            }
-            else {
-                ui.showErrorMessage("Could not fetch latest DAG run.");
-                return;
-            }
-        }
-        else {
-            // Fetch specific dag run details
-            const runResult = await Session_1.Session.Current.Api.getDagRun(this.dagId, this.dagRunId);
-            if (runResult.isSuccessful) {
-                this.dagRunJson = runResult.result;
-            }
-        }
-        // 2. Fetch Task Instances
-        if (this.dagRunId) {
-            const tasksResult = await Session_1.Session.Current.Api.getTaskInstances(this.dagId, this.dagRunId);
-            if (tasksResult.isSuccessful && tasksResult.result) {
-                this.taskInstancesJson = tasksResult.result;
-            }
-        }
-        // 3. Clear logs cache on reload
-        this.logs.clear();
-        // 4. Fetch logs for tasks
-        const tasks = this._getTasks();
-        // Use Promise.all to fetch concurrently
-        await Promise.all(tasks.map(t => {
-            let tryNum = t.try_number;
-            // If specific task requested AND specific try requested, use that.
-            if (this.taskId && t.task_id === this.taskId && this.tryNumber !== undefined) {
-                tryNum = this.tryNumber;
-            }
-            return this.fetchLogForTask(t.task_id, tryNum);
-        }));
-        await this.renderHtml();
-    }
-    _getTasks() {
-        if (!this.taskInstancesJson || !this.taskInstancesJson.task_instances) {
-            return [];
-        }
-        let tasks = [...this.taskInstancesJson.task_instances];
-        // Filter by taskId if provided
-        if (this.taskId) {
-            tasks = tasks.filter((t) => t.task_id === this.taskId);
-        }
-        return tasks.sort((a, b) => {
-            const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
-            const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
-            return dateA - dateB;
-        });
-    }
-    async fetchLogForTask(taskId, tryNum) {
-        if (!this.dagRunId) {
-            return;
-        }
-        let targetTryNumber = tryNum;
-        if (targetTryNumber === undefined) {
-            const task = this.taskInstancesJson.task_instances.find((t) => t.task_id === taskId);
-            if (task) {
-                targetTryNumber = task.try_number;
-            }
-            else {
-                targetTryNumber = 1;
-            }
-        }
-        if (this.logs.has(taskId)) {
-            return;
-        }
-        const result = await Session_1.Session.Current.Api?.getTaskInstanceLog(this.dagId, this.dagRunId, taskId, targetTryNumber);
-        if (result?.isSuccessful) {
-            this.logs.set(taskId, result.result);
-        }
-    }
-    async renderHtml() {
-        ui.logToOutput('DagLogView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
-    }
-    dispose() {
-        DagLogView.Current = undefined;
-        this._panel.dispose();
-        while (this._disposables.length) {
-            const disposable = this._disposables.pop();
-            if (disposable) {
-                disposable.dispose();
-            }
-        }
-    }
-    _getWebviewContent(webview, extensionUri) {
-        const elementsUri = ui.getUri(webview, extensionUri, [
-            "node_modules",
-            "@vscode-elements",
-            "elements",
-            "dist",
-            "bundled.js",
-        ]);
-        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
-        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
-        const tasks = this._getTasks();
-        // Metadata
-        const dagRun = this.dagRunJson || {};
-        const startDate = dagRun.start_date ? ui.toISODateTimeString(new Date(dagRun.start_date)) : 'N/A';
-        const endDate = dagRun.end_date ? ui.toISODateTimeString(new Date(dagRun.end_date)) : 'Running';
-        const duration = dagRun.start_date ? ui.getDuration(new Date(dagRun.start_date), dagRun.end_date ? new Date(dagRun.end_date) : new Date()) : 'N/A';
-        const status = dagRun.state || 'N/A';
-        const taskSections = tasks.map(t => {
-            const logData = this.logs.get(t.task_id);
-            let contentHtml = '';
-            const isSuccess = t.state === 'success';
-            const isError = ['failed', 'upstream_failed', 'shutdown', 'restart'].includes(t.state);
-            let statusClass = 'status-other';
-            if (isSuccess)
-                statusClass = 'status-success';
-            if (isError)
-                statusClass = 'status-error';
-            let displayTry = t.try_number;
-            if (this.taskId && t.task_id === this.taskId && this.tryNumber !== undefined) {
-                displayTry = this.tryNumber;
-            }
-            if (logData) {
-                if (logData.content && Array.isArray(logData.content)) {
-                    contentHtml = logData.content.map((entry) => {
-                        const ts = entry.timestamp ? `[${entry.timestamp}]` : '';
-                        const lvl = entry.level ? `[${entry.level}]` : '';
-                        const logger = entry.logger ? `[${entry.logger}]` : '';
-                        const evt = entry.event || '';
-                        let extra = '';
-                        // Error detail
-                        if (entry.error_detail) {
-                            extra = `<pre class="error-detail">${JSON.stringify(entry.error_detail, null, 2)}</pre>`;
-                        }
-                        let lineClass = 'log-line';
-                        if (lvl.toLowerCase().includes('error')) {
-                            lineClass += ' log-error';
-                        }
-                        if (lvl.toLowerCase().includes('warn')) {
-                            lineClass += ' log-warn';
-                        }
-                        return `<div class="${lineClass}"><span class="log-ts">${ts}</span> <span class="log-lvl">${lvl}</span> <span class="log-logger">${logger}</span> <span class="log-msg">${this._escapeHtml(evt)}</span>${extra}</div>`;
-                    }).join('');
-                }
-                else if (logData.detail) {
-                    contentHtml = `<div class="log-error">${this._escapeHtml(logData.detail)}</div>`;
-                }
-                else {
-                    contentHtml = `<pre>${this._escapeHtml(JSON.stringify(logData, null, 2))}</pre>`;
-                }
-            }
-            else {
-                contentHtml = '<div class="loading-logs">Loading logs...</div>';
-            }
-            return `
-            <div class="task-section ${statusClass}">
-                <div class="task-header">
-                    <div class="header-left">
-                        <span class="status-indicator"></span>
-                        <span class="task-title">${this._escapeHtml(t.task_id)}</span>
-                        <span class="status-pill">${this._escapeHtml(t.state)}</span>
-                    </div>
-                    <div class="header-right">
-                        <span class="task-try">Try: ${displayTry}</span>
-                    </div>
-                </div>
-                <div class="log-container" id="log-${t.task_id}">
-                    ${contentHtml}
-                </div>
-            </div>`;
-        }).join('\n');
-        return `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <script type="module" src="${elementsUri}"></script>
-    <script type="module" src="${mainUri}"></script>
-    <link rel="stylesheet" href="${styleUri}">
-    <style>
-        :root {
-            --font-size-sm: 12px;
-            --font-size-md: 13px;
-            --font-size-lg: 15px;
-            --border-radius: 4px;
-            --spacing-xs: 4px;
-            --spacing-sm: 8px;
-            --spacing-md: 16px;
-            --spacing-lg: 24px;
-        }
-
-        body { 
-            padding: var(--spacing-md); 
-            display: flex; 
-            flex-direction: column; 
-            height: 100vh; 
-            box-sizing: border-box; 
-            background: var(--vscode-editor-background); 
-            color: var(--vscode-editor-foreground);
-            font-family: var(--vscode-font-family);
-        }
-
-        .metadata { 
-            margin-bottom: var(--spacing-lg); 
-            padding: var(--spacing-md); 
-            background: var(--vscode-editor-inactiveSelectionBackground); 
-            border-radius: var(--border-radius); 
-        }
-        .metadata-row { display: flex; gap: 32px; font-size: 13px; margin-bottom: 4px; }
-        .label { font-weight: 600; color: var(--vscode-descriptionForeground); width: 70px; display: inline-block; text-transform: uppercase; font-size: 11px; }
-        
-        .task-container { display: flex; flex-direction: column; gap: 16px; padding-bottom: 20px; }
-        
-        .task-section { 
-            border: 1px solid var(--vscode-widget-border); 
-            border-radius: var(--border-radius); 
-            overflow: hidden; 
-            background: var(--vscode-editor-background);
-        }
-        
-        .task-header { 
-            padding: 8px 16px; 
-            display: flex; 
-            justify-content: space-between;
-            align-items: center; 
-            border-bottom: 1px solid var(--vscode-widget-border);
-        }
-
-        .header-left { display: flex; align-items: center; gap: 12px; }
-        .header-right { display: flex; align-items: center; gap: 12px; }
-
-        .task-title { font-weight: 600; font-size: 14px; }
-        .task-try { font-size: 11px; color: var(--vscode-descriptionForeground); }
-        
-        .status-indicator {
-            width: 8px; height: 8px; border-radius: 50%;
-            display: inline-block;
-        }
-
-        .status-pill {
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        /* Status Colors */
-        .task-section.status-success .task-header {
-            background-color: var(--vscode-notebook-cellEditorBackground); 
-        }
-        .task-section.status-success .status-indicator {
-            background-color: var(--vscode-testing-iconPassed);
-        }
-        .task-section.status-success .status-pill {
-            background-color: var(--vscode-testing-iconPassed);
-            color: var(--vscode-editor-background);
-        }
-
-        .task-section.status-error .task-header {
-            background-color: rgba(255, 0, 0, 0.1); 
-        }
-        .task-section.status-error .status-indicator {
-            background-color: var(--vscode-errorForeground);
-        }
-        .task-section.status-error .status-pill {
-            background-color: var(--vscode-errorForeground);
-            color: white;
-        }
-
-        .task-section.status-other .task-header {
-            background-color: var(--vscode-sideBarSectionHeader-background);
-        }
-        .task-section.status-other .status-indicator {
-            background-color: var(--vscode-descriptionForeground);
-        }
-        .task-section.status-other .status-pill {
-            background-color: var(--vscode-badge-background);
-            color: var(--vscode-badge-foreground);
-        }
-
-        .log-container { 
-            padding: 16px;
-            max-height: 500px;
-            overflow-y: auto; 
-            font-family: var(--vscode-editor-font-family);
-            font-size: 12px;
-            white-space: pre-wrap;
-            line-height: 1.5;
-        }
-        
-        .log-line { margin-bottom: 2px; }
-        .log-ts { color: var(--vscode-debugConsole-infoForeground); margin-right: 8px; opacity: 0.8; font-size: 0.9em; }
-        .log-lvl { font-weight: bold; margin-right: 8px; }
-        .log-logger { color: var(--vscode-textLink-foreground); margin-right: 8px; }
-        
-        .log-error { color: var(--vscode-errorForeground); }
-        .log-warn { color: var(--vscode-editorWarning-foreground); }
-        
-        .error-detail { 
-            color: var(--vscode-textPreformat-foreground); 
-            background-color: var(--vscode-textBlockQuote-background);
-            padding: 12px;
-            margin: 8px 0 8px 16px;
-            border-left: 3px solid var(--vscode-errorForeground);
-            border-radius: 3px;
-        }
-        .loading-logs { font-style: italic; color: var(--vscode-descriptionForeground); padding: 20px; text-align: center; }
-
-    </style>
-    <title>DAG Logs</title>
-</head>
-<body>
-    <div class="metadata">
-        <div class="metadata-row">
-            <div><span class="label">DAG ID:</span> <span>${this.dagId}</span></div>
-            <div><span class="label">Run ID:</span> <span>${this.dagRunId}</span></div>
-            <div><span class="label">Status:</span> <span>${status}</span></div>
-        </div>
-        <div class="metadata-row">
-            <div><span class="label">Start:</span> <span>${startDate}</span></div>
-            <div><span class="label">End:</span> <span>${endDate}</span></div>
-            <div><span class="label">Duration:</span> <span>${duration}</span></div>
-        </div>
-    </div>
-
-    <div class="task-container">
-        ${taskSections}
-    </div>
-
-    <script>
-        const vscode = acquireVsCodeApi();
-        // Just listener for now if we want to add interactivity later e.g. collapse/expand
-    </script>
-</body>
-</html>`;
-    }
-    _escapeHtml(text) {
-        if (!text)
-            return '';
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return String(text).replace(/[&<>"']/g, m => map[m]);
-    }
-    _setWebviewMessageListener(webview) {
-        webview.onDidReceiveMessage(async (message) => {
-            // No messages expected for now
-        }, undefined, this._disposables);
-    }
-}
-exports.DagLogView = DagLogView;
 
 
 /***/ }),
@@ -15952,6 +15952,79 @@ exports.GoToDagViewTool = GoToDagViewTool;
 "use strict";
 
 /**
+ * GoToDagLogViewTool - Language Model Tool for opening the DAG Log View panel
+ *
+ * This tool allows users to open the DagLogView for a specific DAG,
+ * optionally providing dagRunId, taskId, and tryNumber.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToDagLogViewTool = void 0;
+const vscode = __webpack_require__(1);
+const Session_1 = __webpack_require__(5);
+const DagLogView_1 = __webpack_require__(52);
+/**
+ * GoToDagLogViewTool - Implements vscode.LanguageModelTool for opening DAG Log View
+ *
+ * This tool opens the DagLogView panel to display logs for tasks.
+ */
+class GoToDagLogViewTool {
+    constructor() {
+    }
+    async prepareInvocation(options, token) {
+        const { dagId, dagRunId, taskId, tryNumber } = options.input;
+        let message = `Opening DAG Log View for: **${dagId}**`;
+        if (dagRunId) {
+            message += `\nDAG Run ID: **${dagRunId}**`;
+        }
+        if (taskId) {
+            message += `\nTask ID: **${taskId}**`;
+        }
+        if (tryNumber) {
+            message += `\nTry Number: **${tryNumber}**`;
+        }
+        return {
+            invocationMessage: message
+        };
+    }
+    async invoke(options, token) {
+        const { dagId, dagRunId, taskId, tryNumber } = options.input;
+        try {
+            // Check if API is available
+            if (!Session_1.Session.Current.Api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            // Open the DagLogView with the specified parameters
+            DagLogView_1.DagLogView.render(dagId, dagRunId, taskId, tryNumber);
+            let successMessage = `✅ Opened DAG Log View for: **${dagId}**`;
+            if (dagRunId)
+                successMessage += `, Run: **${dagRunId}**`;
+            if (taskId)
+                successMessage += `, Task: **${taskId}**`;
+            if (tryNumber)
+                successMessage += `, Try: **${tryNumber}**`;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(successMessage)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open DAG Log View for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToDagLogViewTool = GoToDagLogViewTool;
+
+
+/***/ }),
+/* 80 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
  * GoToDagRunHistoryTool - Language Model Tool for opening the DAG Run History view
  *
  * This tool allows users to open the DagRunHistory view with optional filters
@@ -15961,7 +16034,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToDagRunHistoryTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const DagRunView_1 = __webpack_require__(53);
+const DagRunView_1 = __webpack_require__(54);
 /**
  * GoToDagRunHistoryTool - Implements vscode.LanguageModelTool for opening DAG Run History View
  *
@@ -16047,7 +16120,7 @@ exports.GoToDagRunHistoryTool = GoToDagRunHistoryTool;
 
 
 /***/ }),
-/* 80 */
+/* 81 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -16093,7 +16166,7 @@ exports.GoToProvidersViewTool = GoToProvidersViewTool;
 
 
 /***/ }),
-/* 81 */
+/* 82 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -16139,7 +16212,7 @@ exports.GoToConnectionsViewTool = GoToConnectionsViewTool;
 
 
 /***/ }),
-/* 82 */
+/* 83 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -16185,7 +16258,7 @@ exports.GoToVariablesViewTool = GoToVariablesViewTool;
 
 
 /***/ }),
-/* 83 */
+/* 84 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -16231,7 +16304,7 @@ exports.GoToConfigsViewTool = GoToConfigsViewTool;
 
 
 /***/ }),
-/* 84 */
+/* 85 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -16277,7 +16350,7 @@ exports.GoToPluginsViewTool = GoToPluginsViewTool;
 
 
 /***/ }),
-/* 85 */
+/* 86 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -16320,80 +16393,6 @@ class GoToServerHealthViewTool {
     }
 }
 exports.GoToServerHealthViewTool = GoToServerHealthViewTool;
-
-
-/***/ }),
-/* 86 */,
-/* 87 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-/**
- * GoToDagLogViewTool - Language Model Tool for opening the DAG Log View panel
- *
- * This tool allows users to open the DagLogView for a specific DAG,
- * optionally providing dagRunId, taskId, and tryNumber.
- */
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.GoToDagLogViewTool = void 0;
-const vscode = __webpack_require__(1);
-const Session_1 = __webpack_require__(5);
-const DagLogView_1 = __webpack_require__(54);
-/**
- * GoToDagLogViewTool - Implements vscode.LanguageModelTool for opening DAG Log View
- *
- * This tool opens the DagLogView panel to display logs for tasks.
- */
-class GoToDagLogViewTool {
-    constructor() {
-    }
-    async prepareInvocation(options, token) {
-        const { dagId, dagRunId, taskId, tryNumber } = options.input;
-        let message = `Opening DAG Log View for: **${dagId}**`;
-        if (dagRunId) {
-            message += `\nDAG Run ID: **${dagRunId}**`;
-        }
-        if (taskId) {
-            message += `\nTask ID: **${taskId}**`;
-        }
-        if (tryNumber) {
-            message += `\nTry Number: **${tryNumber}**`;
-        }
-        return {
-            invocationMessage: message
-        };
-    }
-    async invoke(options, token) {
-        const { dagId, dagRunId, taskId, tryNumber } = options.input;
-        try {
-            // Check if API is available
-            if (!Session_1.Session.Current.Api) {
-                return new vscode.LanguageModelToolResult([
-                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
-                ]);
-            }
-            // Open the DagLogView with the specified parameters
-            DagLogView_1.DagLogView.render(dagId, dagRunId, taskId, tryNumber);
-            let successMessage = `✅ Opened DAG Log View for: **${dagId}**`;
-            if (dagRunId)
-                successMessage += `, Run: **${dagRunId}**`;
-            if (taskId)
-                successMessage += `, Task: **${taskId}**`;
-            if (tryNumber)
-                successMessage += `, Try: **${tryNumber}**`;
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(successMessage)
-            ]);
-        }
-        catch (error) {
-            return new vscode.LanguageModelToolResult([
-                new vscode.LanguageModelTextPart(`❌ Failed to open DAG Log View for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
-            ]);
-        }
-    }
-}
-exports.GoToDagLogViewTool = GoToDagLogViewTool;
 
 
 /***/ })
@@ -16566,14 +16565,14 @@ const AnalyseDagLatestRunTool_1 = __webpack_require__(75);
 const GetDagHistoryTool_1 = __webpack_require__(76);
 const GetDagRunDetailTool_1 = __webpack_require__(77);
 const GoToDagViewTool_1 = __webpack_require__(78);
-const GoToDagLogViewTool_1 = __webpack_require__(87);
-const GoToDagRunHistoryTool_1 = __webpack_require__(79);
-const GoToProvidersViewTool_1 = __webpack_require__(80);
-const GoToConnectionsViewTool_1 = __webpack_require__(81);
-const GoToVariablesViewTool_1 = __webpack_require__(82);
-const GoToConfigsViewTool_1 = __webpack_require__(83);
-const GoToPluginsViewTool_1 = __webpack_require__(84);
-const GoToServerHealthViewTool_1 = __webpack_require__(85);
+const GoToDagLogViewTool_1 = __webpack_require__(79);
+const GoToDagRunHistoryTool_1 = __webpack_require__(80);
+const GoToProvidersViewTool_1 = __webpack_require__(81);
+const GoToConnectionsViewTool_1 = __webpack_require__(82);
+const GoToVariablesViewTool_1 = __webpack_require__(83);
+const GoToConfigsViewTool_1 = __webpack_require__(84);
+const GoToPluginsViewTool_1 = __webpack_require__(85);
+const GoToServerHealthViewTool_1 = __webpack_require__(86);
 const AIHandler_1 = __webpack_require__(51);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed

@@ -32,18 +32,24 @@ Trigger DAGs, pause/unpause, explore DAG runs, view logs, browse code, and more�
   - See execution details: start date, duration, config, and notes
   - Click on any DAG run to open detailed DagView for analysis
 
+- **New Design & Experience**
+  - **Modern UI**: Completely refreshed design for Admin and Report views with consistent theming
+  - **Smart Log View**: Enhanced log viewer integrated with AI for instant analysis
+  - **Smart Controls**: Context-aware Trigger/Cancel buttons that appear based on DAG state
+  - **Navigation**: Jump to any view using `@airflow` commands
+
 - **AI Airflow Assistant**  
   - Get AI-powered assistance for analyzing DAG logs and troubleshooting issues
   - Click "Ask AI" in the DagView to open the AI chat interface
   - In the Chat, use `@airflow` to ask questions and execute commands like triggering DAGs, pausing/unpausing, checking failed runs, and more
   - AI analyzes DAG code and logs to provide insights and recommendations
   - Integrated with VS Code's native chat interface for seamless interaction
-  - 11 language model tools for intelligent DAG control and monitoring: trigger runs, pause/unpause DAGs, check failed runs, analyze latest DAG execution, view run history, stop running DAGs, and more
+  - 21 language model tools for intelligent DAG control and monitoring: trigger runs, pause/unpause DAGs, check failed runs, analyze latest DAG execution, view run history, stop running DAGs, navigation, and more
   - Use `@airflow` in the chat to access all AI-powered tools
 
 ## 🤖 AI Airflow Assistant Tools & Sample Prompts
 
-The extension provides 11 language model tools that integrate with VS Code's AI chat. Use `@airflow` in the chat to access these tools.
+The extension provides 21 language model tools that integrate with VS Code's AI chat. Use `@airflow` in the chat to access these tools.
 
 ### Control Tools
 
@@ -112,6 +118,13 @@ The extension provides 11 language model tools that integrate with VS Code's AI 
   - `@airflow show disabled dags`
   - `@airflow get all paused dags`
 
+#### Get Running DAGs
+- **Purpose**: List all DAGs that currently have running or queued tasks
+- **Sample Prompts**:
+  - `@airflow get running dags`
+  - `@airflow get active runs`
+  - `@airflow what is running now?`
+
 ### Analysis Tools
 
 #### Analyse DAG Latest Run
@@ -122,12 +135,29 @@ The extension provides 11 language model tools that integrate with VS Code's AI 
   - `@airflow show latest execution details and logs for etl_job_dag`
   - `@airflow what went wrong with my_dag last run`
 
+#### Get DAG Run Detail
+- **Purpose**: Deep dive analysis of a specific DAG run ID
+- **Sample Prompts**:
+  - `@airflow analyze run <run_id> of <dag_id>`
+  - `@airflow get run details for dag_id=my_dag run_id=manual__2023...`
+
 #### AI Chat Analysis
 - **Purpose**: Get AI-powered insights and recommendations using all available tools
 - **Sample Prompts**:
   - `@airflow why is data_pipeline_dag failing? Analyze and show me the logs`
   - `@airflow give me a summary of failed runs and recommend fixes`
   - `@airflow check if my dags are healthy and pause any that keep failing`
+
+### Navigation Tools
+
+#### Open Views
+- **Purpose**: Quickly navigate to any part of the extension using natural language
+- **Sample Prompts**:
+  - `@airflow open log view for my_dag`
+  - `@airflow show me variables`
+  - `@airflow go to connections`
+  - `@airflow open provider list`
+  - `@airflow show server health`
 
 ## 📷 Screenshots
 
