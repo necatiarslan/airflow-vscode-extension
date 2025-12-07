@@ -88,11 +88,11 @@ export class ConfigsView {
                         const value = option.value || 'N/A';
                         
                         tableRows += `
-                        <vscode-table-row>
-                            <vscode-table-cell>${this._escapeHtml(sectionName)}</vscode-table-cell>
-                            <vscode-table-cell>${this._escapeHtml(key)}</vscode-table-cell>
-                            <vscode-table-cell><code>${this._escapeHtml(String(value))}</code></vscode-table-cell>
-                        </vscode-table-row>`;
+                        <tr class="table-row">
+                            <td>${this._escapeHtml(sectionName)}</td>
+                            <td>${this._escapeHtml(key)}</td>
+                            <td><code>${this._escapeHtml(String(value))}</code></td>
+                        </tr>`;
                     }
                 }
             }
@@ -108,30 +108,77 @@ export class ConfigsView {
         <script type="module" src="${mainUri}"></script>
         <link rel="stylesheet" href="${styleUri}">
         <style>
-            body {
-                padding: 16px;
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
             }
-            h2 {
-                margin-top: 0;
-            }
-            .controls {
-                margin-bottom: 16px;
-            }
-            vscode-table {
-                width: 100%;
-                max-height: 600px;
-                overflow-y: auto;
-            }
-            vscode-table-cell {
-                word-wrap: break-word;
-                white-space: normal;
-            }
-            code {
+
+            body { 
+                padding: var(--spacing-md); 
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
                 background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
+            }
+
+            .controls {
+                margin-bottom: var(--spacing-lg);
+            }
+
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+
+            code {
+                background-color: var(--vscode-textBlockQuote-background);
                 color: var(--vscode-editor-foreground);
                 padding: 2px 4px;
                 border-radius: 3px;
                 font-family: monospace;
+                font-size: 11px;
             }
         </style>
         <title>Configs</title>
@@ -142,16 +189,18 @@ export class ConfigsView {
             <vscode-button appearance="secondary" id="refresh-configs">Refresh</vscode-button>
         </div>
         
-        <vscode-table zebra bordered-columns resizable>
-            <vscode-table-header slot="header">
-                <vscode-table-header-cell>Section</vscode-table-header-cell>
-                <vscode-table-header-cell>Key</vscode-table-header-cell>
-                <vscode-table-header-cell>Value</vscode-table-header-cell>
-            </vscode-table-header>
-            <vscode-table-body slot="body">
+        <table>
+            <thead>
+                <tr>
+                    <th>Section</th>
+                    <th>Key</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
             ${tableRows}
-            </vscode-table-body>
-        </vscode-table>
+            </tbody>
+        </table>
       </body>
     </html>
     `;

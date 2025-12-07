@@ -76,7 +76,28 @@ export class ConnectionsView {
         const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
         const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
 
-        const connectionsData = this.connectionsJson ? JSON.stringify(this.connectionsJson, null, 4) : "No connections found";
+        let tableRows = '';
+        if (this.connectionsJson && this.connectionsJson.connections && Array.isArray(this.connectionsJson.connections)) {
+            for (const conn of this.connectionsJson.connections) {
+                const connId = conn.conn_id || 'N/A';
+                const connType = conn.conn_type || 'N/A';
+                const host = conn.host || '';
+                const port = conn.port || '';
+                const schema = conn.schema || '';
+                
+                tableRows += `
+                <tr class="table-row">
+                    <td>${this._escapeHtml(connId)}</td>
+                    <td><span class="tag">${this._escapeHtml(connType)}</span></td>
+                    <td>${this._escapeHtml(host)}</td>
+                    <td>${this._escapeHtml(String(port))}</td>
+                    <td>${this._escapeHtml(schema)}</td>
+                </tr>`;
+            }
+        } else if (this.connectionsJson) {
+             // Fallback if structure is different
+             tableRows = `<tr><td colspan="5"><pre>${JSON.stringify(this.connectionsJson, null, 2)}</pre></td></tr>`;
+        }
 
         const result = /*html*/ `
     <!DOCTYPE html>
@@ -87,18 +108,119 @@ export class ConnectionsView {
         <script type="module" src="${toolkitUri}"></script>
         <script type="module" src="${mainUri}"></script>
         <link rel="stylesheet" href="${styleUri}">
+        <style>
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+            }
+
+            body { 
+                padding: var(--spacing-md); 
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
+            }
+
+            .controls {
+                margin-bottom: var(--spacing-lg);
+            }
+
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+
+            .tag {
+                background-color: var(--vscode-textBlockQuote-background);
+                color: var(--vscode-textBlockQuote-border);
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 11px;
+                border: 1px solid var(--vscode-widget-border);
+            }
+        </style>
         <title>Connections</title>
       </head>
       <body>  
         <h2>Airflow Connections</h2>
-        <vscode-button appearance="secondary" id="refresh-connections">Refresh</vscode-button>
-        <br><br>
-        <pre>${connectionsData}</pre>
+        <div class="controls">
+            <vscode-button appearance="secondary" id="refresh-connections">Refresh</vscode-button>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Conn ID</th>
+                    <th>Type</th>
+                    <th>Host</th>
+                    <th>Port</th>
+                    <th>Schema</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tableRows || '<tr><td colspan="5" style="text-align:center; padding: 20px; opacity: 0.7;">No connections found</td></tr>'}
+            </tbody>
+        </table>
       </body>
     </html>
     `;
 
         return result;
+    }
+
+    private _escapeHtml(text: string): string {
+        if (!text) return '';
+        const map: { [key: string]: string } = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
     }
 
     private _setWebviewMessageListener(webview: vscode.Webview) {

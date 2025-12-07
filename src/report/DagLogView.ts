@@ -246,16 +246,42 @@ export class DagLogView {
     <script type="module" src="${mainUri}"></script>
     <link rel="stylesheet" href="${styleUri}">
     <style>
-        body { padding: 16px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); }
-        .metadata { margin-bottom: 24px; padding: 16px; background: var(--vscode-editor-inactiveSelectionBackground); border-radius: 6px; }
-        .metadata-row { display: flex; gap: 32px; font-size: 13px; font-family: var(--vscode-font-family); margin-bottom: 4px; }
-        .label { font-weight: 600; color: var(--vscode-descriptionForeground); width: 70px; display: inline-block; }
+        :root {
+            --font-size-sm: 12px;
+            --font-size-md: 13px;
+            --font-size-lg: 15px;
+            --border-radius: 4px;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+        }
+
+        body { 
+            padding: var(--spacing-md); 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            box-sizing: border-box; 
+            background: var(--vscode-editor-background); 
+            color: var(--vscode-editor-foreground);
+            font-family: var(--vscode-font-family);
+        }
+
+        .metadata { 
+            margin-bottom: var(--spacing-lg); 
+            padding: var(--spacing-md); 
+            background: var(--vscode-editor-inactiveSelectionBackground); 
+            border-radius: var(--border-radius); 
+        }
+        .metadata-row { display: flex; gap: 32px; font-size: 13px; margin-bottom: 4px; }
+        .label { font-weight: 600; color: var(--vscode-descriptionForeground); width: 70px; display: inline-block; text-transform: uppercase; font-size: 11px; }
         
         .task-container { display: flex; flex-direction: column; gap: 16px; padding-bottom: 20px; }
         
         .task-section { 
             border: 1px solid var(--vscode-widget-border); 
-            border-radius: 6px; 
+            border-radius: var(--border-radius); 
             overflow: hidden; 
             background: var(--vscode-editor-background);
         }
@@ -265,7 +291,6 @@ export class DagLogView {
             display: flex; 
             justify-content: space-between;
             align-items: center; 
-            font-family: var(--vscode-font-family);
             border-bottom: 1px solid var(--vscode-widget-border);
         }
 
@@ -273,7 +298,7 @@ export class DagLogView {
         .header-right { display: flex; align-items: center; gap: 12px; }
 
         .task-title { font-weight: 600; font-size: 14px; }
-        .task-try { font-size: 12px; opacity: 0.8; }
+        .task-try { font-size: 11px; color: var(--vscode-descriptionForeground); }
         
         .status-indicator {
             width: 8px; height: 8px; border-radius: 50%;
@@ -283,14 +308,14 @@ export class DagLogView {
         .status-pill {
             padding: 2px 8px;
             border-radius: 10px;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
             text-transform: uppercase;
         }
 
         /* Status Colors */
         .task-section.status-success .task-header {
-            background-color: var(--vscode-diffEditor-insertedLineBackground); 
+            background-color: var(--vscode-notebook-cellEditorBackground); 
         }
         .task-section.status-success .status-indicator {
             background-color: var(--vscode-testing-iconPassed);
@@ -301,7 +326,7 @@ export class DagLogView {
         }
 
         .task-section.status-error .task-header {
-            background-color: var(--vscode-diffEditor-removedLineBackground);
+            background-color: rgba(255, 0, 0, 0.1); 
         }
         .task-section.status-error .status-indicator {
             background-color: var(--vscode-errorForeground);

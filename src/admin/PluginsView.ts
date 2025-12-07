@@ -86,12 +86,12 @@ export class PluginsView {
                 const macros = plugin.macros && plugin.macros.length > 0 ? plugin.macros.map((m: any) => m.name).join(', ') : 'None';
                 
                 tableRows += `
-                <vscode-table-row>
-                    <vscode-table-cell>${this._escapeHtml(name)}</vscode-table-cell>
-                    <vscode-table-cell>${this._escapeHtml(hooks)}</vscode-table-cell>
-                    <vscode-table-cell>${this._escapeHtml(executors)}</vscode-table-cell>
-                    <vscode-table-cell>${this._escapeHtml(macros)}</vscode-table-cell>
-                </vscode-table-row>`;
+                <tr class="table-row">
+                    <td>${this._escapeHtml(name)}</td>
+                    <td>${this._escapeHtml(hooks)}</td>
+                    <td>${this._escapeHtml(executors)}</td>
+                    <td>${this._escapeHtml(macros)}</td>
+                </tr>`;
             }
         }
 
@@ -105,23 +105,68 @@ export class PluginsView {
         <script type="module" src="${mainUri}"></script>
         <link rel="stylesheet" href="${styleUri}">
         <style>
-            body {
-                padding: 16px;
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
             }
+
+            body { 
+                padding: var(--spacing-md); 
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+            }
+
             h2 {
-                margin-top: 0;
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
             }
+
             .controls {
-                margin-bottom: 16px;
+                margin-bottom: var(--spacing-lg);
             }
-            vscode-table {
+
+            table {
                 width: 100%;
-                max-height: 600px;
-                overflow-y: auto;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
             }
-            vscode-table-cell {
-                word-wrap: break-word;
-                white-space: normal;
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
             }
         </style>
         <title>Plugins</title>
@@ -132,17 +177,19 @@ export class PluginsView {
             <vscode-button appearance="secondary" id="refresh-plugins">Refresh</vscode-button>
         </div>
         
-        <vscode-table zebra bordered-columns resizable>
-            <vscode-table-header slot="header">
-                <vscode-table-header-cell>Name</vscode-table-header-cell>
-                <vscode-table-header-cell>Hooks</vscode-table-header-cell>
-                <vscode-table-header-cell>Executors</vscode-table-header-cell>
-                <vscode-table-header-cell>Macros</vscode-table-header-cell>
-            </vscode-table-header>
-            <vscode-table-body slot="body">
-            ${tableRows}
-            </vscode-table-body>
-        </vscode-table>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Hooks</th>
+                    <th>Executors</th>
+                    <th>Macros</th>
+                </tr>
+            </thead>
+            <tbody>
+            ${tableRows || '<tr><td colspan="4" style="text-align:center; padding: 20px; opacity: 0.7;">No plugins found</td></tr>'}
+            </tbody>
+        </table>
       </body>
     </html>
     `;

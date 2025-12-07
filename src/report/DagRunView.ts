@@ -116,15 +116,6 @@ export class DagRunView {
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
         ui.logToOutput('DagRunView._getWebviewContent Started');
 
-        const elementsUri = ui.getUri(webview, extensionUri, [
-            "node_modules",
-            "@vscode-elements",
-            "elements",
-            "dist",
-            "bundled.js",
-        ]);
-
-        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
         const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
 
         // Filter DAG runs based on selected status
@@ -150,20 +141,25 @@ export class DagRunView {
             const note = run.note || '';
             const dagRunId = run.dag_run_id || '';
 
-            const statusEmoji = this._getStatusEmoji(status);
-
             tableRows += `
-            <vscode-table-row>
-                <vscode-table-cell><a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-link">${this._escapeHtml(dagId)}</a></vscode-table-cell>
-                <vscode-table-cell>
-                    ${statusEmoji} ${this._escapeHtml(status)} 
-                    <a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-log-link" title="View Logs">Logs</a>
-                </vscode-table-cell>
-                <vscode-table-cell>${this._escapeHtml(startDate)}</vscode-table-cell>
-                <vscode-table-cell>${this._escapeHtml(duration)}</vscode-table-cell>
-                <vscode-table-cell><code>${this._escapeHtml(config.substring(0, 50))}${config.length > 50 ? '...' : ''}</code></vscode-table-cell>
-                <vscode-table-cell>${this._escapeHtml(note)}</vscode-table-cell>
-            </vscode-table-row>`;
+            <tr class="table-row">
+                <td><a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-link">${this._escapeHtml(dagId)}</a></td>
+                <td>
+                    <div style="display: flex; align-items: center;">
+                        <div class="state-indicator state-${status}" title="${this._escapeHtml(status)}"></div>
+                        <span>${this._escapeHtml(status)}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="action-links">
+                        <a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-log-link link-button">Logs</a>
+                    </div>
+                </td>
+                <td>${this._escapeHtml(startDate)}</td>
+                <td><span class="duration-badge">${this._escapeHtml(duration)}</span></td>
+                <td><div class="code-block" style="max-height: 50px; overflow: hidden; font-size: 11px;">${this._escapeHtml(config)}</div></td>
+                <td>${this._escapeHtml(note)}</td>
+            </tr>`;
         });
 
         // Build dag_id filter options
@@ -177,22 +173,45 @@ export class DagRunView {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width,initial-scale=1.0">
-        <script type="module" src="${elementsUri}"></script>
-        <script type="module" src="${mainUri}"></script>
         <link rel="stylesheet" href="${styleUri}">
         <style>
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+            }
+
             body {
-                padding: 16px;
+                padding: var(--spacing-md);
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
             }
+
             h2 {
-                margin-top: 0;
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
             }
+
+            /* Filters */
             .filters {
                 display: flex;
-                gap: 12px;
-                margin-bottom: 16px;
+                gap: var(--spacing-md);
+                margin-bottom: var(--spacing-lg);
                 flex-wrap: wrap;
-                align-items: center;
+                align-items: flex-end;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                padding: var(--spacing-md);
+                border-radius: var(--border-radius);
             }
             .filter-group {
                 display: flex;
@@ -200,10 +219,10 @@ export class DagRunView {
                 gap: 4px;
             }
             .filter-group label {
-                font-size: 12px;
+                font-size: 11px;
                 font-weight: 600;
                 text-transform: uppercase;
-                opacity: 0.8;
+                color: var(--vscode-descriptionForeground);
             }
             .filter-group select,
             .filter-group input {
@@ -213,27 +232,65 @@ export class DagRunView {
                 color: var(--vscode-input-foreground);
                 border-radius: 4px;
                 font-size: 13px;
+                min-width: 150px;
             }
-            vscode-table {
+
+            /* Tables */
+            table {
                 width: 100%;
-                max-height: 600px;
-                overflow-y: auto;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
             }
-            vscode-table-cell {
-                word-wrap: break-word;
-                white-space: normal;
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
             }
-            vscode-table-cell:first-child {
-                white-space: nowrap;
-            }
-            code {
-                background-color: var(--vscode-editor-background);
-                color: var(--vscode-editor-foreground);
-                padding: 2px 4px;
-                border-radius: 3px;
-                font-family: monospace;
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
                 font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
             }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+
+            /* States */
+            .state-indicator {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                margin-right: 8px;
+                display: inline-block;
+            }
+            /* Add state-specific colors here if standard style.css doesn't cover them all, 
+               but assuming style.css has .state-* classes or DagView style block logic is global enough?
+               Actually DagView styles were inline in the file. I need to include them or rely on style.css.
+               Assuming style.css handles basic colors, but let's add the indicator styles to be safe 
+               since they were in DagView's style block. */
+            
+            .state-success { background-color: var(--vscode-testing-iconPassed); }
+            .state-failed { background-color: var(--vscode-errorForeground); }
+            .state-running { background-color: var(--vscode-charts-blue); }
+            .state-queued { background-color: var(--vscode-charts-yellow); }
+            .state-upstream_failed { background-color: var(--vscode-charts-orange); }
+            .state-skipped { background-color: var(--vscode-disabledForeground); }
+            .state-deferred { background-color: var(--vscode-charts-purple); }
+
             a {
                 color: var(--vscode-textLink-foreground);
                 text-decoration: none;
@@ -241,6 +298,20 @@ export class DagRunView {
             }
             a:hover {
                 text-decoration: underline;
+                color: var(--vscode-textLink-activeForeground);
+            }
+
+            .duration-badge {
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                opacity: 0.8;
+            }
+
+            .code-block {
+                font-family: var(--vscode-editor-font-family);
+                background-color: var(--vscode-textBlockQuote-background);
+                padding: 4px;
+                border-radius: 4px;
             }
         </style>
         <title>DAG Run History</title>
@@ -276,19 +347,22 @@ export class DagRunView {
             </div>
         </div>
         
-        <vscode-table zebra bordered-columns resizable>
-            <vscode-table-header slot="header">
-                <vscode-table-header-cell>DAG ID</vscode-table-header-cell>
-                <vscode-table-header-cell>Status</vscode-table-header-cell>
-                <vscode-table-header-cell>Start Date</vscode-table-header-cell>
-                <vscode-table-header-cell>Duration</vscode-table-header-cell>
-                <vscode-table-header-cell>Config</vscode-table-header-cell>
-                <vscode-table-header-cell>Note</vscode-table-header-cell>
-            </vscode-table-header>
-            <vscode-table-body slot="body">
-            ${tableRows || '<vscode-table-row><vscode-table-cell colspan="6">No runs found for the selected filters</vscode-table-cell></vscode-table-row>'}        
-            </vscode-table-body>
-        </vscode-table>
+        <table>
+            <thead>
+                <tr>
+                    <th>DAG ID</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                    <th>Start Date</th>
+                    <th>Duration</th>
+                    <th>Config</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+            ${tableRows || '<tr><td colspan="7" style="text-align:center; padding: 20px; opacity: 0.7;">No runs found for the selected filters</td></tr>'}        
+            </tbody>
+        </table>
 
         <script>
             const vscode = acquireVsCodeApi();
@@ -313,8 +387,10 @@ export class DagRunView {
             document.querySelectorAll('.dag-link').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const dagId = e.target.getAttribute('data-dag-id');
-                    const dagRunId = e.target.getAttribute('data-dag-run-id');
+                    // Handle clicks on child elements
+                    const target = e.target.closest('a') || e.target;
+                    const dagId = target.getAttribute('data-dag-id');
+                    const dagRunId = target.getAttribute('data-dag-run-id');
                     vscode.postMessage({ command: 'open-dag-view', dagId, dagRunId });
                 });
             });
@@ -323,8 +399,9 @@ export class DagRunView {
             document.querySelectorAll('.dag-log-link').forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
-                    const dagId = e.target.getAttribute('data-dag-id');
-                    const dagRunId = e.target.getAttribute('data-dag-run-id');
+                    const target = e.target.closest('a') || e.target;
+                    const dagId = target.getAttribute('data-dag-id');
+                    const dagRunId = target.getAttribute('data-dag-run-id');
                     vscode.postMessage({ command: 'view-dag-log', dagId, dagRunId });
                 });
             });

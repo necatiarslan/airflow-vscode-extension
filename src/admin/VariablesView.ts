@@ -79,28 +79,17 @@ export class VariablesView {
 
         // Build table rows from variables data
         let tableRows = '';
-        if (this.variablesJson) {
-            // tableRows = this.variablesJson.map((variable: any) => {
-            //     const key = variable.key || 'N/A';
-            //     const value = variable.val || 'N/A';
-            //     const description = variable.description || '';
-            //     return `
-            //     <vscode-table-row>
-            //         <vscode-table-cell>${this._escapeHtml(key)}</vscode-table-cell>
-            //         <vscode-table-cell><code>${this._escapeHtml(value)}</code></vscode-table-cell>
-            //         <vscode-table-cell>${this._escapeHtml(description)}</vscode-table-cell>
-            //     </vscode-table-row>`;
-            // }).join('');
+        if (this.variablesJson && this.variablesJson.variables) {
             for (const variable of this.variablesJson.variables) {
                 const key = variable.key || 'N/A';
                 const value = variable.val || 'N/A';
                 const description = variable.description || '';
                 tableRows += `
-                <vscode-table-row>
-                    <vscode-table-cell>${this._escapeHtml(key)}</vscode-table-cell>
-                    <vscode-table-cell><code>${this._escapeHtml(value)}</code></vscode-table-cell>
-                    <vscode-table-cell>${this._escapeHtml(description)}</vscode-table-cell>
-                </vscode-table-row>`;
+                <tr class="table-row">
+                    <td>${this._escapeHtml(key)}</td>
+                    <td><code>${this._escapeHtml(value)}</code></td>
+                    <td>${this._escapeHtml(description)}</td>
+                </tr>`;
             }
         }
 
@@ -114,30 +103,77 @@ export class VariablesView {
         <script type="module" src="${mainUri}"></script>
         <link rel="stylesheet" href="${styleUri}">
         <style>
-            body {
-                padding: 16px;
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
             }
-            h2 {
-                margin-top: 0;
-            }
-            .controls {
-                margin-bottom: 16px;
-            }
-            vscode-table {
-                width: 100%;
-                max-height: 600px;
-                overflow-y: auto;
-            }
-            vscode-table-cell {
-                word-wrap: break-word;
-                white-space: normal;
-            }
-            code {
+
+            body { 
+                padding: var(--spacing-md); 
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
                 background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
+            }
+
+            .controls {
+                margin-bottom: var(--spacing-lg);
+            }
+
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+
+            code {
+                background-color: var(--vscode-textBlockQuote-background);
                 color: var(--vscode-editor-foreground);
                 padding: 2px 4px;
                 border-radius: 3px;
                 font-family: monospace;
+                font-size: 11px;
             }
         </style>
         <title>Variables</title>
@@ -148,16 +184,18 @@ export class VariablesView {
             <vscode-button appearance="secondary" id="refresh-variables">Refresh</vscode-button>
         </div>
         
-        <vscode-table zebra bordered-columns resizable>
-            <vscode-table-header slot="header">
-                <vscode-table-header-cell>Key</vscode-table-header-cell>
-                <vscode-table-header-cell>Value</vscode-table-header-cell>
-                <vscode-table-header-cell>Description</vscode-table-header-cell>
-            </vscode-table-header>
-            <vscode-table-body slot="body">
-            ${tableRows}
-            </vscode-table-body>
-        </vscode-table>
+        <table>
+            <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Value</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+            ${tableRows || '<tr><td colspan="3" style="text-align:center; padding: 20px; opacity: 0.7;">No variables found</td></tr>'}
+            </tbody>
+        </table>
       </body>
     </html>
     `;

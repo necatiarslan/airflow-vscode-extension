@@ -68,32 +68,54 @@ function main() {
     }
 
     // Handle link clicks with preventDefault
-    if (target.tagName === "A") {
+    const linkTarget = target.closest('a');
+    if (linkTarget) {
+      const linkId = linkTarget.id;
+
       // Update note link
-      if (targetId === "run-update-note-link") {
+      if (linkId === "run-update-note-link") {
         e.preventDefault();
         runUpdateNoteClicked(e);
         return;
       }
 
       // History DAG run links
-      if (targetId && targetId.startsWith("history-dag-run-id")) {
+      if (linkId && linkId.startsWith("history-dag-run-id")) {
         e.preventDefault();
-        dagRunHistoryLinkClicked(e);
+        // Use linkTarget.id instead of e.target.id inside the handler or pass the link element
+        // But dagRunHistoryLinkClicked uses e.target.id. We should update it or fake the event?
+        // Better to update the handler or pass the id explicitly.
+        // Let's pass the element or update event target? We can't update event target.
+        // We can call a modified function or pass explicit ID.
+        // dagRunHistoryLinkClicked reads e.target.id.
+        // Let's modify the calls here to pass the ID.
+        vscode.postMessage({
+          command: "history-dag-run-id",
+          activetabid: getActiveTabId(),
+          id: linkId,
+        });
         return;
       }
 
       // Task log links
-      if (targetId && targetId.startsWith("task-log-link-")) {
+      if (linkId && linkId.startsWith("task-log-link-")) {
         e.preventDefault();
-        taskLogLinkClicked(e);
+        vscode.postMessage({
+          command: "task-log-link",
+          activetabid: getActiveTabId(),
+          id: linkId,
+        });
         return;
       }
 
       // Task XCom links
-      if (targetId && targetId.startsWith("task-xcom-link-")) {
+      if (linkId && linkId.startsWith("task-xcom-link-")) {
         e.preventDefault();
-        taskXComLinkClicked(e);
+        vscode.postMessage({
+          command: "task-xcom-link",
+          activetabid: getActiveTabId(),
+          id: linkId,
+        });
         return;
       }
     }

@@ -482,7 +482,7 @@ export class AirflowApi {
             const data = await response.json();
             
             if (response.status === 200) {
-                ui.showInfoMessage('DAG run note updated successfully');
+                //ui.showInfoMessage('DAG run note updated successfully');
                 result.result = data;
                 result.isSuccessful = true;
             } else {

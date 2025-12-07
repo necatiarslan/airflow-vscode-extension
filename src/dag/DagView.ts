@@ -249,7 +249,7 @@ export class DagView {
             for (const t of this.dagTaskInstancesJson["task_instances"]) {
                 if(t.state === "running" || t.state === "failed" || t.state === "up_for_retry" || t.state === "up_for_reschedule" || t.state === "deferred")
                 {
-                    runningOrFailedTasks += t.task_id + ", " ;
+                    runningOrFailedTasks += `<span class="task-tag state-${t.state}">${t.task_id}</span> `;
                 }
             }
         }
@@ -258,7 +258,7 @@ export class DagView {
         let owners = (this.dagJson && Array.isArray(this.dagJson["owners"])) ? this.dagJson["owners"].join(", ") : "";
         let tags: string = "";
         if (this.dagJson && Array.isArray(this.dagJson["tags"])) {
-            this.dagJson["tags"].forEach((item: any) => { tags += item.name + ", "; });
+            this.dagJson["tags"].forEach((item: any) => { tags += `<span class="tag">${item.name}</span> `; });
         }
         let schedule = (this.dagJson && this.dagJson["timetable_description"]) ? this.dagJson["timetable_description"] + " - " + this.dagJson["timetable_summary"]: "";
         let next_run = (this.dagJson && this.dagJson["next_dagrun_data_interval_start"]) ? ui.toISODateTimeString(new Date(this.dagJson["next_dagrun_data_interval_start"])) : "None";
@@ -270,19 +270,21 @@ export class DagView {
         if (this.dagTaskInstancesJson) {
             for (const t of this.dagTaskInstancesJson["task_instances"].sort((a: any, b: any) => (a.start_date > b.start_date) ? 1 : -1)) {
                 taskRows += `
-                <tr>
+                <tr class="table-row">
                     <td>
                         <div style="display: flex; align-items: center;">
-                            <div class="state-${t.state}" title="${t.state}" ></div>
-                            &nbsp; ${t.task_id} (${t.try_number})
+                            <div class="state-indicator state-${t.state}" title="${t.state}" ></div>
+                            <span class="task-name">${t.task_id}</span> <span class="try-number">(${t.try_number})</span>
                         </div>
                     </td>
                     <td>
-                        <a href="#" id="task-log-link-${t.task_id}">Logs</a> | 
-                        <a href="#" id="task-xcom-link-${t.task_id}">XComs</a>
+                        <div class="action-links">
+                            <a href="#" class="link-button" id="task-log-link-${t.task_id}">Logs</a>
+                            <a href="#" class="link-button" id="task-xcom-link-${t.task_id}">XComs</a>
+                        </div>
                     </td>
-                    <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
-                    <td>${t.operator}</td>
+                    <td><span class="duration-badge">${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</span></td>
+                    <td class="operator-type">${t.operator}</td>
                 </tr>
                 `;
             }
@@ -299,16 +301,16 @@ export class DagView {
         if (this.dagRunHistoryJson) {
             for (const t of this.dagRunHistoryJson["dag_runs"]) {
                 runHistoryRows += `
-                <tr>
+                <tr class="table-row">
                     <td>
                         <div style="display: flex; align-items: center;">
-                            <div class="state-${t.state}" title="${t.state}"></div>
-                            &nbsp; ${t.state}
+                            <div class="state-indicator state-${t.state}" title="${t.state}"></div>
+                            <span class="state-text">${t.state}</span>
                         </div>
                     </td>
-                    <td><a href="#" id="history-dag-run-id-${t.dag_run_id}">${ui.toISODateTimeString(new Date(t.start_date))}</a></td>
-                    <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
-                    <td>${t.note}</td>
+                    <td><a href="#" class="history-link" id="history-dag-run-id-${t.dag_run_id}">${ui.toISODateTimeString(new Date(t.start_date))}</a></td>
+                    <td><span class="duration-badge">${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</span></td>
+                    <td><span class="note-text">${t.note || ''}</span></td>
                 </tr>
                 `;
             }
@@ -325,29 +327,223 @@ export class DagView {
         <script type="module" src="${mainUri}"></script>
         <link rel="stylesheet" href="${styleUri}">
         <style>
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+            }
+
+            body {
+                padding: var(--spacing-md);
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+            }
+
+            a {
+                color: var(--vscode-textLink-foreground);
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+                color: var(--vscode-textLink-activeForeground);
+            }
+
+            /* Header Section */
+            .header-container {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-md);
+                margin-bottom: var(--spacing-lg);
+                padding-bottom: var(--spacing-md);
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            .dag-paused-indicator {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+            }
+            .dag-paused-true { background-color: var(--vscode-disabledForeground); }
+            .dag-paused-false { background-color: var(--vscode-testing-iconPassed); }
+
+            /* Tabs */
+            vscode-tabs {
+                border-radius: var(--border-radius);
+            }
+
+            section {
+                padding: 20px 0;
+            }
+
+            /* Tables */
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+            }
+            
+            th.section-header {
+                font-size: 13px;
+                color: var(--vscode-editor-foreground);
+                background-color: transparent;
+                border-bottom: 2px solid var(--vscode-button-background);
+                padding-bottom: 8px;
+                padding-left: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+
+            /* Detail Layouts */
+            .detail-row td:first-child {
+                width: 120px;
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+            }
+            .detail-row td:nth-child(2) {
+                width: 20px;
+                text-align: center;
+                color: var(--vscode-descriptionForeground);
+            }
+
+            /* States & Badges */
+            .state-indicator {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                margin-right: 8px;
+                display: inline-block;
+            }
+            /* Map existing state classes to colors if possible, or assume external CSS handles it */
+            
+            .task-tag {
+                display: inline-block;
+                padding: 2px 8px;
+                background-color: var(--vscode-badge-background);
+                color: var(--vscode-badge-foreground);
+                border-radius: 12px;
+                font-size: 11px;
+                margin-right: 4px;
+                margin-bottom: 4px;
+            }
+
+            .tag {
+                background-color: var(--vscode-textBlockQuote-background);
+                color: var(--vscode-textBlockQuote-border);
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 12px;
+                border: 1px solid var(--vscode-widget-border);
+            }
+
+            .duration-badge {
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                opacity: 0.8;
+            }
+
+            .operator-type {
+                font-style: italic;
+                color: var(--vscode-descriptionForeground);
+            }
+
+            .try-number {
+                font-size: 11px;
+                color: var(--vscode-descriptionForeground);
+                margin-left: 4px;
+            }
+
+            .action-links {
+                display: flex;
+                gap: 12px;
+            }
+
+            .link-button {
+                font-size: 12px;
+            }
+
+            /* Inputs */
+            input[type="date"], vscode-textfield, vscode-textarea {
+                width: 100%;
+                box-sizing: border-box;
+                font-family: inherit;
+            }
             input[type="date"] {
-                padding: 6px 8px;
+                padding: 6px;
                 border: 1px solid var(--vscode-input-border);
                 background-color: var(--vscode-input-background);
                 color: var(--vscode-input-foreground);
-                border-radius: 4px;
-                font-size: 13px;
+                border-radius: 2px;
             }
+
+            vscode-button {
+                margin-right: 8px;
+            }
+            
+            /* Utils */
+            .mt-md { margin-top: var(--spacing-md); }
+            .mb-md { margin-bottom: var(--spacing-md); }
+
+            /* Code block for JSON/Config */
+            .code-block {
+                font-family: var(--vscode-editor-font-family);
+                background-color: var(--vscode-textBlockQuote-background);
+                padding: 8px;
+                border-radius: 4px;
+                white-space: pre-wrap;
+                font-size: 12px;
+                max-height: 200px;
+                overflow-y: auto;
+            }
+
         </style>
         <title>DAG</title>
       </head>
       <body>  
 
-
-        <div style="display: flex; align-items: center;">
-            <div class="dag-paused-${isPausedText}"></div>
-            &nbsp; &nbsp; <h2>${this.dagId}</h2>
+        <div class="header-container">
+            <div class="dag-paused-indicator dag-paused-${isPausedText}"></div>
+            <h2>${this.dagId}</h2>
             <div style="visibility: ${isDagRunning ? "visible" : "hidden"}; display: flex; align-items: center;">
-            &nbsp; &nbsp; <vscode-progress-ring></vscode-progress-ring>
+                <vscode-progress-ring></vscode-progress-ring>
             </div>
         </div>
                     
-
         <vscode-tabs id="tab-control" selected-index="${this.activetabid === 'tab-1' ? 0 : this.activetabid === 'tab-2' ? 1 : this.activetabid === 'tab-3' ? 2 : 3}">
             <vscode-tab-header slot="header">RUN</vscode-tab-header>
             <vscode-tab-header slot="header">TASKS</vscode-tab-header>
@@ -355,241 +551,187 @@ export class DagView {
             <vscode-tab-header slot="header">HISTORY</vscode-tab-header>
             
             <vscode-tab-panel>
-                
-            <section>
-
-                    <table class="dag-run-details-table">
+                <section>
+                    <table>
                         <tr>
-                            <th colspan=3>Dag Run Details</th>
+                            <th colspan="3" class="section-header">Dag Run Details</th>
                         </tr>
-                        <tr>
+                        <tr class="detail-row">
                             <td>State</td>
                             <td>:</td>
                             <td>
                                 <div style="display: flex; align-items: center;">
-                                    <div class="state-${state}"></div> &nbsp; ${state}
+                                    <div class="state-indicator state-${state}"></div> <span>${state}</span>
                                 </div>
                             </td>
                         </tr>
-                        <tr>
+                        <tr class="detail-row">
                             <td>Tasks</td>
                             <td>:</td>
-                            <td>${runningOrFailedTasks}</td>
+                            <td>${runningOrFailedTasks || '<span style="opacity:0.5">None active</span>'}</td>
                         </tr>
-                        <tr>
+                        <tr class="detail-row">
                             <td>Logical Date</td>
                             <td>:</td>
                             <td>${logical_date_string}</td>
                         </tr>
-                        <tr>
+                        <tr class="detail-row">
                             <td>StartDate</td>
                             <td>:</td>
                             <td>${start_date_string}</td>
                         </tr>
-                        <tr>
+                        <tr class="detail-row">
                             <td>Duration</td>
                             <td>:</td>
                             <td>${duration}</td>
                         </tr>
-                        <tr>
+                        <tr class="detail-row">
                             <td>Note</td>
                             <td>:</td>
-                            <td><a href="#" id="run-update-note-link" title="Update Note">${this.dagRunJson?.note || '(No note)'}</a></td>
+                            <td><a href="#" id="run-update-note-link" title="Click to update note">${this.dagRunJson?.note || '<span style="opacity:0.5; font-style:italic;">Add a note...</span>'}</a></td>
                         </tr>
-                        <tr>
+                        <tr class="detail-row">
                             <td>Config</td>
                             <td>:</td>
-                            <td>${this.dagRunJson?.conf ? JSON.stringify(this.dagRunJson.conf, null, 2) : '(No config)'}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="3">
-                                <vscode-button appearance="secondary" id="run-ask-ai" ${!hasDagRun ? "disabled" : ""}>Ask AI</vscode-button>    
-                                <vscode-button appearance="secondary" id="run-view-log" ${!hasDagRun ? "disabled" : ""}>Log</vscode-button> 
-                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>  
-                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagRun ? "disabled" : ""}>More</vscode-button>
-                            </td>
+                            <td><div class="code-block">${this.dagRunJson?.conf ? JSON.stringify(this.dagRunJson.conf, null, 2) : '{}'}</div></td>
                         </tr>
                     </table>
+                    
+                    <div class="mb-md">
+                        <vscode-button appearance="secondary" id="run-ask-ai" ${!hasDagRun ? "disabled" : ""}>Ask AI</vscode-button>    
+                        <vscode-button appearance="secondary" id="run-view-log" ${!hasDagRun ? "disabled" : ""}>Log</vscode-button> 
+                        <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>  
+                        <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagRun ? "disabled" : ""}>More</vscode-button>
+                    </div>
             
                     <br>
             
                     <table>
                         <tr>
-                            <th colspan="3">Trigger</th>
+                            <th colspan="3" class="section-header">Trigger Run</th>
                         </tr>
-                        <tr>
+                        <tr class="detail-row">
                             <td>Logical Date</td>
                             <td>:</td>
-                            <td><vscode-textfield id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10" pattern="\d{4}-\d{2}-\d{2}"></vscode-textfield></td>
+                            <td><vscode-textfield id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10"></vscode-textfield></td>
                         </tr>
-                        <tr>
+                        <tr class="detail-row">
                             <td>Config</td>
                             <td>:</td>
-                            <td><vscode-textarea id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-textarea></td>
-                        </tr>
-                        <tr>           
-                            <td colspan="3">
-                            <vscode-button appearance="secondary" id="run-trigger-dag" ${isPaused ? "disabled" : ""}>Run</vscode-button>
-                            <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>  
-                            </td>
+                            <td><vscode-textarea id="run_config" rows="3" placeholder='{"key": "value"}'></vscode-textarea></td>
                         </tr>
                     </table>
-
-                    <br>
-
-                    <table>
-                        <tr>
-                            <th colspan="3">
-                            <vscode-button appearance="secondary" id="run-pause-dag" ${isPaused ? "disabled" : ""}>
-                            Pause
-                            </vscode-button>
-                            <vscode-button appearance="secondary" id="run-unpause-dag" ${!isPaused ? "disabled" : ""}>
-                            Un Pause
-                            </vscode-button>
-                            </th>
-                        </tr>
-                    </table>
-
-                    <br>
-                    <br>
-                    <br>
                     
+                    <div class="mb-md">
+                        <vscode-button appearance="primary" id="run-trigger-dag" ${isPaused ? "disabled" : ""}>Run</vscode-button>
+                        <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>  
+                    </div>
+
+                    <br>
+
                     <table>
                         <tr>
-                            <td colspan="3">
-                                <a href="https://github.com/necatiarslan/airflow-vscode-extension/issues/new">Bug Report & Feature Request</a>
-                            </td>
+                            <th colspan="3" class="section-header">Control</th>
                         </tr>
                     </table>
-                    <table>
-                        <tr>
-                            <td colspan="3">
-                                <a href="https://bit.ly/airflow-extension-survey">New Feature Survey</a>
-                            </td>
-                        </tr>
-                    </table>
-                    <table>
-                        <tr>
-                            <td colspan="3">
-                                <a href="https://github.com/sponsors/necatiarslan">Donate to support this extension</a>
-                            </td>
-                        </tr>
-                    </table>
-            </section>
+                    <div class="mb-md">
+                         <vscode-button appearance="secondary" id="run-pause-dag" ${isPaused ? "disabled" : ""}>Pause</vscode-button>
+                         <vscode-button appearance="secondary" id="run-unpause-dag" ${!isPaused ? "disabled" : ""}>Unpause</vscode-button>
+                    </div>
+
+                    <br><br>
+                    
+                    <div style="opacity: 0.7; font-size: 12px; margin-top: 40px; border-top: 1px solid var(--vscode-widget-border); padding-top: 20px;">
+                        <div style="margin-bottom: 8px;"><a href="https://github.com/necatiarslan/airflow-vscode-extension/issues/new">Report Bug / Request Feature</a></div>
+                        <div style="margin-bottom: 8px;"><a href="https://bit.ly/airflow-extension-survey">New Feature Survey</a></div>
+                        <div><a href="https://github.com/sponsors/necatiarslan">Support this extension</a></div>
+                    </div>
+                </section>
             </vscode-tab-panel>
 
 
             <vscode-tab-panel>
-
-            <section>
-
+                <section>
                     ${taskDependencyTree ? `
-                    <table>
-                        <tr>
-                            <th>Task Dependencies</th>
-                        </tr>
-                        <tr>
-                            <td>
-                                <vscode-tree>
-                                ${taskDependencyTree}
-                                </vscode-tree>
-                            </td>
-                        </tr>
-                    </table>
-                    <br>
+                    <div style="margin-bottom: 20px; border: 1px solid var(--vscode-widget-border); border-radius: 4px; padding: 10px;">
+                        <vscode-tree>
+                        ${taskDependencyTree}
+                        </vscode-tree>
+                    </div>
                     ` : ''}
 
                     <table>
                         <tr>
-                            <th colspan="4">Tasks</th>
+                            <th>Task</th>
+                            <th>Actions</th>
+                            <th>Duration</th>            
+                            <th>Operator</th>
                         </tr>
-                        <tr>
-                            <td>Task</td>
-                            <td></td>
-                            <td>Duration</td>            
-                            <td>Operator</td>
-                        </tr>
-
                         ${taskRows}
-
-                        <tr>          
-                            <td colspan="4">
-                                <vscode-button appearance="secondary" id="tasks-refresh">Refresh</vscode-button>
-                                <vscode-button appearance="secondary" id="tasks-more-detail" ${!this.dagTaskInstancesJson ? "disabled" : ""}>More</vscode-button>
-                            </td>
-                        </tr>
                     </table>
+                    
+                    <div>
+                        <vscode-button appearance="secondary" id="tasks-refresh">Refresh</vscode-button>
+                        <vscode-button appearance="secondary" id="tasks-more-detail" ${!this.dagTaskInstancesJson ? "disabled" : ""}>Raw JSON</vscode-button>
+                    </div>
 
-            </section>
+                </section>
             </vscode-tab-panel>
             
             <vscode-tab-panel>
-            <section>
-
+                <section>
                     <table>
-                    <tr>
-                        <th colspan=3>Other</th>
-                    </tr>
-                    <tr>
-                        <td>Owners</td>
-                        <td>:</td>
-                        <td>${owners}</td>
-                    </tr>
-                    <tr>
-                        <td>Tags</td>
-                        <td>:</td>
-                        <td>${tags}</td>
-                    </tr>
-                    <tr>
-                        <td>Schedule</td>
-                        <td>:</td>
-                        <td>${schedule}</td>
-                    </tr>
-                    <tr>
-                        <td>Next Run</td>
-                        <td>:</td>
-                        <td>${next_run}</td>
-                    </tr>
-                    <tr>           
-                        <td colspan="3"><vscode-button appearance="secondary" id="info-source-code">Source Code</vscode-button> <vscode-button appearance="secondary" id="other-dag-detail">More</vscode-button></td>
-                    </tr>
+                        <tr class="detail-row">
+                            <td>Owners</td>
+                            <td>:</td>
+                            <td>${owners}</td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Tags</td>
+                            <td>:</td>
+                            <td>${tags}</td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Schedule</td>
+                            <td>:</td>
+                            <td>${schedule}</td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Next Run</td>
+                            <td>:</td>
+                            <td>${next_run}</td>
+                        </tr>
                     </table>
-
-            </section>
+                    
+                    <div>
+                        <vscode-button appearance="secondary" id="info-source-code">Source Code</vscode-button> 
+                        <vscode-button appearance="secondary" id="other-dag-detail">Raw JSON</vscode-button>
+                    </div>
+                </section>
             </vscode-tab-panel>
 
             <vscode-tab-panel>
-
-            <section>
-    
-                    <table>
-                        <tr>
-                            <th colspan=4>HISTORY</th>
-                        </tr>
-                        <tr>
-                            <td>Date</td>
-                            <td>:</td>
-                            <td>
-                            <input type="date" id="history_date" value="${this.dagHistorySelectedDate}">
-                            </td>
-                            <td><vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button></td>
-                        </tr>
-                    </table>
+                <section>                    
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: var(--vscode-editor-inactiveSelectionBackground); padding: 10px; border-radius: 4px;">
+                        <label for="history_date" style="font-weight: 600;">Filter Date:</label>
+                        <input type="date" id="history_date" value="${this.dagHistorySelectedDate}" style="width: 150px;">
+                        <vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button>
+                    </div>
 
                     <table>
-                        <tr>
-                            <th colspan=4>DAG RUNS</th>
-                        </tr>
-                        <tr>
-                            <td></td>
-                            <td>Start Time</td>            
-                            <td>Duration</td>
-                            <td>Notes</td>
-                        </tr>
-                        ${runHistoryRows}
+                        <thead>
+                            <tr>
+                                <th>State</th>
+                                <th>Start Time</th>            
+                                <th>Duration</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${runHistoryRows}
+                        </tbody>
                     </table>   
-    
-            </section>
+                </section>
             </vscode-tab-panel>
 
         </vscode-tabs>
