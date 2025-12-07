@@ -481,6 +481,18 @@ export class DagTreeView {
 					},
 					required: ['dag_id', 'dag_run_id']
 				}
+			},
+			{
+				name: 'go_to_dag_view',
+				description: 'Opens the DAG View panel to display information about a specific DAG. Optional: provide dag_run_id to view a specific run. Required: dag_id.',
+				inputSchema: {
+					type: 'object',
+					properties: {
+						dag_id: { type: 'string', description: 'The DAG ID to view' },
+						dag_run_id: { type: 'string', description: 'Optional DAG run ID to navigate to a specific run' }
+					},
+					required: ['dag_id']
+				}
 			}
 		];
 

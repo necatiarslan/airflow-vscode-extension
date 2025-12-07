@@ -466,6 +466,18 @@ class DagTreeView {
                     },
                     required: ['dag_id', 'dag_run_id']
                 }
+            },
+            {
+                name: 'go_to_dag_view',
+                description: 'Opens the DAG View panel to display information about a specific DAG. Optional: provide dag_run_id to view a specific run. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dag_id: { type: 'string', description: 'The DAG ID to view' },
+                        dag_run_id: { type: 'string', description: 'Optional DAG run ID to navigate to a specific run' }
+                    },
+                    required: ['dag_id']
+                }
             }
         ];
         // 2. Construct the Initial Messages
@@ -5062,7 +5074,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 75));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 76));
 		return toFormData(this.body, ct);
 	}
 
@@ -14550,6 +14562,83 @@ Please check:
 exports.GetDagRunDetailTool = GetDagRunDetailTool;
 
 
+/***/ }),
+/* 75 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToDagViewTool - Language Model Tool for opening the DAG View panel
+ *
+ * This tool allows users to open the DagView for a specific DAG,
+ * optionally navigating to a specific DAG run.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToDagViewTool = void 0;
+const vscode = __webpack_require__(1);
+const DagTreeView_1 = __webpack_require__(2);
+const DagView_1 = __webpack_require__(10);
+/**
+ * GoToDagViewTool - Implements vscode.LanguageModelTool for opening DAG View
+ *
+ * This tool opens the DagView panel to display information about a specific DAG.
+ * If a dag_run_id is provided, it will navigate to that specific run.
+ */
+class GoToDagViewTool {
+    constructor() {
+        // No external dependencies needed - uses DagTreeView.Current directly
+    }
+    async prepareInvocation(options, token) {
+        const { dag_id, dag_run_id } = options.input;
+        let message = `Opening DAG View for: **${dag_id}**`;
+        if (dag_run_id) {
+            message += `\nDAG Run ID: **${dag_run_id}**`;
+        }
+        return {
+            invocationMessage: message
+        };
+    }
+    async invoke(options, token) {
+        const { dag_id, dag_run_id } = options.input;
+        try {
+            // Check if DagTreeView is available
+            if (!DagTreeView_1.DagTreeView.Current) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active and connected to a server.')
+                ]);
+            }
+            // Check if API is available
+            if (!DagTreeView_1.DagTreeView.Current.api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            const api = DagTreeView_1.DagTreeView.Current.api;
+            const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
+            // Open the DagView with the specified DAG ID and optional run ID
+            DagView_1.DagView.render(extensionUri, dag_id, api, dag_run_id);
+            let successMessage = `✅ Opened DAG View for: **${dag_id}**`;
+            if (dag_run_id) {
+                successMessage += `\n📋 Showing DAG Run: **${dag_run_id}**`;
+            }
+            else {
+                successMessage += `\n📋 Showing latest DAG run`;
+            }
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(successMessage)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open DAG View for ${dag_id}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToDagViewTool = GoToDagViewTool;
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -14718,6 +14807,7 @@ const CancelDagRunTool_1 = __webpack_require__(71);
 const AnalyseDagLatestRunTool_1 = __webpack_require__(72);
 const GetDagHistoryTool_1 = __webpack_require__(73);
 const GetDagRunDetailTool_1 = __webpack_require__(74);
+const GoToDagViewTool_1 = __webpack_require__(75);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
@@ -14819,6 +14909,10 @@ function activate(context) {
     const getDagRunDetailTool = vscode.lm.registerTool('get_dag_run_detail', new GetDagRunDetailTool_1.GetDagRunDetailTool(airflowClient));
     context.subscriptions.push(getDagRunDetailTool);
     ui.logToOutput('Registered tool: get_dag_run_detail');
+    // Register Tool 14: go_to_dag_view (Navigation)
+    const goToDagViewTool = vscode.lm.registerTool('go_to_dag_view', new GoToDagViewTool_1.GoToDagViewTool());
+    context.subscriptions.push(goToDagViewTool);
+    ui.logToOutput('Registered tool: go_to_dag_view');
     ui.logToOutput('All Language Model Tools registered successfully');
     for (const c of commands) {
         context.subscriptions.push(c);

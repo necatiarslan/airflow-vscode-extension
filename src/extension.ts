@@ -19,6 +19,7 @@ import { CancelDagRunTool } from './language_tools/CancelDagRunTool';
 import { AnalyseDagLatestRunTool } from './language_tools/AnalyseDagLatestRunTool';
 import { GetDagHistoryTool } from './language_tools/GetDagHistoryTool';
 import { GetDagRunDetailTool } from './language_tools/GetDagRunDetailTool';
+import { GoToDagViewTool } from './language_tools/GoToDagViewTool';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -177,6 +178,14 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 	context.subscriptions.push(getDagRunDetailTool);
 	ui.logToOutput('Registered tool: get_dag_run_detail');
+
+	// Register Tool 14: go_to_dag_view (Navigation)
+	const goToDagViewTool = vscode.lm.registerTool(
+		'go_to_dag_view',
+		new GoToDagViewTool()
+	);
+	context.subscriptions.push(goToDagViewTool);
+	ui.logToOutput('Registered tool: go_to_dag_view');
 
 	ui.logToOutput('All Language Model Tools registered successfully');
 

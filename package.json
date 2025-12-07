@@ -334,6 +334,36 @@
             "dag_run_id"
           ]
         }
+      },
+      {
+        "name": "go_to_dag_view",
+        "displayName": "Go to DAG View",
+        "modelDescription": "Opens the DAG View panel in VS Code to display information about a specific Airflow DAG. Use this tool when the user wants to see, view, or open a DAG in the visual panel. Required input: dag_id (string). Optional input: dag_run_id (string) - if provided, navigates to that specific DAG run instead of the latest run. This is a navigation tool that does not modify any state.",
+        "icon": "$(preview)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "dag",
+          "view",
+          "panel",
+          "open"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dag_id": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to view"
+            },
+            "dag_run_id": {
+              "type": "string",
+              "description": "Optional: The DAG run ID to navigate to. If not provided, shows the latest run."
+            }
+          },
+          "required": [
+            "dag_id"
+          ]
+        }
       }
     ],
     "commands": [
