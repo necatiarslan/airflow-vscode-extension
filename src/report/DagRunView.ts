@@ -73,10 +73,15 @@ export class DagRunView {
         ui.logToOutput('DagRunView.renderHtml Completed');
     }
 
-    public static render(extensionUri: vscode.Uri, api: AirflowApi) {
+    public static render(extensionUri: vscode.Uri, api: AirflowApi, dagId?: string, startDate?: string, endDate?: string, status?: string) {
         ui.logToOutput('DagRunView.render Started');
         if (DagRunView.Current) {
             DagRunView.Current.api = api;
+            // Apply optional filter parameters
+            if (dagId) { DagRunView.Current.selectedDagId = dagId; }
+            if (startDate) { DagRunView.Current.selectedStartDate = startDate; }
+            if (endDate) { DagRunView.Current.selectedEndDate = endDate; }
+            if (status) { DagRunView.Current.selectedStatus = status; }
             DagRunView.Current._panel.reveal(vscode.ViewColumn.One);
             DagRunView.Current.loadData();
         } else {
@@ -85,6 +90,15 @@ export class DagRunView {
             });
 
             DagRunView.Current = new DagRunView(panel, extensionUri, api);
+            // Apply optional filter parameters after creation
+            if (dagId) { DagRunView.Current.selectedDagId = dagId; }
+            if (startDate) { DagRunView.Current.selectedStartDate = startDate; }
+            if (endDate) { DagRunView.Current.selectedEndDate = endDate; }
+            if (status) { DagRunView.Current.selectedStatus = status; }
+            // Reload data with new parameters if any were provided
+            if (dagId || startDate || endDate || status) {
+                DagRunView.Current.loadData();
+            }
         }
     }
 

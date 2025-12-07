@@ -478,6 +478,74 @@ class DagTreeView {
                     },
                     required: ['dag_id']
                 }
+            },
+            {
+                name: 'go_to_dag_run_history',
+                description: 'Opens the DAG Run History panel with optional filters. Shows run history for a DAG with optional date range and status filters. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dag_id: { type: 'string', description: 'The DAG ID to view history for' },
+                        start_date: { type: 'string', description: 'Optional start date filter (YYYY-MM-DD format)' },
+                        end_date: { type: 'string', description: 'Optional end date filter (YYYY-MM-DD format)' },
+                        status: { type: 'string', description: 'Optional status filter (success, failed, running, queued, upstream_failed)' }
+                    },
+                    required: ['dag_id']
+                }
+            },
+            {
+                name: 'go_to_providers_view',
+                description: 'Opens the Providers View panel to display installed Airflow providers. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_connections_view',
+                description: 'Opens the Connections View panel to display Airflow connections. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_variables_view',
+                description: 'Opens the Variables View panel to display Airflow variables. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_configs_view',
+                description: 'Opens the Configs View panel to display Airflow configuration settings. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_plugins_view',
+                description: 'Opens the Plugins View panel to display installed Airflow plugins. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_server_health_view',
+                description: 'Opens the Server Health View panel to display Airflow server health status. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
             }
         ];
         // 2. Construct the Initial Messages
@@ -3420,10 +3488,23 @@ class DagRunView {
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
         ui.logToOutput('DagRunView.renderHtml Completed');
     }
-    static render(extensionUri, api) {
+    static render(extensionUri, api, dagId, startDate, endDate, status) {
         ui.logToOutput('DagRunView.render Started');
         if (DagRunView.Current) {
             DagRunView.Current.api = api;
+            // Apply optional filter parameters
+            if (dagId) {
+                DagRunView.Current.selectedDagId = dagId;
+            }
+            if (startDate) {
+                DagRunView.Current.selectedStartDate = startDate;
+            }
+            if (endDate) {
+                DagRunView.Current.selectedEndDate = endDate;
+            }
+            if (status) {
+                DagRunView.Current.selectedStatus = status;
+            }
             DagRunView.Current._panel.reveal(vscode.ViewColumn.One);
             DagRunView.Current.loadData();
         }
@@ -3432,6 +3513,23 @@ class DagRunView {
                 enableScripts: true,
             });
             DagRunView.Current = new DagRunView(panel, extensionUri, api);
+            // Apply optional filter parameters after creation
+            if (dagId) {
+                DagRunView.Current.selectedDagId = dagId;
+            }
+            if (startDate) {
+                DagRunView.Current.selectedStartDate = startDate;
+            }
+            if (endDate) {
+                DagRunView.Current.selectedEndDate = endDate;
+            }
+            if (status) {
+                DagRunView.Current.selectedStatus = status;
+            }
+            // Reload data with new parameters if any were provided
+            if (dagId || startDate || endDate || status) {
+                DagRunView.Current.loadData();
+            }
         }
     }
     dispose() {
@@ -5074,7 +5172,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 76));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 83));
 		return toFormData(this.body, ct);
 	}
 
@@ -14639,6 +14737,433 @@ class GoToDagViewTool {
 exports.GoToDagViewTool = GoToDagViewTool;
 
 
+/***/ }),
+/* 76 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToDagRunHistoryTool - Language Model Tool for opening the DAG Run History view
+ *
+ * This tool allows users to open the DagRunHistory view with optional filters
+ * for dagId, startDate, endDate, and status.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToDagRunHistoryTool = void 0;
+const vscode = __webpack_require__(1);
+const DagTreeView_1 = __webpack_require__(2);
+const DagRunView_1 = __webpack_require__(14);
+/**
+ * GoToDagRunHistoryTool - Implements vscode.LanguageModelTool for opening DAG Run History View
+ *
+ * This tool opens the DagRunHistory panel to display run history for a specific DAG.
+ * Optional filters can be applied for date range and status.
+ */
+class GoToDagRunHistoryTool {
+    constructor() {
+        // No external dependencies needed - uses DagTreeView.Current directly
+    }
+    async prepareInvocation(options, token) {
+        const { dag_id, start_date, end_date, status } = options.input;
+        let message = `Opening DAG Run History for: **${dag_id}**`;
+        if (start_date) {
+            message += `\nStart Date: **${start_date}**`;
+        }
+        if (end_date) {
+            message += `\nEnd Date: **${end_date}**`;
+        }
+        if (status) {
+            message += `\nStatus Filter: **${status}**`;
+        }
+        return {
+            invocationMessage: message
+        };
+    }
+    async invoke(options, token) {
+        const { dag_id, start_date, end_date, status } = options.input;
+        try {
+            // Check if DagTreeView is available
+            if (!DagTreeView_1.DagTreeView.Current) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active and connected to a server.')
+                ]);
+            }
+            // Check if API is available
+            if (!DagTreeView_1.DagTreeView.Current.api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            const api = DagTreeView_1.DagTreeView.Current.api;
+            const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
+            // Validate date format if provided (YYYY-MM-DD)
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (start_date && !dateRegex.test(start_date)) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`❌ Invalid start_date format: "${start_date}". Expected format: YYYY-MM-DD`)
+                ]);
+            }
+            if (end_date && !dateRegex.test(end_date)) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`❌ Invalid end_date format: "${end_date}". Expected format: YYYY-MM-DD`)
+                ]);
+            }
+            // Validate status if provided
+            const validStatuses = ['success', 'failed', 'running', 'queued', 'upstream_failed', 'skipped', 'deferred'];
+            if (status && !validStatuses.includes(status.toLowerCase())) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`❌ Invalid status: "${status}". Valid values: ${validStatuses.join(', ')}`)
+                ]);
+            }
+            // Open the DagRunView with the specified parameters
+            DagRunView_1.DagRunView.render(extensionUri, api, dag_id, start_date, end_date, status?.toLowerCase());
+            let successMessage = `✅ Opened DAG Run History for: **${dag_id}**`;
+            const filters = [];
+            if (start_date) {
+                filters.push(`Start Date: ${start_date}`);
+            }
+            if (end_date) {
+                filters.push(`End Date: ${end_date}`);
+            }
+            if (status) {
+                filters.push(`Status: ${status}`);
+            }
+            if (filters.length > 0) {
+                successMessage += `\n📋 Filters applied: ${filters.join(', ')}`;
+            }
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(successMessage)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open DAG Run History for ${dag_id}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToDagRunHistoryTool = GoToDagRunHistoryTool;
+
+
+/***/ }),
+/* 77 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToProvidersViewTool - Language Model Tool for opening the Providers view
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToProvidersViewTool = void 0;
+const vscode = __webpack_require__(1);
+const DagTreeView_1 = __webpack_require__(2);
+const ProvidersView_1 = __webpack_require__(54);
+/**
+ * GoToProvidersViewTool - Opens the Providers panel
+ */
+class GoToProvidersViewTool {
+    constructor() { }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Opening Providers View...'
+        };
+    }
+    async invoke(options, token) {
+        try {
+            if (!DagTreeView_1.DagTreeView.Current) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
+                ]);
+            }
+            if (!DagTreeView_1.DagTreeView.Current.api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            const api = DagTreeView_1.DagTreeView.Current.api;
+            const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
+            ProvidersView_1.ProvidersView.render(extensionUri, api);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Providers View - showing installed Airflow providers with their versions')
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Providers View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToProvidersViewTool = GoToProvidersViewTool;
+
+
+/***/ }),
+/* 78 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToConnectionsViewTool - Language Model Tool for opening the Connections view
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToConnectionsViewTool = void 0;
+const vscode = __webpack_require__(1);
+const DagTreeView_1 = __webpack_require__(2);
+const ConnectionsView_1 = __webpack_require__(52);
+/**
+ * GoToConnectionsViewTool - Opens the Connections panel
+ */
+class GoToConnectionsViewTool {
+    constructor() { }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Opening Connections View...'
+        };
+    }
+    async invoke(options, token) {
+        try {
+            if (!DagTreeView_1.DagTreeView.Current) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
+                ]);
+            }
+            if (!DagTreeView_1.DagTreeView.Current.api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            const api = DagTreeView_1.DagTreeView.Current.api;
+            const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
+            ConnectionsView_1.ConnectionsView.render(extensionUri, api);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Connections View - showing Airflow connections (databases, APIs, cloud services, etc.)')
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Connections View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToConnectionsViewTool = GoToConnectionsViewTool;
+
+
+/***/ }),
+/* 79 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToVariablesViewTool - Language Model Tool for opening the Variables view
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToVariablesViewTool = void 0;
+const vscode = __webpack_require__(1);
+const DagTreeView_1 = __webpack_require__(2);
+const VariablesView_1 = __webpack_require__(53);
+/**
+ * GoToVariablesViewTool - Opens the Variables panel
+ */
+class GoToVariablesViewTool {
+    constructor() { }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Opening Variables View...'
+        };
+    }
+    async invoke(options, token) {
+        try {
+            if (!DagTreeView_1.DagTreeView.Current) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
+                ]);
+            }
+            if (!DagTreeView_1.DagTreeView.Current.api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            const api = DagTreeView_1.DagTreeView.Current.api;
+            const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
+            VariablesView_1.VariablesView.render(extensionUri, api);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Variables View - showing Airflow variables (key-value configuration settings)')
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Variables View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToVariablesViewTool = GoToVariablesViewTool;
+
+
+/***/ }),
+/* 80 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToConfigsViewTool - Language Model Tool for opening the Configs view
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToConfigsViewTool = void 0;
+const vscode = __webpack_require__(1);
+const DagTreeView_1 = __webpack_require__(2);
+const ConfigsView_1 = __webpack_require__(55);
+/**
+ * GoToConfigsViewTool - Opens the Configs panel
+ */
+class GoToConfigsViewTool {
+    constructor() { }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Opening Configs View...'
+        };
+    }
+    async invoke(options, token) {
+        try {
+            if (!DagTreeView_1.DagTreeView.Current) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
+                ]);
+            }
+            if (!DagTreeView_1.DagTreeView.Current.api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            const api = DagTreeView_1.DagTreeView.Current.api;
+            const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
+            ConfigsView_1.ConfigsView.render(extensionUri, api);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Configs View - showing Airflow configuration settings (airflow.cfg)')
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Configs View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToConfigsViewTool = GoToConfigsViewTool;
+
+
+/***/ }),
+/* 81 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToPluginsViewTool - Language Model Tool for opening the Plugins view
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToPluginsViewTool = void 0;
+const vscode = __webpack_require__(1);
+const DagTreeView_1 = __webpack_require__(2);
+const PluginsView_1 = __webpack_require__(56);
+/**
+ * GoToPluginsViewTool - Opens the Plugins panel
+ */
+class GoToPluginsViewTool {
+    constructor() { }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Opening Plugins View...'
+        };
+    }
+    async invoke(options, token) {
+        try {
+            if (!DagTreeView_1.DagTreeView.Current) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
+                ]);
+            }
+            if (!DagTreeView_1.DagTreeView.Current.api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            const api = DagTreeView_1.DagTreeView.Current.api;
+            const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
+            PluginsView_1.PluginsView.render(extensionUri, api);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Plugins View - showing installed Airflow plugins')
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Plugins View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToPluginsViewTool = GoToPluginsViewTool;
+
+
+/***/ }),
+/* 82 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToServerHealthViewTool - Language Model Tool for opening the Server Health view
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToServerHealthViewTool = void 0;
+const vscode = __webpack_require__(1);
+const DagTreeView_1 = __webpack_require__(2);
+const ServerHealthView_1 = __webpack_require__(57);
+/**
+ * GoToServerHealthViewTool - Opens the Server Health panel
+ */
+class GoToServerHealthViewTool {
+    constructor() { }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Opening Server Health View...'
+        };
+    }
+    async invoke(options, token) {
+        try {
+            if (!DagTreeView_1.DagTreeView.Current) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
+                ]);
+            }
+            if (!DagTreeView_1.DagTreeView.Current.api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            const api = DagTreeView_1.DagTreeView.Current.api;
+            const extensionUri = DagTreeView_1.DagTreeView.Current.context.extensionUri;
+            ServerHealthView_1.ServerHealthView.render(extensionUri, api);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Server Health View - showing Airflow server health status, scheduler status, and metadata database status')
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Server Health View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToServerHealthViewTool = GoToServerHealthViewTool;
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -14808,6 +15333,13 @@ const AnalyseDagLatestRunTool_1 = __webpack_require__(72);
 const GetDagHistoryTool_1 = __webpack_require__(73);
 const GetDagRunDetailTool_1 = __webpack_require__(74);
 const GoToDagViewTool_1 = __webpack_require__(75);
+const GoToDagRunHistoryTool_1 = __webpack_require__(76);
+const GoToProvidersViewTool_1 = __webpack_require__(77);
+const GoToConnectionsViewTool_1 = __webpack_require__(78);
+const GoToVariablesViewTool_1 = __webpack_require__(79);
+const GoToConfigsViewTool_1 = __webpack_require__(80);
+const GoToPluginsViewTool_1 = __webpack_require__(81);
+const GoToServerHealthViewTool_1 = __webpack_require__(82);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
@@ -14913,6 +15445,34 @@ function activate(context) {
     const goToDagViewTool = vscode.lm.registerTool('go_to_dag_view', new GoToDagViewTool_1.GoToDagViewTool());
     context.subscriptions.push(goToDagViewTool);
     ui.logToOutput('Registered tool: go_to_dag_view');
+    // Register Tool 15: go_to_dag_run_history (Navigation)
+    const goToDagRunHistoryTool = vscode.lm.registerTool('go_to_dag_run_history', new GoToDagRunHistoryTool_1.GoToDagRunHistoryTool());
+    context.subscriptions.push(goToDagRunHistoryTool);
+    ui.logToOutput('Registered tool: go_to_dag_run_history');
+    // Register Tool 16: go_to_providers_view (Navigation)
+    const goToProvidersViewTool = vscode.lm.registerTool('go_to_providers_view', new GoToProvidersViewTool_1.GoToProvidersViewTool());
+    context.subscriptions.push(goToProvidersViewTool);
+    ui.logToOutput('Registered tool: go_to_providers_view');
+    // Register Tool 17: go_to_connections_view (Navigation)
+    const goToConnectionsViewTool = vscode.lm.registerTool('go_to_connections_view', new GoToConnectionsViewTool_1.GoToConnectionsViewTool());
+    context.subscriptions.push(goToConnectionsViewTool);
+    ui.logToOutput('Registered tool: go_to_connections_view');
+    // Register Tool 18: go_to_variables_view (Navigation)
+    const goToVariablesViewTool = vscode.lm.registerTool('go_to_variables_view', new GoToVariablesViewTool_1.GoToVariablesViewTool());
+    context.subscriptions.push(goToVariablesViewTool);
+    ui.logToOutput('Registered tool: go_to_variables_view');
+    // Register Tool 19: go_to_configs_view (Navigation)
+    const goToConfigsViewTool = vscode.lm.registerTool('go_to_configs_view', new GoToConfigsViewTool_1.GoToConfigsViewTool());
+    context.subscriptions.push(goToConfigsViewTool);
+    ui.logToOutput('Registered tool: go_to_configs_view');
+    // Register Tool 20: go_to_plugins_view (Navigation)
+    const goToPluginsViewTool = vscode.lm.registerTool('go_to_plugins_view', new GoToPluginsViewTool_1.GoToPluginsViewTool());
+    context.subscriptions.push(goToPluginsViewTool);
+    ui.logToOutput('Registered tool: go_to_plugins_view');
+    // Register Tool 21: go_to_server_health_view (Navigation)
+    const goToServerHealthViewTool = vscode.lm.registerTool('go_to_server_health_view', new GoToServerHealthViewTool_1.GoToServerHealthViewTool());
+    context.subscriptions.push(goToServerHealthViewTool);
+    ui.logToOutput('Registered tool: go_to_server_health_view');
     ui.logToOutput('All Language Model Tools registered successfully');
     for (const c of commands) {
         context.subscriptions.push(c);

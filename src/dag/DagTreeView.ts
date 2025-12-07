@@ -493,6 +493,74 @@ export class DagTreeView {
 					},
 					required: ['dag_id']
 				}
+			},
+			{
+				name: 'go_to_dag_run_history',
+				description: 'Opens the DAG Run History panel with optional filters. Shows run history for a DAG with optional date range and status filters. Required: dag_id.',
+				inputSchema: {
+					type: 'object',
+					properties: {
+						dag_id: { type: 'string', description: 'The DAG ID to view history for' },
+						start_date: { type: 'string', description: 'Optional start date filter (YYYY-MM-DD format)' },
+						end_date: { type: 'string', description: 'Optional end date filter (YYYY-MM-DD format)' },
+						status: { type: 'string', description: 'Optional status filter (success, failed, running, queued, upstream_failed)' }
+					},
+					required: ['dag_id']
+				}
+			},
+			{
+				name: 'go_to_providers_view',
+				description: 'Opens the Providers View panel to display installed Airflow providers. No inputs required.',
+				inputSchema: {
+					type: 'object',
+					properties: {},
+					required: []
+				}
+			},
+			{
+				name: 'go_to_connections_view',
+				description: 'Opens the Connections View panel to display Airflow connections. No inputs required.',
+				inputSchema: {
+					type: 'object',
+					properties: {},
+					required: []
+				}
+			},
+			{
+				name: 'go_to_variables_view',
+				description: 'Opens the Variables View panel to display Airflow variables. No inputs required.',
+				inputSchema: {
+					type: 'object',
+					properties: {},
+					required: []
+				}
+			},
+			{
+				name: 'go_to_configs_view',
+				description: 'Opens the Configs View panel to display Airflow configuration settings. No inputs required.',
+				inputSchema: {
+					type: 'object',
+					properties: {},
+					required: []
+				}
+			},
+			{
+				name: 'go_to_plugins_view',
+				description: 'Opens the Plugins View panel to display installed Airflow plugins. No inputs required.',
+				inputSchema: {
+					type: 'object',
+					properties: {},
+					required: []
+				}
+			},
+			{
+				name: 'go_to_server_health_view',
+				description: 'Opens the Server Health View panel to display Airflow server health status. No inputs required.',
+				inputSchema: {
+					type: 'object',
+					properties: {},
+					required: []
+				}
 			}
 		];
 

@@ -1,0 +1,57 @@
+/**
+ * GoToProvidersViewTool - Language Model Tool for opening the Providers view
+ */
+
+import * as vscode from 'vscode';
+import { DagTreeView } from '../dag/DagTreeView';
+import { ProvidersView } from '../admin/ProvidersView';
+
+/**
+ * GoToProvidersViewTool - Opens the Providers panel
+ */
+export class GoToProvidersViewTool implements vscode.LanguageModelTool<void> {
+
+    constructor() {}
+
+    async prepareInvocation(
+        options: vscode.LanguageModelToolInvocationPrepareOptions<void>,
+        token: vscode.CancellationToken
+    ): Promise<vscode.PreparedToolInvocation> {
+        return {
+            invocationMessage: 'Opening Providers View...'
+        };
+    }
+
+    async invoke(
+        options: vscode.LanguageModelToolInvocationOptions<void>,
+        token: vscode.CancellationToken
+    ): Promise<vscode.LanguageModelToolResult> {
+        try {
+            if (!DagTreeView.Current) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ DagTreeView is not available. Please ensure the Airflow extension is active.')
+                ]);
+            }
+
+            if (!DagTreeView.Current.api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+
+            const api = DagTreeView.Current.api;
+            const extensionUri = DagTreeView.Current.context.extensionUri;
+
+            ProvidersView.render(extensionUri, api);
+
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Providers View - showing installed Airflow providers with their versions')
+            ]);
+
+        } catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Providers View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}

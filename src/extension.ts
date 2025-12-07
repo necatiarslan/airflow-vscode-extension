@@ -20,6 +20,13 @@ import { AnalyseDagLatestRunTool } from './language_tools/AnalyseDagLatestRunToo
 import { GetDagHistoryTool } from './language_tools/GetDagHistoryTool';
 import { GetDagRunDetailTool } from './language_tools/GetDagRunDetailTool';
 import { GoToDagViewTool } from './language_tools/GoToDagViewTool';
+import { GoToDagRunHistoryTool } from './language_tools/GoToDagRunHistoryTool';
+import { GoToProvidersViewTool } from './language_tools/GoToProvidersViewTool';
+import { GoToConnectionsViewTool } from './language_tools/GoToConnectionsViewTool';
+import { GoToVariablesViewTool } from './language_tools/GoToVariablesViewTool';
+import { GoToConfigsViewTool } from './language_tools/GoToConfigsViewTool';
+import { GoToPluginsViewTool } from './language_tools/GoToPluginsViewTool';
+import { GoToServerHealthViewTool } from './language_tools/GoToServerHealthViewTool';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -186,6 +193,62 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 	context.subscriptions.push(goToDagViewTool);
 	ui.logToOutput('Registered tool: go_to_dag_view');
+
+	// Register Tool 15: go_to_dag_run_history (Navigation)
+	const goToDagRunHistoryTool = vscode.lm.registerTool(
+		'go_to_dag_run_history',
+		new GoToDagRunHistoryTool()
+	);
+	context.subscriptions.push(goToDagRunHistoryTool);
+	ui.logToOutput('Registered tool: go_to_dag_run_history');
+
+	// Register Tool 16: go_to_providers_view (Navigation)
+	const goToProvidersViewTool = vscode.lm.registerTool(
+		'go_to_providers_view',
+		new GoToProvidersViewTool()
+	);
+	context.subscriptions.push(goToProvidersViewTool);
+	ui.logToOutput('Registered tool: go_to_providers_view');
+
+	// Register Tool 17: go_to_connections_view (Navigation)
+	const goToConnectionsViewTool = vscode.lm.registerTool(
+		'go_to_connections_view',
+		new GoToConnectionsViewTool()
+	);
+	context.subscriptions.push(goToConnectionsViewTool);
+	ui.logToOutput('Registered tool: go_to_connections_view');
+
+	// Register Tool 18: go_to_variables_view (Navigation)
+	const goToVariablesViewTool = vscode.lm.registerTool(
+		'go_to_variables_view',
+		new GoToVariablesViewTool()
+	);
+	context.subscriptions.push(goToVariablesViewTool);
+	ui.logToOutput('Registered tool: go_to_variables_view');
+
+	// Register Tool 19: go_to_configs_view (Navigation)
+	const goToConfigsViewTool = vscode.lm.registerTool(
+		'go_to_configs_view',
+		new GoToConfigsViewTool()
+	);
+	context.subscriptions.push(goToConfigsViewTool);
+	ui.logToOutput('Registered tool: go_to_configs_view');
+
+	// Register Tool 20: go_to_plugins_view (Navigation)
+	const goToPluginsViewTool = vscode.lm.registerTool(
+		'go_to_plugins_view',
+		new GoToPluginsViewTool()
+	);
+	context.subscriptions.push(goToPluginsViewTool);
+	ui.logToOutput('Registered tool: go_to_plugins_view');
+
+	// Register Tool 21: go_to_server_health_view (Navigation)
+	const goToServerHealthViewTool = vscode.lm.registerTool(
+		'go_to_server_health_view',
+		new GoToServerHealthViewTool()
+	);
+	context.subscriptions.push(goToServerHealthViewTool);
+	ui.logToOutput('Registered tool: go_to_server_health_view');
 
 	ui.logToOutput('All Language Model Tools registered successfully');
 

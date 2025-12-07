@@ -364,6 +364,155 @@
             "dag_id"
           ]
         }
+      },
+      {
+        "name": "go_to_dag_run_history",
+        "displayName": "Go to DAG Run History",
+        "modelDescription": "Opens the DAG Run History panel in VS Code to display run history for a specific Airflow DAG. Use this tool when the user wants to see run history, execution logs, or past runs for a DAG. Required input: dag_id (string). Optional inputs: start_date (string in YYYY-MM-DD format), end_date (string in YYYY-MM-DD format), status (string: success, failed, running, queued, upstream_failed). This is a navigation tool that does not modify any state.",
+        "icon": "$(history)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "dag",
+          "history",
+          "runs",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dag_id": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to view history for"
+            },
+            "start_date": {
+              "type": "string",
+              "description": "Optional: Start date for the filter in YYYY-MM-DD format"
+            },
+            "end_date": {
+              "type": "string",
+              "description": "Optional: End date for the filter in YYYY-MM-DD format"
+            },
+            "status": {
+              "type": "string",
+              "description": "Optional: Filter by run status (success, failed, running, queued, upstream_failed)"
+            }
+          },
+          "required": [
+            "dag_id"
+          ]
+        }
+      },
+      {
+        "name": "go_to_providers_view",
+        "displayName": "Go to Providers View",
+        "modelDescription": "Opens the Providers View panel to display installed Airflow providers with their versions and descriptions. Use this tool when the user wants to see what providers are installed in Airflow. No inputs required. This is a navigation tool that does not modify any state.",
+        "icon": "$(package)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "providers",
+          "admin",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "go_to_connections_view",
+        "displayName": "Go to Connections View",
+        "modelDescription": "Opens the Connections View panel to display Airflow connections (databases, APIs, cloud services, etc.). Use this tool when the user wants to see configured connections in Airflow. No inputs required. This is a navigation tool that does not modify any state.",
+        "icon": "$(link)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "connections",
+          "admin",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "go_to_variables_view",
+        "displayName": "Go to Variables View",
+        "modelDescription": "Opens the Variables View panel to display Airflow variables (key-value configuration settings). Use this tool when the user wants to see configured variables in Airflow. No inputs required. This is a navigation tool that does not modify any state.",
+        "icon": "$(symbol-variable)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "variables",
+          "admin",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "go_to_configs_view",
+        "displayName": "Go to Configs View",
+        "modelDescription": "Opens the Configs View panel to display Airflow configuration settings (airflow.cfg). Use this tool when the user wants to see the Airflow configuration. No inputs required. This is a navigation tool that does not modify any state.",
+        "icon": "$(settings-gear)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "configs",
+          "settings",
+          "admin",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "go_to_plugins_view",
+        "displayName": "Go to Plugins View",
+        "modelDescription": "Opens the Plugins View panel to display installed Airflow plugins. Use this tool when the user wants to see what plugins are installed in Airflow. No inputs required. This is a navigation tool that does not modify any state.",
+        "icon": "$(extensions)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "plugins",
+          "admin",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "go_to_server_health_view",
+        "displayName": "Go to Server Health View",
+        "modelDescription": "Opens the Server Health View panel to display Airflow server health status, including scheduler status and metadata database status. Use this tool when the user wants to check the health or status of the Airflow server. No inputs required. This is a navigation tool that does not modify any state.",
+        "icon": "$(heart)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "health",
+          "server",
+          "admin",
+          "status",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
       }
     ],
     "commands": [
