@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import * as ui from '../common/UI';
 import { DagView } from '../dag/DagView';
 import { Session } from '../common/Session';
+import { DagLogView } from './DagLogView';
 
 export class DailyDagRunView {
     public static Current: DailyDagRunView;
@@ -134,7 +135,10 @@ export class DailyDagRunView {
             tableRows += `
             <vscode-table-row>
                 <vscode-table-cell><a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-link">${this._escapeHtml(dagId)}</a></vscode-table-cell>
-                <vscode-table-cell>${statusEmoji} ${this._escapeHtml(status)}</vscode-table-cell>
+                <vscode-table-cell>
+                    ${statusEmoji} ${this._escapeHtml(status)} 
+                    <a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-log-link" title="View Logs">Logs</a>
+                </vscode-table-cell>
                 <vscode-table-cell>${this._escapeHtml(startDate)}</vscode-table-cell>
                 <vscode-table-cell>${this._escapeHtml(duration)}</vscode-table-cell>
                 <vscode-table-cell><code>${this._escapeHtml(config.substring(0, 50))}${config.length > 50 ? '...' : ''}</code></vscode-table-cell>
@@ -285,6 +289,16 @@ export class DailyDagRunView {
                     vscode.postMessage({ command: 'open-dag-view', dagId, dagRunId });
                 });
             });
+
+            // Handle dag-log-link clicks
+            document.querySelectorAll('.dag-log-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const dagId = e.target.getAttribute('data-dag-id');
+                    const dagRunId = e.target.getAttribute('data-dag-run-id');
+                    vscode.postMessage({ command: 'view-dag-log', dagId, dagRunId });
+                });
+            });
         </script>
       </body>
     </html>
@@ -339,6 +353,11 @@ export class DailyDagRunView {
                         // Open DagView with specific dag and run
                         if (Session.Current.Api && message.dagId) {
                             DagView.render(message.dagId, message.dagRunId);
+                        }
+                        return;
+                    case "view-dag-log":
+                        if (message.dagId) {
+                            DagLogView.render(message.dagId, message.dagRunId);
                         }
                         return;
                 }

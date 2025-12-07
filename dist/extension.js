@@ -565,7 +565,64 @@ class AirflowApi {
         }
         return result;
     }
-    async getLastDagRunLog(dagId) {
+    async getTaskInstanceLog(dagId, dagRunId, taskId, tryNumber) {
+        const result = new MethodResult_1.MethodResult();
+        try {
+            //ui.showInfoMessage('Fetching Task Logs...');
+            const headers = await this.getHeaders();
+            const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${taskId}/logs/${tryNumber}`, { method: 'GET', headers });
+            const logJson = await logRes.json();
+            result.result = logJson;
+            result.isSuccessful = true;
+        }
+        catch (error) {
+            ui.showErrorMessage(`${dagId} Log Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getTaskInstanceLogText(dagId, dagRunId, taskId, tryNumber) {
+        const result = new MethodResult_1.MethodResult();
+        try {
+            if (tryNumber === undefined) {
+                //get latest try number
+                const taskInstancesResult = await this.getTaskInstances(dagId, dagRunId);
+                if (!taskInstancesResult.isSuccessful) {
+                    result.isSuccessful = false;
+                    result.error = taskInstancesResult.error;
+                    return result;
+                }
+                const taskInstance = taskInstancesResult.result.task_instances.find((ti) => ti.task_id === taskId);
+                if (!taskInstance) {
+                    throw new Error(`Task instance not found for taskId: ${taskId}`);
+                }
+                tryNumber = taskInstance.try_number;
+            }
+            const logJsonResult = await this.getTaskInstanceLog(dagId, dagRunId, taskId, tryNumber);
+            if (!logJsonResult.isSuccessful) {
+                result.isSuccessful = false;
+                result.error = logJsonResult.error;
+                return result;
+            }
+            const logJson = logJsonResult.result;
+            const logText = JSON.stringify(logJson, null, 2);
+            let logContent = '';
+            logContent += `############################################################\n`;
+            logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${taskId}\nTry=${tryNumber}\n`;
+            logContent += `############################################################\n\n`;
+            logContent += logText;
+            result.result = logContent;
+            result.isSuccessful = true;
+        }
+        catch (error) {
+            ui.showErrorMessage(`${dagId} Log Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getLastDagRunLogText(dagId) {
         const result = new MethodResult_1.MethodResult();
         try {
             //ui.showInfoMessage('Fetching Latest DAG Run Logs...');
@@ -574,7 +631,7 @@ class AirflowApi {
                 throw new Error("No DAG runs found");
             }
             const dagRunId = history.result.dag_runs[0].dag_run_id;
-            let logContent = await this.getDagRunLog(dagId, dagRunId);
+            let logContent = await this.getDagRunLogText(dagId, dagRunId);
             if (!logContent.isSuccessful) {
                 result.isSuccessful = false;
                 result.error = logContent.error;
@@ -590,23 +647,28 @@ class AirflowApi {
         }
         return result;
     }
-    async getDagRunLog(dagId, dagRunId) {
+    async getDagRunLogText(dagId, dagRunId) {
         const result = new MethodResult_1.MethodResult();
         //ui.showInfoMessage('Fetching DAG Run Logs...');
         try {
-            const headers = await this.getHeaders();
-            const tasksResponse = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`, { method: 'GET', headers });
-            const tasksData = await tasksResponse.json();
-            let logContent = '###################### BEGINNING OF DAG RUN ######################\n\n';
-            for (const task of tasksData.task_instances || []) {
-                const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${task.task_id}/logs/${task.try_number}`, { method: 'GET', headers });
-                const logText = await logRes.text();
-                logContent += `############################################################\n`;
-                logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${task.task_id}\nTry=${task.try_number}\n`;
-                logContent += `############################################################\n\n`;
-                logContent += logText + "\n\n";
+            const taskInstancesResult = await this.getTaskInstances(dagId, dagRunId);
+            if (!taskInstancesResult.isSuccessful) {
+                result.isSuccessful = false;
+                result.error = taskInstancesResult.error;
+                return result;
             }
-            logContent += '###################### END OF DAG RUN ######################\n';
+            let logContent = '';
+            for (const ti of taskInstancesResult.result.task_instances) {
+                const taskId = ti.task_id;
+                const tryNumber = ti.try_number;
+                const logTextResult = await this.getTaskInstanceLogText(dagId, dagRunId, taskId, tryNumber);
+                if (!logTextResult.isSuccessful) {
+                    result.isSuccessful = false;
+                    result.error = logTextResult.error;
+                    return result;
+                }
+                logContent += logTextResult.result + '\n\n';
+            }
             result.result = logContent;
             result.isSuccessful = true;
             return result;
@@ -646,36 +708,6 @@ class AirflowApi {
             }
         }
         catch (error) {
-            result.isSuccessful = false;
-            result.error = error;
-        }
-        return result;
-    }
-    async getTaskInstanceLog(dagId, dagRunId, taskId) {
-        const result = new MethodResult_1.MethodResult();
-        try {
-            //ui.showInfoMessage('Fetching Task Logs...');
-            const headers = await this.getHeaders();
-            // First get the try number from task instance details
-            // Or just try fetching logs for try 1, 2, etc?
-            // The original code fetched all task instances to find the try number.
-            const tasksResponse = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`, { method: 'GET', headers });
-            const tasksData = await tasksResponse.json();
-            const taskInstance = tasksData.task_instances?.find((t) => t.task_id === taskId);
-            if (!taskInstance) {
-                throw new Error("Task instance not found");
-            }
-            const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${taskId}/logs/${taskInstance.try_number}`, { method: 'GET', headers });
-            const logText = await logRes.text();
-            let logContent = `############################################################\n`;
-            logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${taskId}\nTry=${taskInstance.try_number}\n`;
-            logContent += `############################################################\n\n`;
-            logContent += logText;
-            result.result = logContent;
-            result.isSuccessful = true;
-        }
-        catch (error) {
-            ui.showErrorMessage(`${dagId} Log Error`, error);
             result.isSuccessful = false;
             result.error = error;
         }
@@ -1650,7 +1682,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 85));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 87));
 		return toFormData(this.body, ct);
 	}
 
@@ -8178,11 +8210,12 @@ const tmp = __webpack_require__(44);
 const fs = __webpack_require__(3);
 const DagTreeDataProvider_1 = __webpack_require__(47);
 const DagView_1 = __webpack_require__(49);
-const DailyDagRunView_1 = __webpack_require__(52);
-const DagRunView_1 = __webpack_require__(53);
+const DailyDagRunView_1 = __webpack_require__(53);
+const DagRunView_1 = __webpack_require__(54);
 const ui = __webpack_require__(2);
 const MessageHub = __webpack_require__(50);
 const Session_1 = __webpack_require__(5);
+const DagLogView_1 = __webpack_require__(52);
 class DagTreeView {
     constructor() {
         this.FilterString = '';
@@ -8440,10 +8473,11 @@ class DagTreeView {
         if (!Session_1.Session.Current.Api) {
             return;
         }
-        const result = await Session_1.Session.Current.Api.getLastDagRunLog(node.DagId);
-        if (result.isSuccessful) {
-            this.createAndOpenTempFile(result.result, node.DagId, '.log');
-        }
+        // const result = await Session.Current.Api.getLastDagRunLogText(node.DagId);
+        // if (result.isSuccessful) {
+        // 	this.createAndOpenTempFile(result.result, node.DagId, '.log');
+        // }
+        DagLogView_1.DagLogView.render(node.DagId, node.LatestDagRunId);
     }
     async dagSourceCode(node) {
         ui.logToOutput('DagTreeView.dagSourceCode Started');
@@ -8677,35 +8711,35 @@ class DagTreeView {
     async viewConnections() {
         ui.logToOutput('DagTreeView.viewConnections Started');
         if (Session_1.Session.Current.Api) {
-            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(54));
+            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(55));
             ConnectionsView.render();
         }
     }
     async viewVariables() {
         ui.logToOutput('DagTreeView.viewVariables Started');
         if (Session_1.Session.Current.Api) {
-            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(55));
+            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(56));
             VariablesView.render();
         }
     }
     async viewProviders() {
         ui.logToOutput('DagTreeView.viewProviders Started');
         if (Session_1.Session.Current.Api) {
-            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(56));
+            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(57));
             ProvidersView.render();
         }
     }
     async viewConfigs() {
         ui.logToOutput('DagTreeView.viewConfigs Started');
         if (Session_1.Session.Current.Api) {
-            const { ConfigsView } = await Promise.resolve().then(() => __webpack_require__(57));
+            const { ConfigsView } = await Promise.resolve().then(() => __webpack_require__(58));
             ConfigsView.render();
         }
     }
     async viewPlugins() {
         ui.logToOutput('DagTreeView.viewPlugins Started');
         if (Session_1.Session.Current.Api) {
-            const { PluginsView } = await Promise.resolve().then(() => __webpack_require__(58));
+            const { PluginsView } = await Promise.resolve().then(() => __webpack_require__(59));
             PluginsView.render();
         }
     }
@@ -8724,7 +8758,7 @@ class DagTreeView {
     async viewServerHealth() {
         ui.logToOutput('DagTreeView.viewServerHealth Started');
         if (Session_1.Session.Current.Api) {
-            const { ServerHealthView } = await Promise.resolve().then(() => __webpack_require__(59));
+            const { ServerHealthView } = await Promise.resolve().then(() => __webpack_require__(60));
             ServerHealthView.render();
         }
     }
@@ -9785,6 +9819,7 @@ const DagTreeView_1 = __webpack_require__(43);
 const MessageHub = __webpack_require__(50);
 const Session_1 = __webpack_require__(5);
 const AIHandler_1 = __webpack_require__(51);
+const DagLogView_1 = __webpack_require__(52);
 class DagView {
     constructor(panel, dagId, dagRunId) {
         this._disposables = [];
@@ -10011,8 +10046,8 @@ class DagView {
                         </div>
                     </td>
                     <td>
-                        <a href="#" id="task-log-link-${t.task_id}">Log</a> | 
-                        <a href="#" id="task-xcom-link-${t.task_id}">XCom</a>
+                        <a href="#" id="task-log-link-${t.task_id}">Logs</a> | 
+                        <a href="#" id="task-xcom-link-${t.task_id}">XComs</a>
                     </td>
                     <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
                     <td>${t.operator}</td>
@@ -10486,7 +10521,7 @@ class DagView {
             ui.showErrorMessage('Failed to retrieve DAG source code for AI context');
             return;
         }
-        const logs = await Session_1.Session.Current.Api.getDagRunLog(this.dagId, this.dagRunId);
+        const logs = await Session_1.Session.Current.Api.getDagRunLogText(this.dagId, this.dagRunId);
         if (!logs.isSuccessful) {
             ui.showErrorMessage('Failed to retrieve DAG logs for AI context');
             return;
@@ -10519,20 +10554,22 @@ class DagView {
         if (!Session_1.Session.Current.Api) {
             return;
         }
-        const result = await Session_1.Session.Current.Api.getDagRunLog(this.dagId, this.dagRunId);
-        if (result.isSuccessful) {
-            this.createAndOpenTempFile(result.result, this.dagId, '.log');
-        }
+        // const result = await Session.Current.Api.getDagRunLogText(this.dagId, this.dagRunId);
+        // if (result.isSuccessful) {
+        //     this.createAndOpenTempFile(result.result, this.dagId, '.log');
+        // }
+        DagLogView_1.DagLogView.render(this.dagId, this.dagRunId);
     }
     async showTaskInstanceLog(dagId, dagRunId, taskId) {
         ui.logToOutput('DagView.showTaskInstanceLog Started');
         if (!Session_1.Session.Current.Api) {
             return;
         }
-        const result = await Session_1.Session.Current.Api.getTaskInstanceLog(dagId, dagRunId, taskId);
-        if (result.isSuccessful) {
-            this.createAndOpenTempFile(result.result, dagId + '-' + taskId, '.log');
-        }
+        // const result = await Session.Current.Api.getTaskInstanceLogText(dagId, dagRunId, taskId);
+        // if (result.isSuccessful) {
+        //     this.createAndOpenTempFile(result.result, dagId + '-' + taskId, '.log');
+        // }
+        DagLogView_1.DagLogView.render(dagId, dagRunId, taskId);
     }
     async showTaskXComs(dagId, dagRunId, taskId) {
         ui.logToOutput('DagView.showTaskXComs Started');
@@ -10644,7 +10681,7 @@ class DagView {
                 return "";
             }
             let itemHtml = `<vscode-tree-item>\n`;
-            itemHtml += `${task.task_id} (${task.operator || ''})\n`;
+            itemHtml += `${task.task_id}\n`;
             // Get downstream tasks
             const downstreamIds = task.downstream_task_ids || [];
             if (downstreamIds.length > 0) {
@@ -10877,6 +10914,20 @@ class AIHandler {
                 }
             },
             {
+                name: 'go_to_dag_log_view',
+                description: 'Opens the DAG Log View panel to display task logs for a specific Airflow DAG. Required: dag_id. Optional: dag_run_id, task_id, try_number.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' },
+                        dagRunId: { type: 'string', description: 'Optional: The DAG run ID' },
+                        taskId: { type: 'string', description: 'Optional: The Task ID' },
+                        tryNumber: { type: 'number', description: 'Optional: The try number' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
                 name: 'go_to_dag_run_history',
                 description: 'Opens the DAG Run History panel with optional filters. Shows run history for a DAG with optional date range and status filters. Required: dag_id.',
                 inputSchema: {
@@ -11041,7 +11092,7 @@ class AIHandler {
             return;
         }
         // Fetch Latest DAG Run Logs
-        const logResult = await Session_1.Session.Current.Api.getLastDagRunLog(dagId);
+        const logResult = await Session_1.Session.Current.Api.getLastDagRunLogText(dagId);
         if (logResult.isSuccessful) {
             latestDagLogs = logResult.result;
         }
@@ -11084,12 +11135,397 @@ exports.AIHandler = AIHandler;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagLogView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(2);
+const Session_1 = __webpack_require__(5);
+class DagLogView {
+    constructor(panel, dagId, dagRunId, taskId, tryNumber) {
+        this._disposables = [];
+        this.logs = new Map(); // taskId -> logJson
+        ui.logToOutput('DagLogView.constructor Started');
+        this._panel = panel;
+        this.dagId = dagId;
+        this.dagRunId = dagRunId;
+        this.taskId = taskId;
+        this.tryNumber = tryNumber;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('DagLogView.constructor Completed');
+    }
+    static render(dagId, dagRunId, taskId, tryNumber) {
+        ui.logToOutput('DagLogView.render Started');
+        if (DagLogView.Current) {
+            DagLogView.Current.dagId = dagId;
+            DagLogView.Current.dagRunId = dagRunId;
+            DagLogView.Current.taskId = taskId;
+            DagLogView.Current.tryNumber = tryNumber;
+            DagLogView.Current._panel.reveal(vscode.ViewColumn.One);
+            DagLogView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("dagLogView", "DAG Logs", vscode.ViewColumn.One, {
+                enableScripts: true,
+                retainContextWhenHidden: true
+            });
+            DagLogView.Current = new DagLogView(panel, dagId, dagRunId, taskId, tryNumber);
+        }
+    }
+    async loadData() {
+        ui.logToOutput('DagLogView.loadData Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        // 1. Resolve dagRunId if missing
+        if (!this.dagRunId) {
+            const lastRunResult = await Session_1.Session.Current.Api.getLastDagRun(this.dagId);
+            if (lastRunResult.isSuccessful && lastRunResult.result) {
+                this.dagRunJson = lastRunResult.result;
+                this.dagRunId = this.dagRunJson.dag_run_id;
+            }
+            else {
+                ui.showErrorMessage("Could not fetch latest DAG run.");
+                return;
+            }
+        }
+        else {
+            // Fetch specific dag run details
+            const runResult = await Session_1.Session.Current.Api.getDagRun(this.dagId, this.dagRunId);
+            if (runResult.isSuccessful) {
+                this.dagRunJson = runResult.result;
+            }
+        }
+        // 2. Fetch Task Instances
+        if (this.dagRunId) {
+            const tasksResult = await Session_1.Session.Current.Api.getTaskInstances(this.dagId, this.dagRunId);
+            if (tasksResult.isSuccessful && tasksResult.result) {
+                this.taskInstancesJson = tasksResult.result;
+            }
+        }
+        // 3. Clear logs cache on reload
+        this.logs.clear();
+        // 4. Fetch logs for tasks
+        const tasks = this._getTasks();
+        // Use Promise.all to fetch concurrently
+        await Promise.all(tasks.map(t => {
+            let tryNum = t.try_number;
+            // If specific task requested AND specific try requested, use that.
+            if (this.taskId && t.task_id === this.taskId && this.tryNumber !== undefined) {
+                tryNum = this.tryNumber;
+            }
+            return this.fetchLogForTask(t.task_id, tryNum);
+        }));
+        await this.renderHtml();
+    }
+    _getTasks() {
+        if (!this.taskInstancesJson || !this.taskInstancesJson.task_instances) {
+            return [];
+        }
+        let tasks = [...this.taskInstancesJson.task_instances];
+        // Filter by taskId if provided
+        if (this.taskId) {
+            tasks = tasks.filter((t) => t.task_id === this.taskId);
+        }
+        return tasks.sort((a, b) => {
+            const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+            const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+            return dateA - dateB;
+        });
+    }
+    async fetchLogForTask(taskId, tryNum) {
+        if (!this.dagRunId) {
+            return;
+        }
+        let targetTryNumber = tryNum;
+        if (targetTryNumber === undefined) {
+            const task = this.taskInstancesJson.task_instances.find((t) => t.task_id === taskId);
+            if (task) {
+                targetTryNumber = task.try_number;
+            }
+            else {
+                targetTryNumber = 1;
+            }
+        }
+        if (this.logs.has(taskId)) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api?.getTaskInstanceLog(this.dagId, this.dagRunId, taskId, targetTryNumber);
+        if (result?.isSuccessful) {
+            this.logs.set(taskId, result.result);
+        }
+    }
+    async renderHtml() {
+        ui.logToOutput('DagLogView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
+    }
+    dispose() {
+        DagLogView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        const elementsUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode-elements",
+            "elements",
+            "dist",
+            "bundled.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        const tasks = this._getTasks();
+        // Metadata
+        const dagRun = this.dagRunJson || {};
+        const startDate = dagRun.start_date ? ui.toISODateTimeString(new Date(dagRun.start_date)) : 'N/A';
+        const endDate = dagRun.end_date ? ui.toISODateTimeString(new Date(dagRun.end_date)) : 'Running';
+        const duration = dagRun.start_date ? ui.getDuration(new Date(dagRun.start_date), dagRun.end_date ? new Date(dagRun.end_date) : new Date()) : 'N/A';
+        const status = dagRun.state || 'N/A';
+        const taskSections = tasks.map(t => {
+            const logData = this.logs.get(t.task_id);
+            let contentHtml = '';
+            const isSuccess = t.state === 'success';
+            const isError = ['failed', 'upstream_failed', 'shutdown', 'restart'].includes(t.state);
+            let statusClass = 'status-other';
+            if (isSuccess)
+                statusClass = 'status-success';
+            if (isError)
+                statusClass = 'status-error';
+            let displayTry = t.try_number;
+            if (this.taskId && t.task_id === this.taskId && this.tryNumber !== undefined) {
+                displayTry = this.tryNumber;
+            }
+            if (logData) {
+                if (logData.content && Array.isArray(logData.content)) {
+                    contentHtml = logData.content.map((entry) => {
+                        const ts = entry.timestamp ? `[${entry.timestamp}]` : '';
+                        const lvl = entry.level ? `[${entry.level}]` : '';
+                        const logger = entry.logger ? `[${entry.logger}]` : '';
+                        const evt = entry.event || '';
+                        let extra = '';
+                        // Error detail
+                        if (entry.error_detail) {
+                            extra = `<pre class="error-detail">${JSON.stringify(entry.error_detail, null, 2)}</pre>`;
+                        }
+                        let lineClass = 'log-line';
+                        if (lvl.toLowerCase().includes('error')) {
+                            lineClass += ' log-error';
+                        }
+                        if (lvl.toLowerCase().includes('warn')) {
+                            lineClass += ' log-warn';
+                        }
+                        return `<div class="${lineClass}"><span class="log-ts">${ts}</span> <span class="log-lvl">${lvl}</span> <span class="log-logger">${logger}</span> <span class="log-msg">${this._escapeHtml(evt)}</span>${extra}</div>`;
+                    }).join('');
+                }
+                else if (logData.detail) {
+                    contentHtml = `<div class="log-error">${this._escapeHtml(logData.detail)}</div>`;
+                }
+                else {
+                    contentHtml = `<pre>${this._escapeHtml(JSON.stringify(logData, null, 2))}</pre>`;
+                }
+            }
+            else {
+                contentHtml = '<div class="loading-logs">Loading logs...</div>';
+            }
+            return `
+            <div class="task-section ${statusClass}">
+                <div class="task-header">
+                    <div class="header-left">
+                        <span class="status-indicator"></span>
+                        <span class="task-title">${this._escapeHtml(t.task_id)}</span>
+                        <span class="status-pill">${this._escapeHtml(t.state)}</span>
+                    </div>
+                    <div class="header-right">
+                        <span class="task-try">Try: ${displayTry}</span>
+                    </div>
+                </div>
+                <div class="log-container" id="log-${t.task_id}">
+                    ${contentHtml}
+                </div>
+            </div>`;
+        }).join('\n');
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <script type="module" src="${elementsUri}"></script>
+    <script type="module" src="${mainUri}"></script>
+    <link rel="stylesheet" href="${styleUri}">
+    <style>
+        body { padding: 16px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; background: var(--vscode-editor-background); color: var(--vscode-editor-foreground); }
+        .metadata { margin-bottom: 24px; padding: 16px; background: var(--vscode-editor-inactiveSelectionBackground); border-radius: 6px; }
+        .metadata-row { display: flex; gap: 32px; font-size: 13px; font-family: var(--vscode-font-family); margin-bottom: 4px; }
+        .label { font-weight: 600; color: var(--vscode-descriptionForeground); width: 70px; display: inline-block; }
+        
+        .task-container { display: flex; flex-direction: column; gap: 16px; padding-bottom: 20px; }
+        
+        .task-section { 
+            border: 1px solid var(--vscode-widget-border); 
+            border-radius: 6px; 
+            overflow: hidden; 
+            background: var(--vscode-editor-background);
+        }
+        
+        .task-header { 
+            padding: 8px 16px; 
+            display: flex; 
+            justify-content: space-between;
+            align-items: center; 
+            font-family: var(--vscode-font-family);
+            border-bottom: 1px solid var(--vscode-widget-border);
+        }
+
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+
+        .task-title { font-weight: 600; font-size: 14px; }
+        .task-try { font-size: 12px; opacity: 0.8; }
+        
+        .status-indicator {
+            width: 8px; height: 8px; border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-pill {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Status Colors */
+        .task-section.status-success .task-header {
+            background-color: var(--vscode-diffEditor-insertedLineBackground); 
+        }
+        .task-section.status-success .status-indicator {
+            background-color: var(--vscode-testing-iconPassed);
+        }
+        .task-section.status-success .status-pill {
+            background-color: var(--vscode-testing-iconPassed);
+            color: var(--vscode-editor-background);
+        }
+
+        .task-section.status-error .task-header {
+            background-color: var(--vscode-diffEditor-removedLineBackground);
+        }
+        .task-section.status-error .status-indicator {
+            background-color: var(--vscode-errorForeground);
+        }
+        .task-section.status-error .status-pill {
+            background-color: var(--vscode-errorForeground);
+            color: white;
+        }
+
+        .task-section.status-other .task-header {
+            background-color: var(--vscode-sideBarSectionHeader-background);
+        }
+        .task-section.status-other .status-indicator {
+            background-color: var(--vscode-descriptionForeground);
+        }
+        .task-section.status-other .status-pill {
+            background-color: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+        }
+
+        .log-container { 
+            padding: 16px;
+            max-height: 500px;
+            overflow-y: auto; 
+            font-family: var(--vscode-editor-font-family);
+            font-size: 12px;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        
+        .log-line { margin-bottom: 2px; }
+        .log-ts { color: var(--vscode-debugConsole-infoForeground); margin-right: 8px; opacity: 0.8; font-size: 0.9em; }
+        .log-lvl { font-weight: bold; margin-right: 8px; }
+        .log-logger { color: var(--vscode-textLink-foreground); margin-right: 8px; }
+        
+        .log-error { color: var(--vscode-errorForeground); }
+        .log-warn { color: var(--vscode-editorWarning-foreground); }
+        
+        .error-detail { 
+            color: var(--vscode-textPreformat-foreground); 
+            background-color: var(--vscode-textBlockQuote-background);
+            padding: 12px;
+            margin: 8px 0 8px 16px;
+            border-left: 3px solid var(--vscode-errorForeground);
+            border-radius: 3px;
+        }
+        .loading-logs { font-style: italic; color: var(--vscode-descriptionForeground); padding: 20px; text-align: center; }
+
+    </style>
+    <title>DAG Logs</title>
+</head>
+<body>
+    <div class="metadata">
+        <div class="metadata-row">
+            <div><span class="label">DAG ID:</span> <span>${this.dagId}</span></div>
+            <div><span class="label">Run ID:</span> <span>${this.dagRunId}</span></div>
+            <div><span class="label">Status:</span> <span>${status}</span></div>
+        </div>
+        <div class="metadata-row">
+            <div><span class="label">Start:</span> <span>${startDate}</span></div>
+            <div><span class="label">End:</span> <span>${endDate}</span></div>
+            <div><span class="label">Duration:</span> <span>${duration}</span></div>
+        </div>
+    </div>
+
+    <div class="task-container">
+        ${taskSections}
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        // Just listener for now if we want to add interactivity later e.g. collapse/expand
+    </script>
+</body>
+</html>`;
+    }
+    _escapeHtml(text) {
+        if (!text)
+            return '';
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+    _setWebviewMessageListener(webview) {
+        webview.onDidReceiveMessage(async (message) => {
+            // No messages expected for now
+        }, undefined, this._disposables);
+    }
+}
+exports.DagLogView = DagLogView;
+
+
+/***/ }),
+/* 53 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DailyDagRunView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(2);
 const DagView_1 = __webpack_require__(49);
 const Session_1 = __webpack_require__(5);
+const DagLogView_1 = __webpack_require__(52);
 class DailyDagRunView {
     constructor(panel) {
         this._disposables = [];
@@ -11201,7 +11637,10 @@ class DailyDagRunView {
             tableRows += `
             <vscode-table-row>
                 <vscode-table-cell><a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-link">${this._escapeHtml(dagId)}</a></vscode-table-cell>
-                <vscode-table-cell>${statusEmoji} ${this._escapeHtml(status)}</vscode-table-cell>
+                <vscode-table-cell>
+                    ${statusEmoji} ${this._escapeHtml(status)} 
+                    <a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-log-link" title="View Logs">Logs</a>
+                </vscode-table-cell>
                 <vscode-table-cell>${this._escapeHtml(startDate)}</vscode-table-cell>
                 <vscode-table-cell>${this._escapeHtml(duration)}</vscode-table-cell>
                 <vscode-table-cell><code>${this._escapeHtml(config.substring(0, 50))}${config.length > 50 ? '...' : ''}</code></vscode-table-cell>
@@ -11350,6 +11789,16 @@ class DailyDagRunView {
                     vscode.postMessage({ command: 'open-dag-view', dagId, dagRunId });
                 });
             });
+
+            // Handle dag-log-link clicks
+            document.querySelectorAll('.dag-log-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const dagId = e.target.getAttribute('data-dag-id');
+                    const dagRunId = e.target.getAttribute('data-dag-run-id');
+                    vscode.postMessage({ command: 'view-dag-log', dagId, dagRunId });
+                });
+            });
         </script>
       </body>
     </html>
@@ -11401,6 +11850,11 @@ class DailyDagRunView {
                         DagView_1.DagView.render(message.dagId, message.dagRunId);
                     }
                     return;
+                case "view-dag-log":
+                    if (message.dagId) {
+                        DagLogView_1.DagLogView.render(message.dagId, message.dagRunId);
+                    }
+                    return;
             }
         }, undefined, this._disposables);
     }
@@ -11409,7 +11863,7 @@ exports.DailyDagRunView = DailyDagRunView;
 
 
 /***/ }),
-/* 53 */
+/* 54 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11421,6 +11875,7 @@ const vscode = __webpack_require__(1);
 const ui = __webpack_require__(2);
 const DagView_1 = __webpack_require__(49);
 const Session_1 = __webpack_require__(5);
+const DagLogView_1 = __webpack_require__(52);
 class DagRunView {
     constructor(panel) {
         this._disposables = [];
@@ -11567,7 +12022,10 @@ class DagRunView {
             tableRows += `
             <vscode-table-row>
                 <vscode-table-cell><a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-link">${this._escapeHtml(dagId)}</a></vscode-table-cell>
-                <vscode-table-cell>${statusEmoji} ${this._escapeHtml(status)}</vscode-table-cell>
+                <vscode-table-cell>
+                    ${statusEmoji} ${this._escapeHtml(status)} 
+                    <a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-log-link" title="View Logs">Logs</a>
+                </vscode-table-cell>
                 <vscode-table-cell>${this._escapeHtml(startDate)}</vscode-table-cell>
                 <vscode-table-cell>${this._escapeHtml(duration)}</vscode-table-cell>
                 <vscode-table-cell><code>${this._escapeHtml(config.substring(0, 50))}${config.length > 50 ? '...' : ''}</code></vscode-table-cell>
@@ -11723,6 +12181,16 @@ class DagRunView {
                     vscode.postMessage({ command: 'open-dag-view', dagId, dagRunId });
                 });
             });
+
+            // Handle dag-log-link clicks
+            document.querySelectorAll('.dag-log-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const dagId = e.target.getAttribute('data-dag-id');
+                    const dagRunId = e.target.getAttribute('data-dag-run-id');
+                    vscode.postMessage({ command: 'view-dag-log', dagId, dagRunId });
+                });
+            });
         </script>
       </body>
     </html>
@@ -11781,6 +12249,11 @@ class DagRunView {
                         DagView_1.DagView.render(message.dagId, message.dagRunId);
                     }
                     return;
+                case "view-dag-log":
+                    if (message.dagId) {
+                        DagLogView_1.DagLogView.render(message.dagId, message.dagRunId);
+                    }
+                    return;
             }
         }, undefined, this._disposables);
     }
@@ -11789,7 +12262,7 @@ exports.DagRunView = DagRunView;
 
 
 /***/ }),
-/* 54 */
+/* 55 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -11896,7 +12369,7 @@ exports.ConnectionsView = ConnectionsView;
 
 
 /***/ }),
-/* 55 */
+/* 56 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12079,7 +12552,7 @@ exports.VariablesView = VariablesView;
 
 
 /***/ }),
-/* 56 */
+/* 57 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12252,7 +12725,7 @@ exports.ProvidersView = ProvidersView;
 
 
 /***/ }),
-/* 57 */
+/* 58 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12425,7 +12898,7 @@ exports.ConfigsView = ConfigsView;
 
 
 /***/ }),
-/* 58 */
+/* 59 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12590,7 +13063,7 @@ exports.PluginsView = PluginsView;
 
 
 /***/ }),
-/* 59 */
+/* 60 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12824,7 +13297,7 @@ exports.ServerHealthView = ServerHealthView;
 
 
 /***/ }),
-/* 60 */
+/* 61 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12832,7 +13305,7 @@ exports.ServerHealthView = ServerHealthView;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AdminTreeView = void 0;
 const vscode = __webpack_require__(1);
-const AdminTreeItem_1 = __webpack_require__(61);
+const AdminTreeItem_1 = __webpack_require__(62);
 class AdminTreeView {
     constructor() {
         this._onDidChangeTreeData = new vscode.EventEmitter();
@@ -12887,7 +13360,7 @@ exports.AdminTreeView = AdminTreeView;
 
 
 /***/ }),
-/* 61 */
+/* 62 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12910,7 +13383,7 @@ exports.AdminTreeItem = AdminTreeItem;
 
 
 /***/ }),
-/* 62 */
+/* 63 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12918,7 +13391,7 @@ exports.AdminTreeItem = AdminTreeItem;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ReportTreeView = void 0;
 const vscode = __webpack_require__(1);
-const ReportTreeItem_1 = __webpack_require__(63);
+const ReportTreeItem_1 = __webpack_require__(64);
 class ReportTreeView {
     constructor() {
         this._onDidChangeTreeData = new vscode.EventEmitter();
@@ -12953,7 +13426,7 @@ exports.ReportTreeView = ReportTreeView;
 
 
 /***/ }),
-/* 63 */
+/* 64 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -12976,7 +13449,7 @@ exports.ReportTreeItem = ReportTreeItem;
 
 
 /***/ }),
-/* 64 */
+/* 65 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13225,7 +13698,7 @@ class AirflowClientAdapter {
     async getTaskLog(dagId, dagRunId, taskId, tryNumber) {
         try {
             // Use the existing getTaskInstanceLog method
-            const result = await Session_1.Session.Current.Api.getTaskInstanceLog(dagId, dagRunId, taskId);
+            const result = await Session_1.Session.Current.Api.getTaskInstanceLogText(dagId, dagRunId, taskId);
             if (!result.isSuccessful) {
                 throw new Error(result.error?.message || 'Failed to retrieve task log');
             }
@@ -13347,7 +13820,7 @@ exports.AirflowClientAdapter = AirflowClientAdapter;
 
 
 /***/ }),
-/* 65 */
+/* 66 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13475,7 +13948,7 @@ exports.TriggerDagRunTool = TriggerDagRunTool;
 
 
 /***/ }),
-/* 66 */
+/* 67 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13594,7 +14067,7 @@ exports.GetFailedRunsTool = GetFailedRunsTool;
 
 
 /***/ }),
-/* 67 */
+/* 68 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13646,7 +14119,7 @@ exports.ListActiveDagsTool = ListActiveDagsTool;
 
 
 /***/ }),
-/* 68 */
+/* 69 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13698,7 +14171,7 @@ exports.ListPausedDagsTool = ListPausedDagsTool;
 
 
 /***/ }),
-/* 69 */
+/* 70 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13754,7 +14227,7 @@ exports.GetRunningDagsTool = GetRunningDagsTool;
 
 
 /***/ }),
-/* 70 */
+/* 71 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13805,7 +14278,7 @@ exports.PauseDagTool = PauseDagTool;
 
 
 /***/ }),
-/* 71 */
+/* 72 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13856,7 +14329,7 @@ exports.UnpauseDagTool = UnpauseDagTool;
 
 
 /***/ }),
-/* 72 */
+/* 73 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -13997,7 +14470,7 @@ exports.GetDagRunsTool = GetDagRunsTool;
 
 
 /***/ }),
-/* 73 */
+/* 74 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14097,7 +14570,7 @@ exports.CancelDagRunTool = CancelDagRunTool;
 
 
 /***/ }),
-/* 74 */
+/* 75 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14317,7 +14790,7 @@ exports.AnalyseDagLatestRunTool = AnalyseDagLatestRunTool;
 
 
 /***/ }),
-/* 75 */
+/* 76 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14468,7 +14941,7 @@ exports.GetDagHistoryTool = GetDagHistoryTool;
 
 
 /***/ }),
-/* 76 */
+/* 77 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14735,7 +15208,7 @@ exports.GetDagRunDetailTool = GetDagRunDetailTool;
 
 
 /***/ }),
-/* 77 */
+/* 78 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14804,7 +15277,80 @@ exports.GoToDagViewTool = GoToDagViewTool;
 
 
 /***/ }),
-/* 78 */
+/* 79 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToDagLogViewTool - Language Model Tool for opening the DAG Log View panel
+ *
+ * This tool allows users to open the DagLogView for a specific DAG,
+ * optionally providing dagRunId, taskId, and tryNumber.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToDagLogViewTool = void 0;
+const vscode = __webpack_require__(1);
+const Session_1 = __webpack_require__(5);
+const DagLogView_1 = __webpack_require__(52);
+/**
+ * GoToDagLogViewTool - Implements vscode.LanguageModelTool for opening DAG Log View
+ *
+ * This tool opens the DagLogView panel to display logs for tasks.
+ */
+class GoToDagLogViewTool {
+    constructor() {
+    }
+    async prepareInvocation(options, token) {
+        const { dagId, dagRunId, taskId, tryNumber } = options.input;
+        let message = `Opening DAG Log View for: **${dagId}**`;
+        if (dagRunId) {
+            message += `\nDAG Run ID: **${dagRunId}**`;
+        }
+        if (taskId) {
+            message += `\nTask ID: **${taskId}**`;
+        }
+        if (tryNumber) {
+            message += `\nTry Number: **${tryNumber}**`;
+        }
+        return {
+            invocationMessage: message
+        };
+    }
+    async invoke(options, token) {
+        const { dagId, dagRunId, taskId, tryNumber } = options.input;
+        try {
+            // Check if API is available
+            if (!Session_1.Session.Current.Api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            // Open the DagLogView with the specified parameters
+            DagLogView_1.DagLogView.render(dagId, dagRunId, taskId, tryNumber);
+            let successMessage = `✅ Opened DAG Log View for: **${dagId}**`;
+            if (dagRunId)
+                successMessage += `, Run: **${dagRunId}**`;
+            if (taskId)
+                successMessage += `, Task: **${taskId}**`;
+            if (tryNumber)
+                successMessage += `, Try: **${tryNumber}**`;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(successMessage)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open DAG Log View for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToDagLogViewTool = GoToDagLogViewTool;
+
+
+/***/ }),
+/* 80 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14819,7 +15365,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToDagRunHistoryTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const DagRunView_1 = __webpack_require__(53);
+const DagRunView_1 = __webpack_require__(54);
 /**
  * GoToDagRunHistoryTool - Implements vscode.LanguageModelTool for opening DAG Run History View
  *
@@ -14905,7 +15451,7 @@ exports.GoToDagRunHistoryTool = GoToDagRunHistoryTool;
 
 
 /***/ }),
-/* 79 */
+/* 81 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14917,7 +15463,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToProvidersViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const ProvidersView_1 = __webpack_require__(56);
+const ProvidersView_1 = __webpack_require__(57);
 /**
  * GoToProvidersViewTool - Opens the Providers panel
  */
@@ -14951,7 +15497,7 @@ exports.GoToProvidersViewTool = GoToProvidersViewTool;
 
 
 /***/ }),
-/* 80 */
+/* 82 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -14963,7 +15509,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToConnectionsViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const ConnectionsView_1 = __webpack_require__(54);
+const ConnectionsView_1 = __webpack_require__(55);
 /**
  * GoToConnectionsViewTool - Opens the Connections panel
  */
@@ -14997,7 +15543,7 @@ exports.GoToConnectionsViewTool = GoToConnectionsViewTool;
 
 
 /***/ }),
-/* 81 */
+/* 83 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -15009,7 +15555,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToVariablesViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const VariablesView_1 = __webpack_require__(55);
+const VariablesView_1 = __webpack_require__(56);
 /**
  * GoToVariablesViewTool - Opens the Variables panel
  */
@@ -15043,7 +15589,7 @@ exports.GoToVariablesViewTool = GoToVariablesViewTool;
 
 
 /***/ }),
-/* 82 */
+/* 84 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -15055,7 +15601,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToConfigsViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const ConfigsView_1 = __webpack_require__(57);
+const ConfigsView_1 = __webpack_require__(58);
 /**
  * GoToConfigsViewTool - Opens the Configs panel
  */
@@ -15089,7 +15635,7 @@ exports.GoToConfigsViewTool = GoToConfigsViewTool;
 
 
 /***/ }),
-/* 83 */
+/* 85 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -15101,7 +15647,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToPluginsViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const PluginsView_1 = __webpack_require__(58);
+const PluginsView_1 = __webpack_require__(59);
 /**
  * GoToPluginsViewTool - Opens the Plugins panel
  */
@@ -15135,7 +15681,7 @@ exports.GoToPluginsViewTool = GoToPluginsViewTool;
 
 
 /***/ }),
-/* 84 */
+/* 86 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -15147,7 +15693,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GoToServerHealthViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
-const ServerHealthView_1 = __webpack_require__(59);
+const ServerHealthView_1 = __webpack_require__(60);
 /**
  * GoToServerHealthViewTool - Opens the Server Health panel
  */
@@ -15334,29 +15880,30 @@ const vscode = __webpack_require__(1);
 const ui = __webpack_require__(2);
 const Session_1 = __webpack_require__(5);
 const DagTreeView_1 = __webpack_require__(43);
-const AdminTreeView_1 = __webpack_require__(60);
-const ReportTreeView_1 = __webpack_require__(62);
-const AirflowClientAdapter_1 = __webpack_require__(64);
-const TriggerDagRunTool_1 = __webpack_require__(65);
-const GetFailedRunsTool_1 = __webpack_require__(66);
-const ListActiveDagsTool_1 = __webpack_require__(67);
-const ListPausedDagsTool_1 = __webpack_require__(68);
-const GetRunningDagsTool_1 = __webpack_require__(69);
-const PauseDagTool_1 = __webpack_require__(70);
-const UnpauseDagTool_1 = __webpack_require__(71);
-const GetDagRunsTool_1 = __webpack_require__(72);
-const CancelDagRunTool_1 = __webpack_require__(73);
-const AnalyseDagLatestRunTool_1 = __webpack_require__(74);
-const GetDagHistoryTool_1 = __webpack_require__(75);
-const GetDagRunDetailTool_1 = __webpack_require__(76);
-const GoToDagViewTool_1 = __webpack_require__(77);
-const GoToDagRunHistoryTool_1 = __webpack_require__(78);
-const GoToProvidersViewTool_1 = __webpack_require__(79);
-const GoToConnectionsViewTool_1 = __webpack_require__(80);
-const GoToVariablesViewTool_1 = __webpack_require__(81);
-const GoToConfigsViewTool_1 = __webpack_require__(82);
-const GoToPluginsViewTool_1 = __webpack_require__(83);
-const GoToServerHealthViewTool_1 = __webpack_require__(84);
+const AdminTreeView_1 = __webpack_require__(61);
+const ReportTreeView_1 = __webpack_require__(63);
+const AirflowClientAdapter_1 = __webpack_require__(65);
+const TriggerDagRunTool_1 = __webpack_require__(66);
+const GetFailedRunsTool_1 = __webpack_require__(67);
+const ListActiveDagsTool_1 = __webpack_require__(68);
+const ListPausedDagsTool_1 = __webpack_require__(69);
+const GetRunningDagsTool_1 = __webpack_require__(70);
+const PauseDagTool_1 = __webpack_require__(71);
+const UnpauseDagTool_1 = __webpack_require__(72);
+const GetDagRunsTool_1 = __webpack_require__(73);
+const CancelDagRunTool_1 = __webpack_require__(74);
+const AnalyseDagLatestRunTool_1 = __webpack_require__(75);
+const GetDagHistoryTool_1 = __webpack_require__(76);
+const GetDagRunDetailTool_1 = __webpack_require__(77);
+const GoToDagViewTool_1 = __webpack_require__(78);
+const GoToDagLogViewTool_1 = __webpack_require__(79);
+const GoToDagRunHistoryTool_1 = __webpack_require__(80);
+const GoToProvidersViewTool_1 = __webpack_require__(81);
+const GoToConnectionsViewTool_1 = __webpack_require__(82);
+const GoToVariablesViewTool_1 = __webpack_require__(83);
+const GoToConfigsViewTool_1 = __webpack_require__(84);
+const GoToPluginsViewTool_1 = __webpack_require__(85);
+const GoToServerHealthViewTool_1 = __webpack_require__(86);
 const AIHandler_1 = __webpack_require__(51);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -15465,6 +16012,10 @@ function activate(context) {
     const goToDagViewTool = vscode.lm.registerTool('go_to_dag_view', new GoToDagViewTool_1.GoToDagViewTool());
     context.subscriptions.push(goToDagViewTool);
     ui.logToOutput('Registered tool: go_to_dag_view');
+    // Register Tool: go_to_dag_log_view (Navigation)
+    const goToDagLogViewTool = vscode.lm.registerTool('go_to_dag_log_view', new GoToDagLogViewTool_1.GoToDagLogViewTool());
+    context.subscriptions.push(goToDagLogViewTool);
+    ui.logToOutput('Registered tool: go_to_dag_log_view');
     // Register Tool 15: go_to_dag_run_history (Navigation)
     const goToDagRunHistoryTool = vscode.lm.registerTool('go_to_dag_run_history', new GoToDagRunHistoryTool_1.GoToDagRunHistoryTool());
     context.subscriptions.push(goToDagRunHistoryTool);

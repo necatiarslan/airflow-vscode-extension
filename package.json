@@ -366,6 +366,44 @@
         }
       },
       {
+        "name": "go_to_dag_log_view",
+        "displayName": "Go to DAG Log View",
+        "modelDescription": "Opens the DAG Log View panel in VS Code to display task logs for a specific Airflow DAG. Use this tool when the user wants to see the logs for tasks in a DAG run. Required input: dag_id (string). Optional inputs: dag_run_id (string), task_id (string), try_number (number). If task_id and try_number are provided, it focuses on that specific log. This is a navigation tool.",
+        "icon": "$(output)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "dag",
+          "log",
+          "view",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG"
+            },
+            "dagRunId": {
+              "type": "string",
+              "description": "Optional: The DAG run ID"
+            },
+            "taskId": {
+              "type": "string",
+              "description": "Optional: The Task ID to filter logs for"
+            },
+            "tryNumber": {
+              "type": "number",
+              "description": "Optional: The try number of the task instance"
+            }
+          },
+          "required": [
+            "dagId"
+          ]
+        }
+      },
+      {
         "name": "go_to_dag_run_history",
         "displayName": "Go to DAG Run History",
         "modelDescription": "Opens the DAG Run History panel in VS Code to display run history for a specific Airflow DAG. Use this tool when the user wants to see run history, execution logs, or past runs for a DAG. Required input: dag_id (string). Optional inputs: start_date (string in YYYY-MM-DD format), end_date (string in YYYY-MM-DD format), status (string: success, failed, running, queued, upstream_failed). This is a navigation tool that does not modify any state.",
@@ -601,7 +639,7 @@
       },
       {
         "command": "dagTreeView.lastDAGRunLog",
-        "title": "Run Log",
+        "title": "Logs",
         "icon": "$(output)"
       },
       {

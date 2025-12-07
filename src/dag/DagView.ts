@@ -7,6 +7,7 @@ import { DagTreeView } from "./DagTreeView";
 import * as MessageHub from '../common/MessageHub';
 import { Session } from '../common/Session';
 import { AIHandler } from '../language_tools/AIHandler';
+import { DagLogView } from '../report/DagLogView';
 
 export class DagView {
     public static Current: DagView;
@@ -277,8 +278,8 @@ export class DagView {
                         </div>
                     </td>
                     <td>
-                        <a href="#" id="task-log-link-${t.task_id}">Log</a> | 
-                        <a href="#" id="task-xcom-link-${t.task_id}">XCom</a>
+                        <a href="#" id="task-log-link-${t.task_id}">Logs</a> | 
+                        <a href="#" id="task-xcom-link-${t.task_id}">XComs</a>
                     </td>
                     <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
                     <td>${t.operator}</td>
@@ -782,7 +783,7 @@ export class DagView {
             return;
         }
 
-        const logs = await Session.Current.Api.getDagRunLog(this.dagId, this.dagRunId);
+        const logs = await Session.Current.Api.getDagRunLogText(this.dagId, this.dagRunId);
         if (!logs.isSuccessful) {
             ui.showErrorMessage('Failed to retrieve DAG logs for AI context');
             return;
@@ -821,10 +822,11 @@ export class DagView {
 
         if (!Session.Current.Api) { return; }
 
-        const result = await Session.Current.Api.getDagRunLog(this.dagId, this.dagRunId);
-        if (result.isSuccessful) {
-            this.createAndOpenTempFile(result.result, this.dagId, '.log');
-        }
+        // const result = await Session.Current.Api.getDagRunLogText(this.dagId, this.dagRunId);
+        // if (result.isSuccessful) {
+        //     this.createAndOpenTempFile(result.result, this.dagId, '.log');
+        // }
+        DagLogView.render(this.dagId, this.dagRunId);
     }
 
     private async showTaskInstanceLog(dagId: string, dagRunId:string, taskId:string) {
@@ -832,10 +834,11 @@ export class DagView {
 
         if (!Session.Current.Api) { return; }
 
-        const result = await Session.Current.Api.getTaskInstanceLog(dagId, dagRunId, taskId);
-        if (result.isSuccessful) {
-            this.createAndOpenTempFile(result.result, dagId + '-' + taskId, '.log');
-        }
+        // const result = await Session.Current.Api.getTaskInstanceLogText(dagId, dagRunId, taskId);
+        // if (result.isSuccessful) {
+        //     this.createAndOpenTempFile(result.result, dagId + '-' + taskId, '.log');
+        // }
+        DagLogView.render(dagId, dagRunId, taskId);
     }
 
     private async showTaskXComs(dagId: string, dagRunId:string, taskId:string) {
@@ -971,7 +974,7 @@ export class DagView {
             }
 
             let itemHtml = `<vscode-tree-item>\n`;
-            itemHtml += `${task.task_id} (${task.operator || ''})\n`;
+            itemHtml += `${task.task_id}\n`;
 
             // Get downstream tasks
             const downstreamIds = task.downstream_task_ids || [];

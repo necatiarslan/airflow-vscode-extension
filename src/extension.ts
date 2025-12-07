@@ -7,6 +7,7 @@ import { DagTreeView } from './dag/DagTreeView';
 import { DagTreeItem } from './dag/DagTreeItem';
 import { AdminTreeView } from './admin/AdminTreeView';
 import { ReportTreeView } from './report/ReportTreeView';
+
 import { AirflowClientAdapter } from './language_tools/AirflowClientAdapter';
 import { TriggerDagRunTool } from './language_tools/TriggerDagRunTool';
 import { GetFailedRunsTool } from './language_tools/GetFailedRunsTool';
@@ -21,6 +22,7 @@ import { AnalyseDagLatestRunTool } from './language_tools/AnalyseDagLatestRunToo
 import { GetDagHistoryTool } from './language_tools/GetDagHistoryTool';
 import { GetDagRunDetailTool } from './language_tools/GetDagRunDetailTool';
 import { GoToDagViewTool } from './language_tools/GoToDagViewTool';
+import { GoToDagLogViewTool } from './language_tools/GoToDagLogViewTool';
 import { GoToDagRunHistoryTool } from './language_tools/GoToDagRunHistoryTool';
 import { GoToProvidersViewTool } from './language_tools/GoToProvidersViewTool';
 import { GoToConnectionsViewTool } from './language_tools/GoToConnectionsViewTool';
@@ -200,6 +202,14 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(goToDagViewTool);
 	ui.logToOutput('Registered tool: go_to_dag_view');
 
+    // Register Tool: go_to_dag_log_view (Navigation)
+    const goToDagLogViewTool = vscode.lm.registerTool(
+        'go_to_dag_log_view',
+        new GoToDagLogViewTool()
+    );
+    context.subscriptions.push(goToDagLogViewTool);
+    ui.logToOutput('Registered tool: go_to_dag_log_view');
+
 	// Register Tool 15: go_to_dag_run_history (Navigation)
 	const goToDagRunHistoryTool = vscode.lm.registerTool(
 		'go_to_dag_run_history',
@@ -257,6 +267,8 @@ export function activate(context: vscode.ExtensionContext) {
 	ui.logToOutput('Registered tool: go_to_server_health_view');
 
 	ui.logToOutput('All Language Model Tools registered successfully');
+
+
 
 	for (const c of commands) { context.subscriptions.push(c); }
 

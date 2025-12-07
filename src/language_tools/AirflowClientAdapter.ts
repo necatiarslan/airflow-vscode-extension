@@ -316,7 +316,7 @@ export class AirflowClientAdapter {
     async getTaskLog(dagId: string, dagRunId: string, taskId: string, tryNumber: string): Promise<string> {
         try {
             // Use the existing getTaskInstanceLog method
-            const result = await Session.Current.Api.getTaskInstanceLog(dagId, dagRunId, taskId);
+            const result = await Session.Current.Api.getTaskInstanceLogText(dagId, dagRunId, taskId);
 
             if (!result.isSuccessful) {
                 throw new Error(result.error?.message || 'Failed to retrieve task log');

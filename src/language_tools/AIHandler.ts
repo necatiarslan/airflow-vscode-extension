@@ -166,6 +166,20 @@ export class AIHandler
                 }
             },
             {
+                name: 'go_to_dag_log_view',
+                description: 'Opens the DAG Log View panel to display task logs for a specific Airflow DAG. Required: dag_id. Optional: dag_run_id, task_id, try_number.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' },
+                        dagRunId: { type: 'string', description: 'Optional: The DAG run ID' },
+                        taskId: { type: 'string', description: 'Optional: The Task ID' },
+                        tryNumber: { type: 'number', description: 'Optional: The try number' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
                 name: 'go_to_dag_run_history',
                 description: 'Opens the DAG Run History panel with optional filters. Shows run history for a DAG with optional date range and status filters. Required: dag_id.',
                 inputSchema: {
@@ -348,7 +362,7 @@ export class AIHandler
         }
 
         // Fetch Latest DAG Run Logs
-        const logResult = await Session.Current.Api.getLastDagRunLog(dagId);
+        const logResult = await Session.Current.Api.getLastDagRunLogText(dagId);
         if (logResult.isSuccessful) {
             latestDagLogs = logResult.result;
         } else {

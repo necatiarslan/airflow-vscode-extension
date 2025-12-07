@@ -284,7 +284,73 @@ export class AirflowApi {
         return result;
     }
 
-    public async getLastDagRunLog(dagId: string): Promise<MethodResult<string>> {
+   public async getTaskInstanceLog(dagId: string, dagRunId: string, taskId: string, tryNumber: number): Promise<MethodResult<any>> {
+        const result = new MethodResult<any>();
+        try {
+            //ui.showInfoMessage('Fetching Task Logs...');
+            const headers = await this.getHeaders();
+            
+            const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${taskId}/logs/${tryNumber}`, { method: 'GET', headers });
+            const logJson = await logRes.json();
+            
+            result.result = logJson;
+            result.isSuccessful = true;
+        } catch (error) {
+            ui.showErrorMessage(`${dagId} Log Error`, error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
+   public async getTaskInstanceLogText(dagId: string, dagRunId: string, taskId: string, tryNumber?: number): Promise<MethodResult<string>> {
+        const result = new MethodResult<string>();
+        try {
+
+            if (tryNumber === undefined) {
+                //get latest try number
+                const taskInstancesResult = await this.getTaskInstances(dagId, dagRunId);
+                if (!taskInstancesResult.isSuccessful) {
+                    result.isSuccessful = false;
+                    result.error = taskInstancesResult.error;
+                    return result;
+                }
+                
+                const taskInstance = taskInstancesResult.result.task_instances.find((ti: any) => ti.task_id === taskId);
+                if (!taskInstance) {
+                    throw new Error(`Task instance not found for taskId: ${taskId}`);
+                }
+                tryNumber = taskInstance.try_number;
+            }
+            
+
+            const logJsonResult = await this.getTaskInstanceLog(dagId, dagRunId, taskId, tryNumber);
+            if (!logJsonResult.isSuccessful) {
+                result.isSuccessful = false;
+                result.error = logJsonResult.error;
+                return result;
+            }
+            
+            const logJson = logJsonResult.result;
+            const logText = JSON.stringify(logJson, null, 2);
+
+            let logContent = '';
+            logContent +=`############################################################\n`;
+            logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${taskId}\nTry=${tryNumber}\n`;
+            logContent += `############################################################\n\n`;
+            logContent += logText;
+            
+            result.result = logContent;
+            result.isSuccessful = true;
+        } catch (error) {
+            ui.showErrorMessage(`${dagId} Log Error`, error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
+    public async getLastDagRunLogText(dagId: string): Promise<MethodResult<string>> {
         const result = new MethodResult<string>();
         try {
             //ui.showInfoMessage('Fetching Latest DAG Run Logs...');
@@ -294,7 +360,7 @@ export class AirflowApi {
             }
 
             const dagRunId = history.result.dag_runs[0].dag_run_id;
-            let logContent = await this.getDagRunLog(dagId, dagRunId);
+            let logContent = await this.getDagRunLogText(dagId, dagRunId);
             if (!logContent.isSuccessful) {
                 result.isSuccessful = false;
                 result.error = logContent.error;
@@ -310,27 +376,30 @@ export class AirflowApi {
         return result;
     }
     
-    public async getDagRunLog(dagId: string, dagRunId: string) : Promise<MethodResult<string>>{
+    public async getDagRunLogText(dagId: string, dagRunId: string) : Promise<MethodResult<string>>{
         const result = new MethodResult<string>();
         //ui.showInfoMessage('Fetching DAG Run Logs...');
         try {
-            const headers = await this.getHeaders();
-
-            const tasksResponse = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`, { method: 'GET', headers });
-            const tasksData = await tasksResponse.json() as any;
-
-            let logContent = '###################### BEGINNING OF DAG RUN ######################\n\n';
-
-            for (const task of tasksData.task_instances || []) {
-                const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${task.task_id}/logs/${task.try_number}`, { method: 'GET', headers });
-                const logText = await logRes.text();
-
-                logContent += `############################################################\n`;
-                logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${task.task_id}\nTry=${task.try_number}\n`;
-                logContent += `############################################################\n\n`;
-                logContent += logText + "\n\n";
+            const taskInstancesResult = await this.getTaskInstances(dagId, dagRunId);
+            if (!taskInstancesResult.isSuccessful) {
+                result.isSuccessful = false;
+                result.error = taskInstancesResult.error;
+                return result;
             }
-            logContent += '###################### END OF DAG RUN ######################\n';
+
+            let logContent = '';
+            for (const ti of taskInstancesResult.result.task_instances) {
+                const taskId = ti.task_id;
+                const tryNumber = ti.try_number;
+
+                const logTextResult = await this.getTaskInstanceLogText(dagId, dagRunId, taskId, tryNumber);
+                if (!logTextResult.isSuccessful) {
+                    result.isSuccessful = false;
+                    result.error = logTextResult.error;
+                    return result;
+                }
+                logContent += logTextResult.result + '\n\n';
+            }
             result.result = logContent;
             result.isSuccessful = true;
             return result
@@ -372,42 +441,6 @@ export class AirflowApi {
                 result.isSuccessful = false;
             }
         } catch (error) {
-            result.isSuccessful = false;
-            result.error = error as Error;
-        }
-        return result;
-    }
-
-    public async getTaskInstanceLog(dagId: string, dagRunId: string, taskId: string): Promise<MethodResult<string>> {
-        const result = new MethodResult<string>();
-        try {
-            //ui.showInfoMessage('Fetching Task Logs...');
-            const headers = await this.getHeaders();
-            
-            // First get the try number from task instance details
-            // Or just try fetching logs for try 1, 2, etc?
-            // The original code fetched all task instances to find the try number.
-            
-            const tasksResponse = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`, { method: 'GET', headers });
-            const tasksData = await tasksResponse.json() as any;
-            
-            const taskInstance = tasksData.task_instances?.find((t: any) => t.task_id === taskId);
-            if (!taskInstance) {
-                throw new Error("Task instance not found");
-            }
-
-            const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${taskId}/logs/${taskInstance.try_number}`, { method: 'GET', headers });
-            const logText = await logRes.text();
-            
-            let logContent = `############################################################\n`;
-            logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${taskId}\nTry=${taskInstance.try_number}\n`;
-            logContent += `############################################################\n\n`;
-            logContent += logText;
-            
-            result.result = logContent;
-            result.isSuccessful = true;
-        } catch (error) {
-            ui.showErrorMessage(`${dagId} Log Error`, error as Error);
             result.isSuccessful = false;
             result.error = error as Error;
         }

@@ -11,6 +11,7 @@ import * as ui from '../common/UI';
 import { ServerConfig } from '../common/Types';
 import * as MessageHub from '../common/MessageHub';
 import { Session } from '../common/Session';
+import { DagLogView } from '../report/DagLogView';
 
 export class DagTreeView {
 
@@ -288,10 +289,12 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.lastDAGRunLog Started');
 		if (!Session.Current.Api) { return; }
 
-		const result = await Session.Current.Api.getLastDagRunLog(node.DagId);
-		if (result.isSuccessful) {
-			this.createAndOpenTempFile(result.result, node.DagId, '.log');
-		}
+		// const result = await Session.Current.Api.getLastDagRunLogText(node.DagId);
+		// if (result.isSuccessful) {
+		// 	this.createAndOpenTempFile(result.result, node.DagId, '.log');
+		// }
+
+		DagLogView.render(node.DagId, node.LatestDagRunId);
 	}
 
 	public async dagSourceCode(node: DagTreeItem) {
