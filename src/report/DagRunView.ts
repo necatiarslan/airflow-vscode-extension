@@ -29,7 +29,7 @@ export class DagRunView {
 
     public async loadData() {
         ui.logToOutput('DagRunView.loadData Started');
-
+		if (!Session.Current.Api) { return; }
         // Fetch all DAGs to populate dag_id filter
         const dagsResult = await Session.Current.Api.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
@@ -370,6 +370,7 @@ export class DagRunView {
                         return;
                     case "open-dag-view":
                         // Open DagView with specific dag and run
+                        if (!Session.Current.Api) { return; }
                         if (Session.Current.Api && message.dagId) {
                             DagView.render(message.dagId, message.dagRunId);
                         }

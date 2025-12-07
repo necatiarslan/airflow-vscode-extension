@@ -8,7 +8,7 @@ import { DagView } from './DagView';
 import { DailyDagRunView } from '../report/DailyDagRunView';
 import { DagRunView } from '../report/DagRunView';
 import * as ui from '../common/UI';
-import { AskAIContext, ServerConfig } from '../common/Types';
+import { ServerConfig } from '../common/Types';
 import * as MessageHub from '../common/MessageHub';
 import { Session } from '../common/Session';
 
@@ -65,9 +65,9 @@ export class DagTreeView {
 
 	public viewDagView(node: DagTreeItem): void {
 		ui.logToOutput('DagTreeView.viewDagView Started');
-		if (Session.Current.Api) {
-			DagView.render(node.DagId);
-		}
+		if (!Session.Current.Api) { return; }
+
+		DagView.render(node.DagId);
 	}
 
 	public async addToFavDAG(node: DagTreeItem) {
@@ -97,7 +97,7 @@ export class DagTreeView {
 	}
 
 	private handleTriggerSuccess(node: DagTreeItem, responseTrigger: any): void {
-		node.LatestDagRunId = responseTrigger['dagRunId'];
+		node.LatestDagRunId = responseTrigger['dag_run_id'];
 		node.LatestDagState = responseTrigger['state'];
 		node.refreshUI();
 		this.treeDataProvider.refresh();

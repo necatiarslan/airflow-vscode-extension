@@ -20,8 +20,9 @@ export class VariablesView {
 
     public async loadData() {
         ui.logToOutput('VariablesView.loadData Started');
-
-        const result = await Session.Current.Api!.getVariables();
+        if (!Session.Current.Api) { return; }
+        
+        const result = await Session.Current.Api.getVariables();
         if (result.isSuccessful) {
             this.variablesJson = result.result;
         }

@@ -22,7 +22,7 @@ export class ProvidersView {
     public async loadData() {
         ui.logToOutput('ProvidersView.loadData Started');
 
-        const result = await Session.Current.Api!.getProviders();
+        const result = await Session.Current.Api.getProviders();
         if (result.isSuccessful) {
             this.providersJson = result.result;
         }

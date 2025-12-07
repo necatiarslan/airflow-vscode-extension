@@ -20,8 +20,9 @@ export class ServerHealthView {
 
     public async loadData() {
         ui.logToOutput('ServerHealthView.loadData Started');
-
-        const result = await Session.Current.Api!.getHealth();
+        if (!Session.Current.Api) { return; }
+        
+        const result = await Session.Current.Api.getHealth();
         if (result.isSuccessful) {
             this.healthJson = result.result;
         }

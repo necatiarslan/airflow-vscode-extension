@@ -28,7 +28,7 @@ export class DailyDagRunView {
 
     public async loadData() {
         ui.logToOutput('DailyDagRunView.loadData Started');
-
+		if (!Session.Current.Api) { return; }
         // Fetch all DAGs to populate dag_id filter
         const dagsResult = await Session.Current.Api.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {

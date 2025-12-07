@@ -8222,9 +8222,10 @@ class DagTreeView {
     }
     viewDagView(node) {
         ui.logToOutput('DagTreeView.viewDagView Started');
-        if (Session_1.Session.Current.Api) {
-            DagView_1.DagView.render(node.DagId);
+        if (!Session_1.Session.Current.Api) {
+            return;
         }
+        DagView_1.DagView.render(node.DagId);
     }
     async addToFavDAG(node) {
         ui.logToOutput('DagTreeView.addToFavDAG Started');
@@ -8249,7 +8250,7 @@ class DagTreeView {
         }
     }
     handleTriggerSuccess(node, responseTrigger) {
-        node.LatestDagRunId = responseTrigger['dagRunId'];
+        node.LatestDagRunId = responseTrigger['dag_run_id'];
         node.LatestDagState = responseTrigger['state'];
         node.refreshUI();
         this.treeDataProvider.refresh();
@@ -9857,6 +9858,9 @@ class DagView {
     }
     async getLastRun() {
         ui.logToOutput('DagView.getLastRun Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.getLastDagRun(this.dagId);
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
@@ -9879,6 +9883,9 @@ class DagView {
     }
     async getDagRun() {
         ui.logToOutput('DagView.getDagRun Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.getDagRun(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
@@ -9889,6 +9896,9 @@ class DagView {
     }
     async getRunHistory(date) {
         ui.logToOutput('DagView.getRunHistory Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.getDagRunHistory(this.dagId, date);
         if (result.isSuccessful) {
             this.dagRunHistoryJson = result.result;
@@ -9896,6 +9906,9 @@ class DagView {
     }
     async getTaskInstances() {
         ui.logToOutput('DagView.getTaskInstances Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.getTaskInstances(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
             this.dagTaskInstancesJson = result.result;
@@ -9903,6 +9916,9 @@ class DagView {
     }
     async getDagInfo() {
         ui.logToOutput('DagView.getDagInfo Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.getDagInfo(this.dagId);
         if (result.isSuccessful) {
             this.dagJson = result.result;
@@ -9910,6 +9926,9 @@ class DagView {
     }
     async getDagTasks() {
         ui.logToOutput('DagView.getDagTasks Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.getDagTasks(this.dagId);
         if (result.isSuccessful) {
             this.dagTasksJson = result.result;
@@ -10398,6 +10417,9 @@ class DagView {
     }
     async cancelDagRun() {
         ui.logToOutput('DagView.cancelDagRun Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.cancelDagRun(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
             //ui.showInfoMessage(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
@@ -10429,6 +10451,9 @@ class DagView {
     }
     async pauseDAG(is_paused) {
         ui.logToOutput('DagView.pauseDAG Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         if (is_paused && this.dagJson.is_paused) {
             ui.showWarningMessage(this.dagId + 'Dag is already PAUSED');
             return;
@@ -10445,6 +10470,9 @@ class DagView {
     }
     async askAI() {
         ui.logToOutput('DagView.askAI Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         if (!DagTreeView_1.DagTreeView.Current) {
             ui.showErrorMessage('DagTreeView is not available');
             return;
@@ -10468,6 +10496,9 @@ class DagView {
     }
     async showSourceCode() {
         ui.logToOutput('DagView.showSourceCode Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.getSourceCode(this.dagId, this.dagJson.file_token);
         if (result.isSuccessful) {
             this.createAndOpenTempFile(result.result, this.dagId, '.py');
@@ -10485,6 +10516,9 @@ class DagView {
     }
     async showDAGRunLog() {
         ui.logToOutput('DagView.showDAGRunLog Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.getDagRunLog(this.dagId, this.dagRunId);
         if (result.isSuccessful) {
             this.createAndOpenTempFile(result.result, this.dagId, '.log');
@@ -10492,6 +10526,9 @@ class DagView {
     }
     async showTaskInstanceLog(dagId, dagRunId, taskId) {
         ui.logToOutput('DagView.showTaskInstanceLog Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.getTaskInstanceLog(dagId, dagRunId, taskId);
         if (result.isSuccessful) {
             this.createAndOpenTempFile(result.result, dagId + '-' + taskId, '.log');
@@ -10499,6 +10536,9 @@ class DagView {
     }
     async showTaskXComs(dagId, dagRunId, taskId) {
         ui.logToOutput('DagView.showTaskXComs Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.getTaskXComs(dagId, dagRunId, taskId);
         if (result.isSuccessful) {
             this.createAndOpenTempFile(JSON.stringify(result.result, null, 2), dagId + '-' + taskId + '_xcom', '.json');
@@ -10509,6 +10549,9 @@ class DagView {
     }
     async triggerDagWConfig(config = "", date = "") {
         ui.logToOutput('DagView.triggerDagWConfig Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         if (config && !ui.isJsonString(config)) {
             ui.showWarningMessage("Config is not a valid JSON");
             return;
@@ -10547,6 +10590,9 @@ class DagView {
     }
     async refreshRunningDagState(dagView) {
         ui.logToOutput('DagView.refreshRunningDagState Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         if (!dagView.dagId || !dagView.dagRunId) {
             dagView.stopCheckingDagRunStatus();
             return;
@@ -11061,6 +11107,9 @@ class DailyDagRunView {
     }
     async loadData() {
         ui.logToOutput('DailyDagRunView.loadData Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         // Fetch all DAGs to populate dag_id filter
         const dagsResult = await Session_1.Session.Current.Api.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
@@ -11390,6 +11439,9 @@ class DagRunView {
     }
     async loadData() {
         ui.logToOutput('DagRunView.loadData Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         // Fetch all DAGs to populate dag_id filter
         const dagsResult = await Session_1.Session.Current.Api.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
@@ -11722,6 +11774,9 @@ class DagRunView {
                     return;
                 case "open-dag-view":
                     // Open DagView with specific dag and run
+                    if (!Session_1.Session.Current.Api) {
+                        return;
+                    }
                     if (Session_1.Session.Current.Api && message.dagId) {
                         DagView_1.DagView.render(message.dagId, message.dagRunId);
                     }
@@ -11864,6 +11919,9 @@ class VariablesView {
     }
     async loadData() {
         ui.logToOutput('VariablesView.loadData Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.getVariables();
         if (result.isSuccessful) {
             this.variablesJson = result.result;
@@ -12555,6 +12613,9 @@ class ServerHealthView {
     }
     async loadData() {
         ui.logToOutput('ServerHealthView.loadData Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
         const result = await Session_1.Session.Current.Api.getHealth();
         if (result.isSuccessful) {
             this.healthJson = result.result;

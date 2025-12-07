@@ -21,7 +21,7 @@ export class ConfigsView {
     public async loadData() {
         ui.logToOutput('ConfigsView.loadData Started');
 
-        const result = await Session.Current.Api!.getConfig();
+        const result = await Session.Current.Api.getConfig();
         if (result.isSuccessful) {
             this.configJson = result.result;
         }

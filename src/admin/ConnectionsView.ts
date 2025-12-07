@@ -21,7 +21,7 @@ export class ConnectionsView {
     public async loadData() {
         ui.logToOutput('ConnectionsView.loadData Started');
 
-        const result = await Session.Current.Api!.getConnections();
+        const result = await Session.Current.Api.getConnections();
         if (result.isSuccessful) {
             this.connectionsJson = result.result;
         }

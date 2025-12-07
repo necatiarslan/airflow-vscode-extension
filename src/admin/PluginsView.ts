@@ -21,7 +21,7 @@ export class PluginsView {
     public async loadData() {
         ui.logToOutput('PluginsView.loadData Started');
 
-        const result = await Session.Current.Api!.getPlugins();
+        const result = await Session.Current.Api.getPlugins();
         if (result.isSuccessful) {
             this.pluginsJson = result.result;
         }
