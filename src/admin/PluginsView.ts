@@ -4,7 +4,7 @@ import * as ui from '../common/UI';
 import { Session } from '../common/Session';
 
 export class PluginsView {
-    public static Current: PluginsView | undefined;
+    public static Current: PluginsView;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
     private pluginsJson: any;
@@ -21,7 +21,7 @@ export class PluginsView {
     public async loadData() {
         ui.logToOutput('PluginsView.loadData Started');
 
-        const result = await Session.Current!.Api!.getPlugins();
+        const result = await Session.Current.Api!.getPlugins();
         if (result.isSuccessful) {
             this.pluginsJson = result.result;
         }
@@ -30,7 +30,7 @@ export class PluginsView {
 
     public async renderHtml() {
         ui.logToOutput('PluginsView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('PluginsView.renderHtml Completed');
     }
 

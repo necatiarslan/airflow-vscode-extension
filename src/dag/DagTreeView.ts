@@ -14,8 +14,7 @@ import { Session } from '../common/Session';
 
 export class DagTreeView {
 
-	public static Current: DagTreeView | undefined;
-
+	public static Current: DagTreeView;
 
 	public FilterString: string = '';
 	public ShowOnlyActive: boolean = true;
@@ -31,8 +30,8 @@ export class DagTreeView {
 		this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
 		this.loadState();
 		
-		Session.Current!.Context!.subscriptions.push(this.view);
-		Session.Current!.Context!.subscriptions.push({ dispose: () => this.dispose() });
+		Session.Current.Context!.subscriptions.push(this.view);
+		Session.Current.Context!.subscriptions.push({ dispose: () => this.dispose() });
 		DagTreeView.Current = this;
 		this.setFilterMessage();
 		this.refresh();
@@ -47,7 +46,7 @@ export class DagTreeView {
 
 	public async refresh(): Promise<void> {
 		ui.logToOutput('DagTreeView.refresh Started');
-		if (!Session.Current?.Api) {
+		if (!Session.Current.Api) {
 			this.treeDataProvider.dagList = [];
 			this.treeDataProvider.refresh();
 			return;
@@ -66,7 +65,7 @@ export class DagTreeView {
 
 	public viewDagView(node: DagTreeItem): void {
 		ui.logToOutput('DagTreeView.viewDagView Started');
-		if (Session.Current?.Api) {
+		if (Session.Current.Api) {
 			DagView.render(node.DagId);
 		}
 	}
@@ -108,7 +107,7 @@ export class DagTreeView {
 
 	public async triggerDag(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.triggerDag Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 
 		if (node.IsPaused) {
 			ui.showWarningMessage('Dag is PAUSED !!!');
@@ -120,7 +119,7 @@ export class DagTreeView {
 			return;
 		}
 
-		const result = await Session.Current?.Api.triggerDag(node.DagId);
+		const result = await Session.Current.Api.triggerDag(node.DagId);
 
 		if (result.isSuccessful) {
 			this.handleTriggerSuccess(node, result.result);
@@ -129,14 +128,14 @@ export class DagTreeView {
 
 	private async refreshRunningDagState(dagTreeView: DagTreeView) {
 		ui.logToOutput('DagTreeView.refreshRunningDagState Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 
 		let noDagIsRunning: boolean = true;
 		for (const node of dagTreeView.treeDataProvider.visibleDagList) {
 			if (node.isDagRunning()) {
 				noDagIsRunning = false;
 
-				const result = await Session.Current?.Api.getDagRun(node.DagId, node.LatestDagRunId);
+				const result = await Session.Current.Api.getDagRun(node.DagId, node.LatestDagRunId);
 
 				if (result.isSuccessful) {
 					node.LatestDagState = result.result['state'];
@@ -158,7 +157,7 @@ export class DagTreeView {
 
 	public async triggerDagWConfig(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.triggerDagWConfig Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 
 		let triggerDagConfig = await vscode.window.showInputBox({ placeHolder: 'Enter Configuration JSON (Optional, must be a dict object) or Press Enter' });
 
@@ -167,7 +166,7 @@ export class DagTreeView {
 		}
 
 		if (triggerDagConfig !== undefined) {
-			const result = await Session.Current?.Api.triggerDag(node.DagId, triggerDagConfig);
+			const result = await Session.Current.Api.triggerDag(node.DagId, triggerDagConfig);
 
 			if (result.isSuccessful) {
 				this.handleTriggerSuccess(node, result.result);
@@ -205,11 +204,11 @@ export class DagTreeView {
 
 	public async checkDagRunState(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.checkDagRunState Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 		if (!node) { return; }
 		if (node.IsPaused) { ui.showWarningMessage(node.DagId + 'Dag is PAUSED'); return; }
 
-		const result = await Session.Current?.Api.getLastDagRun(node.DagId);
+		const result = await Session.Current.Api.getLastDagRun(node.DagId);
 		if (result.isSuccessful) {
 			node.LatestDagRunId = result.result.dag_run_id;
 			node.LatestDagState = result.result.state;
@@ -224,10 +223,10 @@ export class DagTreeView {
 
 	public async pauseDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.pauseDAG Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 		if (node.IsPaused) { ui.showWarningMessage(node.DagId + 'Dag is already PAUSED'); return; }
 
-		const result = await Session.Current?.Api.pauseDag(node.DagId, true);
+		const result = await Session.Current.Api.pauseDag(node.DagId, true);
 		if (result.isSuccessful) {
 			node.IsPaused = true;
 			node.refreshUI();
@@ -248,10 +247,10 @@ export class DagTreeView {
 
 	public async unPauseDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.unPauseDAG Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 		if (!node.IsPaused) { ui.showInfoMessage(node.DagId + 'Dag is already UNPAUSED'); return; }
 
-		const result = await Session.Current?.Api.pauseDag(node.DagId, false);
+		const result = await Session.Current.Api.pauseDag(node.DagId, false);
 		if (result.isSuccessful) {
 			node.IsPaused = false;
 			node.refreshUI();
@@ -262,7 +261,7 @@ export class DagTreeView {
 
 	public async cancelDagRun(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.cancelDagRun Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 		
 		if (!node.isDagRunning()) {
 			ui.showWarningMessage('No running DAG to cancel');
@@ -274,7 +273,7 @@ export class DagTreeView {
 			return;
 		}
 
-		const result = await Session.Current?.Api.cancelDagRun(node.DagId, node.LatestDagRunId);
+		const result = await Session.Current.Api.cancelDagRun(node.DagId, node.LatestDagRunId);
 		if (result.isSuccessful) {
 			node.LatestDagState = 'failed';
 			node.refreshUI();
@@ -287,9 +286,9 @@ export class DagTreeView {
 
 	public async lastDAGRunLog(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.lastDAGRunLog Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 
-		const result = await Session.Current?.Api.getLastDagRunLog(node.DagId);
+		const result = await Session.Current.Api.getLastDagRunLog(node.DagId);
 		if (result.isSuccessful) {
 			this.createAndOpenTempFile(result.result, node.DagId, '.log');
 		}
@@ -297,9 +296,9 @@ export class DagTreeView {
 
 	public async dagSourceCode(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.dagSourceCode Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 
-		const result = await Session.Current?.Api.getSourceCode(node.DagId, node.FileToken);
+		const result = await Session.Current.Api.getSourceCode(node.DagId, node.FileToken);
 
 		if (result.isSuccessful) {
 			this.createAndOpenTempFile(result.result, node.DagId, '.py');
@@ -311,9 +310,9 @@ export class DagTreeView {
 
 	public async showDagInfo(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.showDagInfo Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 
-		const result = await Session.Current?.Api.getDagInfo(node.DagId);
+		const result = await Session.Current.Api.getDagInfo(node.DagId);
 
 		if (result.isSuccessful) {
 			this.createAndOpenTempFile(JSON.stringify(result.result, null, 2), node.DagId + '_info', '.json');
@@ -640,7 +639,7 @@ export class DagTreeView {
 
 	public async askAI(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.askAI Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 		if (!await this.isChatCommandAvailable()) {
 			ui.showErrorMessage('Chat command is not available. Please ensure you have access to VS Code AI features.');
 			return;
@@ -650,7 +649,7 @@ export class DagTreeView {
 		let latestDagLogs = '';
 
 		// Fetch DAG Source Code
-		const sourceResult = await Session.Current?.Api.getSourceCode(node.DagId, node.FileToken);
+		const sourceResult = await Session.Current.Api.getSourceCode(node.DagId, node.FileToken);
 		if (sourceResult.isSuccessful) {
 			dagSourceCode = sourceResult.result;
 		} else {
@@ -659,7 +658,7 @@ export class DagTreeView {
 		}
 
 		// Fetch Latest DAG Run Logs
-		const logResult = await Session.Current?.Api.getLastDagRunLog(node.DagId);
+		const logResult = await Session.Current.Api.getLastDagRunLog(node.DagId);
 		if (logResult.isSuccessful) {
 			latestDagLogs = logResult.result;
 		} else {
@@ -737,35 +736,35 @@ export class DagTreeView {
 
 		const newServer: ServerConfig = { apiUrl: apiUrlTemp, apiUserName: userNameTemp, apiPassword: passwordTemp };
 		
-		let result = await Session.Current!.TestServer(newServer);
+		let result = await Session.Current.TestServer(newServer);
 		if (!result) {
 			ui.showErrorMessage("Failed to connect to server.");
 			return;
 		}
 
-		Session.Current!.AddServer(newServer);
-		Session.Current!.SetServer(newServer);
+		Session.Current.AddServer(newServer);
+		Session.Current.SetServer(newServer);
 
 		this.refresh();
 	}
 
 	public async removeServer() {
 		ui.logToOutput('DagTreeView.removeServer Started');
-		if (Session.Current!.ServerList.length === 0) { return; }
+		if (Session.Current.ServerList.length === 0) { return; }
 
-		const items: string[] = Session.Current!.ServerList.map(s => `${s.apiUrl} - ${s.apiUserName}`);
+		const items: string[] = Session.Current.ServerList.map(s => `${s.apiUrl} - ${s.apiUserName}`);
 
 		const selected = await vscode.window.showQuickPick(items, { canPickMany: false, placeHolder: 'Select To Remove' });
 		if (!selected) { return; }
 
 		const selectedItems = selected.split(' - ');
 		if (selectedItems[0]) {
-			Session.Current!.ServerList = Session.Current!.ServerList.filter(item => !(item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]));
+			Session.Current.ServerList = Session.Current.ServerList.filter(item => !(item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]));
 			
 			// If we removed the current server, reset
-			if (Session.Current?.Server && Session.Current?.Server.apiUrl === selectedItems[0] && Session.Current?.Server.apiUserName === selectedItems[1]) {
-				Session.Current!.Server = undefined;
-				Session.Current!.Api = undefined;
+			if (Session.Current.Server && Session.Current.Server.apiUrl === selectedItems[0] && Session.Current.Server.apiUserName === selectedItems[1]) {
+				Session.Current.Server = undefined;
+				Session.Current.Api = undefined;
 				this.treeDataProvider.dagList = undefined;
 				this.treeDataProvider.refresh();
 			}
@@ -778,13 +777,13 @@ export class DagTreeView {
 	public async connectServer() {
 		ui.logToOutput('DagTreeView.connectServer Started');
 
-		if (Session.Current!.ServerList.length === 0) {
+		if (Session.Current.ServerList.length === 0) {
 			this.addServer();
 			return;
 		}
 
 		const items: string[] = [];
-		for (const s of Session.Current!.ServerList) {
+		for (const s of Session.Current.ServerList) {
 			items.push(s.apiUrl + " - " + s.apiUserName);
 		}
 
@@ -794,12 +793,12 @@ export class DagTreeView {
 		const selectedItems = selected.split(' - ');
 
 		if (selectedItems[0]) {
-			const server = Session.Current!.ServerList.find(item => item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]);
+			const server = Session.Current.ServerList.find(item => item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]);
 			if (server) {
-				let result = await Session.Current!.TestServer(server);
+				let result = await Session.Current.TestServer(server);
 				if (result) 
 				{
-					Session.Current!.SetServer(server);
+					Session.Current.SetServer(server);
 					this.refresh();
 				}
 				else 
@@ -812,22 +811,19 @@ export class DagTreeView {
 
 	public async clearServers() {
 		ui.logToOutput('DagTreeView.clearServers Started');
-		Session.Current!.ServerList = [];
-		Session.Current!.Server = undefined;
-		Session.Current!.Api = undefined;
+		Session.Current.ClearServers();
 		this.treeDataProvider.dagList = undefined;
 		this.treeDataProvider.refresh();
-		this.saveState();
 		ui.showInfoMessage("Server List Cleared");
 	}
 
 	public async loadDags() {
 		ui.logToOutput('DagTreeView.loadDags Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 
 		this.treeDataProvider.dagList = undefined;
 
-		const result = await Session.Current?.Api.getDagList();
+		const result = await Session.Current.Api.getDagList();
 		if (result.isSuccessful) {
 			this.treeDataProvider.dagList = result.result;
 			this.treeDataProvider.loadDagTreeItemsFromApiResponse();
@@ -838,7 +834,7 @@ export class DagTreeView {
 
 	public async loadLatestRunStatusForAllDags() {
 		ui.logToOutput('DagTreeView.loadLatestRunStatusForAllDags Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 
 		// Fetch latest run status for each visible DAG (limit to avoid too many API calls)
 		const visibleDags = this.treeDataProvider.visibleDagList.slice(0, 50); // Limit to first 50 DAGs
@@ -846,7 +842,7 @@ export class DagTreeView {
 		for (const dagItem of visibleDags) {
 			if (!dagItem.IsPaused) {
 				try {
-					const runResult = await Session.Current?.Api.getLastDagRun(dagItem.DagId);
+					const runResult = await Session.Current.Api.getLastDagRun(dagItem.DagId);
 					if (runResult.isSuccessful && runResult.result) {
 						dagItem.LatestDagRunId = runResult.result.dag_run_id;
 						dagItem.LatestDagState = runResult.result.state;
@@ -863,8 +859,8 @@ export class DagTreeView {
 	}
 
 	public async setViewTitle() {
-		if (Session.Current?.Server) {
-			this.view.title = Session.Current?.Server.apiUrl + " - " + Session.Current?.Server.apiUserName;
+		if (Session.Current.Server) {
+			this.view.title = Session.Current.Server.apiUrl + " - " + Session.Current.Server.apiUserName;
 		} else {
 			this.view.title = "Airflow";
 		}
@@ -872,9 +868,9 @@ export class DagTreeView {
 
 	public async getImportErrors() {
 		ui.logToOutput('DagTreeView.getImportErrors Started');
-		if (!Session.Current?.Api) { return; }
+		if (!Session.Current.Api) { return; }
 
-		const result = await Session.Current?.Api.getImportErrors();
+		const result = await Session.Current.Api.getImportErrors();
 		if (result.isSuccessful) {
 			const importErrors = result.result;
 			if (importErrors.total_entries > 0) {
@@ -886,16 +882,16 @@ export class DagTreeView {
 	private saveState() {
 		ui.logToOutput('DagTreeView.saveState Started');
 		try {
-			Session.Current!.Context!.globalState.update('filterString', this.FilterString);
-			Session.Current!.Context!.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
-			Session.Current!.Context!.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
+			Session.Current.Context!.globalState.update('filterString', this.FilterString);
+			Session.Current.Context!.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
+			Session.Current.Context!.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
 		} catch (error) {
 			ui.logToOutput("dagTreeView.saveState Error !!!", error as Error);
 		}
 	}
 
 	private setFilterMessage() {
-		if (Session.Current?.Server) {
+		if (Session.Current.Server) {
 			this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, ' + this.getBoolenSign(this.ShowOnlyActive) + 'Active, Filter : ' + this.FilterString;
 		}
 	}
@@ -907,16 +903,16 @@ export class DagTreeView {
 	private loadState() {
 		ui.logToOutput('DagTreeView.loadState Started');
 		try {
-			const filterStringTemp: string = Session.Current!.Context!.globalState.get('filterString') || '';
+			const filterStringTemp: string = Session.Current.Context!.globalState.get('filterString') || '';
 			if (filterStringTemp) {
 				this.FilterString = filterStringTemp;
 				this.setFilterMessage();
 			}
 
-			const ShowOnlyActiveTemp: boolean | undefined = Session.Current!.Context!.globalState.get('ShowOnlyActive');
+			const ShowOnlyActiveTemp: boolean | undefined = Session.Current.Context!.globalState.get('ShowOnlyActive');
 			if (ShowOnlyActiveTemp !== undefined) { this.ShowOnlyActive = ShowOnlyActiveTemp; }
 
-			const ShowOnlyFavoriteTemp: boolean | undefined = Session.Current!.Context!.globalState.get('ShowOnlyFavorite');
+			const ShowOnlyFavoriteTemp: boolean | undefined = Session.Current.Context!.globalState.get('ShowOnlyFavorite');
 			if (ShowOnlyFavoriteTemp !== undefined) { this.ShowOnlyFavorite = ShowOnlyFavoriteTemp; }
 
 		} catch (error) {
@@ -926,7 +922,7 @@ export class DagTreeView {
 
 	public async viewConnections() {
 		ui.logToOutput('DagTreeView.viewConnections Started');
-		if (Session.Current?.Api) {
+		if (Session.Current.Api) {
 			const { ConnectionsView } = await import('../admin/ConnectionsView');
 			ConnectionsView.render();
 		}
@@ -934,7 +930,7 @@ export class DagTreeView {
 
 	public async viewVariables() {
 		ui.logToOutput('DagTreeView.viewVariables Started');
-		if (Session.Current?.Api) {
+		if (Session.Current.Api) {
 			const { VariablesView } = await import('../admin/VariablesView');
 			VariablesView.render();
 		}
@@ -942,7 +938,7 @@ export class DagTreeView {
 
 	public async viewProviders() {
 		ui.logToOutput('DagTreeView.viewProviders Started');
-		if (Session.Current?.Api) {
+		if (Session.Current.Api) {
 			const { ProvidersView } = await import('../admin/ProvidersView');
 			ProvidersView.render();
 		}
@@ -950,7 +946,7 @@ export class DagTreeView {
 
 	public async viewConfigs() {
 		ui.logToOutput('DagTreeView.viewConfigs Started');
-		if (Session.Current?.Api) {
+		if (Session.Current.Api) {
 			const { ConfigsView } = await import('../admin/ConfigsView');
 			ConfigsView.render();
 		}
@@ -958,7 +954,7 @@ export class DagTreeView {
 
 	public async viewPlugins() {
 		ui.logToOutput('DagTreeView.viewPlugins Started');
-		if (Session.Current?.Api) {
+		if (Session.Current.Api) {
 			const { PluginsView } = await import('../admin/PluginsView');
 			PluginsView.render();
 		}
@@ -966,21 +962,21 @@ export class DagTreeView {
 
 	public async viewDagRuns() {
 		ui.logToOutput('DagTreeView.viewDagRuns Started');
-		if (Session.Current?.Api) {
+		if (Session.Current.Api) {
 			DailyDagRunView.render();
 		}
 	}
 
 	public async viewDagRunHistory() {
 		ui.logToOutput('DagTreeView.viewDagRunHistory Started');
-		if (Session.Current?.Api) {
+		if (Session.Current.Api) {
 			DagRunView.render();
 		}
 	}
 
 	public async viewServerHealth() {
 		ui.logToOutput('DagTreeView.viewServerHealth Started');
-		if (Session.Current?.Api) {
+		if (Session.Current.Api) {
 			const { ServerHealthView } = await import('../admin/ServerHealthView');
 			ServerHealthView.render();
 		}

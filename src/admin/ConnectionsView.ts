@@ -4,7 +4,7 @@ import * as ui from '../common/UI';
 import { Session } from '../common/Session';
 
 export class ConnectionsView {
-    public static Current: ConnectionsView | undefined;
+    public static Current: ConnectionsView;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
     private connectionsJson: any;
@@ -21,7 +21,7 @@ export class ConnectionsView {
     public async loadData() {
         ui.logToOutput('ConnectionsView.loadData Started');
 
-        const result = await Session.Current!.Api!.getConnections();
+        const result = await Session.Current.Api!.getConnections();
         if (result.isSuccessful) {
             this.connectionsJson = result.result;
         }
@@ -30,7 +30,7 @@ export class ConnectionsView {
 
     public async renderHtml() {
         ui.logToOutput('ConnectionsView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('ConnectionsView.renderHtml Completed');
     }
 

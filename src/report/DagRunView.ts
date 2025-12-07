@@ -5,7 +5,7 @@ import { DagView } from '../dag/DagView';
 import { Session } from '../common/Session';
 
 export class DagRunView {
-    public static Current: DagRunView | undefined;
+    public static Current: DagRunView;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
 
@@ -31,7 +31,7 @@ export class DagRunView {
         ui.logToOutput('DagRunView.loadData Started');
 
         // Fetch all DAGs to populate dag_id filter
-        const dagsResult = await Session.Current!.Api.getDagList();
+        const dagsResult = await Session.Current.Api.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
             this.allDagIds = dagsResult.result.map((dag: any) => dag.dag_id).sort();
             
@@ -43,7 +43,7 @@ export class DagRunView {
 
         // Fetch DAG runs for the selected DAG and date range
         if (this.selectedDagId) {
-            const result = await Session.Current!.Api.getDagRunHistory(this.selectedDagId);
+            const result = await Session.Current.Api.getDagRunHistory(this.selectedDagId);
             if (result.isSuccessful && result.result && result.result.dag_runs) {
                 // Filter runs by date range on the client side
                 const startDateTime = new Date(this.selectedStartDate + 'T00:00:00Z').getTime();
@@ -66,7 +66,7 @@ export class DagRunView {
 
     public async renderHtml() {
         ui.logToOutput('DagRunView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('DagRunView.renderHtml Completed');
     }
 
@@ -370,7 +370,7 @@ export class DagRunView {
                         return;
                     case "open-dag-view":
                         // Open DagView with specific dag and run
-                        if (Session.Current?.Api && message.dagId) {
+                        if (Session.Current.Api && message.dagId) {
                             DagView.render(message.dagId, message.dagRunId);
                         }
                         return;

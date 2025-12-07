@@ -4,12 +4,12 @@ import * as ui from '../common/UI';
 import * as vscode from 'vscode';
 
 export class Session {
-	public static Current: Session | undefined;
+	public static Current: Session;
 
     public Api: AirflowApi | undefined;
     public Server: ServerConfig | undefined;
-    public Context: vscode.ExtensionContext | undefined;
-    public ExtensionUri: vscode.Uri | undefined;
+    public Context: vscode.ExtensionContext;
+    public ExtensionUri: vscode.Uri;
     public ServerList: ServerConfig[] = [];
 
 	public constructor(context: vscode.ExtensionContext) {
@@ -68,6 +68,13 @@ export class Session {
         let api = new AirflowApi(serverConfig);
         let result = api.checkConnection();
         return result;
+    }
+
+    public ClearServers() {
+        this.ServerList = [];
+        this.Server = undefined;
+        this.Api = undefined;
+        this.SaveState();
     }
 
 	public dispose() {

@@ -4,7 +4,7 @@ import * as ui from '../common/UI';
 import { Session } from '../common/Session';
 
 export class VariablesView {
-    public static Current: VariablesView | undefined;
+    public static Current: VariablesView;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
     private variablesJson: any;
@@ -21,7 +21,7 @@ export class VariablesView {
     public async loadData() {
         ui.logToOutput('VariablesView.loadData Started');
 
-        const result = await Session.Current!.Api!.getVariables();
+        const result = await Session.Current.Api!.getVariables();
         if (result.isSuccessful) {
             this.variablesJson = result.result;
         }
@@ -30,7 +30,7 @@ export class VariablesView {
 
     public async renderHtml() {
         ui.logToOutput('VariablesView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('VariablesView.renderHtml Completed');
     }
 

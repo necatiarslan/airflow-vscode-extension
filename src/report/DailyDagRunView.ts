@@ -5,7 +5,7 @@ import { DagView } from '../dag/DagView';
 import { Session } from '../common/Session';
 
 export class DailyDagRunView {
-    public static Current: DailyDagRunView | undefined;
+    public static Current: DailyDagRunView;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
 
@@ -30,7 +30,7 @@ export class DailyDagRunView {
         ui.logToOutput('DailyDagRunView.loadData Started');
 
         // Fetch all DAGs to populate dag_id filter
-        const dagsResult = await Session.Current!.Api.getDagList();
+        const dagsResult = await Session.Current.Api.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
             this.allDagIds = dagsResult.result.map((dag: any) => dag.dag_id).sort();
         }
@@ -38,7 +38,7 @@ export class DailyDagRunView {
         // Fetch DAG runs for the selected date
         // If a specific DAG is selected, query that DAG, otherwise query all
         if (this.selectedDagId) {
-            const result = await Session.Current!.Api.getDagRunHistory(this.selectedDagId, this.selectedDate);
+            const result = await Session.Current.Api.getDagRunHistory(this.selectedDagId, this.selectedDate);
             if (result.isSuccessful && result.result && result.result.dag_runs) {
                 this.dagRunsJson = result.result.dag_runs;
             }
@@ -46,7 +46,7 @@ export class DailyDagRunView {
             // Query all DAGs for runs on the selected date
             const allRuns: any[] = [];
             for (const dagId of this.allDagIds) {
-                const result = await Session.Current!.Api.getDagRunHistory(dagId, this.selectedDate);
+                const result = await Session.Current.Api.getDagRunHistory(dagId, this.selectedDate);
                 if (result.isSuccessful && result.result && result.result.dag_runs) {
                     allRuns.push(...result.result.dag_runs);
                 }
@@ -59,7 +59,7 @@ export class DailyDagRunView {
 
     public async renderHtml() {
         ui.logToOutput('DailyDagRunView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('DailyDagRunView.renderHtml Completed');
     }
 
@@ -337,7 +337,7 @@ export class DailyDagRunView {
                         return;
                     case "open-dag-view":
                         // Open DagView with specific dag and run
-                        if (Session.Current?.Api && message.dagId) {
+                        if (Session.Current.Api && message.dagId) {
                             DagView.render(message.dagId, message.dagRunId);
                         }
                         return;

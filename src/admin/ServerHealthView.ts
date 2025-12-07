@@ -4,7 +4,7 @@ import * as ui from '../common/UI';
 import { Session } from '../common/Session';
 
 export class ServerHealthView {
-    public static Current: ServerHealthView | undefined;
+    public static Current: ServerHealthView;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
     private healthJson: any;
@@ -21,7 +21,7 @@ export class ServerHealthView {
     public async loadData() {
         ui.logToOutput('ServerHealthView.loadData Started');
 
-        const result = await Session.Current!.Api!.getHealth();
+        const result = await Session.Current.Api!.getHealth();
         if (result.isSuccessful) {
             this.healthJson = result.result;
         }
@@ -30,7 +30,7 @@ export class ServerHealthView {
 
     public async renderHtml() {
         ui.logToOutput('ServerHealthView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('ServerHealthView.renderHtml Completed');
     }
 
@@ -179,7 +179,7 @@ export class ServerHealthView {
       </head>
       <body>  
         <h2>Server Health</h2>
-        <h3>${Session.Current?.Server?.apiUrl}</h3>
+        <h3>${Session.Current.Server?.apiUrl}</h3>
         <div class="refresh-button">
             <vscode-button id="refresh-btn">Refresh</vscode-button>
         </div>

@@ -4,7 +4,7 @@ import * as ui from '../common/UI';
 import { Session } from '../common/Session';
 
 export class ConfigsView {
-    public static Current: ConfigsView | undefined;
+    public static Current: ConfigsView;
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
     private configJson: any;
@@ -21,7 +21,7 @@ export class ConfigsView {
     public async loadData() {
         ui.logToOutput('ConfigsView.loadData Started');
 
-        const result = await Session.Current!.Api!.getConfig();
+        const result = await Session.Current.Api!.getConfig();
         if (result.isSuccessful) {
             this.configJson = result.result;
         }
@@ -30,7 +30,7 @@ export class ConfigsView {
 
     public async renderHtml() {
         ui.logToOutput('ConfigsView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current!.ExtensionUri!);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('ConfigsView.renderHtml Completed');
     }
 

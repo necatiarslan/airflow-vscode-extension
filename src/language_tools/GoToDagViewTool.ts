@@ -51,7 +51,7 @@ export class GoToDagViewTool implements vscode.LanguageModelTool<IGoToDagViewPar
         try {
 
             // Check if API is available
-            if (!Session.Current?.Api) {
+            if (!Session.Current.Api) {
                 return new vscode.LanguageModelToolResult([
                     new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
                 ]);
