@@ -56,25 +56,25 @@ export class DagTreeItem extends vscode.TreeItem {
     public refreshUI() {
 
         if (this.IsPaused) {
-            this.iconPath = new vscode.ThemeIcon('circle-outline');
+            this.iconPath = new vscode.ThemeIcon('circle-outline', new vscode.ThemeColor('disabledForeground'));
             this.ApiResponse.is_paused = true;
         }
         else {
             //"queued" "running" "success" "failed"
             if (this.LatestDagState === 'queued') {
-                this.iconPath = new vscode.ThemeIcon('loading~spin');
+                this.iconPath = new vscode.ThemeIcon('loading~spin', new vscode.ThemeColor('charts.yellow'));
             }
             else if (this.LatestDagState === 'running') {
-                this.iconPath = new vscode.ThemeIcon('loading~spin');
+                this.iconPath = new vscode.ThemeIcon('loading~spin', new vscode.ThemeColor('charts.blue'));
             }
             else if (this.LatestDagState === 'success') {
-                this.iconPath = new vscode.ThemeIcon('check');
+                this.iconPath = new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed'));
             }
             else if (this.LatestDagState === 'failed') {
-                this.iconPath = new vscode.ThemeIcon('error');
+                this.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
             }
             else {
-                this.iconPath = new vscode.ThemeIcon('circle-filled');
+                this.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.gray'));
             }
             this.ApiResponse.is_paused = false;
         }
@@ -86,7 +86,7 @@ export class DagTreeItem extends vscode.TreeItem {
     public doesFilterMatch(filterString: string): boolean {
         let words: string[] = filterString.split(',');
         words = words.map(word => word.trim());
-        
+
         this.IsFiltered = false;
         for (const word of words) {
             if (this.DagId.includes(word)) { this.IsFiltered = true; break; }
