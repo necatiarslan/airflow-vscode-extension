@@ -154,6 +154,15 @@ export class AIHandler
                 }
             },
             {
+                name: 'get_today',
+                description: 'Returns the current system date in multiple formats. Use when asked about today\'s date or current date. Helpful for date filtering operations. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
                 name: 'go_to_dag_view',
                 description: 'Opens the DAG View panel to display information about a specific DAG. Optional: provide dag_run_id to view a specific run. Required: dag_id.',
                 inputSchema: {

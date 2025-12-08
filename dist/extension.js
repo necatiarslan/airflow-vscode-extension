@@ -11044,6 +11044,15 @@ class AIHandler {
                 }
             },
             {
+                name: 'get_today',
+                description: 'Returns the current system date in multiple formats. Use when asked about today\'s date or current date. Helpful for date filtering operations. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
                 name: 'go_to_dag_view',
                 description: 'Opens the DAG View panel to display information about a specific DAG. Optional: provide dag_run_id to view a specific run. Required: dag_id.',
                 inputSchema: {
@@ -16395,6 +16404,49 @@ class GoToServerHealthViewTool {
 exports.GoToServerHealthViewTool = GoToServerHealthViewTool;
 
 
+/***/ }),
+/* 87 */,
+/* 88 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetTodayTool = void 0;
+const vscode = __webpack_require__(1);
+class GetTodayTool {
+    async invoke(options, token) {
+        const today = new Date();
+        // Format: YYYY-MM-DD
+        const formattedDate = today.toISOString().split('T')[0];
+        // Additional formats for user convenience
+        const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'long' });
+        const fullDate = today.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        const result = `## Today's Date
+
+**ISO Format:** ${formattedDate}
+**Full Date:** ${fullDate}
+**Day of Week:** ${dayOfWeek}
+
+*Use the ISO format (${formattedDate}) when filtering DAG runs or working with date ranges.*`;
+        return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart(result)
+        ]);
+    }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Getting current system date...'
+        };
+    }
+}
+exports.GetTodayTool = GetTodayTool;
+
+
 /***/ })
 /******/ 	]);
 /************************************************************************/
@@ -16564,6 +16616,7 @@ const CancelDagRunTool_1 = __webpack_require__(74);
 const AnalyseDagLatestRunTool_1 = __webpack_require__(75);
 const GetDagHistoryTool_1 = __webpack_require__(76);
 const GetDagRunDetailTool_1 = __webpack_require__(77);
+const GetTodayTool_1 = __webpack_require__(88);
 const GoToDagViewTool_1 = __webpack_require__(78);
 const GoToDagLogViewTool_1 = __webpack_require__(79);
 const GoToDagRunHistoryTool_1 = __webpack_require__(80);
@@ -16677,39 +16730,43 @@ function activate(context) {
     const getDagRunDetailTool = vscode.lm.registerTool('get_dag_run_detail', new GetDagRunDetailTool_1.GetDagRunDetailTool(airflowClient));
     context.subscriptions.push(getDagRunDetailTool);
     ui.logToOutput('Registered tool: get_dag_run_detail');
-    // Register Tool 14: go_to_dag_view (Navigation)
+    // Register Tool 14: get_today (Utility)
+    const getTodayTool = vscode.lm.registerTool('get_today', new GetTodayTool_1.GetTodayTool());
+    context.subscriptions.push(getTodayTool);
+    ui.logToOutput('Registered tool: get_today');
+    // Register Tool 15: go_to_dag_view (Navigation)
     const goToDagViewTool = vscode.lm.registerTool('go_to_dag_view', new GoToDagViewTool_1.GoToDagViewTool());
     context.subscriptions.push(goToDagViewTool);
     ui.logToOutput('Registered tool: go_to_dag_view');
-    // Register Tool: go_to_dag_log_view (Navigation)
+    // Register Tool 16: go_to_dag_log_view (Navigation)
     const goToDagLogViewTool = vscode.lm.registerTool('go_to_dag_log_view', new GoToDagLogViewTool_1.GoToDagLogViewTool());
     context.subscriptions.push(goToDagLogViewTool);
     ui.logToOutput('Registered tool: go_to_dag_log_view');
-    // Register Tool 15: go_to_dag_run_history (Navigation)
+    // Register Tool 17: go_to_dag_run_history (Navigation)
     const goToDagRunHistoryTool = vscode.lm.registerTool('go_to_dag_run_history', new GoToDagRunHistoryTool_1.GoToDagRunHistoryTool());
     context.subscriptions.push(goToDagRunHistoryTool);
     ui.logToOutput('Registered tool: go_to_dag_run_history');
-    // Register Tool 16: go_to_providers_view (Navigation)
+    // Register Tool 18: go_to_providers_view (Navigation)
     const goToProvidersViewTool = vscode.lm.registerTool('go_to_providers_view', new GoToProvidersViewTool_1.GoToProvidersViewTool());
     context.subscriptions.push(goToProvidersViewTool);
     ui.logToOutput('Registered tool: go_to_providers_view');
-    // Register Tool 17: go_to_connections_view (Navigation)
+    // Register Tool 19: go_to_connections_view (Navigation)
     const goToConnectionsViewTool = vscode.lm.registerTool('go_to_connections_view', new GoToConnectionsViewTool_1.GoToConnectionsViewTool());
     context.subscriptions.push(goToConnectionsViewTool);
     ui.logToOutput('Registered tool: go_to_connections_view');
-    // Register Tool 18: go_to_variables_view (Navigation)
+    // Register Tool 20: go_to_variables_view (Navigation)
     const goToVariablesViewTool = vscode.lm.registerTool('go_to_variables_view', new GoToVariablesViewTool_1.GoToVariablesViewTool());
     context.subscriptions.push(goToVariablesViewTool);
     ui.logToOutput('Registered tool: go_to_variables_view');
-    // Register Tool 19: go_to_configs_view (Navigation)
+    // Register Tool 21: go_to_configs_view (Navigation)
     const goToConfigsViewTool = vscode.lm.registerTool('go_to_configs_view', new GoToConfigsViewTool_1.GoToConfigsViewTool());
     context.subscriptions.push(goToConfigsViewTool);
     ui.logToOutput('Registered tool: go_to_configs_view');
-    // Register Tool 20: go_to_plugins_view (Navigation)
+    // Register Tool 22: go_to_plugins_view (Navigation)
     const goToPluginsViewTool = vscode.lm.registerTool('go_to_plugins_view', new GoToPluginsViewTool_1.GoToPluginsViewTool());
     context.subscriptions.push(goToPluginsViewTool);
     ui.logToOutput('Registered tool: go_to_plugins_view');
-    // Register Tool 21: go_to_server_health_view (Navigation)
+    // Register Tool 23: go_to_server_health_view (Navigation)
     const goToServerHealthViewTool = vscode.lm.registerTool('go_to_server_health_view', new GoToServerHealthViewTool_1.GoToServerHealthViewTool());
     context.subscriptions.push(goToServerHealthViewTool);
     ui.logToOutput('Registered tool: go_to_server_health_view');

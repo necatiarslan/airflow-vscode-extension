@@ -336,6 +336,23 @@
         }
       },
       {
+        "name": "get_today",
+        "displayName": "Get Today's Date",
+        "modelDescription": "Returns the current system date in multiple formats. Use this tool when the user asks for today's date, current date, or what day it is. Helpful for date-based filtering operations. No inputs required. Returns the date in ISO format (YYYY-MM-DD), full format, and day of week.",
+        "icon": "$(calendar)",
+        "tags": [
+          "date",
+          "time",
+          "utility",
+          "today",
+          "current"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
         "name": "go_to_dag_view",
         "displayName": "Go to DAG View",
         "modelDescription": "Opens the DAG View panel in VS Code to display information about a specific Airflow DAG. Use this tool when the user wants to see, view, or open a DAG in the visual panel. Required input: dag_id (string). Optional input: dag_run_id (string) - if provided, navigates to that specific DAG run instead of the latest run. This is a navigation tool that does not modify any state.",
