@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
-import { AirflowDag } from './types';
+import { AirflowDag } from '../common/Types';
+import { DagTreeView } from './DagTreeView';
 
 export class DagTreeItem extends vscode.TreeItem {
     public IsPaused: boolean;
@@ -24,6 +25,7 @@ export class DagTreeItem extends vscode.TreeItem {
         this.Owners = apiResponse.owners;
         this.Tags = apiResponse.tags;
         this.FileToken = apiResponse.file_token;
+        this._IsFav = DagTreeView.Current.FavoriteDags.includes(this.DagId);
 
         this.setContextValue();
         this.refreshUI();
@@ -48,6 +50,7 @@ export class DagTreeItem extends vscode.TreeItem {
         contextValue += this.IsPaused ? "IsPaused#" : "!IsPaused#";
         contextValue += this.IsActive ? "IsActive#" : "!IsActive#";
         contextValue += this.IsFiltered ? "IsFiltered#" : "!IsFiltered#";
+        contextValue += this.isDagRunning() ? "IsRunning#" : "!IsRunning#";
 
         this.contextValue = contextValue;
     }
@@ -55,45 +58,47 @@ export class DagTreeItem extends vscode.TreeItem {
     public refreshUI() {
 
         if (this.IsPaused) {
-            this.iconPath = new vscode.ThemeIcon('circle-outline');
+            this.iconPath = new vscode.ThemeIcon('circle-outline', new vscode.ThemeColor('disabledForeground'));
             this.ApiResponse.is_paused = true;
         }
         else {
             //"queued" "running" "success" "failed"
             if (this.LatestDagState === 'queued') {
-                this.iconPath = new vscode.ThemeIcon('loading~spin');
+                this.iconPath = new vscode.ThemeIcon('loading~spin', new vscode.ThemeColor('charts.yellow'));
             }
             else if (this.LatestDagState === 'running') {
-                this.iconPath = new vscode.ThemeIcon('loading~spin');
+                this.iconPath = new vscode.ThemeIcon('loading~spin', new vscode.ThemeColor('charts.blue'));
             }
             else if (this.LatestDagState === 'success') {
-                this.iconPath = new vscode.ThemeIcon('check');
+                this.iconPath = new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed'));
             }
             else if (this.LatestDagState === 'failed') {
-                this.iconPath = new vscode.ThemeIcon('error');
+                this.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
             }
             else {
-                this.iconPath = new vscode.ThemeIcon('circle-filled');
+                this.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.gray'));
             }
             this.ApiResponse.is_paused = false;
         }
+        
+        // Update context value to reflect current running state
+        this.setContextValue();
     }
 
     public doesFilterMatch(filterString: string): boolean {
-        const words: string[] = filterString.split(',');
-        const matchingWords: string[] = [];
+        let words: string[] = filterString.split(',');
+        words = words.map(word => word.trim());
+
+        this.IsFiltered = false;
         for (const word of words) {
-            if (word === 'active' && !this.IsPaused) { matchingWords.push(word); continue; }
-            if (word === 'paused' && this.IsPaused) { matchingWords.push(word); continue; }
-            if (this.DagId.includes(word)) { matchingWords.push(word); continue; }
-            if (this.Owners.includes(word)) { matchingWords.push(word); continue; }
-            if (word === 'fav' && this.IsFav) { matchingWords.push(word); continue; }
+            if (this.DagId.includes(word)) { this.IsFiltered = true; break; }
+            if (this.Owners.includes(word))  { this.IsFiltered = true; break; }
 
             for (const t of this.Tags) {
-                if (t.name.includes(word)) { matchingWords.push(word); continue; }
+                if (t.name.includes(word)) { this.IsFiltered = true; break; }
             }
         }
-        this.IsFiltered = (words.length === matchingWords.length);
+        
         return this.IsFiltered;
     }
 }

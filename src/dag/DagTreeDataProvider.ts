@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
-import { DagTreeItem } from './dagTreeItem';
-import { DagTreeView } from './dagTreeView';
+import { DagTreeItem } from './DagTreeItem';
+import { DagTreeView } from './DagTreeView';
 
 export class DagTreeDataProvider implements vscode.TreeDataProvider<DagTreeItem>
 {
@@ -38,7 +38,7 @@ export class DagTreeDataProvider implements vscode.TreeDataProvider<DagTreeItem>
 	getVisibleDagList(): DagTreeItem[]{
 		var result: DagTreeItem[] = [];
 		for (var node of this.dagTreeItemList) {
-			if (DagTreeView.Current.filterString && !node.doesFilterMatch(DagTreeView.Current.filterString)) { continue; }
+			if (DagTreeView.Current.FilterString && !node.doesFilterMatch(DagTreeView.Current.FilterString)) { continue; }
 			if (DagTreeView.Current.ShowOnlyActive && node.IsPaused) { continue; }
 			if (DagTreeView.Current.ShowOnlyFavorite && !node.IsFav) { continue; }
 

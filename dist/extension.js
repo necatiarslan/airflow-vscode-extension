@@ -14,1510 +14,8 @@ module.exports = require("vscode");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagTreeView = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-const dagView_1 = __webpack_require__(3);
-const dagTreeDataProvider_1 = __webpack_require__(10);
-const ui = __webpack_require__(4);
-const api_1 = __webpack_require__(12);
-class DagTreeView {
-    constructor(context) {
-        this.filterString = '';
-        this.ShowOnlyActive = true;
-        this.ShowOnlyFavorite = false;
-        this.ServerList = [];
-        ui.logToOutput('DagTreeView.constructor Started');
-        this.context = context;
-        this.treeDataProvider = new dagTreeDataProvider_1.DagTreeDataProvider();
-        this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
-        this.loadState();
-        context.subscriptions.push(this.view);
-        context.subscriptions.push({ dispose: () => this.dispose() });
-        DagTreeView.Current = this;
-        this.setFilterMessage();
-        this.refresh();
-    }
-    dispose() {
-        ui.logToOutput('DagTreeView.dispose Started');
-        if (this.dagStatusInterval) {
-            clearInterval(this.dagStatusInterval);
-        }
-    }
-    async refresh() {
-        ui.logToOutput('DagTreeView.refresh Started');
-        if (!this.api) {
-            this.treeDataProvider.dagList = [];
-            this.treeDataProvider.refresh();
-            return;
-        }
-        await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Window,
-            title: "Airflow: Loading...",
-        }, async (progress) => {
-            progress.report({ increment: 0 });
-            await this.loadDags();
-        });
-        await this.getImportErrors();
-    }
-    resetView() {
-        ui.logToOutput('DagTreeView.resetView Started');
-        this.api = undefined;
-        this.currentServer = undefined;
-        this.filterString = '';
-        this.treeDataProvider.dagList = undefined;
-        this.treeDataProvider.refresh();
-        this.setViewTitle();
-        this.saveState();
-        this.refresh();
-    }
-    viewDagView(node) {
-        ui.logToOutput('DagTreeView.viewDagView Started');
-        if (this.api) {
-            dagView_1.DagView.render(this.context.extensionUri, node.DagId, this.api);
-        }
-    }
-    async addToFavDAG(node) {
-        ui.logToOutput('DagTreeView.addToFavDAG Started');
-        node.IsFav = true;
-        this.treeDataProvider.refresh();
-    }
-    async deleteFromFavDAG(node) {
-        ui.logToOutput('DagTreeView.deleteFromFavDAG Started');
-        node.IsFav = false;
-        this.treeDataProvider.refresh();
-    }
-    async triggerDag(node) {
-        ui.logToOutput('DagTreeView.triggerDag Started');
-        if (!this.api) {
-            return;
-        }
-        if (node.IsPaused) {
-            ui.showWarningMessage('Dag is PAUSED !!!');
-            return;
-        }
-        if (node.isDagRunning()) {
-            ui.showWarningMessage('Dag is ALREADY RUNNING !!!');
-            return;
-        }
-        const result = await this.api.triggerDag(node.DagId);
-        if (result.isSuccessful) {
-            const responseTrigger = result.result;
-            node.LatestDagRunId = responseTrigger['dag_run_id'];
-            node.LatestDagState = responseTrigger['state'];
-            node.refreshUI();
-            this.treeDataProvider.refresh();
-            if (!this.dagStatusInterval) {
-                this.dagStatusInterval = setInterval(() => {
-                    void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
-                }, 10 * 1000);
-            }
-        }
-    }
-    async refreshRunningDagState(dagTreeView) {
-        ui.logToOutput('DagTreeView.refreshRunningDagState Started');
-        if (!dagTreeView.api) {
-            return;
-        }
-        let noDagIsRunning = true;
-        for (const node of dagTreeView.treeDataProvider.visibleDagList) {
-            if (node.isDagRunning()) {
-                noDagIsRunning = false;
-                const result = await dagTreeView.api.getDagRun(node.DagId, node.LatestDagRunId);
-                if (result.isSuccessful) {
-                    node.LatestDagState = result.result['state'];
-                    node.refreshUI();
-                }
-                else {
-                    node.LatestDagRunId = '';
-                    node.LatestDagState = '';
-                }
-            }
-            dagTreeView.treeDataProvider.refresh();
-        }
-        if (noDagIsRunning && dagTreeView.dagStatusInterval) {
-            clearInterval(dagTreeView.dagStatusInterval);
-            dagTreeView.dagStatusInterval = undefined;
-            ui.showInfoMessage('All Dag Run(s) Completed');
-            ui.logToOutput('All Dag Run(s) Completed');
-        }
-    }
-    async triggerDagWConfig(node) {
-        ui.logToOutput('DagTreeView.triggerDagWConfig Started');
-        if (!this.api) {
-            return;
-        }
-        let triggerDagConfig = await vscode.window.showInputBox({ placeHolder: 'Enter Configuration JSON (Optional, must be a dict object) or Press Enter' });
-        if (!triggerDagConfig) {
-            triggerDagConfig = "{}";
-        }
-        if (triggerDagConfig !== undefined) {
-            const result = await this.api.triggerDag(node.DagId, triggerDagConfig);
-            if (result.isSuccessful) {
-                const responseTrigger = result.result;
-                node.LatestDagRunId = responseTrigger['dag_run_id'];
-                node.LatestDagState = responseTrigger['state'];
-                node.refreshUI();
-                this.treeDataProvider.refresh();
-                if (!this.dagStatusInterval) {
-                    this.dagStatusInterval = setInterval(() => {
-                        void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
-                    }, 10 * 1000);
-                }
-            }
-        }
-    }
-    async checkAllDagsRunState() {
-        ui.logToOutput('DagTreeView.checkAllDagsRunState Started');
-        if (!this.treeDataProvider) {
-            return;
-        }
-        for (const node of this.treeDataProvider.visibleDagList) {
-            if (!node.IsPaused) {
-                this.checkDagRunState(node);
-            }
-        }
-    }
-    async notifyDagStateWithDagId(dagId) {
-        ui.logToOutput('DagTreeView.checDagStateWitDagId Started');
-        if (!this.treeDataProvider) {
-            return;
-        }
-        for (const node of this.treeDataProvider.visibleDagList) {
-            if (node.DagId === dagId) {
-                this.checkDagRunState(node);
-            }
-        }
-    }
-    async checkDagRunState(node) {
-        ui.logToOutput('DagTreeView.checkDagRunState Started');
-        if (!this.api) {
-            return;
-        }
-        if (!node) {
-            return;
-        }
-        if (node.IsPaused) {
-            ui.showWarningMessage(node.DagId + 'Dag is PAUSED');
-            return;
-        }
-        const result = await this.api.getLastDagRun(node.DagId);
-        if (result.isSuccessful) {
-            node.LatestDagRunId = result.result.dag_run_id;
-            node.LatestDagState = result.result.state;
-            node.refreshUI();
-            this.treeDataProvider.refresh();
-            if (node.isDagRunning()) {
-                if (!this.dagStatusInterval) {
-                    this.dagStatusInterval = setInterval(() => {
-                        void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
-                    }, 10 * 1000);
-                }
-            }
-        }
-    }
-    async pauseDAG(node) {
-        ui.logToOutput('DagTreeView.pauseDAG Started');
-        if (!this.api) {
-            return;
-        }
-        if (node.IsPaused) {
-            ui.showWarningMessage(node.DagId + 'Dag is already PAUSED');
-            return;
-        }
-        const result = await this.api.pauseDag(node.DagId, true);
-        if (result.isSuccessful) {
-            node.IsPaused = true;
-            node.refreshUI();
-            this.treeDataProvider.refresh();
-        }
-    }
-    async notifyDagPaused(dagId) {
-        ui.logToOutput('DagTreeView.notifyDagPaused Started');
-        this.refresh();
-    }
-    async notifyDagUnPaused(dagId) {
-        ui.logToOutput('DagTreeView.notifyDagPaused Started');
-        this.refresh();
-    }
-    async unPauseDAG(node) {
-        ui.logToOutput('DagTreeView.unPauseDAG Started');
-        if (!this.api) {
-            return;
-        }
-        if (!node.IsPaused) {
-            ui.showInfoMessage(node.DagId + 'Dag is already UNPAUSED');
-            return;
-        }
-        const result = await this.api.pauseDag(node.DagId, false);
-        if (result.isSuccessful) {
-            node.IsPaused = false;
-            node.refreshUI();
-            this.treeDataProvider.refresh();
-        }
-    }
-    async lastDAGRunLog(node) {
-        ui.logToOutput('DagTreeView.lastDAGRunLog Started');
-        if (!this.api) {
-            return;
-        }
-        const result = await this.api.getLastDagRunLog(node.DagId);
-        if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.log' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
-        }
-    }
-    async dagSourceCode(node) {
-        ui.logToOutput('DagTreeView.dagSourceCode Started');
-        if (!this.api) {
-            return;
-        }
-        const result = await this.api.getSourceCode(node.DagId, node.FileToken);
-        if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId, postfix: '.py' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
-        }
-        else {
-            ui.logToOutput(result.result);
-            ui.showErrorMessage(result.result);
-        }
-    }
-    async showDagInfo(node) {
-        ui.logToOutput('DagTreeView.showDagInfo Started');
-        if (!this.api) {
-            return;
-        }
-        const result = await this.api.getDagInfo(node.DagId);
-        if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: node.DagId + '_info', postfix: '.json' });
-            fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
-            ui.openFile(tmpFile.name);
-        }
-        else {
-            ui.logToOutput(result.result);
-            ui.showErrorMessage('Failed to fetch DAG info');
-        }
-    }
-    async aIHandler(request, context, stream, token) {
-        const aiContext = DagTreeView.Current?.askAIContext;
-        if (!aiContext) {
-            stream.markdown("No active DAG context found. Please use the 'Ask AI' button on a DAG item first.");
-            return;
-        }
-        // B. Construct the Prompt
-        const messages = [
-            vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. Here is the code for a DAG and its recent execution logs. Analyze them and explain any errors.`),
-            vscode.LanguageModelChatMessage.User(`DAG Code:\n\`\`\`python\n${aiContext.code}\n\`\`\``),
-            vscode.LanguageModelChatMessage.User(`Execution Logs:\n\`\`\`text\n${aiContext.logs}\n\`\`\``)
-        ];
-        if (aiContext.dag) {
-            messages.push(vscode.LanguageModelChatMessage.User(`DAG:\n\`\`\`json\n${aiContext.dag}\n\`\`\``));
-        }
-        if (aiContext.dagRun) {
-            messages.push(vscode.LanguageModelChatMessage.User(`DAG Run:\n\`\`\`json\n${aiContext.dagRun}\n\`\`\``));
-        }
-        if (aiContext.tasks) {
-            messages.push(vscode.LanguageModelChatMessage.User(`DAG Tasks:\n\`\`\`json\n${aiContext.tasks}\n\`\`\``));
-        }
-        if (aiContext.taskInstances) {
-            messages.push(vscode.LanguageModelChatMessage.User(`Task Instances:\n\`\`\`json\n${aiContext.taskInstances}\n\`\`\``));
-        }
-        messages.push(vscode.LanguageModelChatMessage.User(request.prompt || "Please analyze the error in these logs if any."));
-        // C. Send to VS Code's AI (Copilot)
-        try {
-            const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4' });
-            if (model) {
-                const chatResponse = await model.sendRequest(messages, {}, token);
-                for await (const fragment of chatResponse.text) {
-                    stream.markdown(fragment);
-                }
-            }
-            else {
-                stream.markdown("No suitable AI model found.");
-            }
-        }
-        catch (err) {
-            if (err instanceof Error) {
-                stream.markdown(`I'm sorry, I couldn't connect to the AI model: ${err.message}`);
-            }
-            else {
-                stream.markdown("I'm sorry, I couldn't connect to the AI model.");
-            }
-        }
-    }
-    ;
-    async isChatCommandAvailable() {
-        const commands = await vscode.commands.getCommands(true); // 'true' includes internal commands
-        return commands.includes('workbench.action.chat.open');
-    }
-    async askAI(node) {
-        ui.logToOutput('DagTreeView.askAI Started');
-        if (!this.api) {
-            return;
-        }
-        if (!await this.isChatCommandAvailable()) {
-            ui.showErrorMessage('Chat command is not available. Please ensure you have access to VS Code AI features.');
-            return;
-        }
-        let dagSourceCode = '';
-        let latestDagLogs = '';
-        // Fetch DAG Source Code
-        const sourceResult = await this.api.getSourceCode(node.DagId, node.FileToken);
-        if (sourceResult.isSuccessful) {
-            dagSourceCode = sourceResult.result;
-        }
-        else {
-            ui.showErrorMessage('Failed to fetch DAG source code for AI analysis.');
-            return;
-        }
-        // Fetch Latest DAG Run Logs
-        const logResult = await this.api.getLastDagRunLog(node.DagId);
-        if (logResult.isSuccessful) {
-            latestDagLogs = logResult.result;
-        }
-        else {
-            ui.showErrorMessage('Failed to fetch latest DAG run logs for AI analysis.');
-            return;
-        }
-        await this.askAIWithContext({ code: dagSourceCode, logs: latestDagLogs, dag: node.DagId, dagRun: node.LatestDagRunId, tasks: null, taskInstances: null });
-    }
-    async askAIWithContext(askAIContext) {
-        this.askAIContext = askAIContext;
-        const appName = vscode.env.appName;
-        let commandId = '';
-        if (appName.includes('Antigravity')) {
-            // Antigravity replaces the Chat with an Agent workflow.
-            // We must use the Agent Manager command instead.
-            // **REPLACE WITH THE ACTUAL ANTIGRAVITY AGENT COMMAND ID**
-            commandId = 'antigravity.startAgentTask';
-        }
-        else if (appName.includes('Code - OSS') || appName.includes('Visual Studio Code')) {
-            // This is standard VS Code or VSCodium. Check for the legacy Chat command.
-            commandId = 'workbench.action.chat.open';
-        }
-        else {
-            // Unknown environment, default to checking if the command exists at all.
-            commandId = 'workbench.action.chat.open';
-        }
-        await vscode.commands.executeCommand(commandId, {
-            query: '@airflow Analyze the current logs'
-        });
-    }
-    async filter() {
-        ui.logToOutput('DagTreeView.filter Started');
-        const filterStringTemp = await vscode.window.showInputBox({ value: this.filterString, placeHolder: 'Enter your filters seperated by comma' });
-        if (filterStringTemp === undefined) {
-            return;
-        }
-        this.filterString = filterStringTemp;
-        this.treeDataProvider.refresh();
-        this.setFilterMessage();
-        this.saveState();
-    }
-    async showOnlyActive() {
-        ui.logToOutput('DagTreeView.showOnlyActive Started');
-        this.ShowOnlyActive = !this.ShowOnlyActive;
-        this.treeDataProvider.refresh();
-        this.setFilterMessage();
-        this.saveState();
-    }
-    async showOnlyFavorite() {
-        ui.logToOutput('DagTreeView.showOnlyFavorite Started');
-        this.ShowOnlyFavorite = !this.ShowOnlyFavorite;
-        this.treeDataProvider.refresh();
-        this.setFilterMessage();
-        this.saveState();
-    }
-    async addServer() {
-        ui.logToOutput('DagTreeView.addServer Started');
-        const apiUrlTemp = await vscode.window.showInputBox({ value: 'http://localhost:8080/api/v2', placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v1)' });
-        if (!apiUrlTemp) {
-            return;
-        }
-        const userNameTemp = await vscode.window.showInputBox({ placeHolder: 'User Name' });
-        if (!userNameTemp) {
-            return;
-        }
-        const passwordTemp = await vscode.window.showInputBox({ placeHolder: 'Password' });
-        if (!passwordTemp) {
-            return;
-        }
-        const newServer = { apiUrl: apiUrlTemp, apiUserName: userNameTemp, apiPassword: passwordTemp };
-        this.ServerList.push(newServer);
-        let api = new api_1.AirflowApi(newServer);
-        let result = await api.checkConnection();
-        if (!result) {
-            ui.showErrorMessage("Failed to connect to server.");
-            return;
-        }
-        this.currentServer = newServer;
-        this.api = api;
-        this.saveState();
-        this.refresh();
-    }
-    async removeServer() {
-        ui.logToOutput('DagTreeView.removeServer Started');
-        if (this.ServerList.length === 0) {
-            return;
-        }
-        const items = this.ServerList.map(s => `${s.apiUrl} - ${s.apiUserName}`);
-        const selected = await vscode.window.showQuickPick(items, { canPickMany: false, placeHolder: 'Select To Remove' });
-        if (!selected) {
-            return;
-        }
-        const selectedItems = selected.split(' - ');
-        if (selectedItems[0]) {
-            this.ServerList = this.ServerList.filter(item => !(item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]));
-            // If we removed the current server, reset
-            if (this.currentServer && this.currentServer.apiUrl === selectedItems[0] && this.currentServer.apiUserName === selectedItems[1]) {
-                this.currentServer = undefined;
-                this.api = undefined;
-                this.treeDataProvider.dagList = undefined;
-                this.treeDataProvider.refresh();
-            }
-            this.saveState();
-            ui.showInfoMessage("Server removed.");
-        }
-    }
-    async connectServer() {
-        ui.logToOutput('DagTreeView.connectServer Started');
-        if (this.ServerList.length === 0) {
-            this.addServer();
-            return;
-        }
-        const items = [];
-        for (const s of this.ServerList) {
-            items.push(s.apiUrl + " - " + s.apiUserName);
-        }
-        const selected = await vscode.window.showQuickPick(items, { canPickMany: false, placeHolder: 'Select To Connect' });
-        if (!selected) {
-            return;
-        }
-        const selectedItems = selected.split(' - ');
-        if (selectedItems[0]) {
-            const item = this.ServerList.find(item => item.apiUrl === selectedItems[0] && item.apiUserName === selectedItems[1]);
-            if (item) {
-                let api = new api_1.AirflowApi(item);
-                let result = await api.checkConnection();
-                if (result) {
-                    this.currentServer = item;
-                    this.api = new api_1.AirflowApi(this.currentServer);
-                    this.saveState();
-                    this.refresh();
-                }
-                else {
-                    ui.showErrorMessage("Failed to connect to server.");
-                }
-            }
-        }
-    }
-    async clearServers() {
-        ui.logToOutput('DagTreeView.clearServers Started');
-        this.ServerList = [];
-        this.currentServer = undefined;
-        this.api = undefined;
-        this.treeDataProvider.dagList = undefined;
-        this.treeDataProvider.refresh();
-        this.saveState();
-        ui.showInfoMessage("Server List Cleared");
-    }
-    async loadDags() {
-        ui.logToOutput('DagTreeView.loadDags Started');
-        if (!this.api) {
-            return;
-        }
-        this.treeDataProvider.dagList = undefined;
-        const result = await this.api.getDagList();
-        if (result.isSuccessful) {
-            this.treeDataProvider.dagList = result.result;
-            this.treeDataProvider.loadDagTreeItemsFromApiResponse();
-            // Fetch latest run status for each DAG
-            await this.loadLatestRunStatusForAllDags();
-        }
-        this.treeDataProvider.refresh();
-        this.setViewTitle();
-    }
-    async loadLatestRunStatusForAllDags() {
-        ui.logToOutput('DagTreeView.loadLatestRunStatusForAllDags Started');
-        if (!this.api) {
-            return;
-        }
-        // Fetch latest run status for each visible DAG (limit to avoid too many API calls)
-        const visibleDags = this.treeDataProvider.visibleDagList.slice(0, 50); // Limit to first 50 DAGs
-        for (const dagItem of visibleDags) {
-            if (!dagItem.IsPaused) {
-                try {
-                    const runResult = await this.api.getLastDagRun(dagItem.DagId);
-                    if (runResult.isSuccessful && runResult.result) {
-                        dagItem.LatestDagRunId = runResult.result.dag_run_id;
-                        dagItem.LatestDagState = runResult.result.state;
-                        dagItem.refreshUI();
-                    }
-                }
-                catch (error) {
-                    // Silently continue if a DAG's last run can't be fetched
-                    ui.logToOutput(`Failed to fetch last run for ${dagItem.DagId}`, error);
-                }
-            }
-        }
-        this.treeDataProvider.refresh();
-    }
-    async setViewTitle() {
-        if (this.currentServer) {
-            this.view.title = this.currentServer.apiUrl + " - " + this.currentServer.apiUserName;
-        }
-        else {
-            this.view.title = "Airflow";
-        }
-    }
-    async getImportErrors() {
-        ui.logToOutput('DagTreeView.getImportErrors Started');
-        if (!this.api) {
-            return;
-        }
-        const result = await this.api.getImportErrors();
-        if (result.isSuccessful) {
-            const importErrors = result.result;
-            if (importErrors.total_entries > 0) {
-                ui.showOutputMessage(result.result, "Import Dag Errors! Check Output Panel");
-            }
-        }
-    }
-    saveState() {
-        ui.logToOutput('DagTreeView.saveState Started');
-        try {
-            if (this.currentServer) {
-                this.context.globalState.update('apiUrl', this.currentServer.apiUrl);
-                this.context.globalState.update('apiUserName', this.currentServer.apiUserName);
-                this.context.globalState.update('apiPassword', this.currentServer.apiPassword);
-            }
-            else {
-                this.context.globalState.update('apiUrl', undefined);
-                this.context.globalState.update('apiUserName', undefined);
-                this.context.globalState.update('apiPassword', undefined);
-            }
-            this.context.globalState.update('filterString', this.filterString);
-            this.context.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
-            this.context.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
-            this.context.globalState.update('ServerList', this.ServerList);
-        }
-        catch (error) {
-            ui.logToOutput("dagTreeView.saveState Error !!!", error);
-        }
-    }
-    setFilterMessage() {
-        if (this.currentServer) {
-            this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, ' + this.getBoolenSign(this.ShowOnlyActive) + 'Active, Filter : ' + this.filterString;
-        }
-    }
-    getBoolenSign(variable) {
-        return variable ? "✓" : "𐄂";
-    }
-    loadState() {
-        ui.logToOutput('DagTreeView.loadState Started');
-        try {
-            const apiUrlTemp = this.context.globalState.get('apiUrl') || '';
-            const apiUserNameTemp = this.context.globalState.get('apiUserName') || '';
-            const apiPasswordTemp = this.context.globalState.get('apiPassword') || '';
-            if (apiUrlTemp && apiUserNameTemp) {
-                this.currentServer = { apiUrl: apiUrlTemp, apiUserName: apiUserNameTemp, apiPassword: apiPasswordTemp };
-                this.api = new api_1.AirflowApi(this.currentServer);
-            }
-            const filterStringTemp = this.context.globalState.get('filterString') || '';
-            if (filterStringTemp) {
-                this.filterString = filterStringTemp;
-                this.setFilterMessage();
-            }
-            const ShowOnlyActiveTemp = this.context.globalState.get('ShowOnlyActive');
-            if (ShowOnlyActiveTemp !== undefined) {
-                this.ShowOnlyActive = ShowOnlyActiveTemp;
-            }
-            const ShowOnlyFavoriteTemp = this.context.globalState.get('ShowOnlyFavorite');
-            if (ShowOnlyFavoriteTemp !== undefined) {
-                this.ShowOnlyFavorite = ShowOnlyFavoriteTemp;
-            }
-            const ServerListTemp = this.context.globalState.get('ServerList') || [];
-            if (ServerListTemp) {
-                this.ServerList = ServerListTemp;
-            }
-            // Ensure current server is in the list
-            if (this.currentServer && !this.ServerList.find(e => e.apiUrl === this.currentServer?.apiUrl && e.apiUserName === this.currentServer?.apiUserName)) {
-                this.ServerList.push(this.currentServer);
-            }
-        }
-        catch (error) {
-            ui.logToOutput("dagTreeView.loadState Error !!!", error);
-        }
-    }
-    async viewConnections() {
-        ui.logToOutput('DagTreeView.viewConnections Started');
-        if (this.api) {
-            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(49));
-            ConnectionsView.render(this.context.extensionUri, this.api);
-        }
-    }
-    async viewVariables() {
-        ui.logToOutput('DagTreeView.viewVariables Started');
-        if (this.api) {
-            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(50));
-            VariablesView.render(this.context.extensionUri, this.api);
-        }
-    }
-    async viewProviders() {
-        ui.logToOutput('DagTreeView.viewProviders Started');
-        if (this.api) {
-            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(51));
-            ProvidersView.render(this.context.extensionUri, this.api);
-        }
-    }
-}
-exports.DagTreeView = DagTreeView;
-
-
-/***/ }),
-/* 3 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagView = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-const ui = __webpack_require__(4);
-const dagTreeView_1 = __webpack_require__(2);
-class DagView {
-    constructor(panel, extensionUri, dagId, api) {
-        this._disposables = [];
-        this.dagHistorySelectedDate = new Date().toISOString().split('T')[0];
-        this.activetabid = "tab-1";
-        ui.logToOutput('DagView.constructor Started');
-        this.dagId = dagId;
-        this.extensionUri = extensionUri;
-        this.api = api;
-        this._panel = panel;
-        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
-        this._setWebviewMessageListener(this._panel.webview);
-        this.loadAllDagData();
-        ui.logToOutput('DagView.constructor Completed');
-    }
-    resetDagData() {
-        this.activetabid = "tab-1";
-        this.dagRunId = undefined;
-        this.dagJson = undefined;
-        this.dagRunJson = undefined;
-        this.dagRunId = undefined;
-        this.dagRunHistoryJson = undefined;
-        this.dagTaskInstancesJson = undefined;
-        this.dagTasksJson = undefined;
-        this.stopCheckingDagRunStatus();
-    }
-    async loadAllDagData() {
-        ui.logToOutput('DagView.loadAllDagData Started');
-        await this.getDagInfo();
-        await this.getLastRun();
-        await this.getDagTasks();
-        //await this.getRunHistory();
-        await this.renderHmtl();
-    }
-    async loadDagDataOnly() {
-        ui.logToOutput('DagView.loadDagDataOnly Started');
-        await this.getDagInfo();
-        await this.renderHmtl();
-    }
-    async renderHmtl() {
-        ui.logToOutput('DagView.renderHmtl Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
-        //ui.showOutputMessage(this._panel.webview.html);
-        ui.logToOutput('DagView.renderHmtl Completed');
-    }
-    static render(extensionUri, dagId, api) {
-        ui.logToOutput('DagView.render Started');
-        if (DagView.Current) {
-            DagView.Current.api = api;
-            DagView.Current.dagId = dagId;
-            DagView.Current._panel.reveal(vscode.ViewColumn.Two);
-            DagView.Current.resetDagData();
-            DagView.Current.loadAllDagData();
-        }
-        else {
-            const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
-                enableScripts: true,
-            });
-            DagView.Current = new DagView(panel, extensionUri, dagId, api);
-        }
-    }
-    async getLastRun() {
-        ui.logToOutput('DagView.getLastRun Started');
-        let result = await this.api.getLastDagRun(this.dagId);
-        if (result.isSuccessful) {
-            this.dagRunJson = result.result;
-            this.dagRunId = this.dagRunJson.dag_run_id;
-            this.getTaskInstances(this.dagRunId);
-            if (this.dagRunJson && this.dagRunJson.state === "running") {
-                this.startCheckingDagRunStatus(this.dagRunId);
-            }
-        }
-    }
-    async getDagRun(dagId, dagRunId) {
-        ui.logToOutput('DagView.getDagRun Started');
-        let result = await this.api.getDagRun(dagId, dagRunId);
-        if (result.isSuccessful) {
-            this.dagRunJson = result.result;
-            this.dagRunId = this.dagRunJson.dag_run_id;
-            this.getTaskInstances(this.dagRunId);
-        }
-        await this.renderHmtl();
-    }
-    async getRunHistory(date) {
-        ui.logToOutput('DagView.getRunHistory Started');
-        let result = await this.api.getDagRunHistory(this.dagId, date);
-        if (result.isSuccessful) {
-            this.dagRunHistoryJson = result.result;
-        }
-    }
-    async getTaskInstances(dagRunId) {
-        ui.logToOutput('DagView.getTaskInstances Started');
-        let result = await this.api.getTaskInstances(this.dagId, dagRunId); // Note: api.getTaskInstances was not implemented in my previous step, I need to check if I missed it.
-        // Wait, I missed getTaskInstances in AirflowApi. I need to add it.
-        // I'll add it to AirflowApi later or assume I added it.
-        // Actually I should check api.ts again. I added getLastDagRunLog but maybe not getTaskInstances explicitly as public.
-        // I will add it to api.ts in a subsequent step if missing.
-        if (result.isSuccessful) {
-            this.dagTaskInstancesJson = result.result;
-        }
-    }
-    async getDagInfo() {
-        ui.logToOutput('DagView.getDagInfo Started');
-        let result = await this.api.getDagInfo(this.dagId); // Also need to check if this exists in new api.ts
-        if (result.isSuccessful) {
-            this.dagJson = result.result;
-        }
-    }
-    async getDagTasks() {
-        ui.logToOutput('DagView.getDagTasks Started');
-        let result = await this.api.getDagTasks(this.dagId); // Need to check
-        if (result.isSuccessful) {
-            this.dagTasksJson = result.result;
-        }
-    }
-    dispose() {
-        ui.logToOutput('DagView.dispose Started');
-        DagView.Current = undefined;
-        // stop any running interval checks
-        this.stopCheckingDagRunStatus();
-        this._panel.dispose();
-        while (this._disposables.length) {
-            const disposable = this._disposables.pop();
-            if (disposable) {
-                disposable.dispose();
-            }
-        }
-    }
-    _getWebviewContent(webview, extensionUri) {
-        ui.logToOutput('DagView._getWebviewContent Started');
-        //file URIs
-        const toolkitUri = ui.getUri(webview, extensionUri, [
-            "node_modules",
-            "@vscode-elements",
-            "elements",
-            "dist",
-            "bundled.js",
-        ]);
-        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
-        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
-        //LATEST DAG RUN
-        let state = "";
-        let logical_date = undefined;
-        let start_date = undefined;
-        let end_date = undefined;
-        let logical_date_string = "";
-        let start_date_string = "";
-        let duration = "";
-        let isDagRunning = false;
-        let hasDagRun = false;
-        if (this.dagRunJson) {
-            state = this.dagRunJson.state;
-            logical_date = this.dagRunJson.logical_date;
-            start_date = this.dagRunJson.start_date;
-            end_date = this.dagRunJson.end_date;
-            logical_date_string = logical_date ? new Date(logical_date).toLocaleDateString() : "";
-            start_date_string = start_date ? new Date(start_date).toLocaleString() : "";
-            duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
-            isDagRunning = (state === "queued" || state === "running") ? true : false;
-            hasDagRun = true;
-        }
-        let runningOrFailedTasks = "";
-        if (this.dagTaskInstancesJson) {
-            for (const t of this.dagTaskInstancesJson["task_instances"]) {
-                if (t.state === "running" || t.state === "failed" || t.state === "up_for_retry" || t.state === "up_for_reschedule" || t.state === "deferred") {
-                    runningOrFailedTasks += t.task_id + ", ";
-                }
-            }
-        }
-        //INFO TAB
-        let owners = (this.dagJson && Array.isArray(this.dagJson["owners"])) ? this.dagJson["owners"].join(", ") : "";
-        let tags = "";
-        if (this.dagJson && Array.isArray(this.dagJson["tags"])) {
-            this.dagJson["tags"].forEach((item) => { tags += item.name + ", "; });
-        }
-        let schedule_interval = (this.dagJson && this.dagJson["schedule_interval"] && this.dagJson["schedule_interval"].value) ? this.dagJson["schedule_interval"].value : "";
-        let isPausedText = (this.dagJson) ? (this.dagJson.is_paused ? "true" : "false") : "unknown";
-        let isPaused = isPausedText === "true";
-        //TASKS TAB
-        let taskRows = "";
-        if (this.dagTaskInstancesJson) {
-            for (const t of this.dagTaskInstancesJson["task_instances"].sort((a, b) => (a.start_date > b.start_date) ? 1 : -1)) {
-                taskRows += `
-                <tr>
-                    <td>
-                        <div style="display: flex; align-items: center;">
-                            <div class="state-${t.state}" title="${t.state}" ></div>
-                            &nbsp; ${t.task_id} (${t.try_number})
-                        </div>
-                    </td>
-                    <td>
-                        <a href="#" id="task-log-link-${t.task_id}">Log</a> | 
-                        <a href="#" id="task-xcom-link-${t.task_id}">XCom</a>
-                    </td>
-                    <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
-                    <td>${t.operator}</td>
-                </tr>
-                `;
-            }
-        }
-        // BUILD TASK DEPENDENCY TREE
-        let taskDependencyTree = "";
-        if (this.dagTasksJson && this.dagTasksJson.tasks && this.dagTasksJson.tasks.length > 0) {
-            taskDependencyTree = this.buildTaskDependencyTree(this.dagTasksJson.tasks);
-        }
-        //HISTORY TAB
-        let runHistoryRows = "";
-        if (this.dagRunHistoryJson) {
-            for (const t of this.dagRunHistoryJson["dag_runs"]) {
-                runHistoryRows += `
-                <tr>
-                    <td>
-                        <div style="display: flex; align-items: center;">
-                            <div class="state-${t.state}" title="${t.state}"></div>
-                            &nbsp; ${t.state}
-                        </div>
-                    </td>
-                    <td><a href="#" id="history-dag-run-id-${t.dag_run_id}">${new Date(t.start_date).toLocaleString()}</a></td>
-                    <td>${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</td>
-                    <td>${t.note}</td>
-                </tr>
-                `;
-            }
-        }
-        let result = /*html*/ `
-    <!DOCTYPE html>
-    <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width,initial-scale=1.0">
-        <script type="module" src="${toolkitUri}"></script>
-        <script type="module" src="${mainUri}"></script>
-        <link rel="stylesheet" href="${styleUri}">
-        <title>DAG</title>
-      </head>
-      <body>  
-
-
-        <div style="display: flex; align-items: center;">
-            <div class="dag-paused-${isPausedText}"></div>
-            &nbsp; &nbsp; <h2>${this.dagId}</h2>
-            <div style="visibility: ${isDagRunning ? "visible" : "hidden"}; display: flex; align-items: center;">
-            &nbsp; &nbsp; <vscode-progress-ring></vscode-progress-ring>
-            </div>
-        </div>
-                    
-
-        <vscode-tabs id="tab-control" selected-index="${this.activetabid === 'tab-1' ? 0 : this.activetabid === 'tab-2' ? 1 : this.activetabid === 'tab-3' ? 2 : 3}">
-            <vscode-tab-header slot="header">RUN</vscode-tab-header>
-            <vscode-tab-header slot="header">TASKS</vscode-tab-header>
-            <vscode-tab-header slot="header">INFO</vscode-tab-header>
-            <vscode-tab-header slot="header">HISTORY</vscode-tab-header>
-            
-            <vscode-tab-panel>
-                
-            <section>
-
-                    <table class="dag-run-details-table">
-                        <tr>
-                            <th colspan=3>Dag Run Details</th>
-                        </tr>
-                        <tr>
-                            <td>State</td>
-                            <td>:</td>
-                            <td>
-                                <div style="display: flex; align-items: center;">
-                                    <div class="state-${state}"></div> &nbsp; ${state}
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>Tasks</td>
-                            <td>:</td>
-                            <td>${runningOrFailedTasks}</td>
-                        </tr>
-                        <tr>
-                            <td>Date</td>
-                            <td>:</td>
-                            <td>${logical_date_string}</td>
-                        </tr>
-                        <tr>
-                            <td>StartDate</td>
-                            <td>:</td>
-                            <td>${start_date_string}</td>
-                        </tr>
-                        <tr>
-                            <td>Duration</td>
-                            <td>:</td>
-                            <td>${duration}</td>
-                        </tr>
-                        <tr>
-                            <td>Note</td>
-                            <td>:</td>
-                            <td><a href="#" id="run-update-note-link" title="Update Note">${this.dagRunJson?.note || '(No note)'}</a></td>
-                        </tr>
-                        <tr>
-                            <td>Config</td>
-                            <td>:</td>
-                            <td>${this.dagRunJson?.conf ? JSON.stringify(this.dagRunJson.conf, null, 2) : '(No config)'}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="3">
-                                <vscode-button appearance="secondary" id="run-ask-ai" ${!hasDagRun ? "disabled" : ""}>Ask AI</vscode-button>    
-                                <vscode-button appearance="secondary" id="run-view-log" ${!hasDagRun ? "disabled" : ""}>Log</vscode-button> 
-                                <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>  
-                                <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagRun ? "disabled" : ""}>More</vscode-button>
-                            </td>
-                        </tr>
-                    </table>
-            
-                    <br>
-            
-                    <table>
-                        <tr>
-                            <th colspan="3">Trigger</th>
-                        </tr>
-                        <tr>
-                            <td>Date</td>
-                            <td>:</td>
-                            <td><vscode-textfield id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10" pattern="\d{4}-\d{2}-\d{2}"></vscode-textfield></td>
-                        </tr>
-                        <tr>
-                            <td>Config</td>
-                            <td>:</td>
-                            <td><vscode-textarea id="run_config" cols="50" placeholder="Config in JSON Format (Optional)"></vscode-textarea></td>
-                        </tr>
-                        <tr>           
-                            <td colspan="3">
-                            <vscode-button appearance="secondary" id="run-trigger-dag" ${isPaused ? "disabled" : ""}>Run</vscode-button>
-                            <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>  
-                            </td>
-                        </tr>
-                    </table>
-
-                    <br>
-
-                    <table>
-                        <tr>
-                            <th colspan="3">
-                            <vscode-button appearance="secondary" id="run-pause-dag" ${isPaused ? "disabled" : ""}>
-                            Pause
-                            </vscode-button>
-                            <vscode-button appearance="secondary" id="run-unpause-dag" ${!isPaused ? "disabled" : ""}>
-                            Un Pause
-                            </vscode-button>
-                            </th>
-                        </tr>
-                    </table>
-
-                    <br>
-                    <br>
-                    <br>
-                    
-                    <table>
-                        <tr>
-                            <td colspan="3">
-                                <a href="https://github.com/necatiarslan/airflow-vscode-extension/issues/new">Bug Report & Feature Request</a>
-                            </td>
-                        </tr>
-                    </table>
-                    <table>
-                        <tr>
-                            <td colspan="3">
-                                <a href="https://bit.ly/airflow-extension-survey">New Feature Survey</a>
-                            </td>
-                        </tr>
-                    </table>
-                    <table>
-                        <tr>
-                            <td colspan="3">
-                                <a href="https://github.com/sponsors/necatiarslan">Donate to support this extension</a>
-                            </td>
-                        </tr>
-                    </table>
-            </section>
-            </vscode-tab-panel>
-
-
-            <vscode-tab-panel>
-
-            <section>
-
-                    ${taskDependencyTree ? `
-                    <table>
-                        <tr>
-                            <th>Task Dependencies</th>
-                        </tr>
-                        <tr>
-                            <td>
-                                <vscode-tree>
-                                ${taskDependencyTree}
-                                </vscode-tree>
-                            </td>
-                        </tr>
-                    </table>
-                    <br>
-                    ` : ''}
-
-                    <table>
-                        <tr>
-                            <th colspan="4">Tasks</th>
-                        </tr>
-                        <tr>
-                            <td>Task</td>
-                            <td></td>
-                            <td>Duration</td>            
-                            <td>Operator</td>
-                        </tr>
-
-                        ${taskRows}
-
-                        <tr>          
-                            <td colspan="4">
-                                <vscode-button appearance="secondary" id="tasks-refresh">Refresh</vscode-button>
-                                <vscode-button appearance="secondary" id="tasks-more-detail" ${!this.dagTaskInstancesJson ? "disabled" : ""}>More</vscode-button>
-                            </td>
-                        </tr>
-                    </table>
-
-            </section>
-            </vscode-tab-panel>
-            
-            <vscode-tab-panel>
-            <section>
-
-                    <table>
-                    <tr>
-                        <th colspan=3>Other</th>
-                    </tr>
-                    <tr>
-                        <td>Owners</td>
-                        <td>:</td>
-                        <td>${owners}</td>
-                    </tr>
-                    <tr>
-                        <td>Tags</td>
-                        <td>:</td>
-                        <td>${tags}</td>
-                    </tr>
-                    <tr>
-                        <td>Schedule</td>
-                        <td>:</td>
-                        <td>${schedule_interval}</td>
-                    </tr>
-                    <tr>           
-                        <td colspan="3"><vscode-button appearance="secondary" id="info-source-code">Source Code</vscode-button> <vscode-button appearance="secondary" id="other-dag-detail">More</vscode-button></td>
-                    </tr>
-                    </table>
-
-            </section>
-            </vscode-tab-panel>
-
-            <vscode-tab-panel>
-
-            <section>
-    
-                    <table>
-                        <tr>
-                            <th colspan=4>HISTORY</th>
-                        </tr>
-                        <tr>
-                            <td>Date</td>
-                            <td>:</td>
-                            <td>
-                            <vscode-textfield id="history_date" value="${this.dagHistorySelectedDate}" placeholder="YYYY-MM-DD" pattern="\d{4}-\d{2}-\d{2}" maxlength="10"></vscode-textfield>
-                            </td>
-                            <td><vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button></td>
-                        </tr>
-                    </table>
-
-                    <table>
-                        <tr>
-                            <th colspan=4>DAG RUNS</th>
-                        </tr>
-                        <tr>
-                            <td></td>
-                            <td>Start Time</td>            
-                            <td>Duration</td>
-                            <td>Notes</td>
-                        </tr>
-                        ${runHistoryRows}
-                    </table>   
-    
-            </section>
-            </vscode-tab-panel>
-
-        </vscode-tabs>
-      </body>
-    </html>
-    `;
-        ui.logToOutput('DagView._getWebviewContent Completed');
-        return result;
-    }
-    _setWebviewMessageListener(webview) {
-        ui.logToOutput('DagView._setWebviewMessageListener Started');
-        webview.onDidReceiveMessage((message) => {
-            const command = message.command;
-            let activetabid = message.activetabid;
-            if (["tab-1", "tab-2", "tab-3", "tab-4"].includes(activetabid)) {
-                this.activetabid = message.activetabid;
-            }
-            ui.logToOutput('DagView._setWebviewMessageListener Message Received ' + message.command);
-            switch (command) {
-                case "run-trigger-dag":
-                    this.triggerDagWConfig(message.config, message.date);
-                    return;
-                case "run-view-log":
-                    this.showDAGRunLog();
-                    return;
-                case "run-more-dagrun-detail":
-                    ui.showOutputMessage(this.dagRunJson);
-                    return;
-                case "other-dag-detail":
-                    ui.showOutputMessage(this.dagJson);
-                    return;
-                case "tasks-more-detail":
-                    ui.showOutputMessage(this.dagTaskInstancesJson);
-                    return;
-                case "history-load-runs":
-                    this.getRunHistoryAndRenderHtml(message.date);
-                    return;
-                case "info-source-code":
-                    this.showSourceCode();
-                    return;
-                case "run-pause-dag":
-                    this.pauseDAG(true);
-                    return;
-                case "run-unpause-dag":
-                    this.pauseDAG(false);
-                    return;
-                case "run-ask-ai":
-                    this.askAI();
-                    return;
-                case "run-lastrun-check":
-                    this.getLastRun();
-                    if (this.dagRunJson) {
-                        this.startCheckingDagRunStatus(this.dagRunId);
-                    }
-                    return;
-                case "run-lastrun-cancel":
-                    if (this.dagRunJson) {
-                        this.cancelDagRun(this.dagRunId);
-                    }
-                    return;
-                case "run-update-note":
-                    if (this.dagRunJson) {
-                        this.updateDagRunNote("");
-                    }
-                    return;
-                case "history-dag-run-id":
-                    let dagRunId = message.id;
-                    dagRunId = dagRunId.replace("history-dag-run-id-", "");
-                    this.activetabid = "tab-1";
-                    this.getDagRun(this.dagId, dagRunId);
-                    return;
-                case "task-log-link":
-                    let taskId = message.id;
-                    taskId = taskId.replace("task-log-link-", "");
-                    this.showTaskInstanceLog(this.dagId, this.dagRunId, taskId);
-                    return;
-                case "task-xcom-link":
-                    let xcomTaskId = message.id;
-                    xcomTaskId = xcomTaskId.replace("task-xcom-link-", "");
-                    this.showTaskXComs(this.dagId, this.dagRunId, xcomTaskId);
-                    return;
-                case "tasks-refresh":
-                    this.getTasksAndRenderHtml();
-                    return;
-                case "tabControlChanged":
-                    this.activetabid = message.activeid;
-                    ui.logToOutput("tab changed to " + message.activeid);
-                    return;
-            }
-        }, undefined, this._disposables);
-    }
-    async getTasksAndRenderHtml() {
-        await this.getDagTasks();
-        await this.renderHmtl();
-    }
-    async cancelDagRun(dagRunId) {
-        ui.logToOutput('DagView.cancelDagRun Started');
-        // Note: cancelDagRun is missing in AirflowApi, need to add it.
-        // I will add it to AirflowApi in the next step.
-        // For now I will comment it out or assume it exists.
-        // let result = await this.api.cancelDagRun(this.dagId, dagRunId);
-        // if (result.isSuccessful) {
-        // }
-    }
-    async updateDagRunNote(note) {
-        ui.logToOutput('DagView.updateDagRunNote Started');
-        if (!this.api || !this.dagRunJson) {
-            return;
-        }
-        // Show input box with current note as default value
-        const newNote = await vscode.window.showInputBox({
-            prompt: 'Enter note for this DAG run',
-            value: this.dagRunJson.note || '',
-            placeHolder: 'Add a note for this DAG run'
-        });
-        // User cancelled the input
-        if (newNote === undefined) {
-            return;
-        }
-        const result = await this.api.updateDagRunNote(this.dagId, this.dagRunId, newNote);
-        if (result.isSuccessful) {
-            // Refresh the DAG run to get the updated note
-            await this.getDagRun(this.dagId, this.dagRunId);
-        }
-    }
-    async pauseDAG(is_paused) {
-        ui.logToOutput('DagTreeView.pauseDAG Started');
-        if (is_paused && this.dagJson.is_paused) {
-            ui.showWarningMessage(this.dagId + 'Dag is already PAUSED');
-            return;
-        }
-        if (!is_paused && !this.dagJson.is_paused) {
-            ui.showWarningMessage(this.dagId + 'Dag is already ACTIVE');
-            return;
-        }
-        let result = await this.api.pauseDag(this.dagId, is_paused);
-        if (result.isSuccessful) {
-            this.loadDagDataOnly();
-            is_paused ? dagTreeView_1.DagTreeView.Current?.notifyDagPaused(this.dagId) : dagTreeView_1.DagTreeView.Current?.notifyDagUnPaused(this.dagId);
-        }
-    }
-    async askAI() {
-        ui.logToOutput('DagView.askAI Started');
-        if (!dagTreeView_1.DagTreeView.Current) {
-            ui.showErrorMessage('DagTreeView is not available');
-            return;
-        }
-        if (!this.dagJson) {
-            ui.showErrorMessage('DAG information is not available');
-            return;
-        }
-        let code = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
-        if (!code.isSuccessful) {
-            ui.showErrorMessage('Failed to retrieve DAG source code for AI context');
-            return;
-        }
-        let logs = await this.api.getDagRunLog(this.dagId, this.dagRunId);
-        if (!logs.isSuccessful) {
-            ui.showErrorMessage('Failed to retrieve DAG logs for AI context');
-            return;
-        }
-        // Call the askAI function from DagTreeView
-        await dagTreeView_1.DagTreeView.Current?.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
-    }
-    async showSourceCode() {
-        ui.logToOutput('DagView.showSourceCode Started');
-        let result = await this.api.getSourceCode(this.dagId, this.dagJson.file_token);
-        if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.py' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
-        }
-        else {
-            ui.logToOutput(result.result);
-            ui.showErrorMessage(result.result);
-        }
-    }
-    async getRunHistoryAndRenderHtml(date) {
-        ui.logToOutput('DagView.getRunHistoryAndRenderHtml Started');
-        this.dagHistorySelectedDate = date;
-        await this.getRunHistory(date);
-        await this.renderHmtl();
-    }
-    async showDAGRunLog() {
-        ui.logToOutput('DagView.DAGRunLog Started');
-        let result = await this.api.getDagRunLog(this.dagId, this.dagRunId);
-        if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: this.dagId, postfix: '.log' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
-        }
-    }
-    async showTaskInstanceLog(dagId, dagRunId, taskId) {
-        ui.logToOutput('DagView.showTaskInstanceLog Started');
-        let result = await this.api.getTaskInstanceLog(dagId, dagRunId, taskId);
-        if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId, postfix: '.log' });
-            fs.appendFileSync(tmpFile.name, result.result);
-            ui.openFile(tmpFile.name);
-        }
-    }
-    async showTaskXComs(dagId, dagRunId, taskId) {
-        ui.logToOutput('DagView.showTaskXComs Started');
-        let result = await this.api.getTaskXComs(dagId, dagRunId, taskId);
-        if (result.isSuccessful) {
-            const tmp = __webpack_require__(7);
-            const fs = __webpack_require__(5);
-            const tmpFile = tmp.fileSync({ mode: 0o644, prefix: dagId + '-' + taskId + '_xcom', postfix: '.json' });
-            fs.appendFileSync(tmpFile.name, JSON.stringify(result.result, null, 2));
-            ui.openFile(tmpFile.name);
-        }
-        else {
-            ui.showInfoMessage(`No XCom entries found for task: ${taskId}`);
-        }
-    }
-    async triggerDagWConfig(config = "", date = "") {
-        ui.logToOutput('DagView.triggerDagWConfig Started');
-        if (config && !ui.isJsonString(config)) {
-            ui.showWarningMessage("Config is not a valid JSON");
-            return;
-        }
-        if (date && !ui.isValidDate(date)) {
-            ui.showWarningMessage("Date is not a valid DATE");
-            return;
-        }
-        if (!config) {
-            config = "{}";
-        }
-        if (config !== undefined) {
-            let result = await this.api.triggerDag(this.dagId, config, date);
-            if (result.isSuccessful) {
-                this.startCheckingDagRunStatus(result.result["dag_run_id"]);
-                dagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(this.dagId);
-            }
-        }
-    }
-    async startCheckingDagRunStatus(dagRunId) {
-        ui.logToOutput('DagView.startCheckingDagRunStatus Started');
-        this.dagRunId = dagRunId;
-        await this.refreshRunningDagState(this);
-        if (this.dagStatusInterval) {
-            clearInterval(this.dagStatusInterval); //stop prev checking
-        }
-        this.dagStatusInterval = setInterval(() => {
-            void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
-        }, 5 * 1000);
-    }
-    async stopCheckingDagRunStatus() {
-        ui.logToOutput('DagView.stopCheckingDagRunStatus Started');
-        if (this.dagStatusInterval) {
-            clearInterval(this.dagStatusInterval); //stop prev checking
-        }
-    }
-    async refreshRunningDagState(dagView) {
-        ui.logToOutput('DagView.refreshRunningDagState Started');
-        if (!dagView.dagId || !dagView.dagRunId) {
-            dagView.stopCheckingDagRunStatus();
-            return;
-        }
-        let result = await this.api.getDagRun(dagView.dagId, dagView.dagRunId);
-        if (result.isSuccessful) {
-            dagView.dagRunJson = result.result;
-            let resultTasks = await this.api.getTaskInstances(dagView.dagId, dagView.dagRunId);
-            if (resultTasks.isSuccessful) {
-                dagView.dagTaskInstancesJson = resultTasks.result;
-            }
-        }
-        else {
-            dagView.stopCheckingDagRunStatus();
-            return;
-        }
-        let state = (dagView.dagRunJson) ? dagView.dagRunJson.state : "";
-        //"queued" "running" "success" "failed"
-        if (state === "queued" || state === "running") {
-            //go on for the next check
-        }
-        else {
-            dagView.stopCheckingDagRunStatus();
-        }
-        dagView.renderHmtl();
-    }
-    buildTaskDependencyTree(tasks) {
-        ui.logToOutput('DagView.buildTaskDependencyTree Started');
-        // Create a map for quick task lookup
-        const taskMap = new Map();
-        tasks.forEach(task => {
-            taskMap.set(task.task_id, task);
-        });
-        // Find root tasks (tasks with no upstream dependencies)
-        const rootTasks = tasks.filter(task => !task.upstream_task_ids || task.upstream_task_ids.length === 0);
-        if (rootTasks.length === 0) {
-            return "No task dependencies found or circular dependencies detected.";
-        }
-        // Build tree recursively
-        const visited = new Set();
-        let treeHtml = "";
-        const buildTree = (taskId) => {
-            if (visited.has(taskId)) {
-                return ""; // Prevent infinite loops and duplicates in this spanning tree view
-            }
-            visited.add(taskId);
-            const task = taskMap.get(taskId);
-            if (!task) {
-                return "";
-            }
-            let itemHtml = `<vscode-tree-item>\n`;
-            itemHtml += `${task.task_id} (${task.operator || ''})\n`;
-            // Get downstream tasks
-            const downstreamIds = task.downstream_task_ids || [];
-            if (downstreamIds.length > 0) {
-                downstreamIds.forEach((downstreamId) => {
-                    itemHtml += buildTree(downstreamId);
-                });
-            }
-            itemHtml += `</vscode-tree-item>\n`;
-            return itemHtml;
-        };
-        // Build tree for each root task
-        rootTasks.forEach((rootTask) => {
-            treeHtml += buildTree(rootTask.task_id);
-        });
-        return treeHtml || "No tasks to display.";
-    }
-}
-exports.DagView = DagView;
-
-
-/***/ }),
-/* 4 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.toISODateString = toISODateString;
+exports.toISODateTimeString = toISODateTimeString;
 exports.getUri = getUri;
 exports.showOutputMessage = showOutputMessage;
 exports.logToOutput = logToOutput;
@@ -1533,11 +31,23 @@ exports.isJsonString = isJsonString;
 exports.isValidDate = isValidDate;
 const vscode = __webpack_require__(1);
 const vscode_1 = __webpack_require__(1);
-const fs_1 = __webpack_require__(5);
-const path_1 = __webpack_require__(6);
+const fs_1 = __webpack_require__(3);
+const path_1 = __webpack_require__(4);
 let outputChannel;
 let logsOutputChannel;
 const NEW_LINE = "\n\n";
+function toISODateString(date) {
+    if (!date) {
+        return "";
+    }
+    return date.toISOString().split('T')[0];
+}
+function toISODateTimeString(date) {
+    if (!date) {
+        return "";
+    }
+    return date.toISOString().replace('T', ' ').substring(0, 19);
+}
 function getUri(webview, extensionUri, pathList) {
     return webview.asWebviewUri(vscode_1.Uri.joinPath(extensionUri, ...pathList));
 }
@@ -1672,1054 +182,101 @@ function isValidDate(dateString) {
 
 
 /***/ }),
-/* 5 */
+/* 3 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("fs");
 
 /***/ }),
-/* 6 */
+/* 4 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("path");
 
 /***/ }),
-/* 7 */
-/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
-
-/*!
- * Tmp
- *
- * Copyright (c) 2011-2017 KARASZI Istvan <github@spam.raszi.hu>
- *
- * MIT Licensed
- */
-
-/*
- * Module dependencies.
- */
-const fs = __webpack_require__(5);
-const os = __webpack_require__(8);
-const path = __webpack_require__(6);
-const crypto = __webpack_require__(9);
-const _c = { fs: fs.constants, os: os.constants };
-
-/*
- * The working inner variables.
- */
-const // the random characters to choose from
-  RANDOM_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
-  TEMPLATE_PATTERN = /XXXXXX/,
-  DEFAULT_TRIES = 3,
-  CREATE_FLAGS = (_c.O_CREAT || _c.fs.O_CREAT) | (_c.O_EXCL || _c.fs.O_EXCL) | (_c.O_RDWR || _c.fs.O_RDWR),
-  // constants are off on the windows platform and will not match the actual errno codes
-  IS_WIN32 = os.platform() === 'win32',
-  EBADF = _c.EBADF || _c.os.errno.EBADF,
-  ENOENT = _c.ENOENT || _c.os.errno.ENOENT,
-  DIR_MODE = 0o700 /* 448 */,
-  FILE_MODE = 0o600 /* 384 */,
-  EXIT = 'exit',
-  // this will hold the objects need to be removed on exit
-  _removeObjects = [],
-  // API change in fs.rmdirSync leads to error when passing in a second parameter, e.g. the callback
-  FN_RMDIR_SYNC = fs.rmdirSync.bind(fs);
-
-let _gracefulCleanup = false;
-
-/**
- * Recursively remove a directory and its contents.
- *
- * @param {string} dirPath path of directory to remove
- * @param {Function} callback
- * @private
- */
-function rimraf(dirPath, callback) {
-  return fs.rm(dirPath, { recursive: true }, callback);
-}
-
-/**
- * Recursively remove a directory and its contents, synchronously.
- *
- * @param {string} dirPath path of directory to remove
- * @private
- */
-function FN_RIMRAF_SYNC(dirPath) {
-  return fs.rmSync(dirPath, { recursive: true });
-}
-
-/**
- * Gets a temporary file name.
- *
- * @param {(Options|tmpNameCallback)} options options or callback
- * @param {?tmpNameCallback} callback the callback function
- */
-function tmpName(options, callback) {
-  const args = _parseArguments(options, callback),
-    opts = args[0],
-    cb = args[1];
-
-  _assertAndSanitizeOptions(opts, function (err, sanitizedOptions) {
-    if (err) return cb(err);
-
-    let tries = sanitizedOptions.tries;
-    (function _getUniqueName() {
-      try {
-        const name = _generateTmpName(sanitizedOptions);
-
-        // check whether the path exists then retry if needed
-        fs.stat(name, function (err) {
-          /* istanbul ignore else */
-          if (!err) {
-            /* istanbul ignore else */
-            if (tries-- > 0) return _getUniqueName();
-
-            return cb(new Error('Could not get a unique tmp filename, max tries reached ' + name));
-          }
-
-          cb(null, name);
-        });
-      } catch (err) {
-        cb(err);
-      }
-    })();
-  });
-}
-
-/**
- * Synchronous version of tmpName.
- *
- * @param {Object} options
- * @returns {string} the generated random name
- * @throws {Error} if the options are invalid or could not generate a filename
- */
-function tmpNameSync(options) {
-  const args = _parseArguments(options),
-    opts = args[0];
-
-  const sanitizedOptions = _assertAndSanitizeOptionsSync(opts);
-
-  let tries = sanitizedOptions.tries;
-  do {
-    const name = _generateTmpName(sanitizedOptions);
-    try {
-      fs.statSync(name);
-    } catch (e) {
-      return name;
-    }
-  } while (tries-- > 0);
-
-  throw new Error('Could not get a unique tmp filename, max tries reached');
-}
-
-/**
- * Creates and opens a temporary file.
- *
- * @param {(Options|null|undefined|fileCallback)} options the config options or the callback function or null or undefined
- * @param {?fileCallback} callback
- */
-function file(options, callback) {
-  const args = _parseArguments(options, callback),
-    opts = args[0],
-    cb = args[1];
-
-  // gets a temporary filename
-  tmpName(opts, function _tmpNameCreated(err, name) {
-    /* istanbul ignore else */
-    if (err) return cb(err);
-
-    // create and open the file
-    fs.open(name, CREATE_FLAGS, opts.mode || FILE_MODE, function _fileCreated(err, fd) {
-      /* istanbu ignore else */
-      if (err) return cb(err);
-
-      if (opts.discardDescriptor) {
-        return fs.close(fd, function _discardCallback(possibleErr) {
-          // the chance of getting an error on close here is rather low and might occur in the most edgiest cases only
-          return cb(possibleErr, name, undefined, _prepareTmpFileRemoveCallback(name, -1, opts, false));
-        });
-      } else {
-        // detachDescriptor passes the descriptor whereas discardDescriptor closes it, either way, we no longer care
-        // about the descriptor
-        const discardOrDetachDescriptor = opts.discardDescriptor || opts.detachDescriptor;
-        cb(null, name, fd, _prepareTmpFileRemoveCallback(name, discardOrDetachDescriptor ? -1 : fd, opts, false));
-      }
-    });
-  });
-}
-
-/**
- * Synchronous version of file.
- *
- * @param {Options} options
- * @returns {FileSyncObject} object consists of name, fd and removeCallback
- * @throws {Error} if cannot create a file
- */
-function fileSync(options) {
-  const args = _parseArguments(options),
-    opts = args[0];
-
-  const discardOrDetachDescriptor = opts.discardDescriptor || opts.detachDescriptor;
-  const name = tmpNameSync(opts);
-  let fd = fs.openSync(name, CREATE_FLAGS, opts.mode || FILE_MODE);
-  /* istanbul ignore else */
-  if (opts.discardDescriptor) {
-    fs.closeSync(fd);
-    fd = undefined;
-  }
-
-  return {
-    name: name,
-    fd: fd,
-    removeCallback: _prepareTmpFileRemoveCallback(name, discardOrDetachDescriptor ? -1 : fd, opts, true)
-  };
-}
-
-/**
- * Creates a temporary directory.
- *
- * @param {(Options|dirCallback)} options the options or the callback function
- * @param {?dirCallback} callback
- */
-function dir(options, callback) {
-  const args = _parseArguments(options, callback),
-    opts = args[0],
-    cb = args[1];
-
-  // gets a temporary filename
-  tmpName(opts, function _tmpNameCreated(err, name) {
-    /* istanbul ignore else */
-    if (err) return cb(err);
-
-    // create the directory
-    fs.mkdir(name, opts.mode || DIR_MODE, function _dirCreated(err) {
-      /* istanbul ignore else */
-      if (err) return cb(err);
-
-      cb(null, name, _prepareTmpDirRemoveCallback(name, opts, false));
-    });
-  });
-}
-
-/**
- * Synchronous version of dir.
- *
- * @param {Options} options
- * @returns {DirSyncObject} object consists of name and removeCallback
- * @throws {Error} if it cannot create a directory
- */
-function dirSync(options) {
-  const args = _parseArguments(options),
-    opts = args[0];
-
-  const name = tmpNameSync(opts);
-  fs.mkdirSync(name, opts.mode || DIR_MODE);
-
-  return {
-    name: name,
-    removeCallback: _prepareTmpDirRemoveCallback(name, opts, true)
-  };
-}
-
-/**
- * Removes files asynchronously.
- *
- * @param {Object} fdPath
- * @param {Function} next
- * @private
- */
-function _removeFileAsync(fdPath, next) {
-  const _handler = function (err) {
-    if (err && !_isENOENT(err)) {
-      // reraise any unanticipated error
-      return next(err);
-    }
-    next();
-  };
-
-  if (0 <= fdPath[0])
-    fs.close(fdPath[0], function () {
-      fs.unlink(fdPath[1], _handler);
-    });
-  else fs.unlink(fdPath[1], _handler);
-}
-
-/**
- * Removes files synchronously.
- *
- * @param {Object} fdPath
- * @private
- */
-function _removeFileSync(fdPath) {
-  let rethrownException = null;
-  try {
-    if (0 <= fdPath[0]) fs.closeSync(fdPath[0]);
-  } catch (e) {
-    // reraise any unanticipated error
-    if (!_isEBADF(e) && !_isENOENT(e)) throw e;
-  } finally {
-    try {
-      fs.unlinkSync(fdPath[1]);
-    } catch (e) {
-      // reraise any unanticipated error
-      if (!_isENOENT(e)) rethrownException = e;
-    }
-  }
-  if (rethrownException !== null) {
-    throw rethrownException;
-  }
-}
-
-/**
- * Prepares the callback for removal of the temporary file.
- *
- * Returns either a sync callback or a async callback depending on whether
- * fileSync or file was called, which is expressed by the sync parameter.
- *
- * @param {string} name the path of the file
- * @param {number} fd file descriptor
- * @param {Object} opts
- * @param {boolean} sync
- * @returns {fileCallback | fileCallbackSync}
- * @private
- */
-function _prepareTmpFileRemoveCallback(name, fd, opts, sync) {
-  const removeCallbackSync = _prepareRemoveCallback(_removeFileSync, [fd, name], sync);
-  const removeCallback = _prepareRemoveCallback(_removeFileAsync, [fd, name], sync, removeCallbackSync);
-
-  if (!opts.keep) _removeObjects.unshift(removeCallbackSync);
-
-  return sync ? removeCallbackSync : removeCallback;
-}
-
-/**
- * Prepares the callback for removal of the temporary directory.
- *
- * Returns either a sync callback or a async callback depending on whether
- * tmpFileSync or tmpFile was called, which is expressed by the sync parameter.
- *
- * @param {string} name
- * @param {Object} opts
- * @param {boolean} sync
- * @returns {Function} the callback
- * @private
- */
-function _prepareTmpDirRemoveCallback(name, opts, sync) {
-  const removeFunction = opts.unsafeCleanup ? rimraf : fs.rmdir.bind(fs);
-  const removeFunctionSync = opts.unsafeCleanup ? FN_RIMRAF_SYNC : FN_RMDIR_SYNC;
-  const removeCallbackSync = _prepareRemoveCallback(removeFunctionSync, name, sync);
-  const removeCallback = _prepareRemoveCallback(removeFunction, name, sync, removeCallbackSync);
-  if (!opts.keep) _removeObjects.unshift(removeCallbackSync);
-
-  return sync ? removeCallbackSync : removeCallback;
-}
-
-/**
- * Creates a guarded function wrapping the removeFunction call.
- *
- * The cleanup callback is save to be called multiple times.
- * Subsequent invocations will be ignored.
- *
- * @param {Function} removeFunction
- * @param {string} fileOrDirName
- * @param {boolean} sync
- * @param {cleanupCallbackSync?} cleanupCallbackSync
- * @returns {cleanupCallback | cleanupCallbackSync}
- * @private
- */
-function _prepareRemoveCallback(removeFunction, fileOrDirName, sync, cleanupCallbackSync) {
-  let called = false;
-
-  // if sync is true, the next parameter will be ignored
-  return function _cleanupCallback(next) {
-    /* istanbul ignore else */
-    if (!called) {
-      // remove cleanupCallback from cache
-      const toRemove = cleanupCallbackSync || _cleanupCallback;
-      const index = _removeObjects.indexOf(toRemove);
-      /* istanbul ignore else */
-      if (index >= 0) _removeObjects.splice(index, 1);
-
-      called = true;
-      if (sync || removeFunction === FN_RMDIR_SYNC || removeFunction === FN_RIMRAF_SYNC) {
-        return removeFunction(fileOrDirName);
-      } else {
-        return removeFunction(fileOrDirName, next || function () {});
-      }
-    }
-  };
-}
-
-/**
- * The garbage collector.
- *
- * @private
- */
-function _garbageCollector() {
-  /* istanbul ignore else */
-  if (!_gracefulCleanup) return;
-
-  // the function being called removes itself from _removeObjects,
-  // loop until _removeObjects is empty
-  while (_removeObjects.length) {
-    try {
-      _removeObjects[0]();
-    } catch (e) {
-      // already removed?
-    }
-  }
-}
-
-/**
- * Random name generator based on crypto.
- * Adapted from http://blog.tompawlak.org/how-to-generate-random-values-nodejs-javascript
- *
- * @param {number} howMany
- * @returns {string} the generated random name
- * @private
- */
-function _randomChars(howMany) {
-  let value = [],
-    rnd = null;
-
-  // make sure that we do not fail because we ran out of entropy
-  try {
-    rnd = crypto.randomBytes(howMany);
-  } catch (e) {
-    rnd = crypto.pseudoRandomBytes(howMany);
-  }
-
-  for (let i = 0; i < howMany; i++) {
-    value.push(RANDOM_CHARS[rnd[i] % RANDOM_CHARS.length]);
-  }
-
-  return value.join('');
-}
-
-/**
- * Checks whether the `obj` parameter is defined or not.
- *
- * @param {Object} obj
- * @returns {boolean} true if the object is undefined
- * @private
- */
-function _isUndefined(obj) {
-  return typeof obj === 'undefined';
-}
-
-/**
- * Parses the function arguments.
- *
- * This function helps to have optional arguments.
- *
- * @param {(Options|null|undefined|Function)} options
- * @param {?Function} callback
- * @returns {Array} parsed arguments
- * @private
- */
-function _parseArguments(options, callback) {
-  /* istanbul ignore else */
-  if (typeof options === 'function') {
-    return [{}, options];
-  }
-
-  /* istanbul ignore else */
-  if (_isUndefined(options)) {
-    return [{}, callback];
-  }
-
-  // copy options so we do not leak the changes we make internally
-  const actualOptions = {};
-  for (const key of Object.getOwnPropertyNames(options)) {
-    actualOptions[key] = options[key];
-  }
-
-  return [actualOptions, callback];
-}
-
-/**
- * Resolve the specified path name in respect to tmpDir.
- *
- * The specified name might include relative path components, e.g. ../
- * so we need to resolve in order to be sure that is is located inside tmpDir
- *
- * @private
- */
-function _resolvePath(name, tmpDir, cb) {
-  const pathToResolve = path.isAbsolute(name) ? name : path.join(tmpDir, name);
-
-  fs.stat(pathToResolve, function (err) {
-    if (err) {
-      fs.realpath(path.dirname(pathToResolve), function (err, parentDir) {
-        if (err) return cb(err);
-
-        cb(null, path.join(parentDir, path.basename(pathToResolve)));
-      });
-    } else {
-      fs.realpath(pathToResolve, cb);
-    }
-  });
-}
-
-/**
- * Resolve the specified path name in respect to tmpDir.
- *
- * The specified name might include relative path components, e.g. ../
- * so we need to resolve in order to be sure that is is located inside tmpDir
- *
- * @private
- */
-function _resolvePathSync(name, tmpDir) {
-  const pathToResolve = path.isAbsolute(name) ? name : path.join(tmpDir, name);
-
-  try {
-    fs.statSync(pathToResolve);
-    return fs.realpathSync(pathToResolve);
-  } catch (_err) {
-    const parentDir = fs.realpathSync(path.dirname(pathToResolve));
-
-    return path.join(parentDir, path.basename(pathToResolve));
-  }
-}
-
-/**
- * Generates a new temporary name.
- *
- * @param {Object} opts
- * @returns {string} the new random name according to opts
- * @private
- */
-function _generateTmpName(opts) {
-  const tmpDir = opts.tmpdir;
-
-  /* istanbul ignore else */
-  if (!_isUndefined(opts.name)) {
-    return path.join(tmpDir, opts.dir, opts.name);
-  }
-
-  /* istanbul ignore else */
-  if (!_isUndefined(opts.template)) {
-    return path.join(tmpDir, opts.dir, opts.template).replace(TEMPLATE_PATTERN, _randomChars(6));
-  }
-
-  // prefix and postfix
-  const name = [
-    opts.prefix ? opts.prefix : 'tmp',
-    '-',
-    process.pid,
-    '-',
-    _randomChars(12),
-    opts.postfix ? '-' + opts.postfix : ''
-  ].join('');
-
-  return path.join(tmpDir, opts.dir, name);
-}
-
-/**
- * Asserts and sanitizes the basic options.
- *
- * @private
- */
-function _assertOptionsBase(options) {
-  if (!_isUndefined(options.name)) {
-    const name = options.name;
-
-    // assert that name is not absolute and does not contain a path
-    if (path.isAbsolute(name)) throw new Error(`name option must not contain an absolute path, found "${name}".`);
-
-    // must not fail on valid .<name> or ..<name> or similar such constructs
-    const basename = path.basename(name);
-    if (basename === '..' || basename === '.' || basename !== name)
-      throw new Error(`name option must not contain a path, found "${name}".`);
-  }
-
-  /* istanbul ignore else */
-  if (!_isUndefined(options.template) && !options.template.match(TEMPLATE_PATTERN)) {
-    throw new Error(`Invalid template, found "${options.template}".`);
-  }
-
-  /* istanbul ignore else */
-  if ((!_isUndefined(options.tries) && isNaN(options.tries)) || options.tries < 0) {
-    throw new Error(`Invalid tries, found "${options.tries}".`);
-  }
-
-  // if a name was specified we will try once
-  options.tries = _isUndefined(options.name) ? options.tries || DEFAULT_TRIES : 1;
-  options.keep = !!options.keep;
-  options.detachDescriptor = !!options.detachDescriptor;
-  options.discardDescriptor = !!options.discardDescriptor;
-  options.unsafeCleanup = !!options.unsafeCleanup;
-
-  // for completeness' sake only, also keep (multiple) blanks if the user, purportedly sane, requests us to
-  options.prefix = _isUndefined(options.prefix) ? '' : options.prefix;
-  options.postfix = _isUndefined(options.postfix) ? '' : options.postfix;
-}
-
-/**
- * Gets the relative directory to tmpDir.
- *
- * @private
- */
-function _getRelativePath(option, name, tmpDir, cb) {
-  if (_isUndefined(name)) return cb(null);
-
-  _resolvePath(name, tmpDir, function (err, resolvedPath) {
-    if (err) return cb(err);
-
-    const relativePath = path.relative(tmpDir, resolvedPath);
-
-    if (!resolvedPath.startsWith(tmpDir)) {
-      return cb(new Error(`${option} option must be relative to "${tmpDir}", found "${relativePath}".`));
-    }
-
-    cb(null, relativePath);
-  });
-}
-
-/**
- * Gets the relative path to tmpDir.
- *
- * @private
- */
-function _getRelativePathSync(option, name, tmpDir) {
-  if (_isUndefined(name)) return;
-
-  const resolvedPath = _resolvePathSync(name, tmpDir);
-  const relativePath = path.relative(tmpDir, resolvedPath);
-
-  if (!resolvedPath.startsWith(tmpDir)) {
-    throw new Error(`${option} option must be relative to "${tmpDir}", found "${relativePath}".`);
-  }
-
-  return relativePath;
-}
-
-/**
- * Asserts whether the specified options are valid, also sanitizes options and provides sane defaults for missing
- * options.
- *
- * @private
- */
-function _assertAndSanitizeOptions(options, cb) {
-  _getTmpDir(options, function (err, tmpDir) {
-    if (err) return cb(err);
-
-    options.tmpdir = tmpDir;
-
-    try {
-      _assertOptionsBase(options, tmpDir);
-    } catch (err) {
-      return cb(err);
-    }
-
-    // sanitize dir, also keep (multiple) blanks if the user, purportedly sane, requests us to
-    _getRelativePath('dir', options.dir, tmpDir, function (err, dir) {
-      if (err) return cb(err);
-
-      options.dir = _isUndefined(dir) ? '' : dir;
-
-      // sanitize further if template is relative to options.dir
-      _getRelativePath('template', options.template, tmpDir, function (err, template) {
-        if (err) return cb(err);
-
-        options.template = template;
-
-        cb(null, options);
-      });
-    });
-  });
-}
-
-/**
- * Asserts whether the specified options are valid, also sanitizes options and provides sane defaults for missing
- * options.
- *
- * @private
- */
-function _assertAndSanitizeOptionsSync(options) {
-  const tmpDir = (options.tmpdir = _getTmpDirSync(options));
-
-  _assertOptionsBase(options, tmpDir);
-
-  const dir = _getRelativePathSync('dir', options.dir, tmpDir);
-  options.dir = _isUndefined(dir) ? '' : dir;
-
-  options.template = _getRelativePathSync('template', options.template, tmpDir);
-
-  return options;
-}
-
-/**
- * Helper for testing against EBADF to compensate changes made to Node 7.x under Windows.
- *
- * @private
- */
-function _isEBADF(error) {
-  return _isExpectedError(error, -EBADF, 'EBADF');
-}
-
-/**
- * Helper for testing against ENOENT to compensate changes made to Node 7.x under Windows.
- *
- * @private
- */
-function _isENOENT(error) {
-  return _isExpectedError(error, -ENOENT, 'ENOENT');
-}
-
-/**
- * Helper to determine whether the expected error code matches the actual code and errno,
- * which will differ between the supported node versions.
- *
- * - Node >= 7.0:
- *   error.code {string}
- *   error.errno {number} any numerical value will be negated
- *
- * CAVEAT
- *
- * On windows, the errno for EBADF is -4083 but os.constants.errno.EBADF is different and we must assume that ENOENT
- * is no different here.
- *
- * @param {SystemError} error
- * @param {number} errno
- * @param {string} code
- * @private
- */
-function _isExpectedError(error, errno, code) {
-  return IS_WIN32 ? error.code === code : error.code === code && error.errno === errno;
-}
-
-/**
- * Sets the graceful cleanup.
- *
- * If graceful cleanup is set, tmp will remove all controlled temporary objects on process exit, otherwise the
- * temporary objects will remain in place, waiting to be cleaned up on system restart or otherwise scheduled temporary
- * object removals.
- */
-function setGracefulCleanup() {
-  _gracefulCleanup = true;
-}
-
-/**
- * Returns the currently configured tmp dir from os.tmpdir().
- *
- * @private
- */
-function _getTmpDir(options, cb) {
-  return fs.realpath((options && options.tmpdir) || os.tmpdir(), cb);
-}
-
-/**
- * Returns the currently configured tmp dir from os.tmpdir().
- *
- * @private
- */
-function _getTmpDirSync(options) {
-  return fs.realpathSync((options && options.tmpdir) || os.tmpdir());
-}
-
-// Install process exit listener
-process.addListener(EXIT, _garbageCollector);
-
-/**
- * Configuration options.
- *
- * @typedef {Object} Options
- * @property {?boolean} keep the temporary object (file or dir) will not be garbage collected
- * @property {?number} tries the number of tries before give up the name generation
- * @property (?int) mode the access mode, defaults are 0o700 for directories and 0o600 for files
- * @property {?string} template the "mkstemp" like filename template
- * @property {?string} name fixed name relative to tmpdir or the specified dir option
- * @property {?string} dir tmp directory relative to the root tmp directory in use
- * @property {?string} prefix prefix for the generated name
- * @property {?string} postfix postfix for the generated name
- * @property {?string} tmpdir the root tmp directory which overrides the os tmpdir
- * @property {?boolean} unsafeCleanup recursively removes the created temporary directory, even when it's not empty
- * @property {?boolean} detachDescriptor detaches the file descriptor, caller is responsible for closing the file, tmp will no longer try closing the file during garbage collection
- * @property {?boolean} discardDescriptor discards the file descriptor (closes file, fd is -1), tmp will no longer try closing the file during garbage collection
- */
-
-/**
- * @typedef {Object} FileSyncObject
- * @property {string} name the name of the file
- * @property {string} fd the file descriptor or -1 if the fd has been discarded
- * @property {fileCallback} removeCallback the callback function to remove the file
- */
-
-/**
- * @typedef {Object} DirSyncObject
- * @property {string} name the name of the directory
- * @property {fileCallback} removeCallback the callback function to remove the directory
- */
-
-/**
- * @callback tmpNameCallback
- * @param {?Error} err the error object if anything goes wrong
- * @param {string} name the temporary file name
- */
-
-/**
- * @callback fileCallback
- * @param {?Error} err the error object if anything goes wrong
- * @param {string} name the temporary file name
- * @param {number} fd the file descriptor or -1 if the fd had been discarded
- * @param {cleanupCallback} fn the cleanup callback function
- */
-
-/**
- * @callback fileCallbackSync
- * @param {?Error} err the error object if anything goes wrong
- * @param {string} name the temporary file name
- * @param {number} fd the file descriptor or -1 if the fd had been discarded
- * @param {cleanupCallbackSync} fn the cleanup callback function
- */
-
-/**
- * @callback dirCallback
- * @param {?Error} err the error object if anything goes wrong
- * @param {string} name the temporary file name
- * @param {cleanupCallback} fn the cleanup callback function
- */
-
-/**
- * @callback dirCallbackSync
- * @param {?Error} err the error object if anything goes wrong
- * @param {string} name the temporary file name
- * @param {cleanupCallbackSync} fn the cleanup callback function
- */
-
-/**
- * Removes the temporary created file or directory.
- *
- * @callback cleanupCallback
- * @param {simpleCallback} [next] function to call whenever the tmp object needs to be removed
- */
-
-/**
- * Removes the temporary created file or directory.
- *
- * @callback cleanupCallbackSync
- */
-
-/**
- * Callback function for function composition.
- * @see {@link https://github.com/raszi/node-tmp/issues/57|raszi/node-tmp#57}
- *
- * @callback simpleCallback
- */
-
-// exporting all the needed methods
-
-// evaluate _getTmpDir() lazily, mainly for simplifying testing but it also will
-// allow users to reconfigure the temporary directory
-Object.defineProperty(module.exports, "tmpdir", ({
-  enumerable: true,
-  configurable: false,
-  get: function () {
-    return _getTmpDirSync();
-  }
-}));
-
-module.exports.dir = dir;
-module.exports.dirSync = dirSync;
-
-module.exports.file = file;
-module.exports.fileSync = fileSync;
-
-module.exports.tmpName = tmpName;
-module.exports.tmpNameSync = tmpNameSync;
-
-module.exports.setGracefulCleanup = setGracefulCleanup;
-
-
-/***/ }),
-/* 8 */
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("os");
-
-/***/ }),
-/* 9 */
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("crypto");
-
-/***/ }),
-/* 10 */
+/* 5 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagTreeDataProvider = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-const dagTreeItem_1 = __webpack_require__(11);
-const dagTreeView_1 = __webpack_require__(2);
-class DagTreeDataProvider {
-    constructor() {
-        this._onDidChangeTreeData = new vscode.EventEmitter();
-        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-        this.dagTreeItemList = [];
-        this.visibleDagList = [];
+exports.Session = void 0;
+const Api_1 = __webpack_require__(6);
+const ui = __webpack_require__(2);
+class Session {
+    constructor(context) {
+        this.ServerList = [];
+        Session.Current = this;
+        this.Context = context;
+        this.ExtensionUri = context.extensionUri;
+        this.LoadState();
     }
-    refresh() {
-        this._onDidChangeTreeData.fire();
+    SaveState() {
+        ui.logToOutput('Saving state...');
+        this.Context.globalState.update('apiUrl', this.Server?.apiUrl);
+        this.Context.globalState.update('apiUserName', this.Server?.apiUserName);
+        this.Context.globalState.update('apiPassword', this.Server?.apiPassword);
+        this.Context.globalState.update('serverList', this.ServerList);
     }
-    loadDagTreeItemsFromApiResponse() {
-        this.dagTreeItemList = [];
-        if (this.dagList) {
-            for (var dag of this.dagList) {
-                if (dag) {
-                    let treeItem = new dagTreeItem_1.DagTreeItem(dag);
-                    this.dagTreeItemList.push(treeItem);
-                }
-            }
+    LoadState() {
+        ui.logToOutput('Loading state...');
+        const apiUrlTemp = this.Context.globalState.get('apiUrl') || '';
+        const apiUserNameTemp = this.Context.globalState.get('apiUserName') || '';
+        const apiPasswordTemp = this.Context.globalState.get('apiPassword') || '';
+        if (apiUrlTemp && apiUserNameTemp) {
+            this.Server = { apiUrl: apiUrlTemp, apiUserName: apiUserNameTemp, apiPassword: apiPasswordTemp };
+            this.Api = new Api_1.AirflowApi(this.Server);
+        }
+        this.ServerList = this.Context.globalState.get('serverList') || [];
+    }
+    SetServer(server) {
+        this.Server = server;
+        this.Api = new Api_1.AirflowApi(this.Server);
+        this.SaveState();
+    }
+    ChangeServer(apiUrl, apiUserName) {
+        this.Server = this.ServerList.find((server) => server.apiUrl === apiUrl && server.apiUserName === apiUserName);
+        if (this.Server) {
+            this.Api = new Api_1.AirflowApi(this.Server);
+            this.SaveState();
         }
     }
-    getChildren(element) {
-        if (!element) {
-            this.visibleDagList = this.getVisibleDagList();
-            return Promise.resolve(this.visibleDagList);
-        }
-        return Promise.resolve([]);
+    RemoveServer(apiUrl, apiUserName) {
+        this.ServerList = this.ServerList.filter((server) => !(server.apiUrl === apiUrl && server.apiUserName === apiUserName));
+        this.SaveState();
     }
-    getVisibleDagList() {
-        var result = [];
-        for (var node of this.dagTreeItemList) {
-            if (dagTreeView_1.DagTreeView.Current.filterString && !node.doesFilterMatch(dagTreeView_1.DagTreeView.Current.filterString)) {
-                continue;
-            }
-            if (dagTreeView_1.DagTreeView.Current.ShowOnlyActive && node.IsPaused) {
-                continue;
-            }
-            if (dagTreeView_1.DagTreeView.Current.ShowOnlyFavorite && !node.IsFav) {
-                continue;
-            }
-            result.push(node);
+    AddServer(server) {
+        const exists = this.ServerList.some((s) => s.apiUrl === server.apiUrl && s.apiUserName === server.apiUserName);
+        if (!exists) {
+            this.ServerList.push(server);
+            this.SaveState();
         }
+    }
+    TestServer(serverConfig) {
+        let api = new Api_1.AirflowApi(serverConfig);
+        let result = api.checkConnection();
         return result;
     }
-    getTreeItem(element) {
-        return element;
+    ClearServers() {
+        this.ServerList = [];
+        this.Server = undefined;
+        this.Api = undefined;
+        this.SaveState();
+    }
+    GetServer(apiUrl, apiUserName) {
+        return this.ServerList.find((server) => server.apiUrl === apiUrl && server.apiUserName === apiUserName);
+    }
+    dispose() {
+        Session.Current = undefined;
     }
 }
-exports.DagTreeDataProvider = DagTreeDataProvider;
+exports.Session = Session;
 
 
 /***/ }),
-/* 11 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.DagTreeItem = void 0;
-/* eslint-disable @typescript-eslint/naming-convention */
-const vscode = __webpack_require__(1);
-class DagTreeItem extends vscode.TreeItem {
-    constructor(apiResponse) {
-        super(apiResponse.dag_id);
-        this.LatestDagRunId = '';
-        this.LatestDagState = '';
-        this._IsFav = false;
-        this.IsFiltered = false;
-        this.ApiResponse = apiResponse;
-        this.DagId = apiResponse.dag_id;
-        this.IsActive = apiResponse.is_active;
-        this.IsPaused = apiResponse.is_paused;
-        this.Owners = apiResponse.owners;
-        this.Tags = apiResponse.tags;
-        this.FileToken = apiResponse.file_token;
-        this.setContextValue();
-        this.refreshUI();
-    }
-    set IsFav(value) {
-        this._IsFav = value;
-        this.setContextValue();
-    }
-    get IsFav() {
-        return this._IsFav;
-    }
-    isDagRunning() {
-        return (this.LatestDagState === 'queued' || this.LatestDagState === 'running');
-    }
-    setContextValue() {
-        let contextValue = "#";
-        contextValue += this.IsFav ? "IsFav#" : "!IsFav#";
-        contextValue += this.IsPaused ? "IsPaused#" : "!IsPaused#";
-        contextValue += this.IsActive ? "IsActive#" : "!IsActive#";
-        contextValue += this.IsFiltered ? "IsFiltered#" : "!IsFiltered#";
-        this.contextValue = contextValue;
-    }
-    refreshUI() {
-        if (this.IsPaused) {
-            this.iconPath = new vscode.ThemeIcon('circle-outline');
-            this.ApiResponse.is_paused = true;
-        }
-        else {
-            //"queued" "running" "success" "failed"
-            if (this.LatestDagState === 'queued') {
-                this.iconPath = new vscode.ThemeIcon('loading~spin');
-            }
-            else if (this.LatestDagState === 'running') {
-                this.iconPath = new vscode.ThemeIcon('loading~spin');
-            }
-            else if (this.LatestDagState === 'success') {
-                this.iconPath = new vscode.ThemeIcon('check');
-            }
-            else if (this.LatestDagState === 'failed') {
-                this.iconPath = new vscode.ThemeIcon('error');
-            }
-            else {
-                this.iconPath = new vscode.ThemeIcon('circle-filled');
-            }
-            this.ApiResponse.is_paused = false;
-        }
-    }
-    doesFilterMatch(filterString) {
-        const words = filterString.split(',');
-        const matchingWords = [];
-        for (const word of words) {
-            if (word === 'active' && !this.IsPaused) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (word === 'paused' && this.IsPaused) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (this.DagId.includes(word)) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (this.Owners.includes(word)) {
-                matchingWords.push(word);
-                continue;
-            }
-            if (word === 'fav' && this.IsFav) {
-                matchingWords.push(word);
-                continue;
-            }
-            for (const t of this.Tags) {
-                if (t.name.includes(word)) {
-                    matchingWords.push(word);
-                    continue;
-                }
-            }
-        }
-        this.IsFiltered = (words.length === matchingWords.length);
-        return this.IsFiltered;
-    }
-}
-exports.DagTreeItem = DagTreeItem;
-
-
-/***/ }),
-/* 12 */
+/* 6 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -2727,12 +284,12 @@ exports.DagTreeItem = DagTreeItem;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AirflowApi = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
-const base_64_1 = __webpack_require__(13);
-const ui = __webpack_require__(4);
-const methodResult_1 = __webpack_require__(14);
+const base_64_1 = __webpack_require__(7);
+const ui = __webpack_require__(2);
+const MethodResult_1 = __webpack_require__(8);
 // Wrapper for fetch to handle ESM node-fetch in CommonJS
 const fetch = async (url, init) => {
-    const module = await Promise.resolve().then(() => __webpack_require__(15));
+    const module = await Promise.resolve().then(() => __webpack_require__(9));
     return module.default(url, init);
 };
 class AirflowApi {
@@ -2801,7 +358,7 @@ class AirflowApi {
         }
     }
     async getDagList() {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         const allDags = [];
         let offset = 0;
         const limit = 100;
@@ -2834,7 +391,7 @@ class AirflowApi {
         return result;
     }
     async triggerDag(dagId, config = "{}", date) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             let body = { conf: JSON.parse(config) };
@@ -2851,7 +408,7 @@ class AirflowApi {
             });
             const data = await response.json();
             if (response.status === 200 || response.status === 201) { // 201 Created is typical for POST
-                ui.showInfoMessage(`${dagId} Triggered.`);
+                //ui.showInfoMessage(`${dagId} Triggered.`);
                 result.result = data;
                 result.isSuccessful = true;
             }
@@ -2868,7 +425,7 @@ class AirflowApi {
         return result;
     }
     async getDagRun(dagId, dagRunId) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, { method: 'GET', headers });
@@ -2892,12 +449,12 @@ class AirflowApi {
         if (history.isSuccessful && history.result && history.result.dag_runs && history.result.dag_runs.length > 0) {
             return this.getDagRun(dagId, history.result.dag_runs[0].dag_run_id);
         }
-        const res = new methodResult_1.MethodResult();
+        const res = new MethodResult_1.MethodResult();
         res.isSuccessful = false;
         return res;
     }
     async getDagRunHistory(dagId, date) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             let url = `${this.config.apiUrl}/dags/${dagId}/dagRuns?order_by=-start_date`;
@@ -2924,7 +481,7 @@ class AirflowApi {
         return result;
     }
     async pauseDag(dagId, isPaused) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/dags/${dagId}`, {
@@ -2934,7 +491,7 @@ class AirflowApi {
             });
             const data = await response.json();
             if (response.status === 200) {
-                ui.showInfoMessage(`${dagId} ${isPaused ? "PAUSED" : "UN-PAUSED"}`);
+                //ui.showInfoMessage(`${dagId} ${isPaused ? "PAUSED" : "UN-PAUSED"}`);
                 result.result = data;
                 result.isSuccessful = true;
             }
@@ -2951,7 +508,7 @@ class AirflowApi {
         return result;
     }
     async getSourceCode(dagId, fileToken) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             let url = "";
@@ -2989,7 +546,7 @@ class AirflowApi {
         return result;
     }
     async getImportErrors() {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/importErrors`, { method: 'GET', headers });
@@ -3008,16 +565,73 @@ class AirflowApi {
         }
         return result;
     }
-    async getLastDagRunLog(dagId) {
-        const result = new methodResult_1.MethodResult();
+    async getTaskInstanceLog(dagId, dagRunId, taskId, tryNumber) {
+        const result = new MethodResult_1.MethodResult();
         try {
-            ui.showInfoMessage('Fetching Latest DAG Run Logs...');
+            //ui.showInfoMessage('Fetching Task Logs...');
+            const headers = await this.getHeaders();
+            const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${taskId}/logs/${tryNumber}`, { method: 'GET', headers });
+            const logJson = await logRes.json();
+            result.result = logJson;
+            result.isSuccessful = true;
+        }
+        catch (error) {
+            ui.showErrorMessage(`${dagId} Log Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getTaskInstanceLogText(dagId, dagRunId, taskId, tryNumber) {
+        const result = new MethodResult_1.MethodResult();
+        try {
+            if (tryNumber === undefined) {
+                //get latest try number
+                const taskInstancesResult = await this.getTaskInstances(dagId, dagRunId);
+                if (!taskInstancesResult.isSuccessful) {
+                    result.isSuccessful = false;
+                    result.error = taskInstancesResult.error;
+                    return result;
+                }
+                const taskInstance = taskInstancesResult.result.task_instances.find((ti) => ti.task_id === taskId);
+                if (!taskInstance) {
+                    throw new Error(`Task instance not found for taskId: ${taskId}`);
+                }
+                tryNumber = taskInstance.try_number;
+            }
+            const logJsonResult = await this.getTaskInstanceLog(dagId, dagRunId, taskId, tryNumber);
+            if (!logJsonResult.isSuccessful) {
+                result.isSuccessful = false;
+                result.error = logJsonResult.error;
+                return result;
+            }
+            const logJson = logJsonResult.result;
+            const logText = JSON.stringify(logJson, null, 2);
+            let logContent = '';
+            logContent += `############################################################\n`;
+            logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${taskId}\nTry=${tryNumber}\n`;
+            logContent += `############################################################\n\n`;
+            logContent += logText;
+            result.result = logContent;
+            result.isSuccessful = true;
+        }
+        catch (error) {
+            ui.showErrorMessage(`${dagId} Log Error`, error);
+            result.isSuccessful = false;
+            result.error = error;
+        }
+        return result;
+    }
+    async getLastDagRunLogText(dagId) {
+        const result = new MethodResult_1.MethodResult();
+        try {
+            //ui.showInfoMessage('Fetching Latest DAG Run Logs...');
             const history = await this.getDagRunHistory(dagId);
             if (!history.isSuccessful || !history.result.dag_runs.length) {
                 throw new Error("No DAG runs found");
             }
             const dagRunId = history.result.dag_runs[0].dag_run_id;
-            let logContent = await this.getDagRunLog(dagId, dagRunId);
+            let logContent = await this.getDagRunLogText(dagId, dagRunId);
             if (!logContent.isSuccessful) {
                 result.isSuccessful = false;
                 result.error = logContent.error;
@@ -3033,23 +647,28 @@ class AirflowApi {
         }
         return result;
     }
-    async getDagRunLog(dagId, dagRunId) {
-        const result = new methodResult_1.MethodResult();
-        ui.showInfoMessage('Fetching DAG Run Logs...');
+    async getDagRunLogText(dagId, dagRunId) {
+        const result = new MethodResult_1.MethodResult();
+        //ui.showInfoMessage('Fetching DAG Run Logs...');
         try {
-            const headers = await this.getHeaders();
-            const tasksResponse = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`, { method: 'GET', headers });
-            const tasksData = await tasksResponse.json();
-            let logContent = '###################### BEGINNING OF DAG RUN ######################\n\n';
-            for (const task of tasksData.task_instances || []) {
-                const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${task.task_id}/logs/${task.try_number}`, { method: 'GET', headers });
-                const logText = await logRes.text();
-                logContent += `############################################################\n`;
-                logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${task.task_id}\nTry=${task.try_number}\n`;
-                logContent += `############################################################\n\n`;
-                logContent += logText + "\n\n";
+            const taskInstancesResult = await this.getTaskInstances(dagId, dagRunId);
+            if (!taskInstancesResult.isSuccessful) {
+                result.isSuccessful = false;
+                result.error = taskInstancesResult.error;
+                return result;
             }
-            logContent += '###################### END OF DAG RUN ######################\n';
+            let logContent = '';
+            for (const ti of taskInstancesResult.result.task_instances) {
+                const taskId = ti.task_id;
+                const tryNumber = ti.try_number;
+                const logTextResult = await this.getTaskInstanceLogText(dagId, dagRunId, taskId, tryNumber);
+                if (!logTextResult.isSuccessful) {
+                    result.isSuccessful = false;
+                    result.error = logTextResult.error;
+                    return result;
+                }
+                logContent += logTextResult.result + '\n\n';
+            }
             result.result = logContent;
             result.isSuccessful = true;
             return result;
@@ -3070,7 +689,7 @@ class AirflowApi {
         return this.genericGet(`/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`);
     }
     async cancelDagRun(dagId, dagRunId) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, {
@@ -3094,38 +713,8 @@ class AirflowApi {
         }
         return result;
     }
-    async getTaskInstanceLog(dagId, dagRunId, taskId) {
-        const result = new methodResult_1.MethodResult();
-        try {
-            ui.showInfoMessage('Fetching Task Logs...');
-            const headers = await this.getHeaders();
-            // First get the try number from task instance details
-            // Or just try fetching logs for try 1, 2, etc?
-            // The original code fetched all task instances to find the try number.
-            const tasksResponse = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances`, { method: 'GET', headers });
-            const tasksData = await tasksResponse.json();
-            const taskInstance = tasksData.task_instances?.find((t) => t.task_id === taskId);
-            if (!taskInstance) {
-                throw new Error("Task instance not found");
-            }
-            const logRes = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${taskId}/logs/${taskInstance.try_number}`, { method: 'GET', headers });
-            const logText = await logRes.text();
-            let logContent = `############################################################\n`;
-            logContent += `Dag=${dagId}\nDagRun=${dagRunId}\nTaskId=${taskId}\nTry=${taskInstance.try_number}\n`;
-            logContent += `############################################################\n\n`;
-            logContent += logText;
-            result.result = logContent;
-            result.isSuccessful = true;
-        }
-        catch (error) {
-            ui.showErrorMessage(`${dagId} Log Error`, error);
-            result.isSuccessful = false;
-            result.error = error;
-        }
-        return result;
-    }
     async getTaskXComs(dagId, dagRunId, taskId) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/taskInstances/${taskId}/xcomEntries`, { method: 'GET', headers });
@@ -3148,7 +737,7 @@ class AirflowApi {
         return result;
     }
     async updateDagRunNote(dagId, dagRunId, note) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}`, {
@@ -3158,7 +747,7 @@ class AirflowApi {
             });
             const data = await response.json();
             if (response.status === 200) {
-                ui.showInfoMessage('DAG run note updated successfully');
+                //ui.showInfoMessage('DAG run note updated successfully');
                 result.result = data;
                 result.isSuccessful = true;
             }
@@ -3184,8 +773,17 @@ class AirflowApi {
     async getProviders() {
         return this.genericGet('/providers');
     }
+    async getConfig() {
+        return this.genericGet('/config');
+    }
+    async getPlugins() {
+        return this.genericGet('/plugins');
+    }
+    async getHealth() {
+        return this.genericGet('/monitor/health');
+    }
     async genericGet(endpoint) {
-        const result = new methodResult_1.MethodResult();
+        const result = new MethodResult_1.MethodResult();
         try {
             const headers = await this.getHeaders();
             const response = await fetch(`${this.config.apiUrl}${endpoint}`, { method: 'GET', headers });
@@ -3211,7 +809,7 @@ exports.AirflowApi = AirflowApi;
 
 
 /***/ }),
-/* 13 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* module decorator */ module = __webpack_require__.nmd(module);
@@ -3372,7 +970,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/base64 v1.0.0 by @mathias 
 
 
 /***/ }),
-/* 14 */
+/* 8 */
 /***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
@@ -3391,7 +989,7 @@ exports.MethodResult = MethodResult;
 
 
 /***/ }),
-/* 15 */
+/* 9 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3412,23 +1010,23 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   fileFromSync: () => (/* reexport safe */ fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__.fileFromSync),
 /* harmony export */   isRedirect: () => (/* reexport safe */ _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__.isRedirect)
 /* harmony export */ });
-/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(16);
-/* harmony import */ var node_https__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(17);
-/* harmony import */ var node_zlib__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(18);
-/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(19);
-/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(20);
-/* harmony import */ var data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(21);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(22);
-/* harmony import */ var _response_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(35);
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(36);
-/* harmony import */ var _request_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(38);
-/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(32);
-/* harmony import */ var _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(43);
-/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(37);
-/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(30);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(34);
-/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(41);
-/* harmony import */ var fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(44);
+/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(10);
+/* harmony import */ var node_https__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(11);
+/* harmony import */ var node_zlib__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(12);
+/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(13);
+/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(14);
+/* harmony import */ var data_uri_to_buffer__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(15);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(16);
+/* harmony import */ var _response_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(29);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(30);
+/* harmony import */ var _request_js__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(32);
+/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(26);
+/* harmony import */ var _errors_abort_error_js__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(37);
+/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(31);
+/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(24);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(28);
+/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(35);
+/* harmony import */ var fetch_blob_from_js__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(38);
 /**
  * Index.js
  *
@@ -3842,42 +1440,42 @@ function fixResponseChunkedTransferBadEnding(request, errorCallback) {
 
 
 /***/ }),
-/* 16 */
+/* 10 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:http");
 
 /***/ }),
-/* 17 */
+/* 11 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:https");
 
 /***/ }),
-/* 18 */
+/* 12 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:zlib");
 
 /***/ }),
-/* 19 */
+/* 13 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:stream");
 
 /***/ }),
-/* 20 */
+/* 14 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:buffer");
 
 /***/ }),
-/* 21 */
+/* 15 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3941,7 +1539,7 @@ function dataUriToBuffer(uri) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 22 */
+/* 16 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -3953,14 +1551,14 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   getTotalBytes: () => (/* binding */ getTotalBytes),
 /* harmony export */   writeToStream: () => (/* binding */ writeToStream)
 /* harmony export */ });
-/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(19);
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(23);
-/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(20);
-/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(24);
-/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(30);
-/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(32);
-/* harmony import */ var _errors_base_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(33);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(34);
+/* harmony import */ var node_stream__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(13);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(17);
+/* harmony import */ var node_buffer__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(14);
+/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(18);
+/* harmony import */ var formdata_polyfill_esm_min_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(24);
+/* harmony import */ var _errors_fetch_error_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(26);
+/* harmony import */ var _errors_base_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(27);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(28);
 
 /**
  * Body.js
@@ -4084,7 +1682,7 @@ class Body {
 			return formData;
 		}
 
-		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 52));
+		const {toFormData} = await __webpack_require__.e(/* import() */ 1).then(__webpack_require__.bind(__webpack_require__, 87));
 		return toFormData(this.body, ct);
 	}
 
@@ -4361,14 +1959,14 @@ const writeToStream = async (dest, {body}) => {
 
 
 /***/ }),
-/* 23 */
+/* 17 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:util");
 
 /***/ }),
-/* 24 */
+/* 18 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -4377,7 +1975,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   Blob: () => (/* binding */ Blob),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _streams_cjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(25);
+/* harmony import */ var _streams_cjs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(19);
 /*! fetch-blob. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 // TODO (jimmywarting): in the feature use conditional loading with top level await (requires 14.x)
@@ -4631,7 +2229,7 @@ const Blob = _Blob
 
 
 /***/ }),
-/* 25 */
+/* 19 */
 /***/ ((__unused_webpack_module, __unused_webpack_exports, __webpack_require__) => {
 
 /* c8 ignore start */
@@ -4643,11 +2241,11 @@ if (!globalThis.ReadableStream) {
   // and it's preferred over the polyfilled version. So we also
   // suppress the warning that gets emitted by NodeJS for using it.
   try {
-    const process = __webpack_require__(26)
+    const process = __webpack_require__(20)
     const { emitWarning } = process
     try {
       process.emitWarning = () => {}
-      Object.assign(globalThis, __webpack_require__(27))
+      Object.assign(globalThis, __webpack_require__(21))
       process.emitWarning = emitWarning
     } catch (error) {
       process.emitWarning = emitWarning
@@ -4655,14 +2253,14 @@ if (!globalThis.ReadableStream) {
     }
   } catch (error) {
     // fallback to polyfill implementation
-    Object.assign(globalThis, __webpack_require__(28))
+    Object.assign(globalThis, __webpack_require__(22))
   }
 }
 
 try {
   // Don't use node: prefix for this, require+node: is not supported until node v14.14
   // Only `import()` can use prefix in 12.20 and later
-  const { Blob } = __webpack_require__(29)
+  const { Blob } = __webpack_require__(23)
   if (Blob && !Blob.prototype.stream) {
     Blob.prototype.stream = function name (params) {
       let position = 0
@@ -4688,21 +2286,21 @@ try {
 
 
 /***/ }),
-/* 26 */
+/* 20 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:process");
 
 /***/ }),
-/* 27 */
+/* 21 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:stream/web");
 
 /***/ }),
-/* 28 */
+/* 22 */
 /***/ (function(__unused_webpack_module, exports) {
 
 /**
@@ -8920,14 +6518,14 @@ module.exports = require("node:stream/web");
 
 
 /***/ }),
-/* 29 */
+/* 23 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("buffer");
 
 /***/ }),
-/* 30 */
+/* 24 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -8937,8 +6535,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   FormData: () => (/* binding */ FormData),
 /* harmony export */   formDataToBlob: () => (/* binding */ formDataToBlob)
 /* harmony export */ });
-/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(24);
-/* harmony import */ var fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(31);
+/* harmony import */ var fetch_blob__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(18);
+/* harmony import */ var fetch_blob_file_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(25);
 /*! formdata-polyfill. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 
@@ -8982,7 +6580,7 @@ return new B(c,{type:"multipart/form-data; boundary="+b})}
 
 
 /***/ }),
-/* 31 */
+/* 25 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -8991,7 +6589,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   File: () => (/* binding */ File),
 /* harmony export */   "default": () => (__WEBPACK_DEFAULT_EXPORT__)
 /* harmony export */ });
-/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(24);
+/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(18);
 
 
 const _File = class File extends _index_js__WEBPACK_IMPORTED_MODULE_0__["default"] {
@@ -9044,7 +6642,7 @@ const File = _File
 
 
 /***/ }),
-/* 32 */
+/* 26 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9052,7 +6650,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   FetchError: () => (/* binding */ FetchError)
 /* harmony export */ });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(33);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(27);
 
 
 
@@ -9082,7 +6680,7 @@ class FetchError extends _base_js__WEBPACK_IMPORTED_MODULE_0__.FetchBaseError {
 
 
 /***/ }),
-/* 33 */
+/* 27 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9110,7 +6708,7 @@ class FetchBaseError extends Error {
 
 
 /***/ }),
-/* 34 */
+/* 28 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9212,7 +6810,7 @@ const isSameProtocol = (destination, original) => {
 
 
 /***/ }),
-/* 35 */
+/* 29 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9220,9 +6818,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (/* binding */ Response)
 /* harmony export */ });
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(36);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(22);
-/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(37);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(30);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(16);
+/* harmony import */ var _utils_is_redirect_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(31);
 /**
  * Response.js
  *
@@ -9386,7 +6984,7 @@ Object.defineProperties(Response.prototype, {
 
 
 /***/ }),
-/* 36 */
+/* 30 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9395,8 +6993,8 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (/* binding */ Headers),
 /* harmony export */   fromRawHeaders: () => (/* binding */ fromRawHeaders)
 /* harmony export */ });
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(23);
-/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(16);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(17);
+/* harmony import */ var node_http__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(10);
 /**
  * Headers.js
  *
@@ -9667,7 +7265,7 @@ function fromRawHeaders(headers = []) {
 
 
 /***/ }),
-/* 37 */
+/* 31 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9689,7 +7287,7 @@ const isRedirect = code => {
 
 
 /***/ }),
-/* 38 */
+/* 32 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -9698,13 +7296,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   "default": () => (/* binding */ Request),
 /* harmony export */   getNodeRequestOptions: () => (/* binding */ getNodeRequestOptions)
 /* harmony export */ });
-/* harmony import */ var node_url__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(39);
-/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(23);
-/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(36);
-/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(22);
-/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(34);
-/* harmony import */ var _utils_get_search_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(40);
-/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(41);
+/* harmony import */ var node_url__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(33);
+/* harmony import */ var node_util__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(17);
+/* harmony import */ var _headers_js__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(30);
+/* harmony import */ var _body_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(16);
+/* harmony import */ var _utils_is_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(28);
+/* harmony import */ var _utils_get_search_js__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(34);
+/* harmony import */ var _utils_referrer_js__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(35);
 /**
  * Request.js
  *
@@ -10019,14 +7617,14 @@ const getNodeRequestOptions = request => {
 
 
 /***/ }),
-/* 39 */
+/* 33 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:url");
 
 /***/ }),
-/* 40 */
+/* 34 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10046,7 +7644,7 @@ const getSearch = parsedURL => {
 
 
 /***/ }),
-/* 41 */
+/* 35 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10061,7 +7659,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   stripURLForUseAsAReferrer: () => (/* binding */ stripURLForUseAsAReferrer),
 /* harmony export */   validateReferrerPolicy: () => (/* binding */ validateReferrerPolicy)
 /* harmony export */ });
-/* harmony import */ var node_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(42);
+/* harmony import */ var node_net__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(36);
 
 
 /**
@@ -10405,14 +8003,14 @@ function parseReferrerPolicyFromHeader(headers) {
 
 
 /***/ }),
-/* 42 */
+/* 36 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:net");
 
 /***/ }),
-/* 43 */
+/* 37 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10420,7 +8018,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   AbortError: () => (/* binding */ AbortError)
 /* harmony export */ });
-/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(33);
+/* harmony import */ var _base_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(27);
 
 
 /**
@@ -10434,7 +8032,7 @@ class AbortError extends _base_js__WEBPACK_IMPORTED_MODULE_0__.FetchBaseError {
 
 
 /***/ }),
-/* 44 */
+/* 38 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 "use strict";
@@ -10448,11 +8046,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */   fileFrom: () => (/* binding */ fileFrom),
 /* harmony export */   fileFromSync: () => (/* binding */ fileFromSync)
 /* harmony export */ });
-/* harmony import */ var node_fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(45);
-/* harmony import */ var node_path__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(46);
-/* harmony import */ var node_domexception__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(47);
-/* harmony import */ var _file_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(31);
-/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(24);
+/* harmony import */ var node_fs__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(39);
+/* harmony import */ var node_path__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(40);
+/* harmony import */ var node_domexception__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(41);
+/* harmony import */ var _file_js__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(25);
+/* harmony import */ var _index_js__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(18);
 
 
 
@@ -10556,28 +8154,28 @@ class BlobDataItem {
 
 
 /***/ }),
-/* 45 */
+/* 39 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:fs");
 
 /***/ }),
-/* 46 */
+/* 40 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("node:path");
 
 /***/ }),
-/* 47 */
+/* 41 */
 /***/ ((module, __unused_webpack_exports, __webpack_require__) => {
 
 /*! node-domexception. MIT License. Jimmy Wärting <https://jimmy.warting.se/opensource> */
 
 if (!globalThis.DOMException) {
   try {
-    const { MessageChannel } = __webpack_require__(48),
+    const { MessageChannel } = __webpack_require__(42),
     port = new MessageChannel().port1,
     ab = new ArrayBuffer()
     port.postMessage(ab, [ab, ab])
@@ -10592,11 +8190,1617 @@ module.exports = globalThis.DOMException
 
 
 /***/ }),
-/* 48 */
+/* 42 */
 /***/ ((module) => {
 
 "use strict";
 module.exports = require("worker_threads");
+
+/***/ }),
+/* 43 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTreeView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const tmp = __webpack_require__(44);
+const fs = __webpack_require__(3);
+const DagTreeDataProvider_1 = __webpack_require__(47);
+const DagView_1 = __webpack_require__(49);
+const DailyDagRunView_1 = __webpack_require__(53);
+const DagRunView_1 = __webpack_require__(54);
+const ui = __webpack_require__(2);
+const MessageHub = __webpack_require__(50);
+const Session_1 = __webpack_require__(5);
+const DagLogView_1 = __webpack_require__(52);
+class DagTreeView {
+    constructor() {
+        this.FilterString = '';
+        this.ShowOnlyActive = true;
+        this.ShowOnlyFavorite = false;
+        this.FavoriteDags = [];
+        ui.logToOutput('DagTreeView.constructor Started');
+        this.treeDataProvider = new DagTreeDataProvider_1.DagTreeDataProvider();
+        this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
+        this.loadState();
+        Session_1.Session.Current.Context.subscriptions.push(this.view);
+        Session_1.Session.Current.Context.subscriptions.push({ dispose: () => this.dispose() });
+        DagTreeView.Current = this;
+        this.setFilterMessage();
+        this.refresh();
+    }
+    dispose() {
+        ui.logToOutput('DagTreeView.dispose Started');
+        if (this.dagStatusInterval) {
+            clearInterval(this.dagStatusInterval);
+        }
+    }
+    async refresh() {
+        ui.logToOutput('DagTreeView.refresh Started');
+        if (!Session_1.Session.Current.Api) {
+            this.treeDataProvider.dagList = [];
+            this.treeDataProvider.refresh();
+            return;
+        }
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Window,
+            title: "Airflow: Loading...",
+        }, async (progress) => {
+            progress.report({ increment: 0 });
+            await this.loadDags();
+        });
+        await this.getImportErrors();
+    }
+    viewDagView(node) {
+        ui.logToOutput('DagTreeView.viewDagView Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        DagView_1.DagView.render(node.DagId);
+    }
+    async addToFavDAG(node) {
+        ui.logToOutput('DagTreeView.addToFavDAG Started');
+        node.IsFav = true;
+        if (!this.FavoriteDags.includes(node.DagId)) {
+            this.FavoriteDags.push(node.DagId);
+        }
+        this.treeDataProvider.refresh();
+    }
+    async deleteFromFavDAG(node) {
+        ui.logToOutput('DagTreeView.deleteFromFavDAG Started');
+        node.IsFav = false;
+        this.FavoriteDags = this.FavoriteDags.filter(d => d !== node.DagId);
+        this.treeDataProvider.refresh();
+    }
+    createAndOpenTempFile(content, prefix, extension) {
+        const tmpFile = tmp.fileSync({ mode: 0o644, prefix, postfix: extension });
+        fs.appendFileSync(tmpFile.name, content);
+        ui.openFile(tmpFile.name);
+    }
+    startDagStatusInterval() {
+        if (!this.dagStatusInterval) {
+            this.dagStatusInterval = setInterval(() => {
+                void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
+            }, 10 * 1000);
+        }
+    }
+    handleTriggerSuccess(node, responseTrigger) {
+        node.LatestDagRunId = responseTrigger['dag_run_id'];
+        node.LatestDagState = responseTrigger['state'];
+        node.refreshUI();
+        this.treeDataProvider.refresh();
+        this.startDagStatusInterval();
+        MessageHub.DagTriggered(this, node.DagId, node.LatestDagRunId);
+    }
+    async triggerDag(node) {
+        ui.logToOutput('DagTreeView.triggerDag Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        if (node.IsPaused) {
+            ui.showWarningMessage('Dag is PAUSED !!!');
+            return;
+        }
+        if (node.isDagRunning()) {
+            ui.showWarningMessage('Dag is ALREADY RUNNING !!!');
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.triggerDag(node.DagId);
+        if (result.isSuccessful) {
+            this.handleTriggerSuccess(node, result.result);
+        }
+    }
+    async refreshRunningDagState(dagTreeView) {
+        ui.logToOutput('DagTreeView.refreshRunningDagState Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        let noDagIsRunning = true;
+        for (const node of dagTreeView.treeDataProvider.visibleDagList) {
+            if (node.isDagRunning()) {
+                noDagIsRunning = false;
+                const result = await Session_1.Session.Current.Api.getDagRun(node.DagId, node.LatestDagRunId);
+                if (result.isSuccessful) {
+                    node.LatestDagState = result.result['state'];
+                    node.refreshUI();
+                }
+                else {
+                    node.LatestDagRunId = '';
+                    node.LatestDagState = '';
+                }
+            }
+            dagTreeView.treeDataProvider.refresh();
+        }
+        if (noDagIsRunning && dagTreeView.dagStatusInterval) {
+            clearInterval(dagTreeView.dagStatusInterval);
+            dagTreeView.dagStatusInterval = undefined;
+            //ui.showInfoMessage('All Dag Run(s) Completed');
+            ui.logToOutput('All Dag Run(s) Completed');
+        }
+    }
+    async triggerDagWConfig(node) {
+        ui.logToOutput('DagTreeView.triggerDagWConfig Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        let triggerDagConfig = await vscode.window.showInputBox({ placeHolder: 'Enter Configuration JSON (Optional, must be a dict object) or Press Enter' });
+        if (!triggerDagConfig) {
+            triggerDagConfig = "{}";
+        }
+        if (triggerDagConfig !== undefined) {
+            const result = await Session_1.Session.Current.Api.triggerDag(node.DagId, triggerDagConfig);
+            if (result.isSuccessful) {
+                this.handleTriggerSuccess(node, result.result);
+            }
+        }
+    }
+    async checkAllDagsRunState() {
+        ui.logToOutput('DagTreeView.checkAllDagsRunState Started');
+        if (!this.treeDataProvider) {
+            return;
+        }
+        for (const node of this.treeDataProvider.visibleDagList) {
+            if (!node.IsPaused) {
+                this.checkDagRunState(node);
+            }
+        }
+    }
+    async notifyDagStateWithDagId(dagId, dagRunId, dagState) {
+        ui.logToOutput('DagTreeView.notifyDagStateWithDagId Started');
+        if (!this.treeDataProvider) {
+            return;
+        }
+        for (const node of this.treeDataProvider.visibleDagList) {
+            if (node.DagId === dagId) {
+                //this.checkDagRunState(node);
+                node.LatestDagRunId = dagRunId;
+                node.LatestDagState = dagState;
+                node.refreshUI();
+                this.treeDataProvider.refresh();
+                if (node.isDagRunning()) {
+                    this.startDagStatusInterval();
+                }
+            }
+        }
+    }
+    async checkDagRunState(node) {
+        ui.logToOutput('DagTreeView.checkDagRunState Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        if (!node) {
+            return;
+        }
+        if (node.IsPaused) {
+            ui.showWarningMessage(node.DagId + 'Dag is PAUSED');
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getLastDagRun(node.DagId);
+        if (result.isSuccessful) {
+            node.LatestDagRunId = result.result.dag_run_id;
+            node.LatestDagState = result.result.state;
+            node.refreshUI();
+            this.treeDataProvider.refresh();
+            if (node.isDagRunning()) {
+                this.startDagStatusInterval();
+            }
+        }
+    }
+    async pauseDAG(node) {
+        ui.logToOutput('DagTreeView.pauseDAG Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        if (node.IsPaused) {
+            ui.showWarningMessage(node.DagId + 'Dag is already PAUSED');
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.pauseDag(node.DagId, true);
+        if (result.isSuccessful) {
+            node.IsPaused = true;
+            node.refreshUI();
+            this.treeDataProvider.refresh();
+            MessageHub.DagPaused(this, node.DagId);
+        }
+    }
+    async notifyDagPaused(dagId) {
+        ui.logToOutput('DagTreeView.notifyDagPaused Started');
+        this.refresh();
+    }
+    async notifyDagUnPaused(dagId) {
+        ui.logToOutput('DagTreeView.notifyDagUnPaused Started');
+        this.refresh();
+    }
+    async unPauseDAG(node) {
+        ui.logToOutput('DagTreeView.unPauseDAG Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        if (!node.IsPaused) {
+            ui.showInfoMessage(node.DagId + 'Dag is already UNPAUSED');
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.pauseDag(node.DagId, false);
+        if (result.isSuccessful) {
+            node.IsPaused = false;
+            node.refreshUI();
+            this.treeDataProvider.refresh();
+            MessageHub.DagUnPaused(this, node.DagId);
+        }
+    }
+    async cancelDagRun(node) {
+        ui.logToOutput('DagTreeView.cancelDagRun Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        if (!node.isDagRunning()) {
+            ui.showWarningMessage('No running DAG to cancel');
+            return;
+        }
+        if (!node.LatestDagRunId) {
+            ui.showWarningMessage('No DAG run ID found');
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.cancelDagRun(node.DagId, node.LatestDagRunId);
+        if (result.isSuccessful) {
+            node.LatestDagState = 'failed';
+            node.refreshUI();
+            this.treeDataProvider.refresh();
+            //ui.showInfoMessage(`DAG Run ${node.LatestDagRunId} cancelled`);
+            MessageHub.DagRunCancelled(this, node.DagId, node.LatestDagRunId);
+        }
+    }
+    async lastDAGRunLog(node) {
+        ui.logToOutput('DagTreeView.lastDAGRunLog Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        // const result = await Session.Current.Api.getLastDagRunLogText(node.DagId);
+        // if (result.isSuccessful) {
+        // 	this.createAndOpenTempFile(result.result, node.DagId, '.log');
+        // }
+        DagLogView_1.DagLogView.render(node.DagId, node.LatestDagRunId);
+    }
+    async dagSourceCode(node) {
+        ui.logToOutput('DagTreeView.dagSourceCode Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getSourceCode(node.DagId, node.FileToken);
+        if (result.isSuccessful) {
+            this.createAndOpenTempFile(result.result, node.DagId, '.py');
+        }
+        else {
+            ui.logToOutput(result.result);
+            ui.showErrorMessage(result.result);
+        }
+    }
+    async showDagInfo(node) {
+        ui.logToOutput('DagTreeView.showDagInfo Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getDagInfo(node.DagId);
+        if (result.isSuccessful) {
+            this.createAndOpenTempFile(JSON.stringify(result.result, null, 2), node.DagId + '_info', '.json');
+        }
+        else {
+            ui.logToOutput(result.result);
+            ui.showErrorMessage('Failed to fetch DAG info');
+        }
+    }
+    async filter() {
+        ui.logToOutput('DagTreeView.filter Started');
+        const filterStringTemp = await vscode.window.showInputBox({ value: this.FilterString, placeHolder: 'Enter your filters seperated by comma' });
+        if (filterStringTemp === undefined) {
+            return;
+        }
+        this.FilterString = filterStringTemp;
+        this.treeDataProvider.refresh();
+        this.setFilterMessage();
+        this.saveState();
+    }
+    async showOnlyActive() {
+        ui.logToOutput('DagTreeView.showOnlyActive Started');
+        this.ShowOnlyActive = !this.ShowOnlyActive;
+        this.treeDataProvider.refresh();
+        this.setFilterMessage();
+        this.saveState();
+    }
+    async showOnlyFavorite() {
+        ui.logToOutput('DagTreeView.showOnlyFavorite Started');
+        this.ShowOnlyFavorite = !this.ShowOnlyFavorite;
+        this.treeDataProvider.refresh();
+        this.setFilterMessage();
+        this.saveState();
+    }
+    async addServer() {
+        ui.logToOutput('DagTreeView.addServer Started');
+        const apiUrlTemp = await vscode.window.showInputBox({ value: 'http://localhost:8080/api/v2', placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v2)' });
+        if (!apiUrlTemp) {
+            return;
+        }
+        const userNameTemp = await vscode.window.showInputBox({ placeHolder: 'User Name' });
+        if (!userNameTemp) {
+            return;
+        }
+        const passwordTemp = await vscode.window.showInputBox({ placeHolder: 'Password' });
+        if (!passwordTemp) {
+            return;
+        }
+        const newServer = { apiUrl: apiUrlTemp, apiUserName: userNameTemp, apiPassword: passwordTemp };
+        let result = await Session_1.Session.Current.TestServer(newServer);
+        if (!result) {
+            ui.showErrorMessage("Failed to connect to server.");
+            return;
+        }
+        Session_1.Session.Current.AddServer(newServer);
+        Session_1.Session.Current.SetServer(newServer);
+        this.refresh();
+    }
+    async removeServer() {
+        ui.logToOutput('DagTreeView.removeServer Started');
+        if (Session_1.Session.Current.ServerList.length === 0) {
+            return;
+        }
+        const items = Session_1.Session.Current.ServerList.map(s => `${s.apiUrl} - ${s.apiUserName}`);
+        const selected = await vscode.window.showQuickPick(items, { canPickMany: false, placeHolder: 'Select To Remove' });
+        if (!selected) {
+            return;
+        }
+        const selectedItems = selected.split(' - ');
+        if (selectedItems[0]) {
+            Session_1.Session.Current.RemoveServer(selectedItems[0], selectedItems[1]);
+            ui.showInfoMessage("Server removed.");
+        }
+    }
+    async connectServer() {
+        ui.logToOutput('DagTreeView.connectServer Started');
+        if (Session_1.Session.Current.ServerList.length === 0) {
+            this.addServer();
+            return;
+        }
+        const items = [];
+        for (const s of Session_1.Session.Current.ServerList) {
+            items.push(s.apiUrl + " - " + s.apiUserName);
+        }
+        const selected = await vscode.window.showQuickPick(items, { canPickMany: false, placeHolder: 'Select To Connect' });
+        if (!selected) {
+            return;
+        }
+        const selectedItems = selected.split(' - ');
+        if (selectedItems[0]) {
+            const server = Session_1.Session.Current.GetServer(selectedItems[0], selectedItems[1]);
+            if (server) {
+                let result = await Session_1.Session.Current.TestServer(server);
+                if (result) {
+                    Session_1.Session.Current.SetServer(server);
+                    this.refresh();
+                }
+                else {
+                    ui.showErrorMessage("Failed to connect to server.");
+                }
+            }
+        }
+    }
+    async clearServers() {
+        ui.logToOutput('DagTreeView.clearServers Started');
+        Session_1.Session.Current.ClearServers();
+        this.treeDataProvider.dagList = undefined;
+        this.treeDataProvider.refresh();
+        ui.showInfoMessage("Server List Cleared");
+    }
+    async loadDags() {
+        ui.logToOutput('DagTreeView.loadDags Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        this.treeDataProvider.dagList = undefined;
+        const result = await Session_1.Session.Current.Api.getDagList();
+        if (result.isSuccessful) {
+            this.treeDataProvider.dagList = result.result;
+            this.treeDataProvider.loadDagTreeItemsFromApiResponse();
+        }
+        this.treeDataProvider.refresh();
+        this.setViewTitle();
+    }
+    async loadLatestRunStatusForAllDags() {
+        ui.logToOutput('DagTreeView.loadLatestRunStatusForAllDags Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        // Fetch latest run status for each visible DAG (limit to avoid too many API calls)
+        const visibleDags = this.treeDataProvider.visibleDagList.slice(0, 50); // Limit to first 50 DAGs
+        for (const dagItem of visibleDags) {
+            if (!dagItem.IsPaused) {
+                try {
+                    const runResult = await Session_1.Session.Current.Api.getLastDagRun(dagItem.DagId);
+                    if (runResult.isSuccessful && runResult.result) {
+                        dagItem.LatestDagRunId = runResult.result.dag_run_id;
+                        dagItem.LatestDagState = runResult.result.state;
+                        dagItem.refreshUI();
+                    }
+                }
+                catch (error) {
+                    // Silently continue if a DAG's last run can't be fetched
+                    ui.logToOutput(`Failed to fetch last run for ${dagItem.DagId}`, error);
+                }
+            }
+        }
+        this.treeDataProvider.refresh();
+    }
+    async setViewTitle() {
+        if (Session_1.Session.Current.Server) {
+            this.view.title = Session_1.Session.Current.Server.apiUrl + " - " + Session_1.Session.Current.Server.apiUserName;
+        }
+        else {
+            this.view.title = "Airflow";
+        }
+    }
+    async getImportErrors() {
+        ui.logToOutput('DagTreeView.getImportErrors Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getImportErrors();
+        if (result.isSuccessful) {
+            const importErrors = result.result;
+            if (importErrors.total_entries > 0) {
+                ui.showOutputMessage(result.result, "Import Dag Errors! Check Output Panel");
+            }
+        }
+    }
+    saveState() {
+        ui.logToOutput('DagTreeView.saveState Started');
+        try {
+            Session_1.Session.Current.Context.globalState.update('FilterString', this.FilterString);
+            Session_1.Session.Current.Context.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
+            Session_1.Session.Current.Context.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
+            Session_1.Session.Current.Context.globalState.update('FavoriteDags', this.FavoriteDags);
+        }
+        catch (error) {
+            ui.logToOutput("dagTreeView.saveState Error !!!", error);
+        }
+    }
+    setFilterMessage() {
+        if (Session_1.Session.Current.Server) {
+            this.view.message = this.getBoolenSign(this.ShowOnlyFavorite) + 'Fav, ' + this.getBoolenSign(this.ShowOnlyActive) + 'Active, Filter : ' + this.FilterString;
+        }
+    }
+    getBoolenSign(variable) {
+        return variable ? "✓" : "𐄂";
+    }
+    loadState() {
+        ui.logToOutput('DagTreeView.loadState Started');
+        try {
+            const filterStringTemp = Session_1.Session.Current.Context.globalState.get('FilterString') || '';
+            if (filterStringTemp) {
+                this.FilterString = filterStringTemp;
+                this.setFilterMessage();
+            }
+            const ShowOnlyActiveTemp = Session_1.Session.Current.Context.globalState.get('ShowOnlyActive');
+            if (ShowOnlyActiveTemp !== undefined) {
+                this.ShowOnlyActive = ShowOnlyActiveTemp;
+            }
+            const ShowOnlyFavoriteTemp = Session_1.Session.Current.Context.globalState.get('ShowOnlyFavorite');
+            if (ShowOnlyFavoriteTemp !== undefined) {
+                this.ShowOnlyFavorite = ShowOnlyFavoriteTemp;
+            }
+            const FavoriteDagsTemp = Session_1.Session.Current.Context.globalState.get('FavoriteDags');
+            if (FavoriteDagsTemp !== undefined) {
+                this.FavoriteDags = FavoriteDagsTemp;
+            }
+        }
+        catch (error) {
+            ui.logToOutput("dagTreeView.loadState Error !!!", error);
+        }
+    }
+    async viewConnections() {
+        ui.logToOutput('DagTreeView.viewConnections Started');
+        if (Session_1.Session.Current.Api) {
+            const { ConnectionsView } = await Promise.resolve().then(() => __webpack_require__(55));
+            ConnectionsView.render();
+        }
+    }
+    async viewVariables() {
+        ui.logToOutput('DagTreeView.viewVariables Started');
+        if (Session_1.Session.Current.Api) {
+            const { VariablesView } = await Promise.resolve().then(() => __webpack_require__(56));
+            VariablesView.render();
+        }
+    }
+    async viewProviders() {
+        ui.logToOutput('DagTreeView.viewProviders Started');
+        if (Session_1.Session.Current.Api) {
+            const { ProvidersView } = await Promise.resolve().then(() => __webpack_require__(57));
+            ProvidersView.render();
+        }
+    }
+    async viewConfigs() {
+        ui.logToOutput('DagTreeView.viewConfigs Started');
+        if (Session_1.Session.Current.Api) {
+            const { ConfigsView } = await Promise.resolve().then(() => __webpack_require__(58));
+            ConfigsView.render();
+        }
+    }
+    async viewPlugins() {
+        ui.logToOutput('DagTreeView.viewPlugins Started');
+        if (Session_1.Session.Current.Api) {
+            const { PluginsView } = await Promise.resolve().then(() => __webpack_require__(59));
+            PluginsView.render();
+        }
+    }
+    async viewDagRuns() {
+        ui.logToOutput('DagTreeView.viewDagRuns Started');
+        if (Session_1.Session.Current.Api) {
+            DailyDagRunView_1.DailyDagRunView.render();
+        }
+    }
+    async viewDagRunHistory() {
+        ui.logToOutput('DagTreeView.viewDagRunHistory Started');
+        if (Session_1.Session.Current.Api) {
+            DagRunView_1.DagRunView.render();
+        }
+    }
+    async viewServerHealth() {
+        ui.logToOutput('DagTreeView.viewServerHealth Started');
+        if (Session_1.Session.Current.Api) {
+            const { ServerHealthView } = await Promise.resolve().then(() => __webpack_require__(60));
+            ServerHealthView.render();
+        }
+    }
+}
+exports.DagTreeView = DagTreeView;
+
+
+/***/ }),
+/* 44 */
+/***/ ((module, __unused_webpack_exports, __webpack_require__) => {
+
+/*!
+ * Tmp
+ *
+ * Copyright (c) 2011-2017 KARASZI Istvan <github@spam.raszi.hu>
+ *
+ * MIT Licensed
+ */
+
+/*
+ * Module dependencies.
+ */
+const fs = __webpack_require__(3);
+const os = __webpack_require__(45);
+const path = __webpack_require__(4);
+const crypto = __webpack_require__(46);
+const _c = { fs: fs.constants, os: os.constants };
+
+/*
+ * The working inner variables.
+ */
+const // the random characters to choose from
+  RANDOM_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
+  TEMPLATE_PATTERN = /XXXXXX/,
+  DEFAULT_TRIES = 3,
+  CREATE_FLAGS = (_c.O_CREAT || _c.fs.O_CREAT) | (_c.O_EXCL || _c.fs.O_EXCL) | (_c.O_RDWR || _c.fs.O_RDWR),
+  // constants are off on the windows platform and will not match the actual errno codes
+  IS_WIN32 = os.platform() === 'win32',
+  EBADF = _c.EBADF || _c.os.errno.EBADF,
+  ENOENT = _c.ENOENT || _c.os.errno.ENOENT,
+  DIR_MODE = 0o700 /* 448 */,
+  FILE_MODE = 0o600 /* 384 */,
+  EXIT = 'exit',
+  // this will hold the objects need to be removed on exit
+  _removeObjects = [],
+  // API change in fs.rmdirSync leads to error when passing in a second parameter, e.g. the callback
+  FN_RMDIR_SYNC = fs.rmdirSync.bind(fs);
+
+let _gracefulCleanup = false;
+
+/**
+ * Recursively remove a directory and its contents.
+ *
+ * @param {string} dirPath path of directory to remove
+ * @param {Function} callback
+ * @private
+ */
+function rimraf(dirPath, callback) {
+  return fs.rm(dirPath, { recursive: true }, callback);
+}
+
+/**
+ * Recursively remove a directory and its contents, synchronously.
+ *
+ * @param {string} dirPath path of directory to remove
+ * @private
+ */
+function FN_RIMRAF_SYNC(dirPath) {
+  return fs.rmSync(dirPath, { recursive: true });
+}
+
+/**
+ * Gets a temporary file name.
+ *
+ * @param {(Options|tmpNameCallback)} options options or callback
+ * @param {?tmpNameCallback} callback the callback function
+ */
+function tmpName(options, callback) {
+  const args = _parseArguments(options, callback),
+    opts = args[0],
+    cb = args[1];
+
+  _assertAndSanitizeOptions(opts, function (err, sanitizedOptions) {
+    if (err) return cb(err);
+
+    let tries = sanitizedOptions.tries;
+    (function _getUniqueName() {
+      try {
+        const name = _generateTmpName(sanitizedOptions);
+
+        // check whether the path exists then retry if needed
+        fs.stat(name, function (err) {
+          /* istanbul ignore else */
+          if (!err) {
+            /* istanbul ignore else */
+            if (tries-- > 0) return _getUniqueName();
+
+            return cb(new Error('Could not get a unique tmp filename, max tries reached ' + name));
+          }
+
+          cb(null, name);
+        });
+      } catch (err) {
+        cb(err);
+      }
+    })();
+  });
+}
+
+/**
+ * Synchronous version of tmpName.
+ *
+ * @param {Object} options
+ * @returns {string} the generated random name
+ * @throws {Error} if the options are invalid or could not generate a filename
+ */
+function tmpNameSync(options) {
+  const args = _parseArguments(options),
+    opts = args[0];
+
+  const sanitizedOptions = _assertAndSanitizeOptionsSync(opts);
+
+  let tries = sanitizedOptions.tries;
+  do {
+    const name = _generateTmpName(sanitizedOptions);
+    try {
+      fs.statSync(name);
+    } catch (e) {
+      return name;
+    }
+  } while (tries-- > 0);
+
+  throw new Error('Could not get a unique tmp filename, max tries reached');
+}
+
+/**
+ * Creates and opens a temporary file.
+ *
+ * @param {(Options|null|undefined|fileCallback)} options the config options or the callback function or null or undefined
+ * @param {?fileCallback} callback
+ */
+function file(options, callback) {
+  const args = _parseArguments(options, callback),
+    opts = args[0],
+    cb = args[1];
+
+  // gets a temporary filename
+  tmpName(opts, function _tmpNameCreated(err, name) {
+    /* istanbul ignore else */
+    if (err) return cb(err);
+
+    // create and open the file
+    fs.open(name, CREATE_FLAGS, opts.mode || FILE_MODE, function _fileCreated(err, fd) {
+      /* istanbu ignore else */
+      if (err) return cb(err);
+
+      if (opts.discardDescriptor) {
+        return fs.close(fd, function _discardCallback(possibleErr) {
+          // the chance of getting an error on close here is rather low and might occur in the most edgiest cases only
+          return cb(possibleErr, name, undefined, _prepareTmpFileRemoveCallback(name, -1, opts, false));
+        });
+      } else {
+        // detachDescriptor passes the descriptor whereas discardDescriptor closes it, either way, we no longer care
+        // about the descriptor
+        const discardOrDetachDescriptor = opts.discardDescriptor || opts.detachDescriptor;
+        cb(null, name, fd, _prepareTmpFileRemoveCallback(name, discardOrDetachDescriptor ? -1 : fd, opts, false));
+      }
+    });
+  });
+}
+
+/**
+ * Synchronous version of file.
+ *
+ * @param {Options} options
+ * @returns {FileSyncObject} object consists of name, fd and removeCallback
+ * @throws {Error} if cannot create a file
+ */
+function fileSync(options) {
+  const args = _parseArguments(options),
+    opts = args[0];
+
+  const discardOrDetachDescriptor = opts.discardDescriptor || opts.detachDescriptor;
+  const name = tmpNameSync(opts);
+  let fd = fs.openSync(name, CREATE_FLAGS, opts.mode || FILE_MODE);
+  /* istanbul ignore else */
+  if (opts.discardDescriptor) {
+    fs.closeSync(fd);
+    fd = undefined;
+  }
+
+  return {
+    name: name,
+    fd: fd,
+    removeCallback: _prepareTmpFileRemoveCallback(name, discardOrDetachDescriptor ? -1 : fd, opts, true)
+  };
+}
+
+/**
+ * Creates a temporary directory.
+ *
+ * @param {(Options|dirCallback)} options the options or the callback function
+ * @param {?dirCallback} callback
+ */
+function dir(options, callback) {
+  const args = _parseArguments(options, callback),
+    opts = args[0],
+    cb = args[1];
+
+  // gets a temporary filename
+  tmpName(opts, function _tmpNameCreated(err, name) {
+    /* istanbul ignore else */
+    if (err) return cb(err);
+
+    // create the directory
+    fs.mkdir(name, opts.mode || DIR_MODE, function _dirCreated(err) {
+      /* istanbul ignore else */
+      if (err) return cb(err);
+
+      cb(null, name, _prepareTmpDirRemoveCallback(name, opts, false));
+    });
+  });
+}
+
+/**
+ * Synchronous version of dir.
+ *
+ * @param {Options} options
+ * @returns {DirSyncObject} object consists of name and removeCallback
+ * @throws {Error} if it cannot create a directory
+ */
+function dirSync(options) {
+  const args = _parseArguments(options),
+    opts = args[0];
+
+  const name = tmpNameSync(opts);
+  fs.mkdirSync(name, opts.mode || DIR_MODE);
+
+  return {
+    name: name,
+    removeCallback: _prepareTmpDirRemoveCallback(name, opts, true)
+  };
+}
+
+/**
+ * Removes files asynchronously.
+ *
+ * @param {Object} fdPath
+ * @param {Function} next
+ * @private
+ */
+function _removeFileAsync(fdPath, next) {
+  const _handler = function (err) {
+    if (err && !_isENOENT(err)) {
+      // reraise any unanticipated error
+      return next(err);
+    }
+    next();
+  };
+
+  if (0 <= fdPath[0])
+    fs.close(fdPath[0], function () {
+      fs.unlink(fdPath[1], _handler);
+    });
+  else fs.unlink(fdPath[1], _handler);
+}
+
+/**
+ * Removes files synchronously.
+ *
+ * @param {Object} fdPath
+ * @private
+ */
+function _removeFileSync(fdPath) {
+  let rethrownException = null;
+  try {
+    if (0 <= fdPath[0]) fs.closeSync(fdPath[0]);
+  } catch (e) {
+    // reraise any unanticipated error
+    if (!_isEBADF(e) && !_isENOENT(e)) throw e;
+  } finally {
+    try {
+      fs.unlinkSync(fdPath[1]);
+    } catch (e) {
+      // reraise any unanticipated error
+      if (!_isENOENT(e)) rethrownException = e;
+    }
+  }
+  if (rethrownException !== null) {
+    throw rethrownException;
+  }
+}
+
+/**
+ * Prepares the callback for removal of the temporary file.
+ *
+ * Returns either a sync callback or a async callback depending on whether
+ * fileSync or file was called, which is expressed by the sync parameter.
+ *
+ * @param {string} name the path of the file
+ * @param {number} fd file descriptor
+ * @param {Object} opts
+ * @param {boolean} sync
+ * @returns {fileCallback | fileCallbackSync}
+ * @private
+ */
+function _prepareTmpFileRemoveCallback(name, fd, opts, sync) {
+  const removeCallbackSync = _prepareRemoveCallback(_removeFileSync, [fd, name], sync);
+  const removeCallback = _prepareRemoveCallback(_removeFileAsync, [fd, name], sync, removeCallbackSync);
+
+  if (!opts.keep) _removeObjects.unshift(removeCallbackSync);
+
+  return sync ? removeCallbackSync : removeCallback;
+}
+
+/**
+ * Prepares the callback for removal of the temporary directory.
+ *
+ * Returns either a sync callback or a async callback depending on whether
+ * tmpFileSync or tmpFile was called, which is expressed by the sync parameter.
+ *
+ * @param {string} name
+ * @param {Object} opts
+ * @param {boolean} sync
+ * @returns {Function} the callback
+ * @private
+ */
+function _prepareTmpDirRemoveCallback(name, opts, sync) {
+  const removeFunction = opts.unsafeCleanup ? rimraf : fs.rmdir.bind(fs);
+  const removeFunctionSync = opts.unsafeCleanup ? FN_RIMRAF_SYNC : FN_RMDIR_SYNC;
+  const removeCallbackSync = _prepareRemoveCallback(removeFunctionSync, name, sync);
+  const removeCallback = _prepareRemoveCallback(removeFunction, name, sync, removeCallbackSync);
+  if (!opts.keep) _removeObjects.unshift(removeCallbackSync);
+
+  return sync ? removeCallbackSync : removeCallback;
+}
+
+/**
+ * Creates a guarded function wrapping the removeFunction call.
+ *
+ * The cleanup callback is save to be called multiple times.
+ * Subsequent invocations will be ignored.
+ *
+ * @param {Function} removeFunction
+ * @param {string} fileOrDirName
+ * @param {boolean} sync
+ * @param {cleanupCallbackSync?} cleanupCallbackSync
+ * @returns {cleanupCallback | cleanupCallbackSync}
+ * @private
+ */
+function _prepareRemoveCallback(removeFunction, fileOrDirName, sync, cleanupCallbackSync) {
+  let called = false;
+
+  // if sync is true, the next parameter will be ignored
+  return function _cleanupCallback(next) {
+    /* istanbul ignore else */
+    if (!called) {
+      // remove cleanupCallback from cache
+      const toRemove = cleanupCallbackSync || _cleanupCallback;
+      const index = _removeObjects.indexOf(toRemove);
+      /* istanbul ignore else */
+      if (index >= 0) _removeObjects.splice(index, 1);
+
+      called = true;
+      if (sync || removeFunction === FN_RMDIR_SYNC || removeFunction === FN_RIMRAF_SYNC) {
+        return removeFunction(fileOrDirName);
+      } else {
+        return removeFunction(fileOrDirName, next || function () {});
+      }
+    }
+  };
+}
+
+/**
+ * The garbage collector.
+ *
+ * @private
+ */
+function _garbageCollector() {
+  /* istanbul ignore else */
+  if (!_gracefulCleanup) return;
+
+  // the function being called removes itself from _removeObjects,
+  // loop until _removeObjects is empty
+  while (_removeObjects.length) {
+    try {
+      _removeObjects[0]();
+    } catch (e) {
+      // already removed?
+    }
+  }
+}
+
+/**
+ * Random name generator based on crypto.
+ * Adapted from http://blog.tompawlak.org/how-to-generate-random-values-nodejs-javascript
+ *
+ * @param {number} howMany
+ * @returns {string} the generated random name
+ * @private
+ */
+function _randomChars(howMany) {
+  let value = [],
+    rnd = null;
+
+  // make sure that we do not fail because we ran out of entropy
+  try {
+    rnd = crypto.randomBytes(howMany);
+  } catch (e) {
+    rnd = crypto.pseudoRandomBytes(howMany);
+  }
+
+  for (let i = 0; i < howMany; i++) {
+    value.push(RANDOM_CHARS[rnd[i] % RANDOM_CHARS.length]);
+  }
+
+  return value.join('');
+}
+
+/**
+ * Checks whether the `obj` parameter is defined or not.
+ *
+ * @param {Object} obj
+ * @returns {boolean} true if the object is undefined
+ * @private
+ */
+function _isUndefined(obj) {
+  return typeof obj === 'undefined';
+}
+
+/**
+ * Parses the function arguments.
+ *
+ * This function helps to have optional arguments.
+ *
+ * @param {(Options|null|undefined|Function)} options
+ * @param {?Function} callback
+ * @returns {Array} parsed arguments
+ * @private
+ */
+function _parseArguments(options, callback) {
+  /* istanbul ignore else */
+  if (typeof options === 'function') {
+    return [{}, options];
+  }
+
+  /* istanbul ignore else */
+  if (_isUndefined(options)) {
+    return [{}, callback];
+  }
+
+  // copy options so we do not leak the changes we make internally
+  const actualOptions = {};
+  for (const key of Object.getOwnPropertyNames(options)) {
+    actualOptions[key] = options[key];
+  }
+
+  return [actualOptions, callback];
+}
+
+/**
+ * Resolve the specified path name in respect to tmpDir.
+ *
+ * The specified name might include relative path components, e.g. ../
+ * so we need to resolve in order to be sure that is is located inside tmpDir
+ *
+ * @private
+ */
+function _resolvePath(name, tmpDir, cb) {
+  const pathToResolve = path.isAbsolute(name) ? name : path.join(tmpDir, name);
+
+  fs.stat(pathToResolve, function (err) {
+    if (err) {
+      fs.realpath(path.dirname(pathToResolve), function (err, parentDir) {
+        if (err) return cb(err);
+
+        cb(null, path.join(parentDir, path.basename(pathToResolve)));
+      });
+    } else {
+      fs.realpath(pathToResolve, cb);
+    }
+  });
+}
+
+/**
+ * Resolve the specified path name in respect to tmpDir.
+ *
+ * The specified name might include relative path components, e.g. ../
+ * so we need to resolve in order to be sure that is is located inside tmpDir
+ *
+ * @private
+ */
+function _resolvePathSync(name, tmpDir) {
+  const pathToResolve = path.isAbsolute(name) ? name : path.join(tmpDir, name);
+
+  try {
+    fs.statSync(pathToResolve);
+    return fs.realpathSync(pathToResolve);
+  } catch (_err) {
+    const parentDir = fs.realpathSync(path.dirname(pathToResolve));
+
+    return path.join(parentDir, path.basename(pathToResolve));
+  }
+}
+
+/**
+ * Generates a new temporary name.
+ *
+ * @param {Object} opts
+ * @returns {string} the new random name according to opts
+ * @private
+ */
+function _generateTmpName(opts) {
+  const tmpDir = opts.tmpdir;
+
+  /* istanbul ignore else */
+  if (!_isUndefined(opts.name)) {
+    return path.join(tmpDir, opts.dir, opts.name);
+  }
+
+  /* istanbul ignore else */
+  if (!_isUndefined(opts.template)) {
+    return path.join(tmpDir, opts.dir, opts.template).replace(TEMPLATE_PATTERN, _randomChars(6));
+  }
+
+  // prefix and postfix
+  const name = [
+    opts.prefix ? opts.prefix : 'tmp',
+    '-',
+    process.pid,
+    '-',
+    _randomChars(12),
+    opts.postfix ? '-' + opts.postfix : ''
+  ].join('');
+
+  return path.join(tmpDir, opts.dir, name);
+}
+
+/**
+ * Asserts and sanitizes the basic options.
+ *
+ * @private
+ */
+function _assertOptionsBase(options) {
+  if (!_isUndefined(options.name)) {
+    const name = options.name;
+
+    // assert that name is not absolute and does not contain a path
+    if (path.isAbsolute(name)) throw new Error(`name option must not contain an absolute path, found "${name}".`);
+
+    // must not fail on valid .<name> or ..<name> or similar such constructs
+    const basename = path.basename(name);
+    if (basename === '..' || basename === '.' || basename !== name)
+      throw new Error(`name option must not contain a path, found "${name}".`);
+  }
+
+  /* istanbul ignore else */
+  if (!_isUndefined(options.template) && !options.template.match(TEMPLATE_PATTERN)) {
+    throw new Error(`Invalid template, found "${options.template}".`);
+  }
+
+  /* istanbul ignore else */
+  if ((!_isUndefined(options.tries) && isNaN(options.tries)) || options.tries < 0) {
+    throw new Error(`Invalid tries, found "${options.tries}".`);
+  }
+
+  // if a name was specified we will try once
+  options.tries = _isUndefined(options.name) ? options.tries || DEFAULT_TRIES : 1;
+  options.keep = !!options.keep;
+  options.detachDescriptor = !!options.detachDescriptor;
+  options.discardDescriptor = !!options.discardDescriptor;
+  options.unsafeCleanup = !!options.unsafeCleanup;
+
+  // for completeness' sake only, also keep (multiple) blanks if the user, purportedly sane, requests us to
+  options.prefix = _isUndefined(options.prefix) ? '' : options.prefix;
+  options.postfix = _isUndefined(options.postfix) ? '' : options.postfix;
+}
+
+/**
+ * Gets the relative directory to tmpDir.
+ *
+ * @private
+ */
+function _getRelativePath(option, name, tmpDir, cb) {
+  if (_isUndefined(name)) return cb(null);
+
+  _resolvePath(name, tmpDir, function (err, resolvedPath) {
+    if (err) return cb(err);
+
+    const relativePath = path.relative(tmpDir, resolvedPath);
+
+    if (!resolvedPath.startsWith(tmpDir)) {
+      return cb(new Error(`${option} option must be relative to "${tmpDir}", found "${relativePath}".`));
+    }
+
+    cb(null, relativePath);
+  });
+}
+
+/**
+ * Gets the relative path to tmpDir.
+ *
+ * @private
+ */
+function _getRelativePathSync(option, name, tmpDir) {
+  if (_isUndefined(name)) return;
+
+  const resolvedPath = _resolvePathSync(name, tmpDir);
+  const relativePath = path.relative(tmpDir, resolvedPath);
+
+  if (!resolvedPath.startsWith(tmpDir)) {
+    throw new Error(`${option} option must be relative to "${tmpDir}", found "${relativePath}".`);
+  }
+
+  return relativePath;
+}
+
+/**
+ * Asserts whether the specified options are valid, also sanitizes options and provides sane defaults for missing
+ * options.
+ *
+ * @private
+ */
+function _assertAndSanitizeOptions(options, cb) {
+  _getTmpDir(options, function (err, tmpDir) {
+    if (err) return cb(err);
+
+    options.tmpdir = tmpDir;
+
+    try {
+      _assertOptionsBase(options, tmpDir);
+    } catch (err) {
+      return cb(err);
+    }
+
+    // sanitize dir, also keep (multiple) blanks if the user, purportedly sane, requests us to
+    _getRelativePath('dir', options.dir, tmpDir, function (err, dir) {
+      if (err) return cb(err);
+
+      options.dir = _isUndefined(dir) ? '' : dir;
+
+      // sanitize further if template is relative to options.dir
+      _getRelativePath('template', options.template, tmpDir, function (err, template) {
+        if (err) return cb(err);
+
+        options.template = template;
+
+        cb(null, options);
+      });
+    });
+  });
+}
+
+/**
+ * Asserts whether the specified options are valid, also sanitizes options and provides sane defaults for missing
+ * options.
+ *
+ * @private
+ */
+function _assertAndSanitizeOptionsSync(options) {
+  const tmpDir = (options.tmpdir = _getTmpDirSync(options));
+
+  _assertOptionsBase(options, tmpDir);
+
+  const dir = _getRelativePathSync('dir', options.dir, tmpDir);
+  options.dir = _isUndefined(dir) ? '' : dir;
+
+  options.template = _getRelativePathSync('template', options.template, tmpDir);
+
+  return options;
+}
+
+/**
+ * Helper for testing against EBADF to compensate changes made to Node 7.x under Windows.
+ *
+ * @private
+ */
+function _isEBADF(error) {
+  return _isExpectedError(error, -EBADF, 'EBADF');
+}
+
+/**
+ * Helper for testing against ENOENT to compensate changes made to Node 7.x under Windows.
+ *
+ * @private
+ */
+function _isENOENT(error) {
+  return _isExpectedError(error, -ENOENT, 'ENOENT');
+}
+
+/**
+ * Helper to determine whether the expected error code matches the actual code and errno,
+ * which will differ between the supported node versions.
+ *
+ * - Node >= 7.0:
+ *   error.code {string}
+ *   error.errno {number} any numerical value will be negated
+ *
+ * CAVEAT
+ *
+ * On windows, the errno for EBADF is -4083 but os.constants.errno.EBADF is different and we must assume that ENOENT
+ * is no different here.
+ *
+ * @param {SystemError} error
+ * @param {number} errno
+ * @param {string} code
+ * @private
+ */
+function _isExpectedError(error, errno, code) {
+  return IS_WIN32 ? error.code === code : error.code === code && error.errno === errno;
+}
+
+/**
+ * Sets the graceful cleanup.
+ *
+ * If graceful cleanup is set, tmp will remove all controlled temporary objects on process exit, otherwise the
+ * temporary objects will remain in place, waiting to be cleaned up on system restart or otherwise scheduled temporary
+ * object removals.
+ */
+function setGracefulCleanup() {
+  _gracefulCleanup = true;
+}
+
+/**
+ * Returns the currently configured tmp dir from os.tmpdir().
+ *
+ * @private
+ */
+function _getTmpDir(options, cb) {
+  return fs.realpath((options && options.tmpdir) || os.tmpdir(), cb);
+}
+
+/**
+ * Returns the currently configured tmp dir from os.tmpdir().
+ *
+ * @private
+ */
+function _getTmpDirSync(options) {
+  return fs.realpathSync((options && options.tmpdir) || os.tmpdir());
+}
+
+// Install process exit listener
+process.addListener(EXIT, _garbageCollector);
+
+/**
+ * Configuration options.
+ *
+ * @typedef {Object} Options
+ * @property {?boolean} keep the temporary object (file or dir) will not be garbage collected
+ * @property {?number} tries the number of tries before give up the name generation
+ * @property (?int) mode the access mode, defaults are 0o700 for directories and 0o600 for files
+ * @property {?string} template the "mkstemp" like filename template
+ * @property {?string} name fixed name relative to tmpdir or the specified dir option
+ * @property {?string} dir tmp directory relative to the root tmp directory in use
+ * @property {?string} prefix prefix for the generated name
+ * @property {?string} postfix postfix for the generated name
+ * @property {?string} tmpdir the root tmp directory which overrides the os tmpdir
+ * @property {?boolean} unsafeCleanup recursively removes the created temporary directory, even when it's not empty
+ * @property {?boolean} detachDescriptor detaches the file descriptor, caller is responsible for closing the file, tmp will no longer try closing the file during garbage collection
+ * @property {?boolean} discardDescriptor discards the file descriptor (closes file, fd is -1), tmp will no longer try closing the file during garbage collection
+ */
+
+/**
+ * @typedef {Object} FileSyncObject
+ * @property {string} name the name of the file
+ * @property {string} fd the file descriptor or -1 if the fd has been discarded
+ * @property {fileCallback} removeCallback the callback function to remove the file
+ */
+
+/**
+ * @typedef {Object} DirSyncObject
+ * @property {string} name the name of the directory
+ * @property {fileCallback} removeCallback the callback function to remove the directory
+ */
+
+/**
+ * @callback tmpNameCallback
+ * @param {?Error} err the error object if anything goes wrong
+ * @param {string} name the temporary file name
+ */
+
+/**
+ * @callback fileCallback
+ * @param {?Error} err the error object if anything goes wrong
+ * @param {string} name the temporary file name
+ * @param {number} fd the file descriptor or -1 if the fd had been discarded
+ * @param {cleanupCallback} fn the cleanup callback function
+ */
+
+/**
+ * @callback fileCallbackSync
+ * @param {?Error} err the error object if anything goes wrong
+ * @param {string} name the temporary file name
+ * @param {number} fd the file descriptor or -1 if the fd had been discarded
+ * @param {cleanupCallbackSync} fn the cleanup callback function
+ */
+
+/**
+ * @callback dirCallback
+ * @param {?Error} err the error object if anything goes wrong
+ * @param {string} name the temporary file name
+ * @param {cleanupCallback} fn the cleanup callback function
+ */
+
+/**
+ * @callback dirCallbackSync
+ * @param {?Error} err the error object if anything goes wrong
+ * @param {string} name the temporary file name
+ * @param {cleanupCallbackSync} fn the cleanup callback function
+ */
+
+/**
+ * Removes the temporary created file or directory.
+ *
+ * @callback cleanupCallback
+ * @param {simpleCallback} [next] function to call whenever the tmp object needs to be removed
+ */
+
+/**
+ * Removes the temporary created file or directory.
+ *
+ * @callback cleanupCallbackSync
+ */
+
+/**
+ * Callback function for function composition.
+ * @see {@link https://github.com/raszi/node-tmp/issues/57|raszi/node-tmp#57}
+ *
+ * @callback simpleCallback
+ */
+
+// exporting all the needed methods
+
+// evaluate _getTmpDir() lazily, mainly for simplifying testing but it also will
+// allow users to reconfigure the temporary directory
+Object.defineProperty(module.exports, "tmpdir", ({
+  enumerable: true,
+  configurable: false,
+  get: function () {
+    return _getTmpDirSync();
+  }
+}));
+
+module.exports.dir = dir;
+module.exports.dirSync = dirSync;
+
+module.exports.file = file;
+module.exports.fileSync = fileSync;
+
+module.exports.tmpName = tmpName;
+module.exports.tmpNameSync = tmpNameSync;
+
+module.exports.setGracefulCleanup = setGracefulCleanup;
+
+
+/***/ }),
+/* 45 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("os");
+
+/***/ }),
+/* 46 */
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("crypto");
+
+/***/ }),
+/* 47 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTreeDataProvider = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const DagTreeItem_1 = __webpack_require__(48);
+const DagTreeView_1 = __webpack_require__(43);
+class DagTreeDataProvider {
+    constructor() {
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+        this.dagTreeItemList = [];
+        this.visibleDagList = [];
+    }
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+    loadDagTreeItemsFromApiResponse() {
+        this.dagTreeItemList = [];
+        if (this.dagList) {
+            for (var dag of this.dagList) {
+                if (dag) {
+                    let treeItem = new DagTreeItem_1.DagTreeItem(dag);
+                    this.dagTreeItemList.push(treeItem);
+                }
+            }
+        }
+    }
+    getChildren(element) {
+        if (!element) {
+            this.visibleDagList = this.getVisibleDagList();
+            return Promise.resolve(this.visibleDagList);
+        }
+        return Promise.resolve([]);
+    }
+    getVisibleDagList() {
+        var result = [];
+        for (var node of this.dagTreeItemList) {
+            if (DagTreeView_1.DagTreeView.Current.FilterString && !node.doesFilterMatch(DagTreeView_1.DagTreeView.Current.FilterString)) {
+                continue;
+            }
+            if (DagTreeView_1.DagTreeView.Current.ShowOnlyActive && node.IsPaused) {
+                continue;
+            }
+            if (DagTreeView_1.DagTreeView.Current.ShowOnlyFavorite && !node.IsFav) {
+                continue;
+            }
+            result.push(node);
+        }
+        return result;
+    }
+    getTreeItem(element) {
+        return element;
+    }
+}
+exports.DagTreeDataProvider = DagTreeDataProvider;
+
+
+/***/ }),
+/* 48 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTreeItem = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const DagTreeView_1 = __webpack_require__(43);
+class DagTreeItem extends vscode.TreeItem {
+    constructor(apiResponse) {
+        super(apiResponse.dag_id);
+        this.LatestDagRunId = '';
+        this.LatestDagState = '';
+        this._IsFav = false;
+        this.IsFiltered = false;
+        this.ApiResponse = apiResponse;
+        this.DagId = apiResponse.dag_id;
+        this.IsActive = apiResponse.is_active;
+        this.IsPaused = apiResponse.is_paused;
+        this.Owners = apiResponse.owners;
+        this.Tags = apiResponse.tags;
+        this.FileToken = apiResponse.file_token;
+        this._IsFav = DagTreeView_1.DagTreeView.Current.FavoriteDags.includes(this.DagId);
+        this.setContextValue();
+        this.refreshUI();
+    }
+    set IsFav(value) {
+        this._IsFav = value;
+        this.setContextValue();
+    }
+    get IsFav() {
+        return this._IsFav;
+    }
+    isDagRunning() {
+        return (this.LatestDagState === 'queued' || this.LatestDagState === 'running');
+    }
+    setContextValue() {
+        let contextValue = "#";
+        contextValue += this.IsFav ? "IsFav#" : "!IsFav#";
+        contextValue += this.IsPaused ? "IsPaused#" : "!IsPaused#";
+        contextValue += this.IsActive ? "IsActive#" : "!IsActive#";
+        contextValue += this.IsFiltered ? "IsFiltered#" : "!IsFiltered#";
+        contextValue += this.isDagRunning() ? "IsRunning#" : "!IsRunning#";
+        this.contextValue = contextValue;
+    }
+    refreshUI() {
+        if (this.IsPaused) {
+            this.iconPath = new vscode.ThemeIcon('circle-outline', new vscode.ThemeColor('disabledForeground'));
+            this.ApiResponse.is_paused = true;
+        }
+        else {
+            //"queued" "running" "success" "failed"
+            if (this.LatestDagState === 'queued') {
+                this.iconPath = new vscode.ThemeIcon('loading~spin', new vscode.ThemeColor('charts.yellow'));
+            }
+            else if (this.LatestDagState === 'running') {
+                this.iconPath = new vscode.ThemeIcon('loading~spin', new vscode.ThemeColor('charts.blue'));
+            }
+            else if (this.LatestDagState === 'success') {
+                this.iconPath = new vscode.ThemeIcon('check', new vscode.ThemeColor('testing.iconPassed'));
+            }
+            else if (this.LatestDagState === 'failed') {
+                this.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('testing.iconFailed'));
+            }
+            else {
+                this.iconPath = new vscode.ThemeIcon('circle-filled', new vscode.ThemeColor('charts.gray'));
+            }
+            this.ApiResponse.is_paused = false;
+        }
+        // Update context value to reflect current running state
+        this.setContextValue();
+    }
+    doesFilterMatch(filterString) {
+        let words = filterString.split(',');
+        words = words.map(word => word.trim());
+        this.IsFiltered = false;
+        for (const word of words) {
+            if (this.DagId.includes(word)) {
+                this.IsFiltered = true;
+                break;
+            }
+            if (this.Owners.includes(word)) {
+                this.IsFiltered = true;
+                break;
+            }
+            for (const t of this.Tags) {
+                if (t.name.includes(word)) {
+                    this.IsFiltered = true;
+                    break;
+                }
+            }
+        }
+        return this.IsFiltered;
+    }
+}
+exports.DagTreeItem = DagTreeItem;
+
 
 /***/ }),
 /* 49 */
@@ -10605,17 +9809,2804 @@ module.exports = require("worker_threads");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const tmp = __webpack_require__(44);
+const fs = __webpack_require__(3);
+const ui = __webpack_require__(2);
+const DagTreeView_1 = __webpack_require__(43);
+const MessageHub = __webpack_require__(50);
+const Session_1 = __webpack_require__(5);
+const AIHandler_1 = __webpack_require__(51);
+const DagLogView_1 = __webpack_require__(52);
+class DagView {
+    constructor(panel, dagId, dagRunId) {
+        this._disposables = [];
+        this.dagHistorySelectedDate = ui.toISODateString(new Date());
+        this.activetabid = "tab-1";
+        ui.logToOutput('DagView.constructor Started');
+        this.dagId = dagId;
+        this.dagRunId = dagRunId;
+        this._panel = panel;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadAllDagData();
+        ui.logToOutput('DagView.constructor Completed');
+    }
+    resetDagData() {
+        this.activetabid = "tab-1";
+        this.dagJson = undefined;
+        this.dagRunJson = undefined;
+        this.dagRunHistoryJson = undefined;
+        this.dagTaskInstancesJson = undefined;
+        this.dagTasksJson = undefined;
+        this.stopCheckingDagRunStatus();
+    }
+    async loadAllDagData() {
+        ui.logToOutput('DagView.loadAllDagData Started');
+        await this.getDagInfo();
+        if (this.dagRunId) {
+            await this.getDagRun();
+        }
+        else {
+            await this.getLastRun();
+        }
+        await this.getDagTasks();
+        //await this.getRunHistory();
+        await this.renderHmtl();
+    }
+    async loadDagInfoOnly() {
+        ui.logToOutput('DagView.loadDagInfoOnly Started');
+        await this.getDagInfo();
+        await this.renderHmtl();
+    }
+    async renderHmtl() {
+        ui.logToOutput('DagView.renderHmtl Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
+        //ui.showOutputMessage(this._panel.webview.html);
+        ui.logToOutput('DagView.renderHmtl Completed');
+    }
+    static render(dagId, dagRunId) {
+        ui.logToOutput('DagView.render Started');
+        if (DagView.Current) {
+            DagView.Current.dagId = dagId;
+            DagView.Current.dagRunId = dagRunId;
+            DagView.Current._panel.reveal(vscode.ViewColumn.Two);
+            DagView.Current.resetDagData();
+            DagView.Current.loadAllDagData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("dagView", "Dag View", vscode.ViewColumn.Two, {
+                enableScripts: true,
+            });
+            DagView.Current = new DagView(panel, dagId, dagRunId);
+        }
+    }
+    /**
+     * Helper method to create a temp file and open it
+     */
+    createAndOpenTempFile(content, prefix, extension) {
+        const tmpFile = tmp.fileSync({ mode: 0o644, prefix, postfix: extension });
+        fs.appendFileSync(tmpFile.name, content);
+        ui.openFile(tmpFile.name);
+    }
+    async getLastRun() {
+        ui.logToOutput('DagView.getLastRun Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getLastDagRun(this.dagId);
+        if (result.isSuccessful) {
+            this.dagRunJson = result.result;
+            this.dagRunId = this.dagRunJson.dag_run_id;
+            this.getTaskInstances();
+            if (this.dagRunJson && this.dagRunJson.state === "running") {
+                this.startCheckingDagRunStatus();
+            }
+        }
+    }
+    goToDagRun(dagId, dagRunId) {
+        this.dagId = dagId;
+        this.dagRunId = dagRunId;
+        this.getDagRun();
+    }
+    goToDag(dagId) {
+        this.dagId = dagId;
+        this.dagRunId = undefined;
+        this.getLastRun();
+    }
+    async getDagRun() {
+        ui.logToOutput('DagView.getDagRun Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getDagRun(this.dagId, this.dagRunId);
+        if (result.isSuccessful) {
+            this.dagRunJson = result.result;
+            this.dagRunId = this.dagRunJson.dag_run_id;
+            this.getTaskInstances();
+        }
+        await this.renderHmtl();
+    }
+    async getRunHistory(date) {
+        ui.logToOutput('DagView.getRunHistory Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getDagRunHistory(this.dagId, date);
+        if (result.isSuccessful) {
+            this.dagRunHistoryJson = result.result;
+        }
+    }
+    async getTaskInstances() {
+        ui.logToOutput('DagView.getTaskInstances Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getTaskInstances(this.dagId, this.dagRunId);
+        if (result.isSuccessful) {
+            this.dagTaskInstancesJson = result.result;
+        }
+    }
+    async getDagInfo() {
+        ui.logToOutput('DagView.getDagInfo Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getDagInfo(this.dagId);
+        if (result.isSuccessful) {
+            this.dagJson = result.result;
+        }
+    }
+    async getDagTasks() {
+        ui.logToOutput('DagView.getDagTasks Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getDagTasks(this.dagId);
+        if (result.isSuccessful) {
+            this.dagTasksJson = result.result;
+        }
+    }
+    dispose() {
+        ui.logToOutput('DagView.dispose Started');
+        DagView.Current = undefined;
+        // stop any running interval checks
+        this.stopCheckingDagRunStatus();
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('DagView._getWebviewContent Started');
+        //file URIs
+        const toolkitUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode-elements",
+            "elements",
+            "dist",
+            "bundled.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        //LATEST DAG RUN
+        let state = "";
+        let logical_date = undefined;
+        let start_date = undefined;
+        let end_date = undefined;
+        let logical_date_string = "";
+        let start_date_string = "";
+        let duration = "";
+        let isDagRunning = false;
+        let hasDagRun = false;
+        if (this.dagRunJson) {
+            state = this.dagRunJson.state;
+            logical_date = this.dagRunJson.logical_date;
+            start_date = this.dagRunJson.start_date;
+            end_date = this.dagRunJson.end_date;
+            logical_date_string = logical_date ? ui.toISODateTimeString(new Date(logical_date)) : "";
+            start_date_string = start_date ? ui.toISODateTimeString(new Date(start_date)) : "";
+            duration = start_date ? ui.getDuration(new Date(start_date), end_date ? new Date(end_date) : new Date()) : "";
+            isDagRunning = (state === "queued" || state === "running") ? true : false;
+            hasDagRun = true;
+        }
+        let runningOrFailedTasks = "";
+        if (this.dagTaskInstancesJson) {
+            for (const t of this.dagTaskInstancesJson["task_instances"]) {
+                if (t.state === "running" || t.state === "failed" || t.state === "up_for_retry" || t.state === "up_for_reschedule" || t.state === "deferred") {
+                    runningOrFailedTasks += `<span class="task-tag state-${t.state}">${t.task_id}</span> `;
+                }
+            }
+        }
+        //INFO TAB
+        let owners = (this.dagJson && Array.isArray(this.dagJson["owners"])) ? this.dagJson["owners"].join(", ") : "";
+        let tags = "";
+        if (this.dagJson && Array.isArray(this.dagJson["tags"])) {
+            this.dagJson["tags"].forEach((item) => { tags += `<span class="tag">${item.name}</span> `; });
+        }
+        let schedule = (this.dagJson && this.dagJson["timetable_description"]) ? this.dagJson["timetable_description"] + " - " + this.dagJson["timetable_summary"] : "";
+        let next_run = (this.dagJson && this.dagJson["next_dagrun_data_interval_start"]) ? ui.toISODateTimeString(new Date(this.dagJson["next_dagrun_data_interval_start"])) : "None";
+        let isPausedText = (this.dagJson) ? (this.dagJson.is_paused ? "true" : "false") : "unknown";
+        let isPaused = isPausedText === "true";
+        //TASKS TAB
+        let taskRows = "";
+        if (this.dagTaskInstancesJson) {
+            for (const t of this.dagTaskInstancesJson["task_instances"].sort((a, b) => (a.start_date > b.start_date) ? 1 : -1)) {
+                taskRows += `
+                <tr class="table-row">
+                    <td>
+                        <div style="display: flex; align-items: center;">
+                            <div class="state-indicator state-${t.state}" title="${t.state}" ></div>
+                            <span class="task-name">${t.task_id}</span> <span class="try-number">(${t.try_number})</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="action-links">
+                            <a href="#" class="link-button" id="task-log-link-${t.task_id}">Logs</a>
+                            <a href="#" class="link-button" id="task-xcom-link-${t.task_id}">XComs</a>
+                        </div>
+                    </td>
+                    <td><span class="duration-badge">${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</span></td>
+                    <td class="operator-type">${t.operator}</td>
+                </tr>
+                `;
+            }
+        }
+        // BUILD TASK DEPENDENCY TREE
+        let taskDependencyTree = "";
+        if (this.dagTasksJson && this.dagTasksJson.tasks && this.dagTasksJson.tasks.length > 0) {
+            taskDependencyTree = this.buildTaskDependencyTree(this.dagTasksJson.tasks);
+        }
+        //HISTORY TAB
+        let runHistoryRows = "";
+        if (this.dagRunHistoryJson) {
+            for (const t of this.dagRunHistoryJson["dag_runs"]) {
+                runHistoryRows += `
+                <tr class="table-row">
+                    <td>
+                        <div style="display: flex; align-items: center;">
+                            <div class="state-indicator state-${t.state}" title="${t.state}"></div>
+                            <span class="state-text">${t.state}</span>
+                        </div>
+                    </td>
+                    <td><a href="#" class="history-link" id="history-dag-run-id-${t.dag_run_id}">${ui.toISODateTimeString(new Date(t.start_date))}</a></td>
+                    <td><span class="duration-badge">${ui.getDuration(new Date(t.start_date), new Date(t.end_date))}</span></td>
+                    <td><span class="note-text">${t.note || ''}</span></td>
+                </tr>
+                `;
+            }
+        }
+        let result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <style>
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+            }
+
+            body {
+                padding: var(--spacing-md);
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+            }
+
+            a {
+                color: var(--vscode-textLink-foreground);
+                text-decoration: none;
+            }
+            a:hover {
+                text-decoration: underline;
+                color: var(--vscode-textLink-activeForeground);
+            }
+
+            /* Header Section */
+            .header-container {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-md);
+                margin-bottom: var(--spacing-lg);
+                padding-bottom: var(--spacing-md);
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            .dag-paused-indicator {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+            }
+            .dag-paused-true { background-color: var(--vscode-disabledForeground); }
+            .dag-paused-false { background-color: var(--vscode-testing-iconPassed); }
+
+            /* Tabs */
+            vscode-tabs {
+                border-radius: var(--border-radius);
+            }
+
+            section {
+                padding: 20px 0;
+            }
+
+            /* Tables */
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+            }
+            
+            th.section-header {
+                font-size: 13px;
+                color: var(--vscode-editor-foreground);
+                background-color: transparent;
+                border-bottom: 2px solid var(--vscode-button-background);
+                padding-bottom: 8px;
+                padding-left: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+
+            /* Detail Layouts */
+            .detail-row td:first-child {
+                width: 120px;
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+            }
+            .detail-row td:nth-child(2) {
+                width: 20px;
+                text-align: center;
+                color: var(--vscode-descriptionForeground);
+            }
+
+            /* States & Badges */
+            .state-indicator {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                margin-right: 8px;
+                display: inline-block;
+            }
+            /* Map existing state classes to colors if possible, or assume external CSS handles it */
+            
+            .task-tag {
+                display: inline-block;
+                padding: 2px 8px;
+                background-color: var(--vscode-badge-background);
+                color: var(--vscode-badge-foreground);
+                border-radius: 12px;
+                font-size: 11px;
+                margin-right: 4px;
+                margin-bottom: 4px;
+            }
+
+            .tag {
+                background-color: var(--vscode-textBlockQuote-background);
+                color: var(--vscode-textBlockQuote-border);
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 12px;
+                border: 1px solid var(--vscode-widget-border);
+            }
+
+            .duration-badge {
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                opacity: 0.8;
+            }
+
+            .operator-type {
+                font-style: italic;
+                color: var(--vscode-descriptionForeground);
+            }
+
+            .try-number {
+                font-size: 11px;
+                color: var(--vscode-descriptionForeground);
+                margin-left: 4px;
+            }
+
+            .action-links {
+                display: flex;
+                gap: 12px;
+            }
+
+            .link-button {
+                font-size: 12px;
+            }
+
+            /* Inputs */
+            input[type="date"], vscode-textfield, vscode-textarea {
+                width: 100%;
+                box-sizing: border-box;
+                font-family: inherit;
+            }
+            input[type="date"] {
+                padding: 6px;
+                border: 1px solid var(--vscode-input-border);
+                background-color: var(--vscode-input-background);
+                color: var(--vscode-input-foreground);
+                border-radius: 2px;
+            }
+
+            vscode-button {
+                margin-right: 8px;
+            }
+            
+            /* Utils */
+            .mt-md { margin-top: var(--spacing-md); }
+            .mb-md { margin-bottom: var(--spacing-md); }
+
+            /* Code block for JSON/Config */
+            .code-block {
+                font-family: var(--vscode-editor-font-family);
+                background-color: var(--vscode-textBlockQuote-background);
+                padding: 8px;
+                border-radius: 4px;
+                white-space: pre-wrap;
+                font-size: 12px;
+                max-height: 200px;
+                overflow-y: auto;
+            }
+
+        </style>
+        <title>DAG</title>
+      </head>
+      <body>  
+
+        <div class="header-container">
+            <div class="dag-paused-indicator dag-paused-${isPausedText}"></div>
+            <h2>${this.dagId}</h2>
+            <div style="visibility: ${isDagRunning ? "visible" : "hidden"}; display: flex; align-items: center;">
+                <vscode-progress-ring></vscode-progress-ring>
+            </div>
+        </div>
+                    
+        <vscode-tabs id="tab-control" selected-index="${this.activetabid === 'tab-1' ? 0 : this.activetabid === 'tab-2' ? 1 : this.activetabid === 'tab-3' ? 2 : 3}">
+            <vscode-tab-header slot="header">RUN</vscode-tab-header>
+            <vscode-tab-header slot="header">TASKS</vscode-tab-header>
+            <vscode-tab-header slot="header">INFO</vscode-tab-header>
+            <vscode-tab-header slot="header">HISTORY</vscode-tab-header>
+            
+            <vscode-tab-panel>
+                <section>
+                    <table>
+                        <tr>
+                            <th colspan="3" class="section-header">Dag Run Details</th>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>State</td>
+                            <td>:</td>
+                            <td>
+                                <div style="display: flex; align-items: center;">
+                                    <div class="state-indicator state-${state}"></div> <span>${state}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Tasks</td>
+                            <td>:</td>
+                            <td>${runningOrFailedTasks || '<span style="opacity:0.5">None active</span>'}</td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Logical Date</td>
+                            <td>:</td>
+                            <td>${logical_date_string}</td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>StartDate</td>
+                            <td>:</td>
+                            <td>${start_date_string}</td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Duration</td>
+                            <td>:</td>
+                            <td>${duration}</td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Note</td>
+                            <td>:</td>
+                            <td><a href="#" id="run-update-note-link" title="Click to update note">${this.dagRunJson?.note || '<span style="opacity:0.5; font-style:italic;">Add a note...</span>'}</a></td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Config</td>
+                            <td>:</td>
+                            <td><div class="code-block">${this.dagRunJson?.conf ? JSON.stringify(this.dagRunJson.conf, null, 2) : '{}'}</div></td>
+                        </tr>
+                    </table>
+                    
+                    <div class="mb-md">
+                        <vscode-button appearance="secondary" id="run-ask-ai" ${!hasDagRun ? "disabled" : ""}>Ask AI</vscode-button>    
+                        <vscode-button appearance="secondary" id="run-view-log" ${!hasDagRun ? "disabled" : ""}>Log</vscode-button> 
+                        <vscode-button appearance="secondary" id="run-lastrun-check" ${isPaused ? "disabled" : ""}>Refresh</vscode-button>  
+                        <vscode-button appearance="secondary" id="run-more-dagrun-detail" ${!hasDagRun ? "disabled" : ""}>More</vscode-button>
+                    </div>
+            
+                    <br>
+            
+                    <table>
+                        <tr>
+                            <th colspan="3" class="section-header">Trigger Run</th>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Logical Date</td>
+                            <td>:</td>
+                            <td><vscode-textfield id="run_date" placeholder="YYYY-MM-DD (Optional)" maxlength="10"></vscode-textfield></td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Config</td>
+                            <td>:</td>
+                            <td><vscode-textarea id="run_config" rows="3" placeholder='{"key": "value"}'></vscode-textarea></td>
+                        </tr>
+                    </table>
+                    
+                    <div class="mb-md">
+                        <vscode-button appearance="primary" id="run-trigger-dag" ${isPaused ? "disabled" : ""}>Run</vscode-button>
+                        <vscode-button appearance="secondary" id="run-lastrun-cancel" ${isPaused || !isDagRunning ? "disabled" : ""}>Cancel</vscode-button>  
+                    </div>
+
+                    <br>
+
+                    <table>
+                        <tr>
+                            <th colspan="3" class="section-header">Control</th>
+                        </tr>
+                    </table>
+                    <div class="mb-md">
+                         <vscode-button appearance="secondary" id="run-pause-dag" ${isPaused ? "disabled" : ""}>Pause</vscode-button>
+                         <vscode-button appearance="secondary" id="run-unpause-dag" ${!isPaused ? "disabled" : ""}>Unpause</vscode-button>
+                    </div>
+
+                    <br><br>
+                    
+                    <div style="opacity: 0.7; font-size: 12px; margin-top: 40px; border-top: 1px solid var(--vscode-widget-border); padding-top: 20px;">
+                        <div style="margin-bottom: 8px;"><a href="https://github.com/necatiarslan/airflow-vscode-extension/issues/new">Report Bug / Request Feature</a></div>
+                        <div style="margin-bottom: 8px;"><a href="https://bit.ly/airflow-extension-survey">New Feature Survey</a></div>
+                        <div><a href="https://github.com/sponsors/necatiarslan">Support this extension</a></div>
+                    </div>
+                </section>
+            </vscode-tab-panel>
+
+
+            <vscode-tab-panel>
+                <section>
+                    ${taskDependencyTree ? `
+                    <div style="margin-bottom: 20px; border: 1px solid var(--vscode-widget-border); border-radius: 4px; padding: 10px;">
+                        <vscode-tree>
+                        ${taskDependencyTree}
+                        </vscode-tree>
+                    </div>
+                    ` : ''}
+
+                    <table>
+                        <tr>
+                            <th>Task</th>
+                            <th>Actions</th>
+                            <th>Duration</th>            
+                            <th>Operator</th>
+                        </tr>
+                        ${taskRows}
+                    </table>
+                    
+                    <div>
+                        <vscode-button appearance="secondary" id="tasks-refresh">Refresh</vscode-button>
+                        <vscode-button appearance="secondary" id="tasks-more-detail" ${!this.dagTaskInstancesJson ? "disabled" : ""}>Raw JSON</vscode-button>
+                    </div>
+
+                </section>
+            </vscode-tab-panel>
+            
+            <vscode-tab-panel>
+                <section>
+                    <table>
+                        <tr class="detail-row">
+                            <td>Owners</td>
+                            <td>:</td>
+                            <td>${owners}</td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Tags</td>
+                            <td>:</td>
+                            <td>${tags}</td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Schedule</td>
+                            <td>:</td>
+                            <td>${schedule}</td>
+                        </tr>
+                        <tr class="detail-row">
+                            <td>Next Run</td>
+                            <td>:</td>
+                            <td>${next_run}</td>
+                        </tr>
+                    </table>
+                    
+                    <div>
+                        <vscode-button appearance="secondary" id="info-source-code">Source Code</vscode-button> 
+                        <vscode-button appearance="secondary" id="other-dag-detail">Raw JSON</vscode-button>
+                    </div>
+                </section>
+            </vscode-tab-panel>
+
+            <vscode-tab-panel>
+                <section>                    
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; background: var(--vscode-editor-inactiveSelectionBackground); padding: 10px; border-radius: 4px;">
+                        <label for="history_date" style="font-weight: 600;">Filter Date:</label>
+                        <input type="date" id="history_date" value="${this.dagHistorySelectedDate}" style="width: 150px;">
+                        <vscode-button appearance="secondary" id="history-load-runs">Load Runs</vscode-button>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>State</th>
+                                <th>Start Time</th>            
+                                <th>Duration</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${runHistoryRows}
+                        </tbody>
+                    </table>   
+                </section>
+            </vscode-tab-panel>
+
+        </vscode-tabs>
+      </body>
+    </html>
+    `;
+        ui.logToOutput('DagView._getWebviewContent Completed');
+        return result;
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('DagView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            const command = message.command;
+            let activetabid = message.activetabid;
+            if (["tab-1", "tab-2", "tab-3", "tab-4"].includes(activetabid)) {
+                this.activetabid = message.activetabid;
+            }
+            ui.logToOutput('DagView._setWebviewMessageListener Message Received ' + message.command);
+            switch (command) {
+                case "run-trigger-dag":
+                    this.triggerDagWConfig(message.config, message.date);
+                    return;
+                case "run-view-log":
+                    this.showDAGRunLog();
+                    return;
+                case "run-more-dagrun-detail":
+                    ui.showOutputMessage(this.dagRunJson);
+                    return;
+                case "other-dag-detail":
+                    ui.showOutputMessage(this.dagJson);
+                    return;
+                case "tasks-more-detail":
+                    ui.showOutputMessage(this.dagTaskInstancesJson);
+                    return;
+                case "history-load-runs":
+                    this.getRunHistoryAndRenderHtml(message.date);
+                    return;
+                case "info-source-code":
+                    this.showSourceCode();
+                    return;
+                case "run-pause-dag":
+                    this.pauseDAG(true);
+                    return;
+                case "run-unpause-dag":
+                    this.pauseDAG(false);
+                    return;
+                case "run-ask-ai":
+                    this.askAI();
+                    return;
+                case "run-lastrun-check":
+                    this.getLastRun();
+                    if (this.dagRunJson) {
+                        this.startCheckingDagRunStatus();
+                    }
+                    return;
+                case "run-lastrun-cancel":
+                    if (this.dagRunJson) {
+                        this.cancelDagRun();
+                    }
+                    return;
+                case "run-update-note":
+                    if (this.dagRunJson) {
+                        this.updateDagRunNote();
+                    }
+                    return;
+                case "history-dag-run-id":
+                    let dagRunId = message.id;
+                    dagRunId = dagRunId.replace("history-dag-run-id-", "");
+                    this.activetabid = "tab-1";
+                    this.dagRunId = dagRunId;
+                    this.getDagRun();
+                    return;
+                case "task-log-link":
+                    let taskId = message.id;
+                    taskId = taskId.replace("task-log-link-", "");
+                    this.showTaskInstanceLog(this.dagId, this.dagRunId, taskId);
+                    return;
+                case "task-xcom-link":
+                    let xcomTaskId = message.id;
+                    xcomTaskId = xcomTaskId.replace("task-xcom-link-", "");
+                    this.showTaskXComs(this.dagId, this.dagRunId, xcomTaskId);
+                    return;
+                case "tasks-refresh":
+                    this.getTasksAndRenderHtml();
+                    return;
+                case "tabControlChanged":
+                    this.activetabid = message.activeid;
+                    ui.logToOutput("tab changed to " + message.activeid);
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+    async getTasksAndRenderHtml() {
+        await this.getDagTasks();
+        await this.renderHmtl();
+    }
+    async cancelDagRun() {
+        ui.logToOutput('DagView.cancelDagRun Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.cancelDagRun(this.dagId, this.dagRunId);
+        if (result.isSuccessful) {
+            //ui.showInfoMessage(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
+            ui.logToOutput(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
+            await this.getDagRun();
+            MessageHub.DagRunCancelled(this, this.dagId, this.dagRunId);
+        }
+    }
+    async updateDagRunNote() {
+        ui.logToOutput('DagView.updateDagRunNote Started');
+        if (!Session_1.Session.Current.Api || !this.dagRunJson) {
+            return;
+        }
+        // Show input box with current note as default value
+        const newNote = await vscode.window.showInputBox({
+            prompt: 'Enter note for this DAG run',
+            value: this.dagRunJson.note || '',
+            placeHolder: 'Add a note for this DAG run'
+        });
+        // User cancelled the input
+        if (newNote === undefined) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.updateDagRunNote(this.dagId, this.dagRunId, newNote);
+        if (result.isSuccessful) {
+            // Refresh the DAG run to get the updated note
+            await this.getDagRun();
+        }
+    }
+    async pauseDAG(is_paused) {
+        ui.logToOutput('DagView.pauseDAG Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        if (is_paused && this.dagJson.is_paused) {
+            ui.showWarningMessage(this.dagId + 'Dag is already PAUSED');
+            return;
+        }
+        if (!is_paused && !this.dagJson.is_paused) {
+            ui.showWarningMessage(this.dagId + 'Dag is already ACTIVE');
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.pauseDag(this.dagId, is_paused);
+        if (result.isSuccessful) {
+            this.loadDagInfoOnly();
+            is_paused ? MessageHub.DagPaused(this, this.dagId) : MessageHub.DagUnPaused(this, this.dagId);
+        }
+    }
+    async askAI() {
+        ui.logToOutput('DagView.askAI Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        if (!DagTreeView_1.DagTreeView.Current) {
+            ui.showErrorMessage('DagTreeView is not available');
+            return;
+        }
+        if (!this.dagJson) {
+            ui.showErrorMessage('DAG information is not available');
+            return;
+        }
+        const code = await Session_1.Session.Current.Api.getSourceCode(this.dagId, this.dagJson.file_token);
+        if (!code.isSuccessful) {
+            ui.showErrorMessage('Failed to retrieve DAG source code for AI context');
+            return;
+        }
+        const logs = await Session_1.Session.Current.Api.getDagRunLogText(this.dagId, this.dagRunId);
+        if (!logs.isSuccessful) {
+            ui.showErrorMessage('Failed to retrieve DAG logs for AI context');
+            return;
+        }
+        // Call the askAI function from DagTreeView
+        await AIHandler_1.AIHandler.Current.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
+    }
+    async showSourceCode() {
+        ui.logToOutput('DagView.showSourceCode Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getSourceCode(this.dagId, this.dagJson.file_token);
+        if (result.isSuccessful) {
+            this.createAndOpenTempFile(result.result, this.dagId, '.py');
+        }
+        else {
+            ui.logToOutput(result.result);
+            ui.showErrorMessage(result.result);
+        }
+    }
+    async getRunHistoryAndRenderHtml(date) {
+        ui.logToOutput('DagView.getRunHistoryAndRenderHtml Started');
+        this.dagHistorySelectedDate = date;
+        await this.getRunHistory(date);
+        await this.renderHmtl();
+    }
+    async showDAGRunLog() {
+        ui.logToOutput('DagView.showDAGRunLog Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        // const result = await Session.Current.Api.getDagRunLogText(this.dagId, this.dagRunId);
+        // if (result.isSuccessful) {
+        //     this.createAndOpenTempFile(result.result, this.dagId, '.log');
+        // }
+        DagLogView_1.DagLogView.render(this.dagId, this.dagRunId);
+    }
+    async showTaskInstanceLog(dagId, dagRunId, taskId) {
+        ui.logToOutput('DagView.showTaskInstanceLog Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        // const result = await Session.Current.Api.getTaskInstanceLogText(dagId, dagRunId, taskId);
+        // if (result.isSuccessful) {
+        //     this.createAndOpenTempFile(result.result, dagId + '-' + taskId, '.log');
+        // }
+        DagLogView_1.DagLogView.render(dagId, dagRunId, taskId);
+    }
+    async showTaskXComs(dagId, dagRunId, taskId) {
+        ui.logToOutput('DagView.showTaskXComs Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getTaskXComs(dagId, dagRunId, taskId);
+        if (result.isSuccessful) {
+            this.createAndOpenTempFile(JSON.stringify(result.result, null, 2), dagId + '-' + taskId + '_xcom', '.json');
+        }
+        else {
+            ui.showInfoMessage(`No XCom entries found for task: ${taskId}`);
+        }
+    }
+    async triggerDagWConfig(config = "", date = "") {
+        ui.logToOutput('DagView.triggerDagWConfig Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        if (config && !ui.isJsonString(config)) {
+            ui.showWarningMessage("Config is not a valid JSON");
+            return;
+        }
+        if (date && !ui.isValidDate(date)) {
+            ui.showWarningMessage("Date is not a valid DATE");
+            return;
+        }
+        if (!config) {
+            config = "{}";
+        }
+        if (config !== undefined) {
+            const result = await Session_1.Session.Current.Api.triggerDag(this.dagId, config, date);
+            if (result.isSuccessful) {
+                this.dagRunId = result.result["dag_run_id"];
+                this.startCheckingDagRunStatus();
+                MessageHub.DagTriggered(this, this.dagId, this.dagRunId);
+            }
+        }
+    }
+    async startCheckingDagRunStatus() {
+        ui.logToOutput('DagView.startCheckingDagRunStatus Started');
+        await this.refreshRunningDagState(this);
+        if (this.dagStatusInterval) {
+            clearInterval(this.dagStatusInterval); //stop prev checking
+        }
+        this.dagStatusInterval = setInterval(() => {
+            void this.refreshRunningDagState(this).catch((err) => ui.logToOutput('refreshRunningDagState Error', err));
+        }, 5 * 1000);
+    }
+    async stopCheckingDagRunStatus() {
+        ui.logToOutput('DagView.stopCheckingDagRunStatus Started');
+        if (this.dagStatusInterval) {
+            clearInterval(this.dagStatusInterval); //stop prev checking
+        }
+    }
+    async refreshRunningDagState(dagView) {
+        ui.logToOutput('DagView.refreshRunningDagState Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        if (!dagView.dagId || !dagView.dagRunId) {
+            dagView.stopCheckingDagRunStatus();
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getDagRun(dagView.dagId, dagView.dagRunId);
+        if (result.isSuccessful) {
+            dagView.dagRunJson = result.result;
+            const resultTasks = await Session_1.Session.Current.Api.getTaskInstances(dagView.dagId, dagView.dagRunId);
+            if (resultTasks.isSuccessful) {
+                dagView.dagTaskInstancesJson = resultTasks.result;
+            }
+        }
+        else {
+            dagView.stopCheckingDagRunStatus();
+            return;
+        }
+        let state = (dagView.dagRunJson) ? dagView.dagRunJson.state : "";
+        //"queued" "running" "success" "failed"
+        if (state === "queued" || state === "running") {
+            //go on for the next check
+        }
+        else {
+            dagView.stopCheckingDagRunStatus();
+        }
+        dagView.renderHmtl();
+    }
+    buildTaskDependencyTree(tasks) {
+        ui.logToOutput('DagView.buildTaskDependencyTree Started');
+        // Create a map for quick task lookup
+        const taskMap = new Map();
+        tasks.forEach(task => {
+            taskMap.set(task.task_id, task);
+        });
+        // Find root tasks (tasks with no upstream dependencies)
+        const rootTasks = tasks.filter(task => !task.upstream_task_ids || task.upstream_task_ids.length === 0);
+        if (rootTasks.length === 0) {
+            return "No task dependencies found or circular dependencies detected.";
+        }
+        // Build tree recursively
+        const visited = new Set();
+        let treeHtml = "";
+        const buildTree = (taskId) => {
+            if (visited.has(taskId)) {
+                return ""; // Prevent infinite loops and duplicates in this spanning tree view
+            }
+            visited.add(taskId);
+            const task = taskMap.get(taskId);
+            if (!task) {
+                return "";
+            }
+            let itemHtml = `<vscode-tree-item>\n`;
+            itemHtml += `${task.task_id}\n`;
+            // Get downstream tasks
+            const downstreamIds = task.downstream_task_ids || [];
+            if (downstreamIds.length > 0) {
+                downstreamIds.forEach((downstreamId) => {
+                    itemHtml += buildTree(downstreamId);
+                });
+            }
+            itemHtml += `</vscode-tree-item>\n`;
+            return itemHtml;
+        };
+        // Build tree for each root task
+        rootTasks.forEach((rootTask) => {
+            treeHtml += buildTree(rootTask.task_id);
+        });
+        return treeHtml || "No tasks to display.";
+    }
+}
+exports.DagView = DagView;
+
+
+/***/ }),
+/* 50 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagTriggered = DagTriggered;
+exports.DagRunCancelled = DagRunCancelled;
+exports.DagPaused = DagPaused;
+exports.DagUnPaused = DagUnPaused;
+const DagView_1 = __webpack_require__(49);
+const DagTreeView_1 = __webpack_require__(43);
+function DagTriggered(source, dagId, dagRunId) {
+    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
+        DagView_1.DagView.Current.goToDagRun(dagId, dagRunId);
+    }
+    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
+        DagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(dagId, dagRunId, "queued");
+    }
+}
+function DagRunCancelled(source, dagId, dagRunId) {
+    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
+        DagView_1.DagView.Current.goToDagRun(dagId, dagRunId);
+    }
+    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
+        DagTreeView_1.DagTreeView.Current?.notifyDagStateWithDagId(dagId, dagRunId, "failed");
+    }
+}
+function DagPaused(source, dagId) {
+    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
+        DagView_1.DagView.Current.loadDagInfoOnly();
+    }
+    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
+        DagTreeView_1.DagTreeView.Current?.notifyDagPaused(dagId);
+    }
+}
+function DagUnPaused(source, dagId) {
+    if (!(source instanceof DagView_1.DagView) && DagView_1.DagView.Current && DagView_1.DagView.Current.dagId === dagId) {
+        DagView_1.DagView.Current.loadDagInfoOnly();
+    }
+    if (!(source instanceof DagTreeView_1.DagTreeView) && DagTreeView_1.DagTreeView.Current) {
+        DagTreeView_1.DagTreeView.Current?.notifyDagUnPaused(dagId);
+    }
+}
+
+
+/***/ }),
+/* 51 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AIHandler = void 0;
+const Session_1 = __webpack_require__(5);
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(2);
+class AIHandler {
+    constructor() {
+        AIHandler.Current = this;
+    }
+    async aIHandler(request, context, stream, token) {
+        const aiContext = AIHandler.Current?.askAIContext;
+        // 1. Define the tools we want to expose to the model
+        // These must match the definitions in package.json
+        const tools = [
+            {
+                name: 'list_active_dags',
+                description: 'Lists all Airflow DAGs that are currently active (not paused). Returns a list of DAG IDs and their details.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'list_paused_dags',
+                description: 'Lists all Airflow DAGs that are currently paused. Returns a list of DAG IDs and their details.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'get_running_dags',
+                description: 'Lists all Airflow DAGs that currently have running or queued DAG runs. Use this when asked about running, executing, or in-progress DAGs. Returns DAG IDs with run states and run IDs.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'pause_dag',
+                description: 'Pauses a specific Airflow DAG. Required input: dag_id (string).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The unique identifier (ID) of the DAG to pause' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'unpause_dag',
+                description: 'Unpauses (activates) a specific Airflow DAG. Required input: dag_id (string).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The unique identifier (ID) of the DAG to unpause' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'trigger_dag_run',
+                description: 'Triggers a DAG run. Inputs: dag_id (string), config_json (string, optional), date (string, optional).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' },
+                        configJson: { type: 'string', description: 'JSON configuration or file path' },
+                        date: { type: 'string', description: 'Logical date in ISO 8601 format' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'get_failed_runs',
+                description: 'Gets failed DAG runs. Inputs: time_range_hours (number), dag_id_filter (string).',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        timeRangeHours: { type: 'number' },
+                        dagIdFilter: { type: 'string' }
+                    },
+                    required: []
+                }
+            },
+            {
+                name: 'get_dag_runs',
+                description: 'Retrieves DAG runs for a given DAG. Optional date (YYYY-MM-DD). Returns run id, start time, duration, status.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' },
+                        date: { type: 'string', description: 'Optional date filter YYYY-MM-DD' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'get_dag_history',
+                description: 'Retrieves DAG run history for a given date (defaults to today). Returns date/time, status, duration, note.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' },
+                        date: { type: 'string', description: 'Optional date filter YYYY-MM-DD' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'cancel_dag_run',
+                description: 'Cancels the currently running DAG run for the given DAG. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'analyse_dag_latest_run',
+                description: 'Comprehensive analysis of the latest DAG run including tasks, source code, and logs. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'get_dag_run_detail',
+                description: 'Comprehensive analysis of a specific DAG run by run ID. Analyzes tasks, source code, and logs for the specified run. Required: dag_id, dag_run_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' },
+                        dagRunId: { type: 'string', description: 'The DAG run ID to analyze' }
+                    },
+                    required: ['dagId', 'dagRunId']
+                }
+            },
+            {
+                name: 'get_today',
+                description: 'Returns the current system date in multiple formats. Use when asked about today\'s date or current date. Helpful for date filtering operations. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_dag_view',
+                description: 'Opens the DAG View panel to display information about a specific DAG. Optional: provide dag_run_id to view a specific run. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID to view' },
+                        dagRunId: { type: 'string', description: 'Optional DAG run ID to navigate to a specific run' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'go_to_dag_log_view',
+                description: 'Opens the DAG Log View panel to display task logs for a specific Airflow DAG. Required: dag_id. Optional: dag_run_id, task_id, try_number.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID' },
+                        dagRunId: { type: 'string', description: 'Optional: The DAG run ID' },
+                        taskId: { type: 'string', description: 'Optional: The Task ID' },
+                        tryNumber: { type: 'number', description: 'Optional: The try number' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'go_to_dag_run_history',
+                description: 'Opens the DAG Run History panel with optional filters. Shows run history for a DAG with optional date range and status filters. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID to view history for' },
+                        startDate: { type: 'string', description: 'Optional start date filter (YYYY-MM-DD format)' },
+                        endDate: { type: 'string', description: 'Optional end date filter (YYYY-MM-DD format)' },
+                        status: { type: 'string', description: 'Optional status filter (success, failed, running, queued, upstream_failed)' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
+                name: 'go_to_providers_view',
+                description: 'Opens the Providers View panel to display installed Airflow providers. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_connections_view',
+                description: 'Opens the Connections View panel to display Airflow connections. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_variables_view',
+                description: 'Opens the Variables View panel to display Airflow variables. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_configs_view',
+                description: 'Opens the Configs View panel to display Airflow configuration settings. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_plugins_view',
+                description: 'Opens the Plugins View panel to display installed Airflow plugins. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            },
+            {
+                name: 'go_to_server_health_view',
+                description: 'Opens the Server Health View panel to display Airflow server health status. No inputs required.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {},
+                    required: []
+                }
+            }
+        ];
+        // 2. Construct the Initial Messages
+        const messages = [
+            vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. You have access to tools to manage DAGs, view logs, and check status. Use them when appropriate.`)
+        ];
+        // Add context if available
+        if (aiContext) {
+            messages.push(vscode.LanguageModelChatMessage.User(`Context:\nDAG: ${aiContext.dag || 'N/A'}\nLogs: ${aiContext.logs || 'N/A'}\nCode: ${aiContext.code || 'N/A'}`));
+        }
+        messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
+        // 3. Select Model and Send Request
+        try {
+            const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4' });
+            if (!model) {
+                stream.markdown("No suitable AI model found.");
+                return;
+            }
+            // Tool calling loop
+            let keepGoing = true;
+            while (keepGoing && !token.isCancellationRequested) {
+                keepGoing = false; // Default to stop unless we get a tool call
+                const chatResponse = await model.sendRequest(messages, { tools }, token);
+                let toolCalls = [];
+                for await (const fragment of chatResponse.text) {
+                    stream.markdown(fragment);
+                }
+                // Collect tool calls from the response
+                for await (const part of chatResponse.stream) {
+                    if (part instanceof vscode.LanguageModelToolCallPart) {
+                        toolCalls.push(part);
+                    }
+                }
+                // Execute tools if any were called
+                if (toolCalls.length > 0) {
+                    keepGoing = true; // We need to send results back to the model
+                    // Add the model's response (including tool calls) to history
+                    messages.push(vscode.LanguageModelChatMessage.Assistant(toolCalls));
+                    for (const toolCall of toolCalls) {
+                        stream.progress(`Running tool: ${toolCall.name}...`);
+                        try {
+                            // Invoke the tool using VS Code LM API
+                            const result = await vscode.lm.invokeTool(toolCall.name, { input: toolCall.input }, token);
+                            // Convert result to string/text part
+                            const resultText = result.content
+                                .filter(part => part instanceof vscode.LanguageModelTextPart)
+                                .map(part => part.value)
+                                .join('\n');
+                            // Add result to history
+                            messages.push(vscode.LanguageModelChatMessage.User([
+                                new vscode.LanguageModelToolResultPart(toolCall.callId, [new vscode.LanguageModelTextPart(resultText)])
+                            ]));
+                        }
+                        catch (err) {
+                            const errorMessage = `Tool execution failed: ${err instanceof Error ? err.message : String(err)}`;
+                            messages.push(vscode.LanguageModelChatMessage.User([
+                                new vscode.LanguageModelToolResultPart(toolCall.callId, [new vscode.LanguageModelTextPart(errorMessage)])
+                            ]));
+                        }
+                    }
+                }
+            }
+        }
+        catch (err) {
+            if (err instanceof Error) {
+                stream.markdown(`I'm sorry, I couldn't connect to the AI model: ${err.message}`);
+            }
+            else {
+                stream.markdown("I'm sorry, I couldn't connect to the AI model.");
+            }
+        }
+    }
+    ;
+    async isChatCommandAvailable() {
+        const commands = await vscode.commands.getCommands(true); // 'true' includes internal commands
+        return commands.includes('workbench.action.chat.open');
+    }
+    async askAI(dagId, fileToken) {
+        ui.logToOutput('DagTreeView.askAI Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        if (!await this.isChatCommandAvailable()) {
+            ui.showErrorMessage('Chat command is not available. Please ensure you have access to VS Code AI features.');
+            return;
+        }
+        let dagSourceCode = '';
+        let latestDagLogs = '';
+        // Fetch DAG Source Code
+        const sourceResult = await Session_1.Session.Current.Api.getSourceCode(dagId, fileToken);
+        if (sourceResult.isSuccessful) {
+            dagSourceCode = sourceResult.result;
+        }
+        else {
+            ui.showErrorMessage('Failed to fetch DAG source code for AI analysis.');
+            return;
+        }
+        // Fetch Latest DAG Run Logs
+        const logResult = await Session_1.Session.Current.Api.getLastDagRunLogText(dagId);
+        if (logResult.isSuccessful) {
+            latestDagLogs = logResult.result;
+        }
+        else {
+            ui.showErrorMessage('Failed to fetch latest DAG run logs for AI analysis.');
+            return;
+        }
+        await this.askAIWithContext({ code: dagSourceCode, logs: latestDagLogs, dag: dagId, dagRun: null, tasks: null, taskInstances: null });
+    }
+    async askAIWithContext(askAIContext) {
+        this.askAIContext = askAIContext;
+        const appName = vscode.env.appName;
+        let commandId = '';
+        if (appName.includes('Antigravity')) {
+            // Antigravity replaces the Chat with an Agent workflow.
+            // We must use the Agent Manager command instead.
+            // **REPLACE WITH THE ACTUAL ANTIGRAVITY AGENT COMMAND ID**
+            commandId = 'antigravity.startAgentTask';
+        }
+        else if (appName.includes('Code - OSS') || appName.includes('Visual Studio Code')) {
+            // This is standard VS Code or VSCodium. Check for the legacy Chat command.
+            commandId = 'workbench.action.chat.open';
+        }
+        else {
+            // Unknown environment, default to checking if the command exists at all.
+            commandId = 'workbench.action.chat.open';
+        }
+        await vscode.commands.executeCommand(commandId, {
+            query: '@airflow Analyze the current logs'
+        });
+    }
+}
+exports.AIHandler = AIHandler;
+
+
+/***/ }),
+/* 52 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagLogView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(2);
+const Session_1 = __webpack_require__(5);
+class DagLogView {
+    constructor(panel, dagId, dagRunId, taskId, tryNumber) {
+        this._disposables = [];
+        this.logs = new Map(); // taskId -> logJson
+        ui.logToOutput('DagLogView.constructor Started');
+        this._panel = panel;
+        this.dagId = dagId;
+        this.dagRunId = dagRunId;
+        this.taskId = taskId;
+        this.tryNumber = tryNumber;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('DagLogView.constructor Completed');
+    }
+    static render(dagId, dagRunId, taskId, tryNumber) {
+        ui.logToOutput('DagLogView.render Started');
+        if (DagLogView.Current) {
+            DagLogView.Current.dagId = dagId;
+            DagLogView.Current.dagRunId = dagRunId;
+            DagLogView.Current.taskId = taskId;
+            DagLogView.Current.tryNumber = tryNumber;
+            DagLogView.Current._panel.reveal(vscode.ViewColumn.One);
+            DagLogView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("dagLogView", "DAG Logs", vscode.ViewColumn.One, {
+                enableScripts: true,
+                retainContextWhenHidden: true
+            });
+            DagLogView.Current = new DagLogView(panel, dagId, dagRunId, taskId, tryNumber);
+        }
+    }
+    async loadData() {
+        ui.logToOutput('DagLogView.loadData Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        // 1. Resolve dagRunId if missing
+        if (!this.dagRunId) {
+            const lastRunResult = await Session_1.Session.Current.Api.getLastDagRun(this.dagId);
+            if (lastRunResult.isSuccessful && lastRunResult.result) {
+                this.dagRunJson = lastRunResult.result;
+                this.dagRunId = this.dagRunJson.dag_run_id;
+            }
+            else {
+                ui.showErrorMessage("Could not fetch latest DAG run.");
+                return;
+            }
+        }
+        else {
+            // Fetch specific dag run details
+            const runResult = await Session_1.Session.Current.Api.getDagRun(this.dagId, this.dagRunId);
+            if (runResult.isSuccessful) {
+                this.dagRunJson = runResult.result;
+            }
+        }
+        // 2. Fetch Task Instances
+        if (this.dagRunId) {
+            const tasksResult = await Session_1.Session.Current.Api.getTaskInstances(this.dagId, this.dagRunId);
+            if (tasksResult.isSuccessful && tasksResult.result) {
+                this.taskInstancesJson = tasksResult.result;
+            }
+        }
+        // 3. Clear logs cache on reload
+        this.logs.clear();
+        // 4. Fetch logs for tasks
+        const tasks = this._getTasks();
+        // Use Promise.all to fetch concurrently
+        await Promise.all(tasks.map(t => {
+            let tryNum = t.try_number;
+            // If specific task requested AND specific try requested, use that.
+            if (this.taskId && t.task_id === this.taskId && this.tryNumber !== undefined) {
+                tryNum = this.tryNumber;
+            }
+            return this.fetchLogForTask(t.task_id, tryNum);
+        }));
+        await this.renderHtml();
+    }
+    _getTasks() {
+        if (!this.taskInstancesJson || !this.taskInstancesJson.task_instances) {
+            return [];
+        }
+        let tasks = [...this.taskInstancesJson.task_instances];
+        // Filter by taskId if provided
+        if (this.taskId) {
+            tasks = tasks.filter((t) => t.task_id === this.taskId);
+        }
+        return tasks.sort((a, b) => {
+            const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+            const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
+            return dateA - dateB;
+        });
+    }
+    async fetchLogForTask(taskId, tryNum) {
+        if (!this.dagRunId) {
+            return;
+        }
+        let targetTryNumber = tryNum;
+        if (targetTryNumber === undefined) {
+            const task = this.taskInstancesJson.task_instances.find((t) => t.task_id === taskId);
+            if (task) {
+                targetTryNumber = task.try_number;
+            }
+            else {
+                targetTryNumber = 1;
+            }
+        }
+        if (this.logs.has(taskId)) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api?.getTaskInstanceLog(this.dagId, this.dagRunId, taskId, targetTryNumber);
+        if (result?.isSuccessful) {
+            this.logs.set(taskId, result.result);
+        }
+    }
+    async renderHtml() {
+        ui.logToOutput('DagLogView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
+    }
+    dispose() {
+        DagLogView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        const elementsUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode-elements",
+            "elements",
+            "dist",
+            "bundled.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        const tasks = this._getTasks();
+        // Metadata
+        const dagRun = this.dagRunJson || {};
+        const startDate = dagRun.start_date ? ui.toISODateTimeString(new Date(dagRun.start_date)) : 'N/A';
+        const endDate = dagRun.end_date ? ui.toISODateTimeString(new Date(dagRun.end_date)) : 'Running';
+        const duration = dagRun.start_date ? ui.getDuration(new Date(dagRun.start_date), dagRun.end_date ? new Date(dagRun.end_date) : new Date()) : 'N/A';
+        const status = dagRun.state || 'N/A';
+        const taskSections = tasks.map(t => {
+            const logData = this.logs.get(t.task_id);
+            let contentHtml = '';
+            const isSuccess = t.state === 'success';
+            const isError = ['failed', 'upstream_failed', 'shutdown', 'restart'].includes(t.state);
+            let statusClass = 'status-other';
+            if (isSuccess)
+                statusClass = 'status-success';
+            if (isError)
+                statusClass = 'status-error';
+            let displayTry = t.try_number;
+            if (this.taskId && t.task_id === this.taskId && this.tryNumber !== undefined) {
+                displayTry = this.tryNumber;
+            }
+            if (logData) {
+                if (logData.content && Array.isArray(logData.content)) {
+                    contentHtml = logData.content.map((entry) => {
+                        const ts = entry.timestamp ? `[${entry.timestamp}]` : '';
+                        const lvl = entry.level ? `[${entry.level}]` : '';
+                        const logger = entry.logger ? `[${entry.logger}]` : '';
+                        const evt = entry.event || '';
+                        let extra = '';
+                        // Error detail
+                        if (entry.error_detail) {
+                            extra = `<pre class="error-detail">${JSON.stringify(entry.error_detail, null, 2)}</pre>`;
+                        }
+                        let lineClass = 'log-line';
+                        if (lvl.toLowerCase().includes('error')) {
+                            lineClass += ' log-error';
+                        }
+                        if (lvl.toLowerCase().includes('warn')) {
+                            lineClass += ' log-warn';
+                        }
+                        return `<div class="${lineClass}"><span class="log-ts">${ts}</span> <span class="log-lvl">${lvl}</span> <span class="log-logger">${logger}</span> <span class="log-msg">${this._escapeHtml(evt)}</span>${extra}</div>`;
+                    }).join('');
+                }
+                else if (logData.detail) {
+                    contentHtml = `<div class="log-error">${this._escapeHtml(logData.detail)}</div>`;
+                }
+                else {
+                    contentHtml = `<pre>${this._escapeHtml(JSON.stringify(logData, null, 2))}</pre>`;
+                }
+            }
+            else {
+                contentHtml = '<div class="loading-logs">Loading logs...</div>';
+            }
+            return `
+            <div class="task-section ${statusClass}">
+                <div class="task-header">
+                    <div class="header-left">
+                        <span class="status-indicator"></span>
+                        <span class="task-title">${this._escapeHtml(t.task_id)}</span>
+                        <span class="status-pill">${this._escapeHtml(t.state)}</span>
+                    </div>
+                    <div class="header-right">
+                        <span class="task-try">Try: ${displayTry}</span>
+                    </div>
+                </div>
+                <div class="log-container" id="log-${t.task_id}">
+                    ${contentHtml}
+                </div>
+            </div>`;
+        }).join('\n');
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <script type="module" src="${elementsUri}"></script>
+    <script type="module" src="${mainUri}"></script>
+    <link rel="stylesheet" href="${styleUri}">
+    <style>
+        :root {
+            --font-size-sm: 12px;
+            --font-size-md: 13px;
+            --font-size-lg: 15px;
+            --border-radius: 4px;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+        }
+
+        body { 
+            padding: var(--spacing-md); 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            box-sizing: border-box; 
+            background: var(--vscode-editor-background); 
+            color: var(--vscode-editor-foreground);
+            font-family: var(--vscode-font-family);
+        }
+
+        .metadata { 
+            margin-bottom: var(--spacing-lg); 
+            padding: var(--spacing-md); 
+            background: var(--vscode-editor-inactiveSelectionBackground); 
+            border-radius: var(--border-radius); 
+        }
+        .metadata-row { display: flex; gap: 32px; font-size: 13px; margin-bottom: 4px; }
+        .label { font-weight: 600; color: var(--vscode-descriptionForeground); width: 70px; display: inline-block; text-transform: uppercase; font-size: 11px; }
+        
+        .task-container { display: flex; flex-direction: column; gap: 16px; padding-bottom: 20px; }
+        
+        .task-section { 
+            border: 1px solid var(--vscode-widget-border); 
+            border-radius: var(--border-radius); 
+            overflow: hidden; 
+            background: var(--vscode-editor-background);
+        }
+        
+        .task-header { 
+            padding: 8px 16px; 
+            display: flex; 
+            justify-content: space-between;
+            align-items: center; 
+            border-bottom: 1px solid var(--vscode-widget-border);
+        }
+
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .header-right { display: flex; align-items: center; gap: 12px; }
+
+        .task-title { font-weight: 600; font-size: 14px; }
+        .task-try { font-size: 11px; color: var(--vscode-descriptionForeground); }
+        
+        .status-indicator {
+            width: 8px; height: 8px; border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-pill {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        /* Status Colors */
+        .task-section.status-success .task-header {
+            background-color: var(--vscode-notebook-cellEditorBackground); 
+        }
+        .task-section.status-success .status-indicator {
+            background-color: var(--vscode-testing-iconPassed);
+        }
+        .task-section.status-success .status-pill {
+            background-color: var(--vscode-testing-iconPassed);
+            color: var(--vscode-editor-background);
+        }
+
+        .task-section.status-error .task-header {
+            background-color: rgba(255, 0, 0, 0.1); 
+        }
+        .task-section.status-error .status-indicator {
+            background-color: var(--vscode-errorForeground);
+        }
+        .task-section.status-error .status-pill {
+            background-color: var(--vscode-errorForeground);
+            color: white;
+        }
+
+        .task-section.status-other .task-header {
+            background-color: var(--vscode-sideBarSectionHeader-background);
+        }
+        .task-section.status-other .status-indicator {
+            background-color: var(--vscode-descriptionForeground);
+        }
+        .task-section.status-other .status-pill {
+            background-color: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+        }
+
+        .log-container { 
+            padding: 16px;
+            max-height: 500px;
+            overflow-y: auto; 
+            font-family: var(--vscode-editor-font-family);
+            font-size: 12px;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+        
+        .log-line { margin-bottom: 2px; }
+        .log-ts { color: var(--vscode-debugConsole-infoForeground); margin-right: 8px; opacity: 0.8; font-size: 0.9em; }
+        .log-lvl { font-weight: bold; margin-right: 8px; }
+        .log-logger { color: var(--vscode-textLink-foreground); margin-right: 8px; }
+        
+        .log-error { color: var(--vscode-errorForeground); }
+        .log-warn { color: var(--vscode-editorWarning-foreground); }
+        
+        .error-detail { 
+            color: var(--vscode-textPreformat-foreground); 
+            background-color: var(--vscode-textBlockQuote-background);
+            padding: 12px;
+            margin: 8px 0 8px 16px;
+            border-left: 3px solid var(--vscode-errorForeground);
+            border-radius: 3px;
+        }
+        .loading-logs { font-style: italic; color: var(--vscode-descriptionForeground); padding: 20px; text-align: center; }
+
+    </style>
+    <title>DAG Logs</title>
+</head>
+<body>
+    <div class="metadata">
+        <div class="metadata-row">
+            <div><span class="label">DAG ID:</span> <span>${this.dagId}</span></div>
+            <div><span class="label">Run ID:</span> <span>${this.dagRunId}</span></div>
+            <div><span class="label">Status:</span> <span>${status}</span></div>
+        </div>
+        <div class="metadata-row">
+            <div><span class="label">Start:</span> <span>${startDate}</span></div>
+            <div><span class="label">End:</span> <span>${endDate}</span></div>
+            <div><span class="label">Duration:</span> <span>${duration}</span></div>
+        </div>
+    </div>
+
+    <div class="task-container">
+        ${taskSections}
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        // Just listener for now if we want to add interactivity later e.g. collapse/expand
+    </script>
+</body>
+</html>`;
+    }
+    _escapeHtml(text) {
+        if (!text)
+            return '';
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+    _setWebviewMessageListener(webview) {
+        webview.onDidReceiveMessage(async (message) => {
+            // No messages expected for now
+        }, undefined, this._disposables);
+    }
+}
+exports.DagLogView = DagLogView;
+
+
+/***/ }),
+/* 53 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DailyDagRunView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(2);
+const DagView_1 = __webpack_require__(49);
+const Session_1 = __webpack_require__(5);
+const DagLogView_1 = __webpack_require__(52);
+class DailyDagRunView {
+    constructor(panel) {
+        this._disposables = [];
+        // Filters
+        this.selectedDate = ui.toISODateString(new Date());
+        this.selectedStatus = '';
+        this.selectedDagId = '';
+        this.allDagIds = [];
+        ui.logToOutput('DailyDagRunView.constructor Started');
+        this._panel = panel;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('DailyDagRunView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('DailyDagRunView.loadData Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        // Fetch all DAGs to populate dag_id filter
+        const dagsResult = await Session_1.Session.Current.Api.getDagList();
+        if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
+            this.allDagIds = dagsResult.result.map((dag) => dag.dag_id).sort();
+        }
+        // Fetch DAG runs for the selected date
+        // If a specific DAG is selected, query that DAG, otherwise query all
+        if (this.selectedDagId) {
+            const result = await Session_1.Session.Current.Api.getDagRunHistory(this.selectedDagId, this.selectedDate);
+            if (result.isSuccessful && result.result && result.result.dag_runs) {
+                this.dagRunsJson = result.result.dag_runs;
+            }
+        }
+        else {
+            // Query all DAGs for runs on the selected date
+            const allRuns = [];
+            for (const dagId of this.allDagIds) {
+                const result = await Session_1.Session.Current.Api.getDagRunHistory(dagId, this.selectedDate);
+                if (result.isSuccessful && result.result && result.result.dag_runs) {
+                    allRuns.push(...result.result.dag_runs);
+                }
+            }
+            this.dagRunsJson = allRuns;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('DailyDagRunView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
+        ui.logToOutput('DailyDagRunView.renderHtml Completed');
+    }
+    static render() {
+        ui.logToOutput('DailyDagRunView.render Started');
+        if (DailyDagRunView.Current) {
+            DailyDagRunView.Current._panel.reveal(vscode.ViewColumn.One);
+            DailyDagRunView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("dailyDagRunView", "Daily DAG Runs", vscode.ViewColumn.One, {
+                enableScripts: true,
+            });
+            DailyDagRunView.Current = new DailyDagRunView(panel);
+        }
+    }
+    dispose() {
+        ui.logToOutput('DailyDagRunView.dispose Started');
+        DailyDagRunView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('DailyDagRunView._getWebviewContent Started');
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        // Filter DAG runs based on selected filters
+        let filteredRuns = [];
+        if (this.dagRunsJson && Array.isArray(this.dagRunsJson)) {
+            filteredRuns = this.dagRunsJson.filter((run) => {
+                // Filter by status
+                if (this.selectedStatus && run.state !== this.selectedStatus) {
+                    return false;
+                }
+                return true;
+            });
+        }
+        // Build table rows
+        let tableRows = '';
+        filteredRuns.forEach((run) => {
+            const dagId = run.dag_id || 'N/A';
+            const status = run.state || 'N/A';
+            const startDate = run.start_date ? ui.toISODateTimeString(new Date(run.start_date)) : 'N/A';
+            const duration = run.start_date && run.end_date ? ui.getDuration(new Date(run.start_date), new Date(run.end_date)) : 'Running';
+            const config = run.conf ? JSON.stringify(run.conf) : '{}';
+            const note = run.note || '';
+            const dagRunId = run.dag_run_id || '';
+            tableRows += `
+            <tr class="table-row">
+                <td><a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-link">${this._escapeHtml(dagId)}</a></td>
+                <td>
+                    <div style="display: flex; align-items: center;">
+                        <div class="state-indicator state-${status}" title="${this._escapeHtml(status)}"></div>
+                        <span>${this._escapeHtml(status)}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="action-links">
+                        <a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-log-link link-button">Logs</a>
+                    </div>
+                </td>
+                <td>${this._escapeHtml(startDate)}</td>
+                <td><span class="duration-badge">${this._escapeHtml(duration)}</span></td>
+                <td><div class="code-block" style="max-height: 50px; overflow: hidden; font-size: 11px;">${this._escapeHtml(config)}</div></td>
+                <td>${this._escapeHtml(note)}</td>
+            </tr>`;
+        });
+        // Build dag_id filter options
+        const dagIdOptions = this.allDagIds.map(id => `<option value="${this._escapeHtml(id)}">${this._escapeHtml(id)}</option>`).join('');
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <link rel="stylesheet" href="${styleUri}">
+        <style>
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+            }
+
+            body {
+                padding: var(--spacing-md);
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
+            }
+
+            /* Filters */
+            .filters {
+                display: flex;
+                gap: var(--spacing-md);
+                margin-bottom: var(--spacing-lg);
+                flex-wrap: wrap;
+                align-items: flex-end;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                padding: var(--spacing-md);
+                border-radius: var(--border-radius);
+            }
+            .filter-group {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .filter-group label {
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                color: var(--vscode-descriptionForeground);
+            }
+            .filter-group select,
+            .filter-group input {
+                padding: 6px 8px;
+                border: 1px solid var(--vscode-input-border);
+                background-color: var(--vscode-input-background);
+                color: var(--vscode-input-foreground);
+                border-radius: 4px;
+                font-size: 13px;
+                min-width: 150px;
+            }
+
+            /* Tables */
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+
+            /* States */
+            .state-indicator {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                margin-right: 8px;
+                display: inline-block;
+            }
+            
+            .state-success { background-color: var(--vscode-testing-iconPassed); }
+            .state-failed { background-color: var(--vscode-errorForeground); }
+            .state-running { background-color: var(--vscode-charts-blue); }
+            .state-queued { background-color: var(--vscode-charts-yellow); }
+            .state-upstream_failed { background-color: var(--vscode-charts-orange); }
+            .state-skipped { background-color: var(--vscode-disabledForeground); }
+            .state-deferred { background-color: var(--vscode-charts-purple); }
+
+            a {
+                color: var(--vscode-textLink-foreground);
+                text-decoration: none;
+                cursor: pointer;
+            }
+            a:hover {
+                text-decoration: underline;
+                color: var(--vscode-textLink-activeForeground);
+            }
+
+            .duration-badge {
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                opacity: 0.8;
+            }
+
+            .code-block {
+                font-family: var(--vscode-editor-font-family);
+                background-color: var(--vscode-textBlockQuote-background);
+                padding: 4px;
+                border-radius: 4px;
+            }
+        </style>
+        <title>Daily DAG Runs</title>
+      </head>
+      <body>  
+        <h2>Daily DAG Runs</h2>
+        
+        <div class="filters">
+            <div class="filter-group">
+                <label>Date</label>
+                <input type="date" id="filter-date" value="${this.selectedDate}">
+            </div>
+            <div class="filter-group">
+                <label>Status</label>
+                <select id="filter-status">
+                    <option value="">All</option>
+                    <option value="success">Success</option>
+                    <option value="failed">Failed</option>
+                    <option value="running">Running</option>
+                    <option value="queued">Queued</option>
+                    <option value="upstream_failed">Upstream Failed</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>DAG ID</label>
+                <select id="filter-dag-id">
+                    <option value="">All DAGs</option>
+                    ${dagIdOptions}
+                </select>
+            </div>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>DAG ID</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                    <th>Start Date</th>
+                    <th>Duration</th>
+                    <th>Config</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+            ${tableRows || '<tr><td colspan="7" style="text-align:center; padding: 20px; opacity: 0.7;">No runs found for the selected filters</td></tr>'}        
+            </tbody>
+        </table>
+
+        <script>
+            const vscode = acquireVsCodeApi();
+
+            document.getElementById('filter-date').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-date', date: e.target.value });
+            });
+
+            document.getElementById('filter-status').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-status', status: e.target.value });
+            });
+
+            document.getElementById('filter-dag-id').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-dag-id', dagId: e.target.value });
+            });
+
+            // Handle dag-link clicks
+            document.querySelectorAll('.dag-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Handle clicks on child elements
+                    const target = e.target.closest('a') || e.target;
+                    const dagId = target.getAttribute('data-dag-id');
+                    const dagRunId = target.getAttribute('data-dag-run-id');
+                    vscode.postMessage({ command: 'open-dag-view', dagId, dagRunId });
+                });
+            });
+
+            // Handle dag-log-link clicks
+            document.querySelectorAll('.dag-log-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const target = e.target.closest('a') || e.target;
+                    const dagId = target.getAttribute('data-dag-id');
+                    const dagRunId = target.getAttribute('data-dag-run-id');
+                    vscode.postMessage({ command: 'view-dag-log', dagId, dagRunId });
+                });
+            });
+        </script>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+    _getStatusEmoji(status) {
+        const statusMap = {
+            'success': '✅',
+            'failed': '❌',
+            'running': '▶️',
+            'queued': '⏳',
+            'upstream_failed': '⚠️',
+            'skipped': '⏭️',
+            'deferred': '🔄'
+        };
+        return statusMap[status.toLowerCase()] || '📅';
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('DailyDagRunView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('DailyDagRunView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "filter-date":
+                    this.selectedDate = message.date;
+                    this.loadData();
+                    return;
+                case "filter-status":
+                    this.selectedStatus = message.status;
+                    this.renderHtml();
+                    return;
+                case "filter-dag-id":
+                    this.selectedDagId = message.dagId;
+                    this.loadData();
+                    return;
+                case "open-dag-view":
+                    // Open DagView with specific dag and run
+                    if (Session_1.Session.Current.Api && message.dagId) {
+                        DagView_1.DagView.render(message.dagId, message.dagRunId);
+                    }
+                    return;
+                case "view-dag-log":
+                    if (message.dagId) {
+                        DagLogView_1.DagLogView.render(message.dagId, message.dagRunId);
+                    }
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.DailyDagRunView = DailyDagRunView;
+
+
+/***/ }),
+/* 54 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DagRunView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(2);
+const DagView_1 = __webpack_require__(49);
+const Session_1 = __webpack_require__(5);
+const DagLogView_1 = __webpack_require__(52);
+class DagRunView {
+    constructor(panel) {
+        this._disposables = [];
+        // Filters
+        this.selectedDagId = '';
+        this.selectedStartDate = ui.toISODateString(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)); // Default to 7 days ago
+        this.selectedEndDate = ui.toISODateString(new Date());
+        this.selectedStatus = '';
+        this.allDagIds = [];
+        ui.logToOutput('DagRunView.constructor Started');
+        this._panel = panel;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('DagRunView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('DagRunView.loadData Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        // Fetch all DAGs to populate dag_id filter
+        const dagsResult = await Session_1.Session.Current.Api.getDagList();
+        if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
+            this.allDagIds = dagsResult.result.map((dag) => dag.dag_id).sort();
+            // If no DAG is selected yet, select the first one
+            if (!this.selectedDagId && this.allDagIds.length > 0) {
+                this.selectedDagId = this.allDagIds[0];
+            }
+        }
+        // Fetch DAG runs for the selected DAG and date range
+        if (this.selectedDagId) {
+            const result = await Session_1.Session.Current.Api.getDagRunHistory(this.selectedDagId);
+            if (result.isSuccessful && result.result && result.result.dag_runs) {
+                // Filter runs by date range on the client side
+                const startDateTime = new Date(this.selectedStartDate + 'T00:00:00Z').getTime();
+                const endDateTime = new Date(this.selectedEndDate + 'T23:59:59Z').getTime();
+                this.dagRunsJson = result.result.dag_runs.filter((run) => {
+                    if (run.start_date) {
+                        const runTime = new Date(run.start_date).getTime();
+                        return runTime >= startDateTime && runTime <= endDateTime;
+                    }
+                    return false;
+                });
+            }
+        }
+        else {
+            this.dagRunsJson = [];
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('DagRunView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
+        ui.logToOutput('DagRunView.renderHtml Completed');
+    }
+    static render(dagId, startDate, endDate, status) {
+        ui.logToOutput('DagRunView.render Started');
+        if (DagRunView.Current) {
+            // Apply optional filter parameters
+            if (dagId) {
+                DagRunView.Current.selectedDagId = dagId;
+            }
+            if (startDate) {
+                DagRunView.Current.selectedStartDate = startDate;
+            }
+            if (endDate) {
+                DagRunView.Current.selectedEndDate = endDate;
+            }
+            if (status) {
+                DagRunView.Current.selectedStatus = status;
+            }
+            DagRunView.Current._panel.reveal(vscode.ViewColumn.One);
+            DagRunView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("dagRunView", "DAG Run History", vscode.ViewColumn.One, {
+                enableScripts: true,
+            });
+            DagRunView.Current = new DagRunView(panel);
+            // Apply optional filter parameters after creation
+            if (dagId) {
+                DagRunView.Current.selectedDagId = dagId;
+            }
+            if (startDate) {
+                DagRunView.Current.selectedStartDate = startDate;
+            }
+            if (endDate) {
+                DagRunView.Current.selectedEndDate = endDate;
+            }
+            if (status) {
+                DagRunView.Current.selectedStatus = status;
+            }
+            // Reload data with new parameters if any were provided
+            if (dagId || startDate || endDate || status) {
+                DagRunView.Current.loadData();
+            }
+        }
+    }
+    dispose() {
+        ui.logToOutput('DagRunView.dispose Started');
+        DagRunView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('DagRunView._getWebviewContent Started');
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        // Filter DAG runs based on selected status
+        let filteredRuns = [];
+        if (this.dagRunsJson && Array.isArray(this.dagRunsJson)) {
+            filteredRuns = this.dagRunsJson.filter((run) => {
+                // Filter by status
+                if (this.selectedStatus && run.state !== this.selectedStatus) {
+                    return false;
+                }
+                return true;
+            });
+        }
+        // Build table rows
+        let tableRows = '';
+        filteredRuns.forEach((run) => {
+            const dagId = run.dag_id || 'N/A';
+            const status = run.state || 'N/A';
+            const startDate = run.start_date ? ui.toISODateTimeString(new Date(run.start_date)) : 'N/A';
+            const duration = run.start_date && run.end_date ? ui.getDuration(new Date(run.start_date), new Date(run.end_date)) : 'Running';
+            const config = run.conf ? JSON.stringify(run.conf) : '{}';
+            const note = run.note || '';
+            const dagRunId = run.dag_run_id || '';
+            tableRows += `
+            <tr class="table-row">
+                <td><a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-link">${this._escapeHtml(dagId)}</a></td>
+                <td>
+                    <div style="display: flex; align-items: center;">
+                        <div class="state-indicator state-${status}" title="${this._escapeHtml(status)}"></div>
+                        <span>${this._escapeHtml(status)}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="action-links">
+                        <a href="#" data-dag-id="${this._escapeHtml(dagId)}" data-dag-run-id="${this._escapeHtml(dagRunId)}" class="dag-log-link link-button">Logs</a>
+                    </div>
+                </td>
+                <td>${this._escapeHtml(startDate)}</td>
+                <td><span class="duration-badge">${this._escapeHtml(duration)}</span></td>
+                <td><div class="code-block" style="max-height: 50px; overflow: hidden; font-size: 11px;">${this._escapeHtml(config)}</div></td>
+                <td>${this._escapeHtml(note)}</td>
+            </tr>`;
+        });
+        // Build dag_id filter options
+        const dagIdOptions = this.allDagIds.map(id => `<option value="${this._escapeHtml(id)}" ${id === this.selectedDagId ? 'selected' : ''}>${this._escapeHtml(id)}</option>`).join('');
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <link rel="stylesheet" href="${styleUri}">
+        <style>
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+            }
+
+            body {
+                padding: var(--spacing-md);
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
+            }
+
+            /* Filters */
+            .filters {
+                display: flex;
+                gap: var(--spacing-md);
+                margin-bottom: var(--spacing-lg);
+                flex-wrap: wrap;
+                align-items: flex-end;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                padding: var(--spacing-md);
+                border-radius: var(--border-radius);
+            }
+            .filter-group {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+            }
+            .filter-group label {
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+                color: var(--vscode-descriptionForeground);
+            }
+            .filter-group select,
+            .filter-group input {
+                padding: 6px 8px;
+                border: 1px solid var(--vscode-input-border);
+                background-color: var(--vscode-input-background);
+                color: var(--vscode-input-foreground);
+                border-radius: 4px;
+                font-size: 13px;
+                min-width: 150px;
+            }
+
+            /* Tables */
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+
+            /* States */
+            .state-indicator {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                margin-right: 8px;
+                display: inline-block;
+            }
+            /* Add state-specific colors here if standard style.css doesn't cover them all, 
+               but assuming style.css has .state-* classes or DagView style block logic is global enough?
+               Actually DagView styles were inline in the file. I need to include them or rely on style.css.
+               Assuming style.css handles basic colors, but let's add the indicator styles to be safe 
+               since they were in DagView's style block. */
+            
+            .state-success { background-color: var(--vscode-testing-iconPassed); }
+            .state-failed { background-color: var(--vscode-errorForeground); }
+            .state-running { background-color: var(--vscode-charts-blue); }
+            .state-queued { background-color: var(--vscode-charts-yellow); }
+            .state-upstream_failed { background-color: var(--vscode-charts-orange); }
+            .state-skipped { background-color: var(--vscode-disabledForeground); }
+            .state-deferred { background-color: var(--vscode-charts-purple); }
+
+            a {
+                color: var(--vscode-textLink-foreground);
+                text-decoration: none;
+                cursor: pointer;
+            }
+            a:hover {
+                text-decoration: underline;
+                color: var(--vscode-textLink-activeForeground);
+            }
+
+            .duration-badge {
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                opacity: 0.8;
+            }
+
+            .code-block {
+                font-family: var(--vscode-editor-font-family);
+                background-color: var(--vscode-textBlockQuote-background);
+                padding: 4px;
+                border-radius: 4px;
+            }
+        </style>
+        <title>DAG Run History</title>
+      </head>
+      <body>  
+        <h2>DAG Run History</h2>
+        
+        <div class="filters">
+            <div class="filter-group">
+                <label>DAG ID</label>
+                <select id="filter-dag-id">
+                    ${dagIdOptions}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Start Date</label>
+                <input type="date" id="filter-start-date" value="${this.selectedStartDate}">
+            </div>
+            <div class="filter-group">
+                <label>End Date</label>
+                <input type="date" id="filter-end-date" value="${this.selectedEndDate}">
+            </div>
+            <div class="filter-group">
+                <label>Status</label>
+                <select id="filter-status">
+                    <option value="">All</option>
+                    <option value="success" ${this.selectedStatus === 'success' ? 'selected' : ''}>Success</option>
+                    <option value="failed" ${this.selectedStatus === 'failed' ? 'selected' : ''}>Failed</option>
+                    <option value="running" ${this.selectedStatus === 'running' ? 'selected' : ''}>Running</option>
+                    <option value="queued" ${this.selectedStatus === 'queued' ? 'selected' : ''}>Queued</option>
+                    <option value="upstream_failed" ${this.selectedStatus === 'upstream_failed' ? 'selected' : ''}>Upstream Failed</option>
+                </select>
+            </div>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>DAG ID</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                    <th>Start Date</th>
+                    <th>Duration</th>
+                    <th>Config</th>
+                    <th>Note</th>
+                </tr>
+            </thead>
+            <tbody>
+            ${tableRows || '<tr><td colspan="7" style="text-align:center; padding: 20px; opacity: 0.7;">No runs found for the selected filters</td></tr>'}        
+            </tbody>
+        </table>
+
+        <script>
+            const vscode = acquireVsCodeApi();
+
+            document.getElementById('filter-dag-id').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-dag-id', dagId: e.target.value });
+            });
+
+            document.getElementById('filter-start-date').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-start-date', startDate: e.target.value });
+            });
+
+            document.getElementById('filter-end-date').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-end-date', endDate: e.target.value });
+            });
+
+            document.getElementById('filter-status').addEventListener('change', (e) => {
+                vscode.postMessage({ command: 'filter-status', status: e.target.value });
+            });
+
+            // Handle dag-link clicks
+            document.querySelectorAll('.dag-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Handle clicks on child elements
+                    const target = e.target.closest('a') || e.target;
+                    const dagId = target.getAttribute('data-dag-id');
+                    const dagRunId = target.getAttribute('data-dag-run-id');
+                    vscode.postMessage({ command: 'open-dag-view', dagId, dagRunId });
+                });
+            });
+
+            // Handle dag-log-link clicks
+            document.querySelectorAll('.dag-log-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const target = e.target.closest('a') || e.target;
+                    const dagId = target.getAttribute('data-dag-id');
+                    const dagRunId = target.getAttribute('data-dag-run-id');
+                    vscode.postMessage({ command: 'view-dag-log', dagId, dagRunId });
+                });
+            });
+        </script>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+    _getStatusEmoji(status) {
+        const statusMap = {
+            'success': '✅',
+            'failed': '❌',
+            'running': '▶️',
+            'queued': '⏳',
+            'upstream_failed': '⚠️',
+            'skipped': '⏭️',
+            'deferred': '🔄'
+        };
+        return statusMap[status.toLowerCase()] || '📅';
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('DagRunView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('DagRunView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "filter-dag-id":
+                    this.selectedDagId = message.dagId;
+                    this.loadData();
+                    return;
+                case "filter-start-date":
+                    this.selectedStartDate = message.startDate;
+                    this.loadData();
+                    return;
+                case "filter-end-date":
+                    this.selectedEndDate = message.endDate;
+                    this.loadData();
+                    return;
+                case "filter-status":
+                    this.selectedStatus = message.status;
+                    this.renderHtml();
+                    return;
+                case "open-dag-view":
+                    // Open DagView with specific dag and run
+                    if (!Session_1.Session.Current.Api) {
+                        return;
+                    }
+                    if (Session_1.Session.Current.Api && message.dagId) {
+                        DagView_1.DagView.render(message.dagId, message.dagRunId);
+                    }
+                    return;
+                case "view-dag-log":
+                    if (message.dagId) {
+                        DagLogView_1.DagLogView.render(message.dagId, message.dagRunId);
+                    }
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.DagRunView = DagRunView;
+
+
+/***/ }),
+/* 55 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ConnectionsView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(2);
+const Session_1 = __webpack_require__(5);
 class ConnectionsView {
-    constructor(panel, extensionUri, api) {
+    constructor(panel) {
         this._disposables = [];
         ui.logToOutput('ConnectionsView.constructor Started');
-        this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -10623,7 +12614,7 @@ class ConnectionsView {
     }
     async loadData() {
         ui.logToOutput('ConnectionsView.loadData Started');
-        const result = await this.api.getConnections();
+        const result = await Session_1.Session.Current.Api.getConnections();
         if (result.isSuccessful) {
             this.connectionsJson = result.result;
         }
@@ -10631,21 +12622,20 @@ class ConnectionsView {
     }
     async renderHtml() {
         ui.logToOutput('ConnectionsView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
         ui.logToOutput('ConnectionsView.renderHtml Completed');
     }
-    static render(extensionUri, api) {
+    static render() {
         ui.logToOutput('ConnectionsView.render Started');
         if (ConnectionsView.Current) {
-            ConnectionsView.Current.api = api;
-            ConnectionsView.Current._panel.reveal(vscode.ViewColumn.Two);
+            ConnectionsView.Current._panel.reveal(vscode.ViewColumn.One);
             ConnectionsView.Current.loadData();
         }
         else {
-            const panel = vscode.window.createWebviewPanel("connectionsView", "Connections", vscode.ViewColumn.Two, {
+            const panel = vscode.window.createWebviewPanel("connectionsView", "Connections", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
-            ConnectionsView.Current = new ConnectionsView(panel, extensionUri, api);
+            ConnectionsView.Current = new ConnectionsView(panel);
         }
     }
     dispose() {
@@ -10670,7 +12660,28 @@ class ConnectionsView {
         ]);
         const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
         const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
-        const connectionsData = this.connectionsJson ? JSON.stringify(this.connectionsJson, null, 4) : "No connections found";
+        let tableRows = '';
+        if (this.connectionsJson && this.connectionsJson.connections && Array.isArray(this.connectionsJson.connections)) {
+            for (const conn of this.connectionsJson.connections) {
+                const connId = conn.conn_id || 'N/A';
+                const connType = conn.conn_type || 'N/A';
+                const host = conn.host || '';
+                const port = conn.port || '';
+                const schema = conn.schema || '';
+                tableRows += `
+                <tr class="table-row">
+                    <td>${this._escapeHtml(connId)}</td>
+                    <td><span class="tag">${this._escapeHtml(connType)}</span></td>
+                    <td>${this._escapeHtml(host)}</td>
+                    <td>${this._escapeHtml(String(port))}</td>
+                    <td>${this._escapeHtml(schema)}</td>
+                </tr>`;
+            }
+        }
+        else if (this.connectionsJson) {
+            // Fallback if structure is different
+            tableRows = `<tr><td colspan="5"><pre>${JSON.stringify(this.connectionsJson, null, 2)}</pre></td></tr>`;
+        }
         const result = /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
@@ -10680,17 +12691,118 @@ class ConnectionsView {
         <script type="module" src="${toolkitUri}"></script>
         <script type="module" src="${mainUri}"></script>
         <link rel="stylesheet" href="${styleUri}">
+        <style>
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+            }
+
+            body { 
+                padding: var(--spacing-md); 
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
+            }
+
+            .controls {
+                margin-bottom: var(--spacing-lg);
+            }
+
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+
+            .tag {
+                background-color: var(--vscode-textBlockQuote-background);
+                color: var(--vscode-textBlockQuote-border);
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 11px;
+                border: 1px solid var(--vscode-widget-border);
+            }
+        </style>
         <title>Connections</title>
       </head>
       <body>  
         <h2>Airflow Connections</h2>
-        <vscode-button appearance="secondary" id="refresh-connections">Refresh</vscode-button>
-        <br><br>
-        <pre>${connectionsData}</pre>
+        <div class="controls">
+            <vscode-button appearance="secondary" id="refresh-connections">Refresh</vscode-button>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Conn ID</th>
+                    <th>Type</th>
+                    <th>Host</th>
+                    <th>Port</th>
+                    <th>Schema</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tableRows || '<tr><td colspan="5" style="text-align:center; padding: 20px; opacity: 0.7;">No connections found</td></tr>'}
+            </tbody>
+        </table>
       </body>
     </html>
     `;
         return result;
+    }
+    _escapeHtml(text) {
+        if (!text)
+            return '';
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
     }
     _setWebviewMessageListener(webview) {
         ui.logToOutput('ConnectionsView._setWebviewMessageListener Started');
@@ -10708,7 +12820,7 @@ exports.ConnectionsView = ConnectionsView;
 
 
 /***/ }),
-/* 50 */
+/* 56 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -10717,14 +12829,13 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.VariablesView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(2);
+const Session_1 = __webpack_require__(5);
 class VariablesView {
-    constructor(panel, extensionUri, api) {
+    constructor(panel) {
         this._disposables = [];
         ui.logToOutput('VariablesView.constructor Started');
-        this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -10732,7 +12843,10 @@ class VariablesView {
     }
     async loadData() {
         ui.logToOutput('VariablesView.loadData Started');
-        const result = await this.api.getVariables();
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getVariables();
         if (result.isSuccessful) {
             this.variablesJson = result.result;
         }
@@ -10740,21 +12854,20 @@ class VariablesView {
     }
     async renderHtml() {
         ui.logToOutput('VariablesView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
         ui.logToOutput('VariablesView.renderHtml Completed');
     }
-    static render(extensionUri, api) {
+    static render() {
         ui.logToOutput('VariablesView.render Started');
         if (VariablesView.Current) {
-            VariablesView.Current.api = api;
-            VariablesView.Current._panel.reveal(vscode.ViewColumn.Two);
+            VariablesView.Current._panel.reveal(vscode.ViewColumn.One);
             VariablesView.Current.loadData();
         }
         else {
-            const panel = vscode.window.createWebviewPanel("variablesView", "Variables", vscode.ViewColumn.Two, {
+            const panel = vscode.window.createWebviewPanel("variablesView", "Variables", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
-            VariablesView.Current = new VariablesView(panel, extensionUri, api);
+            VariablesView.Current = new VariablesView(panel);
         }
     }
     dispose() {
@@ -10770,36 +12883,147 @@ class VariablesView {
     }
     _getWebviewContent(webview, extensionUri) {
         ui.logToOutput('VariablesView._getWebviewContent Started');
-        const toolkitUri = ui.getUri(webview, extensionUri, [
+        const elementsUri = ui.getUri(webview, extensionUri, [
             "node_modules",
-            "@vscode",
-            "webview-ui-toolkit",
+            "@vscode-elements",
+            "elements",
             "dist",
-            "toolkit.js",
+            "bundled.js",
         ]);
         const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
         const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
-        const variablesData = this.variablesJson ? JSON.stringify(this.variablesJson, null, 4) : "No variables found";
+        // Build table rows from variables data
+        let tableRows = '';
+        if (this.variablesJson && this.variablesJson.variables) {
+            for (const variable of this.variablesJson.variables) {
+                const key = variable.key || 'N/A';
+                const value = variable.val || 'N/A';
+                const description = variable.description || '';
+                tableRows += `
+                <tr class="table-row">
+                    <td>${this._escapeHtml(key)}</td>
+                    <td><code>${this._escapeHtml(value)}</code></td>
+                    <td>${this._escapeHtml(description)}</td>
+                </tr>`;
+            }
+        }
         const result = /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width,initial-scale=1.0">
-        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${elementsUri}"></script>
         <script type="module" src="${mainUri}"></script>
         <link rel="stylesheet" href="${styleUri}">
+        <style>
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+            }
+
+            body { 
+                padding: var(--spacing-md); 
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
+            }
+
+            .controls {
+                margin-bottom: var(--spacing-lg);
+            }
+
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+
+            code {
+                background-color: var(--vscode-textBlockQuote-background);
+                color: var(--vscode-editor-foreground);
+                padding: 2px 4px;
+                border-radius: 3px;
+                font-family: monospace;
+                font-size: 11px;
+            }
+        </style>
         <title>Variables</title>
       </head>
       <body>  
         <h2>Airflow Variables</h2>
-        <vscode-button appearance="secondary" id="refresh-variables">Refresh</vscode-button>
-        <br><br>
-        <pre>${variablesData}</pre>
+        <div class="controls">
+            <vscode-button appearance="secondary" id="refresh-variables">Refresh</vscode-button>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Key</th>
+                    <th>Value</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+            ${tableRows || '<tr><td colspan="3" style="text-align:center; padding: 20px; opacity: 0.7;">No variables found</td></tr>'}
+            </tbody>
+        </table>
       </body>
     </html>
     `;
         return result;
+    }
+    _escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
     }
     _setWebviewMessageListener(webview) {
         ui.logToOutput('VariablesView._setWebviewMessageListener Started');
@@ -10817,7 +13041,7 @@ exports.VariablesView = VariablesView;
 
 
 /***/ }),
-/* 51 */
+/* 57 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 "use strict";
@@ -10826,14 +13050,13 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ProvidersView = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(2);
+const Session_1 = __webpack_require__(5);
 class ProvidersView {
-    constructor(panel, extensionUri, api) {
+    constructor(panel) {
         this._disposables = [];
         ui.logToOutput('ProvidersView.constructor Started');
-        this.extensionUri = extensionUri;
         this._panel = panel;
-        this.api = api;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
         this.loadData();
@@ -10841,7 +13064,7 @@ class ProvidersView {
     }
     async loadData() {
         ui.logToOutput('ProvidersView.loadData Started');
-        const result = await this.api.getProviders();
+        const result = await Session_1.Session.Current.Api.getProviders();
         if (result.isSuccessful) {
             this.providersJson = result.result;
         }
@@ -10849,21 +13072,20 @@ class ProvidersView {
     }
     async renderHtml() {
         ui.logToOutput('ProvidersView.renderHtml Started');
-        this._panel.webview.html = this._getWebviewContent(this._panel.webview, this.extensionUri);
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
         ui.logToOutput('ProvidersView.renderHtml Completed');
     }
-    static render(extensionUri, api) {
+    static render() {
         ui.logToOutput('ProvidersView.render Started');
         if (ProvidersView.Current) {
-            ProvidersView.Current.api = api;
-            ProvidersView.Current._panel.reveal(vscode.ViewColumn.Two);
+            ProvidersView.Current._panel.reveal(vscode.ViewColumn.One);
             ProvidersView.Current.loadData();
         }
         else {
-            const panel = vscode.window.createWebviewPanel("providersView", "Providers", vscode.ViewColumn.Two, {
+            const panel = vscode.window.createWebviewPanel("providersView", "Providers", vscode.ViewColumn.One, {
                 enableScripts: true,
             });
-            ProvidersView.Current = new ProvidersView(panel, extensionUri, api);
+            ProvidersView.Current = new ProvidersView(panel);
         }
     }
     dispose() {
@@ -10879,36 +13101,138 @@ class ProvidersView {
     }
     _getWebviewContent(webview, extensionUri) {
         ui.logToOutput('ProvidersView._getWebviewContent Started');
-        const toolkitUri = ui.getUri(webview, extensionUri, [
+        const elementsUri = ui.getUri(webview, extensionUri, [
             "node_modules",
-            "@vscode",
-            "webview-ui-toolkit",
+            "@vscode-elements",
+            "elements",
             "dist",
-            "toolkit.js",
+            "bundled.js",
         ]);
         const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
         const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
-        const providersData = this.providersJson ? JSON.stringify(this.providersJson, null, 4) : "No providers found";
+        // Build table rows from providers data
+        let tableRows = '';
+        if (this.providersJson && this.providersJson.providers) {
+            for (const provider of this.providersJson.providers) {
+                const packageName = provider.package_name || 'N/A';
+                const version = provider.version || 'N/A';
+                const description = provider.description || 'N/A';
+                tableRows += `
+                <tr class="table-row">
+                    <td>${this._escapeHtml(packageName)}</td>
+                    <td>${this._escapeHtml(version)}</td>
+                    <td>${this._escapeHtml(description)}</td>
+                </tr>`;
+            }
+        }
         const result = /*html*/ `
     <!DOCTYPE html>
     <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width,initial-scale=1.0">
-        <script type="module" src="${toolkitUri}"></script>
+        <script type="module" src="${elementsUri}"></script>
         <script type="module" src="${mainUri}"></script>
         <link rel="stylesheet" href="${styleUri}">
+        <style>
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+            }
+
+            body { 
+                padding: var(--spacing-md); 
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
+            }
+
+            .controls {
+                margin-bottom: var(--spacing-lg);
+            }
+
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+        </style>
         <title>Providers</title>
       </head>
       <body>  
         <h2>Airflow Providers</h2>
-        <vscode-button appearance="secondary" id="refresh-providers">Refresh</vscode-button>
-        <br><br>
-        <pre>${providersData}</pre>
+        <div class="controls">
+            <vscode-button appearance="secondary" id="refresh-providers">Refresh</vscode-button>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Package Name</th>
+                    <th>Version</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+            ${tableRows || '<tr><td colspan="3" style="text-align:center; padding: 20px; opacity: 0.7;">No providers found</td></tr>'}
+            </tbody>
+        </table>
       </body>
     </html>
     `;
         return result;
+    }
+    _escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
     }
     _setWebviewMessageListener(webview) {
         ui.logToOutput('ProvidersView._setWebviewMessageListener Started');
@@ -10923,6 +13247,3204 @@ class ProvidersView {
     }
 }
 exports.ProvidersView = ProvidersView;
+
+
+/***/ }),
+/* 58 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ConfigsView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(2);
+const Session_1 = __webpack_require__(5);
+class ConfigsView {
+    constructor(panel) {
+        this._disposables = [];
+        ui.logToOutput('ConfigsView.constructor Started');
+        this._panel = panel;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('ConfigsView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('ConfigsView.loadData Started');
+        const result = await Session_1.Session.Current.Api.getConfig();
+        if (result.isSuccessful) {
+            this.configJson = result.result;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('ConfigsView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
+        ui.logToOutput('ConfigsView.renderHtml Completed');
+    }
+    static render() {
+        ui.logToOutput('ConfigsView.render Started');
+        if (ConfigsView.Current) {
+            ConfigsView.Current._panel.reveal(vscode.ViewColumn.One);
+            ConfigsView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("configsView", "Configs", vscode.ViewColumn.One, {
+                enableScripts: true,
+            });
+            ConfigsView.Current = new ConfigsView(panel);
+        }
+    }
+    dispose() {
+        ui.logToOutput('ConfigsView.dispose Started');
+        ConfigsView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('ConfigsView._getWebviewContent Started');
+        const elementsUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode-elements",
+            "elements",
+            "dist",
+            "bundled.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        // Build table rows from config sections
+        let tableRows = '';
+        if (this.configJson && this.configJson.sections) {
+            for (const section of this.configJson.sections) {
+                const sectionName = section.name || 'N/A';
+                if (section.options && Array.isArray(section.options)) {
+                    for (const option of section.options) {
+                        const key = option.key || 'N/A';
+                        const value = option.value || 'N/A';
+                        tableRows += `
+                        <tr class="table-row">
+                            <td>${this._escapeHtml(sectionName)}</td>
+                            <td>${this._escapeHtml(key)}</td>
+                            <td><code>${this._escapeHtml(String(value))}</code></td>
+                        </tr>`;
+                    }
+                }
+            }
+        }
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${elementsUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <style>
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+            }
+
+            body { 
+                padding: var(--spacing-md); 
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
+            }
+
+            .controls {
+                margin-bottom: var(--spacing-lg);
+            }
+
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+
+            code {
+                background-color: var(--vscode-textBlockQuote-background);
+                color: var(--vscode-editor-foreground);
+                padding: 2px 4px;
+                border-radius: 3px;
+                font-family: monospace;
+                font-size: 11px;
+            }
+        </style>
+        <title>Configs</title>
+      </head>
+      <body>  
+        <h2>Airflow Configuration</h2>
+        <div class="controls">
+            <vscode-button appearance="secondary" id="refresh-configs">Refresh</vscode-button>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Section</th>
+                    <th>Key</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+            ${tableRows}
+            </tbody>
+        </table>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('ConfigsView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('ConfigsView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "refresh-configs":
+                    this.loadData();
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.ConfigsView = ConfigsView;
+
+
+/***/ }),
+/* 59 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PluginsView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(2);
+const Session_1 = __webpack_require__(5);
+class PluginsView {
+    constructor(panel) {
+        this._disposables = [];
+        ui.logToOutput('PluginsView.constructor Started');
+        this._panel = panel;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('PluginsView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('PluginsView.loadData Started');
+        const result = await Session_1.Session.Current.Api.getPlugins();
+        if (result.isSuccessful) {
+            this.pluginsJson = result.result;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('PluginsView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
+        ui.logToOutput('PluginsView.renderHtml Completed');
+    }
+    static render() {
+        ui.logToOutput('PluginsView.render Started');
+        if (PluginsView.Current) {
+            PluginsView.Current._panel.reveal(vscode.ViewColumn.One);
+            PluginsView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("pluginsView", "Plugins", vscode.ViewColumn.One, {
+                enableScripts: true,
+            });
+            PluginsView.Current = new PluginsView(panel);
+        }
+    }
+    dispose() {
+        ui.logToOutput('PluginsView.dispose Started');
+        PluginsView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('PluginsView._getWebviewContent Started');
+        const elementsUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode-elements",
+            "elements",
+            "dist",
+            "bundled.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        // Build table rows from plugins data
+        let tableRows = '';
+        if (this.pluginsJson && this.pluginsJson.plugins) {
+            for (const plugin of this.pluginsJson.plugins) {
+                const name = plugin.name || 'N/A';
+                const hooks = plugin.hooks && plugin.hooks.length > 0 ? plugin.hooks.join(', ') : 'None';
+                const executors = plugin.executors && plugin.executors.length > 0 ? plugin.executors.join(', ') : 'None';
+                const macros = plugin.macros && plugin.macros.length > 0 ? plugin.macros.map((m) => m.name).join(', ') : 'None';
+                tableRows += `
+                <tr class="table-row">
+                    <td>${this._escapeHtml(name)}</td>
+                    <td>${this._escapeHtml(hooks)}</td>
+                    <td>${this._escapeHtml(executors)}</td>
+                    <td>${this._escapeHtml(macros)}</td>
+                </tr>`;
+            }
+        }
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${elementsUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <style>
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+            }
+
+            body { 
+                padding: var(--spacing-md); 
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
+            }
+
+            .controls {
+                margin-bottom: var(--spacing-lg);
+            }
+
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+        </style>
+        <title>Plugins</title>
+      </head>
+      <body>  
+        <h2>Airflow Plugins</h2>
+        <div class="controls">
+            <vscode-button appearance="secondary" id="refresh-plugins">Refresh</vscode-button>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Hooks</th>
+                    <th>Executors</th>
+                    <th>Macros</th>
+                </tr>
+            </thead>
+            <tbody>
+            ${tableRows || '<tr><td colspan="4" style="text-align:center; padding: 20px; opacity: 0.7;">No plugins found</td></tr>'}
+            </tbody>
+        </table>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('PluginsView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('PluginsView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "refresh-plugins":
+                    this.loadData();
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.PluginsView = PluginsView;
+
+
+/***/ }),
+/* 60 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ServerHealthView = void 0;
+/* eslint-disable @typescript-eslint/naming-convention */
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(2);
+const Session_1 = __webpack_require__(5);
+class ServerHealthView {
+    constructor(panel) {
+        this._disposables = [];
+        ui.logToOutput('ServerHealthView.constructor Started');
+        this._panel = panel;
+        this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
+        this._setWebviewMessageListener(this._panel.webview);
+        this.loadData();
+        ui.logToOutput('ServerHealthView.constructor Completed');
+    }
+    async loadData() {
+        ui.logToOutput('ServerHealthView.loadData Started');
+        if (!Session_1.Session.Current.Api) {
+            return;
+        }
+        const result = await Session_1.Session.Current.Api.getHealth();
+        if (result.isSuccessful) {
+            this.healthJson = result.result;
+        }
+        await this.renderHtml();
+    }
+    async renderHtml() {
+        ui.logToOutput('ServerHealthView.renderHtml Started');
+        this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session_1.Session.Current.ExtensionUri);
+        ui.logToOutput('ServerHealthView.renderHtml Completed');
+    }
+    static render() {
+        ui.logToOutput('ServerHealthView.render Started');
+        if (ServerHealthView.Current) {
+            ServerHealthView.Current._panel.reveal(vscode.ViewColumn.One);
+            ServerHealthView.Current.loadData();
+        }
+        else {
+            const panel = vscode.window.createWebviewPanel("serverHealthView", "Server Health", vscode.ViewColumn.One, {
+                enableScripts: true,
+            });
+            ServerHealthView.Current = new ServerHealthView(panel);
+        }
+    }
+    dispose() {
+        ui.logToOutput('ServerHealthView.dispose Started');
+        ServerHealthView.Current = undefined;
+        this._panel.dispose();
+        while (this._disposables.length) {
+            const disposable = this._disposables.pop();
+            if (disposable) {
+                disposable.dispose();
+            }
+        }
+    }
+    _getWebviewContent(webview, extensionUri) {
+        ui.logToOutput('ServerHealthView._getWebviewContent Started');
+        const elementsUri = ui.getUri(webview, extensionUri, [
+            "node_modules",
+            "@vscode-elements",
+            "elements",
+            "dist",
+            "bundled.js",
+        ]);
+        const mainUri = ui.getUri(webview, extensionUri, ["media", "main.js"]);
+        const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
+        // Build table rows from health data
+        let tableRows = '';
+        if (this.healthJson) {
+            // Metadatabase status
+            if (this.healthJson.metadatabase) {
+                const status = this.healthJson.metadatabase.status || 'N/A';
+                const emoji = this._getHealthEmoji(status);
+                tableRows += `
+                <tr class="table-row">
+                    <td>Metadatabase</td>
+                    <td>${emoji} ${this._escapeHtml(status)}</td>
+                </tr>`;
+            }
+            // Scheduler status
+            if (this.healthJson.scheduler) {
+                const status = this.healthJson.scheduler.status || 'N/A';
+                const latestHeartbeat = ui.toISODateTimeString(new Date(this.healthJson.scheduler.latest_scheduler_heartbeat)) || 'N/A';
+                const emoji = this._getHealthEmoji(status);
+                tableRows += `
+                <tr class="table-row">
+                    <td>Scheduler</td>
+                    <td>${emoji} ${this._escapeHtml(status)}</td>
+                </tr>`;
+                if (latestHeartbeat !== 'N/A') {
+                    tableRows += `
+                    <tr class="table-row">
+                        <td>Latest Scheduler Heartbeat</td>
+                        <td>${this._escapeHtml(latestHeartbeat)}</td>
+                    </tr>`;
+                }
+            }
+            // Triggerer status
+            if (this.healthJson.triggerer) {
+                const status = this.healthJson.triggerer.status || 'N/A';
+                const latestHeartbeat = ui.toISODateTimeString(new Date(this.healthJson.triggerer.latest_triggerer_heartbeat)) || 'N/A';
+                const emoji = this._getHealthEmoji(status);
+                tableRows += `
+                <tr class="table-row">
+                    <td>Triggerer</td>
+                    <td>${emoji} ${this._escapeHtml(status)}</td>
+                </tr>`;
+                if (latestHeartbeat !== 'N/A') {
+                    tableRows += `
+                    <tr class="table-row">
+                        <td>Latest Triggerer Heartbeat</td>
+                        <td>${this._escapeHtml(latestHeartbeat)}</td>
+                    </tr>`;
+                }
+            }
+            // Dag Processor status
+            if (this.healthJson.dag_processor) {
+                const status = this.healthJson.dag_processor.status || 'N/A';
+                const latestHeartbeat = ui.toISODateTimeString(new Date(this.healthJson.dag_processor.latest_dag_processor_heartbeat)) || 'N/A';
+                const emoji = this._getHealthEmoji(status);
+                tableRows += `
+                <tr class="table-row">
+                    <td>DAG Processor</td>
+                    <td>${emoji} ${this._escapeHtml(status)}</td>
+                </tr>`;
+                if (latestHeartbeat !== 'N/A') {
+                    tableRows += `
+                    <tr class="table-row">
+                        <td>Latest DAG Processor Heartbeat</td>
+                        <td>${this._escapeHtml(latestHeartbeat)}</td>
+                    </tr>`;
+                }
+            }
+        }
+        const result = /*html*/ `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <script type="module" src="${elementsUri}"></script>
+        <script type="module" src="${mainUri}"></script>
+        <link rel="stylesheet" href="${styleUri}">
+        <style>
+            :root {
+                --font-size-sm: 12px;
+                --font-size-md: 13px;
+                --font-size-lg: 15px;
+                --border-radius: 4px;
+                --spacing-xs: 4px;
+                --spacing-sm: 8px;
+                --spacing-md: 16px;
+                --spacing-lg: 24px;
+            }
+
+            body { 
+                padding: var(--spacing-md); 
+                font-family: var(--vscode-font-family);
+                color: var(--vscode-foreground);
+                background-color: var(--vscode-editor-background);
+            }
+
+            h2 {
+                margin: 0 0 var(--spacing-lg) 0;
+                font-size: 18px;
+                font-weight: 600;
+                color: var(--vscode-editor-foreground);
+                border-bottom: 1px solid var(--vscode-widget-border);
+                padding-bottom: var(--spacing-md);
+            }
+
+            h3 {
+                font-size: var(--font-size-md);
+                color: var(--vscode-descriptionForeground);
+                margin-top: -16px;
+                margin-bottom: var(--spacing-lg);
+                font-weight: normal;
+            }
+
+            .controls {
+                margin-bottom: var(--spacing-lg);
+            }
+
+            table {
+                width: 100%;
+                border-collapse: separate;
+                border-spacing: 0;
+                margin-bottom: var(--spacing-lg);
+                font-size: var(--font-size-md);
+            }
+
+            th, td {
+                padding: 5px 8px;
+                text-align: left;
+                border-bottom: 1px solid var(--vscode-widget-border);
+            }
+
+            th {
+                font-weight: 600;
+                color: var(--vscode-descriptionForeground);
+                text-transform: uppercase;
+                font-size: 11px;
+                letter-spacing: 0.5px;
+                background-color: var(--vscode-editor-inactiveSelectionBackground);
+                position: sticky;
+                top: 0;
+            }
+
+            tr:last-child td {
+                border-bottom: none;
+            }
+
+            .table-row:hover td {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+        </style>
+        <title>Server Health</title>
+      </head>
+      <body>  
+        <h2>Server Health</h2>
+        <h3>${Session_1.Session.Current.Server?.apiUrl}</h3>
+        <div class="controls">
+            <vscode-button id="refresh-btn" appearance="secondary">Refresh</vscode-button>
+        </div>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Component</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+            ${tableRows || '<tr><td colspan="2" style="text-align:center; padding: 20px; opacity: 0.7;">No health data available</td></tr>'}        
+            </tbody>
+        </table>
+
+        <script>
+            const vscode = acquireVsCodeApi();
+
+            document.getElementById('refresh-btn').addEventListener('click', () => {
+                vscode.postMessage({ command: 'refresh' });
+            });
+        </script>
+      </body>
+    </html>
+    `;
+        return result;
+    }
+    _escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+    _getHealthEmoji(status) {
+        const statusLower = status.toLowerCase();
+        if (statusLower === 'healthy') {
+            return '✅';
+        }
+        else if (statusLower === 'unhealthy') {
+            return '❌';
+        }
+        return '⚠️';
+    }
+    _setWebviewMessageListener(webview) {
+        ui.logToOutput('ServerHealthView._setWebviewMessageListener Started');
+        webview.onDidReceiveMessage((message) => {
+            ui.logToOutput('ServerHealthView._setWebviewMessageListener Message Received ' + message.command);
+            switch (message.command) {
+                case "refresh":
+                    this.loadData();
+                    return;
+            }
+        }, undefined, this._disposables);
+    }
+}
+exports.ServerHealthView = ServerHealthView;
+
+
+/***/ }),
+/* 61 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AdminTreeView = void 0;
+const vscode = __webpack_require__(1);
+const AdminTreeItem_1 = __webpack_require__(62);
+class AdminTreeView {
+    constructor() {
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+    }
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+    getTreeItem(element) {
+        return element;
+    }
+    getChildren(element) {
+        if (!element) {
+            // Root level - return the admin nodes
+            return Promise.resolve([
+                new AdminTreeItem_1.AdminTreeItem('Variables', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewVariables',
+                    title: 'View Variables',
+                    arguments: []
+                }, new vscode.ThemeIcon('symbol-variable')),
+                new AdminTreeItem_1.AdminTreeItem('Connections', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewConnections',
+                    title: 'View Connections',
+                    arguments: []
+                }, new vscode.ThemeIcon('link')),
+                new AdminTreeItem_1.AdminTreeItem('Providers', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewProviders',
+                    title: 'View Providers',
+                    arguments: []
+                }, new vscode.ThemeIcon('package')),
+                new AdminTreeItem_1.AdminTreeItem('Configs', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewConfigs',
+                    title: 'View Configs',
+                    arguments: []
+                }, new vscode.ThemeIcon('settings-gear')),
+                new AdminTreeItem_1.AdminTreeItem('Plugins', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewPlugins',
+                    title: 'View Plugins',
+                    arguments: []
+                }, new vscode.ThemeIcon('extensions')),
+                new AdminTreeItem_1.AdminTreeItem('Server Health', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewServerHealth',
+                    title: 'View Server Health',
+                    arguments: []
+                }, new vscode.ThemeIcon('pulse'))
+            ]);
+        }
+        return Promise.resolve([]);
+    }
+}
+exports.AdminTreeView = AdminTreeView;
+
+
+/***/ }),
+/* 62 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AdminTreeItem = void 0;
+const vscode = __webpack_require__(1);
+class AdminTreeItem extends vscode.TreeItem {
+    constructor(label, collapsibleState, command, iconPath) {
+        super(label, collapsibleState);
+        this.label = label;
+        this.collapsibleState = collapsibleState;
+        this.command = command;
+        this.iconPath = iconPath;
+        this.command = command;
+        this.iconPath = iconPath;
+    }
+}
+exports.AdminTreeItem = AdminTreeItem;
+
+
+/***/ }),
+/* 63 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ReportTreeView = void 0;
+const vscode = __webpack_require__(1);
+const ReportTreeItem_1 = __webpack_require__(64);
+class ReportTreeView {
+    constructor() {
+        this._onDidChangeTreeData = new vscode.EventEmitter();
+        this.onDidChangeTreeData = this._onDidChangeTreeData.event;
+    }
+    refresh() {
+        this._onDidChangeTreeData.fire();
+    }
+    getTreeItem(element) {
+        return element;
+    }
+    getChildren(element) {
+        if (!element) {
+            // Root level - return the report nodes
+            return Promise.resolve([
+                new ReportTreeItem_1.ReportTreeItem('Daily DAG Runs', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewDagRuns',
+                    title: 'View Daily DAG Runs',
+                    arguments: []
+                }, new vscode.ThemeIcon('list-selection')),
+                new ReportTreeItem_1.ReportTreeItem('DAG Run History', vscode.TreeItemCollapsibleState.None, {
+                    command: 'dagTreeView.viewDagRunHistory',
+                    title: 'View DAG Run History',
+                    arguments: []
+                }, new vscode.ThemeIcon('history'))
+            ]);
+        }
+        return Promise.resolve([]);
+    }
+}
+exports.ReportTreeView = ReportTreeView;
+
+
+/***/ }),
+/* 64 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ReportTreeItem = void 0;
+const vscode = __webpack_require__(1);
+class ReportTreeItem extends vscode.TreeItem {
+    constructor(label, collapsibleState, command, iconPath) {
+        super(label, collapsibleState);
+        this.label = label;
+        this.collapsibleState = collapsibleState;
+        this.command = command;
+        this.iconPath = iconPath;
+        this.command = command;
+        this.iconPath = iconPath;
+    }
+}
+exports.ReportTreeItem = ReportTreeItem;
+
+
+/***/ }),
+/* 65 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AirflowClientAdapter = void 0;
+const Session_1 = __webpack_require__(5);
+const MessageHub = __webpack_require__(50);
+class AirflowClientAdapter {
+    /**
+     * Triggers a DAG run via POST /dags/{dag_id}/dagRuns
+     *
+     * @param dagId - The DAG identifier
+     * @param configJson - JSON string containing the DAG run configuration (optional)
+     * @param date - The logical date for the run (optional)
+     * @returns Promise with the created DAG run result
+     */
+    async triggerDagRun(dagId, configJson = '{}', date) {
+        // Validate JSON before calling API
+        try {
+            JSON.parse(configJson);
+        }
+        catch (error) {
+            throw new Error(`Invalid JSON in config_json parameter: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        const result = await Session_1.Session.Current.Api.triggerDag(dagId, configJson, date);
+        if (!result.isSuccessful) {
+            throw new Error(result.error?.message || 'Failed to trigger DAG run');
+        }
+        MessageHub.DagTriggered(this, dagId, result.result.dag_run_id);
+        // Map the API response to our interface
+        const apiResponse = result.result;
+        return {
+            dag_id: apiResponse.dag_id || dagId,
+            dag_run_id: apiResponse.dag_run_id || apiResponse.run_id || '',
+            state: apiResponse.state || 'queued',
+            execution_date: apiResponse.execution_date || apiResponse.logical_date || new Date().toISOString(),
+            logical_date: apiResponse.logical_date || apiResponse.execution_date || new Date().toISOString(),
+            start_date: apiResponse.start_date,
+            end_date: apiResponse.end_date,
+            conf: apiResponse.conf
+        };
+    }
+    /**
+     * Queries for failed DAG runs using the Airflow API
+     *
+     * @param timeRangeHours - Number of hours to look back (default 24)
+     * @param dagIdFilter - Optional DAG ID filter
+     * @returns Promise with array of failed run summaries
+     */
+    async queryFailedRuns(timeRangeHours = 24, dagIdFilter) {
+        const failedRuns = [];
+        try {
+            // If dagIdFilter is specified, query only that DAG
+            if (dagIdFilter) {
+                const result = await Session_1.Session.Current.Api.getDagRunHistory(dagIdFilter);
+                if (result.isSuccessful && result.result?.dag_runs) {
+                    failedRuns.push(...this.filterFailedRuns(result.result.dag_runs, timeRangeHours));
+                }
+            }
+            else {
+                // If no filter, we need to get the DAG list first, then query each
+                const dagListResult = await Session_1.Session.Current.Api.getDagList();
+                if (dagListResult.isSuccessful && dagListResult.result) {
+                    // Handle both v1 (array) and v2 (object with dags property) responses
+                    const resultData = dagListResult.result;
+                    const dags = Array.isArray(resultData) ? resultData : (resultData.dags || []);
+                    // Limit to first 20 DAGs to avoid too many API calls
+                    const dagsToCheck = dags.slice(0, 20);
+                    // Query each DAG's runs in parallel
+                    const runPromises = dagsToCheck.map(async (dag) => {
+                        try {
+                            const dagId = dag.dag_id;
+                            const runResult = await Session_1.Session.Current.Api.getDagRunHistory(dagId);
+                            if (runResult.isSuccessful && runResult.result?.dag_runs) {
+                                return this.filterFailedRuns(runResult.result.dag_runs, timeRangeHours);
+                            }
+                        }
+                        catch (error) {
+                            // Silently continue on error for individual DAGs
+                            return [];
+                        }
+                        return [];
+                    });
+                    const results = await Promise.all(runPromises);
+                    results.forEach(runs => failedRuns.push(...runs));
+                }
+            }
+            return failedRuns;
+        }
+        catch (error) {
+            throw new Error(`Failed to query failed runs: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Retrieves a list of DAGs filtered by paused state
+     *
+     * @param isPaused - Whether to list paused (true) or active (false) DAGs
+     * @returns Promise with array of DAG summaries
+     */
+    async getDags(isPaused) {
+        try {
+            const dagListResult = await Session_1.Session.Current.Api.getDagList();
+            if (!dagListResult.isSuccessful || !dagListResult.result) {
+                throw new Error(dagListResult.error?.message || 'Failed to fetch DAG list');
+            }
+            // Handle both v1 (array) and v2 (object with dags property) responses
+            const resultData = dagListResult.result;
+            const dags = Array.isArray(resultData) ? resultData : (resultData.dags || []);
+            return dags
+                .filter((dag) => dag.is_paused === isPaused)
+                .map((dag) => ({
+                dag_id: dag.dag_id,
+                is_paused: dag.is_paused,
+                is_active: dag.is_active !== undefined ? dag.is_active : !dag.is_paused,
+                description: dag.description,
+                owners: dag.owners,
+                tags: dag.tags
+            }));
+        }
+        catch (error) {
+            throw new Error(`Failed to get DAG list: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Retrieves a list of DAGs that are currently running
+     *
+     * @returns Promise with array of DAG summaries that have running DAG runs
+     */
+    async getRunningDags() {
+        try {
+            const dagListResult = await Session_1.Session.Current.Api.getDagList();
+            if (!dagListResult.isSuccessful || !dagListResult.result) {
+                throw new Error(dagListResult.error?.message || 'Failed to fetch DAG list');
+            }
+            const resultData = dagListResult.result;
+            const dags = Array.isArray(resultData) ? resultData : (resultData.dags || []);
+            // Filter and enrich DAGs with their latest run info
+            const runningDags = [];
+            for (const dag of dags) {
+                if (dag.is_paused) {
+                    continue; // Skip paused DAGs
+                }
+                try {
+                    const latestRun = await this.getLatestDagRun(dag.dag_id);
+                    if (latestRun && (latestRun.state === 'running' || latestRun.state === 'queued')) {
+                        runningDags.push({
+                            dag_id: dag.dag_id,
+                            is_paused: dag.is_paused,
+                            is_active: dag.is_active !== undefined ? dag.is_active : !dag.is_paused,
+                            description: dag.description,
+                            owners: dag.owners,
+                            tags: dag.tags,
+                            latest_run_state: latestRun.state,
+                            latest_run_id: latestRun.dag_run_id
+                        });
+                    }
+                }
+                catch (error) {
+                    // Continue if we can't get the latest run for a DAG
+                    continue;
+                }
+            }
+            return runningDags;
+        }
+        catch (error) {
+            throw new Error(`Failed to get running DAGs: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Pauses or unpauses a DAG
+     *
+     * @param dagId - The DAG ID
+     * @param isPaused - True to pause, false to unpause
+     */
+    async pauseDag(dagId, isPaused) {
+        try {
+            const result = await Session_1.Session.Current.Api.pauseDag(dagId, isPaused);
+            if (!result.isSuccessful) {
+                throw new Error(result.error?.message || `Failed to ${isPaused ? 'pause' : 'unpause'} DAG`);
+            }
+            MessageHub.DagPaused(this, dagId);
+        }
+        catch (error) {
+            throw new Error(`Failed to change DAG state: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Retrieves the latest DAG run for a given DAG
+     *
+     * @param dagId - The DAG ID
+     * @returns Promise with the latest DAG run result or undefined if not found
+     */
+    async getLatestDagRun(dagId) {
+        try {
+            const result = await Session_1.Session.Current.Api.getLastDagRun(dagId);
+            if (!result.isSuccessful || !result.result) {
+                return undefined;
+            }
+            const apiResponse = result.result;
+            return {
+                dag_id: apiResponse.dag_id || dagId,
+                dag_run_id: apiResponse.dag_run_id || apiResponse.run_id || '',
+                state: apiResponse.state || 'unknown',
+                execution_date: apiResponse.execution_date || apiResponse.logical_date || new Date().toISOString(),
+                logical_date: apiResponse.logical_date || apiResponse.execution_date || new Date().toISOString(),
+                start_date: apiResponse.start_date,
+                end_date: apiResponse.end_date,
+                conf: apiResponse.conf
+            };
+        }
+        catch (error) {
+            // Return undefined on error to allow caller to handle
+            return undefined;
+        }
+    }
+    /**
+     * Retrieves task instances for a specific DAG run
+     *
+     * @param dagId - The DAG ID
+     * @param dagRunId - The DAG run ID
+     * @returns Promise with array of task instances
+     */
+    async getTaskInstances(dagId, dagRunId) {
+        try {
+            const result = await Session_1.Session.Current.Api.getTaskInstances(dagId, dagRunId);
+            if (!result.isSuccessful || !result.result) {
+                return [];
+            }
+            // API v2 returns { task_instances: [...] }
+            return result.result.task_instances || [];
+        }
+        catch (error) {
+            return [];
+        }
+    }
+    /**
+     * Retrieves task log content
+     *
+     * @param dagId - The DAG ID
+     * @param dagRunId - The DAG run ID
+     * @param taskId - The task ID
+     * @param tryNumber - The task attempt number
+     * @returns Promise with the log content (truncated for LLM processing)
+     */
+    async getTaskLog(dagId, dagRunId, taskId, tryNumber) {
+        try {
+            // Use the existing getTaskInstanceLog method
+            const result = await Session_1.Session.Current.Api.getTaskInstanceLogText(dagId, dagRunId, taskId);
+            if (!result.isSuccessful) {
+                throw new Error(result.error?.message || 'Failed to retrieve task log');
+            }
+            const logContent = result.result || '';
+            // Truncate to last 400 characters for token efficiency
+            if (logContent.length > 400) {
+                return '...' + logContent.slice(-400);
+            }
+            return logContent;
+        }
+        catch (error) {
+            throw new Error(`Failed to get task log: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Helper method to filter failed runs within the time range
+     */
+    filterFailedRuns(dagRuns, timeRangeHours) {
+        const cutoffTime = new Date();
+        cutoffTime.setHours(cutoffTime.getHours() - timeRangeHours);
+        const failedStates = ['failed', 'upstream_failed', 'skipped'];
+        return dagRuns
+            .filter((run) => {
+            // Filter by state
+            if (!failedStates.includes(run.state)) {
+                return false;
+            }
+            // Filter by time range
+            const runDate = new Date(run.execution_date || run.logical_date || run.start_date);
+            return runDate >= cutoffTime;
+        })
+            .map((run) => ({
+            dag_id: run.dag_id,
+            dag_run_id: run.dag_run_id || run.run_id,
+            state: run.state,
+            execution_date: run.execution_date || run.logical_date,
+            logical_date: run.logical_date || run.execution_date,
+            start_date: run.start_date,
+            end_date: run.end_date,
+            error_message: this.extractErrorMessage(run)
+        }));
+    }
+    /**
+     * Retrieves DAG run history for a specific DAG
+     *
+     * @param dagId - The DAG ID
+     * @param date - Optional date filter (YYYY-MM-DD format)
+     * @returns Promise with DAG runs data
+     */
+    async getDagRunHistory(dagId, date) {
+        try {
+            const result = await Session_1.Session.Current.Api.getDagRunHistory(dagId, date);
+            if (!result.isSuccessful || !result.result) {
+                throw new Error(result.error?.message || 'Failed to fetch DAG run history');
+            }
+            return result.result;
+        }
+        catch (error) {
+            throw new Error(`Failed to get DAG run history: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Stops a running DAG run by setting its state to failed
+     *
+     * @param dagId - The DAG ID
+     * @param dagRunId - The DAG run ID to stop
+     */
+    async cancelDagRun(dagId, dagRunId) {
+        try {
+            const result = await Session_1.Session.Current.Api.cancelDagRun(dagId, dagRunId);
+            if (!result.isSuccessful) {
+                throw new Error(result.error?.message || 'Failed to cancel DAG run');
+            }
+            MessageHub.DagRunCancelled(this, dagId, dagRunId);
+        }
+        catch (error) {
+            throw new Error(`Failed to stop DAG run: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Retrieves the source code for a DAG
+     *
+     * @param dagId - The DAG ID
+     * @returns Promise with the DAG source code
+     */
+    async getDagSource(dagId) {
+        try {
+            const result = await Session_1.Session.Current.Api.getSourceCode(dagId);
+            if (!result.isSuccessful || !result.result) {
+                throw new Error(result.error?.message || 'Failed to fetch DAG source code');
+            }
+            return result.result;
+        }
+        catch (error) {
+            throw new Error(`Failed to get DAG source code: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+    /**
+     * Helper to extract error message from DAG run
+     */
+    extractErrorMessage(run) {
+        // Try to extract error information from the run object
+        if (run.note) {
+            return run.note;
+        }
+        if (run.state === 'failed') {
+            return `DAG run failed`;
+        }
+        if (run.state === 'upstream_failed') {
+            return `Upstream task(s) failed`;
+        }
+        if (run.state === 'skipped') {
+            return `DAG run was skipped`;
+        }
+        return undefined;
+    }
+}
+exports.AirflowClientAdapter = AirflowClientAdapter;
+
+
+/***/ }),
+/* 66 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * TriggerDagRunTool - Language Model Tool for triggering Airflow DAG runs
+ *
+ * This tool implements a state-changing action that requires explicit user confirmation
+ * via the prepareInvocation method. It displays the target DAG ID and configuration
+ * payload in a markdown-formatted confirmation dialog before execution.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.TriggerDagRunTool = void 0;
+const vscode = __webpack_require__(1);
+const fs = __webpack_require__(3);
+/**
+ * TriggerDagRunTool - Implements vscode.LanguageModelTool for DAG triggering
+ */
+class TriggerDagRunTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * SECURITY CRITICAL: Prepare invocation with user confirmation
+     *
+     * This method is called before invoke() and provides a confirmation gate
+     * for the user to review the exact DAG and configuration before triggering.
+     *
+     * @param options - Contains the parsed input parameters
+     * @param token - Cancellation token
+     * @returns PreparedToolInvocation with confirmation message
+     */
+    async prepareInvocation(options, token) {
+        const { dagId, configJson, date } = options.input;
+        // Process configJson: check if it's a file path
+        let finalConfig = configJson || '{}';
+        let configSource = 'Inline';
+        if (configJson && !configJson.trim().startsWith('{')) {
+            // Assume it's a file path if it doesn't start with {
+            try {
+                // Remove quotes if present
+                const filePath = configJson.replace(/^['"]|['"]$/g, '');
+                if (fs.existsSync(filePath)) {
+                    finalConfig = fs.readFileSync(filePath, 'utf8');
+                    configSource = `File: ${filePath}`;
+                }
+            }
+            catch (error) {
+                // If read fails, keep original string (validation will happen later)
+                console.warn(`Failed to read config file: ${error}`);
+            }
+        }
+        // Validate JSON
+        try {
+            JSON.parse(finalConfig);
+        }
+        catch (e) {
+            throw new Error(`Invalid JSON configuration: ${e instanceof Error ? e.message : String(e)}`);
+        }
+        const confirmationMessage = new vscode.MarkdownString();
+        confirmationMessage.isTrusted = true;
+        confirmationMessage.appendMarkdown('## ⚠️ Trigger DAG Confirmation\n\n');
+        confirmationMessage.appendMarkdown(`You are about to trigger the following DAG:\n\n`);
+        confirmationMessage.appendMarkdown(`**DAG ID:** \`${dagId}\`\n`);
+        if (date) {
+            confirmationMessage.appendMarkdown(`**Logical Date:** \`${date}\`\n`);
+        }
+        confirmationMessage.appendMarkdown(`**Config Source:** ${configSource}\n\n`);
+        confirmationMessage.appendMarkdown('**Configuration Payload:**\n');
+        confirmationMessage.appendCodeblock(finalConfig, 'json');
+        confirmationMessage.appendMarkdown('\nDo you want to proceed?');
+        return {
+            invocationMessage: `Triggering DAG: ${dagId}`,
+            confirmationMessages: {
+                title: 'Confirm DAG Trigger',
+                message: confirmationMessage
+            }
+        };
+    }
+    /**
+     * Execute the DAG trigger action
+     *
+     * @param options - Contains the validated input parameters
+     * @param token - Cancellation token
+     * @returns LanguageModelToolResult with success/error information
+     */
+    async invoke(options, token) {
+        const { dagId, configJson, date } = options.input;
+        try {
+            // Re-process config for invoke (same logic as prepare)
+            let finalConfig = configJson || '{}';
+            if (configJson && !configJson.trim().startsWith('{')) {
+                try {
+                    const filePath = configJson.replace(/^['"]|['"]$/g, '');
+                    if (fs.existsSync(filePath)) {
+                        finalConfig = fs.readFileSync(filePath, 'utf8');
+                    }
+                }
+                catch (error) {
+                    // Ignore error here, will fail at JSON parse in client
+                }
+            }
+            const result = await this.client.triggerDagRun(dagId, finalConfig, date);
+            const message = [
+                `✅ **Success!** DAG Run triggered.`,
+                ``,
+                `- **DAG ID:** ${result.dag_id}`,
+                `- **Run ID:** ${result.dag_run_id}`,
+                `- **State:** ${result.state}`,
+                `- **Logical Date:** ${result.logical_date}`,
+                date ? `- **Requested Date:** ${date}` : ''
+            ].filter(Boolean).join('\n');
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(message)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to trigger DAG ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.TriggerDagRunTool = TriggerDagRunTool;
+
+
+/***/ }),
+/* 67 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GetFailedRunsTool - Language Model Tool for monitoring failed DAG runs
+ *
+ * This tool implements a read-only observability action that retrieves
+ * failed DAG runs from Airflow. It does not require user confirmation
+ * since it's a non-destructive operation.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetFailedRunsTool = void 0;
+const vscode = __webpack_require__(1);
+/**
+ * GetFailedRunsTool - Implements vscode.LanguageModelTool for monitoring
+ */
+class GetFailedRunsTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Prepare invocation - minimal for read-only operations
+     *
+     * Since this is a read-only monitoring tool, we don't need extensive
+     * confirmation dialogs. This method can return undefined or a simple message.
+     *
+     * @param options - Contains the parsed input parameters
+     * @param token - Cancellation token
+     * @returns PreparedToolInvocation or undefined
+     */
+    async prepareInvocation(options, token) {
+        const timeRange = options.input.timeRangeHours || 24;
+        const dagFilter = options.input.dagIdFilter;
+        const message = dagFilter
+            ? `Querying failed runs for DAG '${dagFilter}' (last ${timeRange} hours)`
+            : `Querying all failed runs (last ${timeRange} hours)`;
+        return {
+            invocationMessage: message
+        };
+    }
+    /**
+     * Execute the query for failed DAG runs
+     *
+     * @param options - Contains the validated input parameters
+     * @param token - Cancellation token
+     * @returns LanguageModelToolResult with failed runs data
+     */
+    async invoke(options, token) {
+        const timeRange = options.input.timeRangeHours || 24;
+        const dagFilter = options.input.dagIdFilter;
+        try {
+            // Call the mock API client to get failed runs
+            const failedRuns = await this.client.queryFailedRuns(timeRange, dagFilter);
+            // Format the response for the LLM
+            if (failedRuns.length === 0) {
+                const noFailuresMessage = dagFilter
+                    ? `✅ No failed runs found for DAG '${dagFilter}' in the last ${timeRange} hours.`
+                    : `✅ No failed runs found in the last ${timeRange} hours. All DAGs are healthy!`;
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(noFailuresMessage)
+                ]);
+            }
+            // Build a detailed summary
+            let summaryMessage = `## ⚠️ Failed DAG Runs Report\n\n`;
+            summaryMessage += `**Time Range:** Last ${timeRange} hours\n`;
+            if (dagFilter) {
+                summaryMessage += `**DAG Filter:** ${dagFilter}\n`;
+            }
+            summaryMessage += `**Total Failed Runs:** ${failedRuns.length}\n\n`;
+            summaryMessage += `---\n\n`;
+            // Add individual run details
+            failedRuns.forEach((run, index) => {
+                summaryMessage += `### ${index + 1}. ${run.dag_id}\n\n`;
+                summaryMessage += `- **Run ID:** \`${run.dag_run_id}\`\n`;
+                summaryMessage += `- **State:** ${run.state}\n`;
+                summaryMessage += `- **Execution Date:** ${run.execution_date}\n`;
+                summaryMessage += `- **Logical Date:** ${run.logical_date}\n`;
+                if (run.start_date) {
+                    summaryMessage += `- **Started:** ${run.start_date}\n`;
+                }
+                if (run.end_date) {
+                    summaryMessage += `- **Ended:** ${run.end_date}\n`;
+                }
+                if (run.error_message) {
+                    summaryMessage += `- **Error:** ${run.error_message}\n`;
+                }
+                summaryMessage += `\n`;
+            });
+            // Also include raw JSON for LLM processing
+            summaryMessage += `\n---\n\n**Raw Data (JSON):**\n\n`;
+            summaryMessage += `\`\`\`json\n${JSON.stringify(failedRuns, null, 2)}\n\`\`\`\n`;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(summaryMessage)
+            ]);
+        }
+        catch (error) {
+            // Handle errors gracefully
+            const errorMessage = `
+❌ Failed to Query DAG Runs
+
+**Error:** ${error instanceof Error ? error.message : String(error)}
+
+Please check:
+- The Airflow server is accessible
+- You have the necessary permissions
+- The time range and filters are valid
+            `.trim();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(errorMessage)
+            ]);
+        }
+    }
+}
+exports.GetFailedRunsTool = GetFailedRunsTool;
+
+
+/***/ }),
+/* 68 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * ListActiveDagsTool - Language Model Tool for listing active DAGs
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ListActiveDagsTool = void 0;
+const vscode = __webpack_require__(1);
+class ListActiveDagsTool {
+    constructor(client) {
+        this.client = client;
+    }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: "Listing active DAGs..."
+        };
+    }
+    async invoke(options, token) {
+        try {
+            const dags = await this.client.getDags(false); // false = active (not paused)
+            if (dags.length === 0) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart("✅ No active DAGs found.")
+                ]);
+            }
+            let message = `## 🟢 Active DAGs (${dags.length})\n\n`;
+            dags.forEach(dag => {
+                message += `- **${dag.dag_id}**`;
+                if (dag.description) {
+                    message += `: ${dag.description}`;
+                }
+                message += `\n`;
+            });
+            message += `\n---\n**Raw Data:**\n\`\`\`json\n${JSON.stringify(dags, null, 2)}\n\`\`\``;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(message)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to list active DAGs: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.ListActiveDagsTool = ListActiveDagsTool;
+
+
+/***/ }),
+/* 69 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * ListPausedDagsTool - Language Model Tool for listing paused DAGs
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ListPausedDagsTool = void 0;
+const vscode = __webpack_require__(1);
+class ListPausedDagsTool {
+    constructor(client) {
+        this.client = client;
+    }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: "Listing paused DAGs..."
+        };
+    }
+    async invoke(options, token) {
+        try {
+            const dags = await this.client.getDags(true); // true = paused
+            if (dags.length === 0) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart("✅ No paused DAGs found.")
+                ]);
+            }
+            let message = `## ⏸️ Paused DAGs (${dags.length})\n\n`;
+            dags.forEach(dag => {
+                message += `- **${dag.dag_id}**`;
+                if (dag.description) {
+                    message += `: ${dag.description}`;
+                }
+                message += `\n`;
+            });
+            message += `\n---\n**Raw Data:**\n\`\`\`json\n${JSON.stringify(dags, null, 2)}\n\`\`\``;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(message)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to list paused DAGs: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.ListPausedDagsTool = ListPausedDagsTool;
+
+
+/***/ }),
+/* 70 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GetRunningDagsTool - Language Model Tool for listing currently running DAGs
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetRunningDagsTool = void 0;
+const vscode = __webpack_require__(1);
+class GetRunningDagsTool {
+    constructor(client) {
+        this.client = client;
+    }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: "Checking for running DAGs..."
+        };
+    }
+    async invoke(options, token) {
+        try {
+            const runningDags = await this.client.getRunningDags();
+            if (runningDags.length === 0) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart("✅ No DAGs are currently running.")
+                ]);
+            }
+            let message = `## ▶️ Running DAGs (${runningDags.length})\n\n`;
+            runningDags.forEach(dag => {
+                const stateEmoji = dag.latest_run_state === 'running' ? '▶️' : '⏳';
+                message += `- ${stateEmoji} **${dag.dag_id}** - State: ${dag.latest_run_state}, Run ID: \`${dag.latest_run_id}\``;
+                if (dag.description) {
+                    message += `\n  Description: ${dag.description}`;
+                }
+                if (dag.owners && dag.owners.length > 0) {
+                    message += `\n  Owners: ${dag.owners.join(', ')}`;
+                }
+                message += `\n`;
+            });
+            message += `\n---\n**Raw Data:**\n\`\`\`json\n${JSON.stringify(runningDags, null, 2)}\n\`\`\``;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(message)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to get running DAGs: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GetRunningDagsTool = GetRunningDagsTool;
+
+
+/***/ }),
+/* 71 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * PauseDagTool - Language Model Tool for pausing a DAG
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PauseDagTool = void 0;
+const vscode = __webpack_require__(1);
+class PauseDagTool {
+    constructor(client) {
+        this.client = client;
+    }
+    async prepareInvocation(options, token) {
+        const { dagId } = options.input;
+        const confirmationMessage = new vscode.MarkdownString();
+        confirmationMessage.isTrusted = true;
+        confirmationMessage.appendMarkdown('## ⚠️ Pause DAG Confirmation\n\n');
+        confirmationMessage.appendMarkdown(`You are about to **PAUSE** the following DAG:\n\n`);
+        confirmationMessage.appendMarkdown(`**DAG ID:** \`${dagId}\`\n\n`);
+        confirmationMessage.appendMarkdown('**Effect:** No new runs will be scheduled for this DAG.\n\n');
+        confirmationMessage.appendMarkdown('Do you want to proceed?');
+        return {
+            invocationMessage: `Pausing DAG: ${dagId}`,
+            confirmationMessages: {
+                title: 'Confirm Pause DAG',
+                message: confirmationMessage
+            }
+        };
+    }
+    async invoke(options, token) {
+        const { dagId } = options.input;
+        try {
+            await this.client.pauseDag(dagId, true); // true = pause
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`✅ Successfully PAUSED DAG: **${dagId}**`)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to pause DAG ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.PauseDagTool = PauseDagTool;
+
+
+/***/ }),
+/* 72 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * UnpauseDagTool - Language Model Tool for unpausing (activating) a DAG
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.UnpauseDagTool = void 0;
+const vscode = __webpack_require__(1);
+class UnpauseDagTool {
+    constructor(client) {
+        this.client = client;
+    }
+    async prepareInvocation(options, token) {
+        const { dagId } = options.input;
+        const confirmationMessage = new vscode.MarkdownString();
+        confirmationMessage.isTrusted = true;
+        confirmationMessage.appendMarkdown('## ⚠️ Unpause DAG Confirmation\n\n');
+        confirmationMessage.appendMarkdown(`You are about to **UNPAUSE** (activate) the following DAG:\n\n`);
+        confirmationMessage.appendMarkdown(`**DAG ID:** \`${dagId}\`\n\n`);
+        confirmationMessage.appendMarkdown('**Effect:** New runs will be scheduled for this DAG.\n\n');
+        confirmationMessage.appendMarkdown('Do you want to proceed?');
+        return {
+            invocationMessage: `Unpausing DAG: ${dagId}`,
+            confirmationMessages: {
+                title: 'Confirm Unpause DAG',
+                message: confirmationMessage
+            }
+        };
+    }
+    async invoke(options, token) {
+        const { dagId } = options.input;
+        try {
+            await this.client.pauseDag(dagId, false); // false = unpause
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`✅ Successfully UNPAUSED DAG: **${dagId}**`)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to unpause DAG ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.UnpauseDagTool = UnpauseDagTool;
+
+
+/***/ }),
+/* 73 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GetDagRunsTool - Language Model Tool for retrieving DAG runs
+ *
+ * This tool retrieves the runs for a specific DAG, optionally filtered by date.
+ * Returns run ID, start time, duration, and status for each run.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetDagRunsTool = void 0;
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(2);
+/**
+ * GetDagRunsTool - Implements vscode.LanguageModelTool for retrieving DAG runs
+ */
+class GetDagRunsTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Prepare invocation - minimal for read-only operations
+     */
+    async prepareInvocation(options, token) {
+        const { dagId, date } = options.input;
+        const dateStr = date || ui.toISODateString(new Date());
+        return {
+            invocationMessage: `Retrieving runs for DAG '${dagId}' (date: ${dateStr})`
+        };
+    }
+    /**
+     * Execute the query for DAG runs
+     */
+    async invoke(options, token) {
+        const { dagId, date } = options.input;
+        try {
+            // Get DAG run history from the API
+            const result = await this.client.getDagRunHistory(dagId);
+            if (!result || !result.dag_runs || result.dag_runs.length === 0) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`ℹ️ No runs found for DAG '${dagId}'.`)
+                ]);
+            }
+            let runs = result.dag_runs;
+            // Filter by date if provided
+            if (date) {
+                const targetDate = new Date(date);
+                runs = runs.filter((run) => {
+                    const runDate = new Date(run.execution_date || run.logical_date);
+                    return ui.toISODateString(runDate) === ui.toISODateString(targetDate);
+                });
+                if (runs.length === 0) {
+                    return new vscode.LanguageModelToolResult([
+                        new vscode.LanguageModelTextPart(`ℹ️ No runs found for DAG '${dagId}' on ${date}.`)
+                    ]);
+                }
+            }
+            // Build detailed summary
+            let summaryMessage = `## 📊 DAG Runs for '${dagId}'\n\n`;
+            if (date) {
+                summaryMessage += `**Date Filter:** ${date}\n`;
+            }
+            else {
+                summaryMessage += `**Date Filter:** Today (${ui.toISODateString(new Date())})\n`;
+            }
+            summaryMessage += `**Total Runs:** ${runs.length}\n\n`;
+            summaryMessage += `---\n\n`;
+            // Add individual run details
+            runs.forEach((run, index) => {
+                const startTime = run.start_date || run.execution_date || 'N/A';
+                const endTime = run.end_date || 'N/A';
+                let duration = 'N/A';
+                if (run.start_date && run.end_date) {
+                    const start = new Date(run.start_date);
+                    const end = new Date(run.end_date);
+                    const durationMs = end.getTime() - start.getTime();
+                    const durationSec = Math.floor(durationMs / 1000);
+                    const minutes = Math.floor(durationSec / 60);
+                    const seconds = durationSec % 60;
+                    duration = `${minutes}m ${seconds}s`;
+                }
+                const status = run.state || 'unknown';
+                const statusEmoji = this.getStatusEmoji(status);
+                summaryMessage += `### ${index + 1}. Run: ${run.dag_run_id || run.run_id}\n\n`;
+                summaryMessage += `- **Status:** ${statusEmoji} ${status}\n`;
+                summaryMessage += `- **Start Time:** ${startTime}\n`;
+                if (endTime !== 'N/A') {
+                    summaryMessage += `- **End Time:** ${endTime}\n`;
+                }
+                summaryMessage += `- **Duration:** ${duration}\n`;
+                summaryMessage += `- **Execution Date:** ${run.execution_date || run.logical_date}\n`;
+                summaryMessage += `\n`;
+            });
+            // Include raw JSON for LLM processing
+            summaryMessage += `\n---\n\n**Raw Data (JSON):**\n\n`;
+            summaryMessage += `\`\`\`json\n${JSON.stringify(runs, null, 2)}\n\`\`\`\n`;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(summaryMessage)
+            ]);
+        }
+        catch (error) {
+            const errorMessage = `
+❌ Failed to retrieve DAG runs
+
+**Error:** ${error instanceof Error ? error.message : String(error)}
+
+Please check:
+- The DAG ID is correct
+- The Airflow server is accessible
+- You have the necessary permissions
+            `.trim();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(errorMessage)
+            ]);
+        }
+    }
+    /**
+     * Helper to get emoji for run status
+     */
+    getStatusEmoji(status) {
+        const statusMap = {
+            'success': '✅',
+            'failed': '❌',
+            'running': '▶️',
+            'queued': '⏳',
+            'upstream_failed': '⚠️',
+            'skipped': '⏭️',
+            'up_for_retry': '🔄',
+            'up_for_reschedule': '📅',
+            'removed': '🗑️',
+            'scheduled': '📆'
+        };
+        return statusMap[status.toLowerCase()] || '❓';
+    }
+}
+exports.GetDagRunsTool = GetDagRunsTool;
+
+
+/***/ }),
+/* 74 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * CancelDagRunTool - Language Model Tool for cancelling a running DAG run
+ *
+ * This tool cancels the currently running DAG run for a specific DAG.
+ * It requires user confirmation since it's a state-changing operation.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CancelDagRunTool = void 0;
+const vscode = __webpack_require__(1);
+/**
+ * CancelDagRunTool - Implements vscode.LanguageModelTool for cancelling DAG runs
+ */
+class CancelDagRunTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Prepare invocation with user confirmation
+     */
+    async prepareInvocation(options, token) {
+        const { dagId } = options.input;
+        // Try to get the current running DAG run
+        let runInfo = '';
+        try {
+            const latestRun = await this.client.getLatestDagRun(dagId);
+            if (latestRun && (latestRun.state === 'running' || latestRun.state === 'queued')) {
+                runInfo = `\n**Current Run:** \`${latestRun.dag_run_id}\`\n**State:** ${latestRun.state}\n\n`;
+            }
+        }
+        catch (error) {
+            // Ignore error, proceed with generic confirmation
+        }
+        const confirmationMessage = new vscode.MarkdownString();
+        confirmationMessage.isTrusted = true;
+        confirmationMessage.appendMarkdown('## ⚠️ Cancel DAG Run Confirmation\n\n');
+        confirmationMessage.appendMarkdown(`You are about to **CANCEL** the running DAG run for:\n\n`);
+        confirmationMessage.appendMarkdown(`**DAG ID:** \`${dagId}\`\n`);
+        if (runInfo) {
+            confirmationMessage.appendMarkdown(runInfo);
+        }
+        confirmationMessage.appendMarkdown('**Effect:** The current DAG run will be marked as failed and cancelled.\n\n');
+        confirmationMessage.appendMarkdown('Do you want to proceed?');
+        return {
+            invocationMessage: `Cancelling DAG run: ${dagId}`,
+            confirmationMessages: {
+                title: 'Confirm Cancel DAG Run',
+                message: confirmationMessage
+            }
+        };
+    }
+    /**
+     * Execute the cancel DAG run action
+     */
+    async invoke(options, token) {
+        const { dagId } = options.input;
+        try {
+            // First, get the latest DAG run to find the running one
+            const latestRun = await this.client.getLatestDagRun(dagId);
+            if (!latestRun) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`ℹ️ No DAG run found for '${dagId}'.`)
+                ]);
+            }
+            // Check if the latest run is actually running
+            if (latestRun.state !== 'running' && latestRun.state !== 'queued') {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`ℹ️ DAG '${dagId}' is not currently running.\n\nLatest run state: **${latestRun.state}**\nRun ID: \`${latestRun.dag_run_id}\``)
+                ]);
+            }
+            // Cancel the DAG run
+            await this.client.cancelDagRun(dagId, latestRun.dag_run_id);
+            const message = [
+                `✅ **Success!** DAG run cancelled.`,
+                ``,
+                `- **DAG ID:** ${dagId}`,
+                `- **Run ID:** ${latestRun.dag_run_id}`,
+                `- **Previous State:** ${latestRun.state}`,
+                ``,
+                `The DAG run has been marked as failed and cancelled.`
+            ].join('\n');
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(message)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to cancel DAG run for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.CancelDagRunTool = CancelDagRunTool;
+
+
+/***/ }),
+/* 75 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * AnalyseDagLatestRunTool - Language Model Tool for comprehensive DAG run analysis
+ *
+ * This tool retrieves comprehensive information about the latest DAG run including:
+ * - DAG run details
+ * - Task instances
+ * - DAG source code
+ * - Task logs
+ *
+ * It provides a complete analysis to help diagnose issues and understand execution.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AnalyseDagLatestRunTool = void 0;
+const vscode = __webpack_require__(1);
+/**
+ * AnalyseDagLatestRunTool - Implements vscode.LanguageModelTool for comprehensive DAG analysis
+ */
+class AnalyseDagLatestRunTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Prepare invocation
+     */
+    async prepareInvocation(options, token) {
+        const { dagId } = options.input;
+        return {
+            invocationMessage: `Analyzing latest run for DAG '${dagId}'...`
+        };
+    }
+    /**
+     * Execute comprehensive DAG run analysis
+     */
+    async invoke(options, token) {
+        const { dagId } = options.input;
+        try {
+            // Step 1: Get the latest DAG run
+            const dagRun = await this.client.getLatestDagRun(dagId);
+            if (!dagRun) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`ℹ️ No DAG run found for '${dagId}'.`)
+                ]);
+            }
+            // Step 2: Get task instances for this run
+            const taskInstances = await this.client.getTaskInstances(dagId, dagRun.dag_run_id);
+            // Step 3: Get DAG source code
+            let dagSourceCode = 'N/A';
+            try {
+                dagSourceCode = await this.client.getDagSource(dagId);
+            }
+            catch (error) {
+                dagSourceCode = `Failed to retrieve source code: ${error instanceof Error ? error.message : String(error)}`;
+            }
+            // Step 4: Get logs for each task (focusing on failed tasks first, then all)
+            const taskLogs = [];
+            // Sort tasks: failed first, then by execution order
+            const sortedTasks = [...taskInstances].sort((a, b) => {
+                const failedStates = ['failed', 'upstream_failed'];
+                const aFailed = failedStates.includes(a.state);
+                const bFailed = failedStates.includes(b.state);
+                if (aFailed && !bFailed)
+                    return -1;
+                if (!aFailed && bFailed)
+                    return 1;
+                return 0;
+            });
+            // Get logs for up to 5 tasks (prioritizing failed tasks)
+            const tasksToLog = sortedTasks.slice(0, 5);
+            for (const task of tasksToLog) {
+                try {
+                    const log = await this.client.getTaskLog(dagId, dagRun.dag_run_id, task.task_id, task.try_number?.toString() || '1');
+                    taskLogs.push({
+                        task_id: task.task_id,
+                        state: task.state,
+                        log: log
+                    });
+                }
+                catch (error) {
+                    taskLogs.push({
+                        task_id: task.task_id,
+                        state: task.state,
+                        log: `Failed to retrieve log: ${error instanceof Error ? error.message : String(error)}`
+                    });
+                }
+            }
+            // Build comprehensive analysis report
+            let report = this.buildAnalysisReport(dagId, dagRun, taskInstances, dagSourceCode, taskLogs);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(report)
+            ]);
+        }
+        catch (error) {
+            const errorMessage = `
+❌ Failed to analyze DAG run
+
+**Error:** ${error instanceof Error ? error.message : String(error)}
+
+Please check:
+- The DAG ID is correct
+- The Airflow server is accessible
+- You have the necessary permissions
+            `.trim();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(errorMessage)
+            ]);
+        }
+    }
+    /**
+     * Build comprehensive analysis report
+     */
+    buildAnalysisReport(dagId, dagRun, taskInstances, dagSourceCode, taskLogs) {
+        let report = `# 🔍 Comprehensive DAG Run Analysis\n\n`;
+        report += `## DAG: ${dagId}\n\n`;
+        report += `---\n\n`;
+        // Section 1: DAG Run Overview
+        report += `## 📊 DAG Run Overview\n\n`;
+        report += `- **Run ID:** \`${dagRun.dag_run_id}\`\n`;
+        report += `- **State:** ${this.getStatusEmoji(dagRun.state)} **${dagRun.state}**\n`;
+        report += `- **Execution Date:** ${dagRun.execution_date}\n`;
+        report += `- **Logical Date:** ${dagRun.logical_date}\n`;
+        if (dagRun.start_date) {
+            report += `- **Start Date:** ${dagRun.start_date}\n`;
+        }
+        if (dagRun.end_date) {
+            report += `- **End Date:** ${dagRun.end_date}\n`;
+            // Calculate duration
+            const start = new Date(dagRun.start_date);
+            const end = new Date(dagRun.end_date);
+            const durationMs = end.getTime() - start.getTime();
+            const durationSec = Math.floor(durationMs / 1000);
+            const minutes = Math.floor(durationSec / 60);
+            const seconds = durationSec % 60;
+            report += `- **Duration:** ${minutes}m ${seconds}s\n`;
+        }
+        report += `\n---\n\n`;
+        // Section 2: Task Instances Summary
+        report += `## 📋 Task Instances (${taskInstances.length} tasks)\n\n`;
+        // Group tasks by state
+        const tasksByState = {};
+        taskInstances.forEach((task) => {
+            const state = task.state || 'unknown';
+            if (!tasksByState[state]) {
+                tasksByState[state] = [];
+            }
+            tasksByState[state].push(task);
+        });
+        // Display summary by state
+        for (const [state, tasks] of Object.entries(tasksByState)) {
+            report += `### ${this.getStatusEmoji(state)} ${state} (${tasks.length})\n`;
+            tasks.forEach((task) => {
+                report += `- **${task.task_id}**`;
+                if (task.duration) {
+                    report += ` - Duration: ${Math.round(task.duration)}s`;
+                }
+                if (task.start_date) {
+                    report += ` - Started: ${task.start_date}`;
+                }
+                report += `\n`;
+            });
+            report += `\n`;
+        }
+        report += `---\n\n`;
+        // Section 3: Task Logs Analysis
+        if (taskLogs.length > 0) {
+            report += `## 📝 Task Logs (Top ${taskLogs.length} tasks)\n\n`;
+            taskLogs.forEach((taskLog, index) => {
+                report += `### ${index + 1}. Task: ${taskLog.task_id} (${this.getStatusEmoji(taskLog.state)} ${taskLog.state})\n\n`;
+                report += `\`\`\`\n${taskLog.log}\n\`\`\`\n\n`;
+            });
+            report += `---\n\n`;
+        }
+        // Section 4: DAG Source Code
+        report += `## 💻 DAG Source Code\n\n`;
+        report += `\`\`\`python\n${dagSourceCode}\n\`\`\`\n\n`;
+        report += `---\n\n`;
+        // Section 5: Raw Data
+        report += `## 📦 Raw Data (JSON)\n\n`;
+        report += `### DAG Run\n\`\`\`json\n${JSON.stringify(dagRun, null, 2)}\n\`\`\`\n\n`;
+        report += `### Task Instances\n\`\`\`json\n${JSON.stringify(taskInstances, null, 2)}\n\`\`\`\n\n`;
+        // Section 6: Analysis Prompt
+        report += `---\n\n`;
+        report += `## 🤖 Analysis Request\n\n`;
+        report += `Please analyze the above information and provide:\n`;
+        report += `1. **Summary of Execution:** What happened during this DAG run?\n`;
+        report += `2. **Issues Identified:** What errors or problems occurred?\n`;
+        report += `3. **Root Cause Analysis:** What likely caused any failures?\n`;
+        report += `4. **Recommendations:** How can these issues be resolved?\n`;
+        report += `5. **Code Review:** Any issues in the DAG code that need attention?\n`;
+        return report;
+    }
+    /**
+     * Helper to get emoji for task/run status
+     */
+    getStatusEmoji(status) {
+        const statusMap = {
+            'success': '✅',
+            'failed': '❌',
+            'running': '▶️',
+            'queued': '⏳',
+            'upstream_failed': '⚠️',
+            'skipped': '⏭️',
+            'up_for_retry': '🔄',
+            'up_for_reschedule': '📅',
+            'removed': '🗑️',
+            'scheduled': '📆',
+            'none': '⚪',
+            'unknown': '❓'
+        };
+        return statusMap[status?.toLowerCase()] || '❓';
+    }
+}
+exports.AnalyseDagLatestRunTool = AnalyseDagLatestRunTool;
+
+
+/***/ }),
+/* 76 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GetDagHistoryTool - Language Model Tool for retrieving DAG run history
+ *
+ * This tool retrieves the run history for a specific DAG, optionally filtered by date.
+ * Returns date of run, status, duration, and notes for each run.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetDagHistoryTool = void 0;
+const vscode = __webpack_require__(1);
+const ui = __webpack_require__(2);
+/**
+ * GetDagHistoryTool - Implements vscode.LanguageModelTool for retrieving DAG history
+ */
+class GetDagHistoryTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Prepare invocation - minimal for read-only operations
+     */
+    async prepareInvocation(options, token) {
+        const { dagId, date } = options.input;
+        const dateStr = date || ui.toISODateString(new Date());
+        return {
+            invocationMessage: `Retrieving history for DAG '${dagId}' (date: ${dateStr})`
+        };
+    }
+    /**
+     * Execute the query for DAG history
+     */
+    async invoke(options, token) {
+        const { dagId, date } = options.input;
+        // Use today's date if not provided
+        const queryDate = date || ui.toISODateString(new Date());
+        try {
+            // Get DAG run history from the API
+            const result = await this.client.getDagRunHistory(dagId, queryDate);
+            if (!result || !result.dag_runs || result.dag_runs.length === 0) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`ℹ️ No run history found for DAG '${dagId}' on ${queryDate}.`)
+                ]);
+            }
+            const runs = result.dag_runs;
+            // Build detailed summary
+            let summaryMessage = `## 📜 DAG Run History for '${dagId}'\n\n`;
+            summaryMessage += `**Date Filter:** ${queryDate}\n`;
+            summaryMessage += `**Total Runs:** ${runs.length}\n\n`;
+            summaryMessage += `---\n\n`;
+            // Add individual run details in a table-like format
+            summaryMessage += `| # | Date/Time | Status | Duration | Note |\n`;
+            summaryMessage += `|---|-----------|--------|----------|------|\n`;
+            runs.forEach((run, index) => {
+                const runDate = run.execution_date || run.logical_date || 'N/A';
+                const status = this.getStatusEmoji(run.state) + ' ' + (run.state || 'unknown');
+                let duration = 'N/A';
+                if (run.start_date && run.end_date) {
+                    const start = new Date(run.start_date);
+                    const end = new Date(run.end_date);
+                    const durationMs = end.getTime() - start.getTime();
+                    const durationSec = Math.floor(durationMs / 1000);
+                    const minutes = Math.floor(durationSec / 60);
+                    const seconds = durationSec % 60;
+                    duration = `${minutes}m ${seconds}s`;
+                }
+                else if (run.start_date && !run.end_date) {
+                    duration = '⏳ Running';
+                }
+                const note = run.note || '-';
+                summaryMessage += `| ${index + 1} | ${runDate} | ${status} | ${duration} | ${note} |\n`;
+            });
+            summaryMessage += `\n---\n\n`;
+            // Add detailed breakdown
+            summaryMessage += `### Detailed Breakdown\n\n`;
+            runs.forEach((run, index) => {
+                summaryMessage += `#### ${index + 1}. Run ID: ${run.dag_run_id || run.run_id}\n\n`;
+                summaryMessage += `- **Status:** ${this.getStatusEmoji(run.state)} ${run.state || 'unknown'}\n`;
+                summaryMessage += `- **Execution Date:** ${run.execution_date || run.logical_date}\n`;
+                summaryMessage += `- **Logical Date:** ${run.logical_date || run.execution_date}\n`;
+                if (run.start_date) {
+                    summaryMessage += `- **Start Date:** ${run.start_date}\n`;
+                }
+                if (run.end_date) {
+                    summaryMessage += `- **End Date:** ${run.end_date}\n`;
+                    const start = new Date(run.start_date);
+                    const end = new Date(run.end_date);
+                    const durationMs = end.getTime() - start.getTime();
+                    const durationSec = Math.floor(durationMs / 1000);
+                    const minutes = Math.floor(durationSec / 60);
+                    const seconds = durationSec % 60;
+                    summaryMessage += `- **Duration:** ${minutes}m ${seconds}s\n`;
+                }
+                if (run.note) {
+                    summaryMessage += `- **Note:** ${run.note}\n`;
+                }
+                if (run.conf && Object.keys(run.conf).length > 0) {
+                    summaryMessage += `- **Configuration:** \`${JSON.stringify(run.conf)}\`\n`;
+                }
+                summaryMessage += `\n`;
+            });
+            // Include raw JSON for LLM processing
+            summaryMessage += `---\n\n**Raw Data (JSON):**\n\n`;
+            summaryMessage += `\`\`\`json\n${JSON.stringify(runs, null, 2)}\n\`\`\`\n`;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(summaryMessage)
+            ]);
+        }
+        catch (error) {
+            const errorMessage = `
+❌ Failed to retrieve DAG history
+
+**Error:** ${error instanceof Error ? error.message : String(error)}
+
+Please check:
+- The DAG ID is correct
+- The date format is YYYY-MM-DD
+- The Airflow server is accessible
+- You have the necessary permissions
+            `.trim();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(errorMessage)
+            ]);
+        }
+    }
+    /**
+     * Helper to get emoji for run status
+     */
+    getStatusEmoji(status) {
+        const statusMap = {
+            'success': '✅',
+            'failed': '❌',
+            'running': '▶️',
+            'queued': '⏳',
+            'upstream_failed': '⚠️',
+            'skipped': '⏭️',
+            'up_for_retry': '🔄',
+            'up_for_reschedule': '📅',
+            'removed': '🗑️',
+            'scheduled': '📆'
+        };
+        return statusMap[status?.toLowerCase()] || '❓';
+    }
+}
+exports.GetDagHistoryTool = GetDagHistoryTool;
+
+
+/***/ }),
+/* 77 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GetDagRunDetailTool - Language Model Tool for comprehensive DAG run analysis by run ID
+ *
+ * This tool retrieves comprehensive information about a specific DAG run including:
+ * - DAG run details
+ * - Task instances
+ * - DAG source code
+ * - Task logs
+ *
+ * It provides a complete analysis to help diagnose issues and understand execution.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetDagRunDetailTool = void 0;
+const vscode = __webpack_require__(1);
+/**
+ * GetDagRunDetailTool - Implements vscode.LanguageModelTool for comprehensive DAG run analysis
+ */
+class GetDagRunDetailTool {
+    constructor(client) {
+        this.client = client;
+    }
+    /**
+     * Prepare invocation
+     */
+    async prepareInvocation(options, token) {
+        const { dagId, dagRunId } = options.input;
+        return {
+            invocationMessage: `Analyzing DAG run '${dagRunId}' for DAG '${dagId}'...`
+        };
+    }
+    /**
+     * Execute comprehensive DAG run analysis
+     */
+    async invoke(options, token) {
+        const { dagId, dagRunId } = options.input;
+        try {
+            // Step 1: Get task instances for this run
+            const taskInstances = await this.client.getTaskInstances(dagId, dagRunId);
+            if (!taskInstances || taskInstances.length === 0) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`ℹ️ No task instances found for DAG run '${dagRunId}' in DAG '${dagId}'.`)
+                ]);
+            }
+            // Step 2: Get DAG source code
+            let dagSourceCode = 'N/A';
+            try {
+                dagSourceCode = await this.client.getDagSource(dagId);
+            }
+            catch (error) {
+                dagSourceCode = `Failed to retrieve source code: ${error instanceof Error ? error.message : String(error)}`;
+            }
+            // Step 3: Get logs for each task (focusing on failed tasks first, then all)
+            const taskLogs = [];
+            // Sort tasks: failed first, then by execution order
+            const sortedTasks = [...taskInstances].sort((a, b) => {
+                const failedStates = ['failed', 'upstream_failed'];
+                const aFailed = failedStates.includes(a.state);
+                const bFailed = failedStates.includes(b.state);
+                if (aFailed && !bFailed)
+                    return -1;
+                if (!aFailed && bFailed)
+                    return 1;
+                return 0;
+            });
+            // Get logs for up to 5 tasks (prioritizing failed tasks)
+            const tasksToLog = sortedTasks.slice(0, 5);
+            for (const task of tasksToLog) {
+                try {
+                    const log = await this.client.getTaskLog(dagId, dagRunId, task.task_id, task.try_number?.toString() || '1');
+                    taskLogs.push({
+                        task_id: task.task_id,
+                        state: task.state,
+                        log: log
+                    });
+                }
+                catch (error) {
+                    taskLogs.push({
+                        task_id: task.task_id,
+                        state: task.state,
+                        log: `Failed to retrieve log: ${error instanceof Error ? error.message : String(error)}`
+                    });
+                }
+            }
+            // Build DAG run object from task instances
+            const dagRun = {
+                dag_id: dagId,
+                dag_run_id: dagRunId,
+                state: this.deriveDagRunState(taskInstances),
+                execution_date: taskInstances[0]?.execution_date || 'N/A',
+                logical_date: taskInstances[0]?.execution_date || 'N/A',
+                start_date: this.getEarliestStartDate(taskInstances),
+                end_date: this.getLatestEndDate(taskInstances)
+            };
+            // Build comprehensive analysis report
+            let report = this.buildAnalysisReport(dagId, dagRun, taskInstances, dagSourceCode, taskLogs);
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(report)
+            ]);
+        }
+        catch (error) {
+            const errorMessage = `
+❌ Failed to analyze DAG run
+
+**Error:** ${error instanceof Error ? error.message : String(error)}
+
+Please check:
+- The DAG ID is correct
+- The DAG run ID is correct
+- The Airflow server is accessible
+- You have the necessary permissions
+            `.trim();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(errorMessage)
+            ]);
+        }
+    }
+    /**
+     * Derive overall DAG run state from task instances
+     */
+    deriveDagRunState(taskInstances) {
+        if (taskInstances.some((t) => t.state === 'failed'))
+            return 'failed';
+        if (taskInstances.some((t) => t.state === 'running'))
+            return 'running';
+        if (taskInstances.some((t) => t.state === 'queued'))
+            return 'queued';
+        if (taskInstances.every((t) => t.state === 'success'))
+            return 'success';
+        return 'unknown';
+    }
+    /**
+     * Get earliest start date from task instances
+     */
+    getEarliestStartDate(taskInstances) {
+        const startDates = taskInstances
+            .filter((t) => t.start_date)
+            .map((t) => new Date(t.start_date).getTime());
+        if (startDates.length === 0)
+            return undefined;
+        const earliest = Math.min(...startDates);
+        return new Date(earliest).toISOString();
+    }
+    /**
+     * Get latest end date from task instances
+     */
+    getLatestEndDate(taskInstances) {
+        const endDates = taskInstances
+            .filter((t) => t.end_date)
+            .map((t) => new Date(t.end_date).getTime());
+        if (endDates.length === 0)
+            return undefined;
+        const latest = Math.max(...endDates);
+        return new Date(latest).toISOString();
+    }
+    /**
+     * Build comprehensive analysis report
+     */
+    buildAnalysisReport(dagId, dagRun, taskInstances, dagSourceCode, taskLogs) {
+        let report = `# 🔍 Comprehensive DAG Run Analysis\n\n`;
+        report += `## DAG: ${dagId}\n\n`;
+        report += `---\n\n`;
+        // Section 1: DAG Run Overview
+        report += `## 📊 DAG Run Overview\n\n`;
+        report += `- **Run ID:** \`${dagRun.dag_run_id}\`\n`;
+        report += `- **State:** ${this.getStatusEmoji(dagRun.state)} **${dagRun.state}**\n`;
+        report += `- **Execution Date:** ${dagRun.execution_date}\n`;
+        report += `- **Logical Date:** ${dagRun.logical_date}\n`;
+        if (dagRun.start_date) {
+            report += `- **Start Date:** ${dagRun.start_date}\n`;
+        }
+        if (dagRun.end_date) {
+            report += `- **End Date:** ${dagRun.end_date}\n`;
+            // Calculate duration
+            const start = new Date(dagRun.start_date);
+            const end = new Date(dagRun.end_date);
+            const durationMs = end.getTime() - start.getTime();
+            const durationSec = Math.floor(durationMs / 1000);
+            const minutes = Math.floor(durationSec / 60);
+            const seconds = durationSec % 60;
+            report += `- **Duration:** ${minutes}m ${seconds}s\n`;
+        }
+        report += `\n---\n\n`;
+        // Section 2: Task Instances Summary
+        report += `## 📋 Task Instances (${taskInstances.length} tasks)\n\n`;
+        // Group tasks by state
+        const tasksByState = {};
+        taskInstances.forEach((task) => {
+            const state = task.state || 'unknown';
+            if (!tasksByState[state]) {
+                tasksByState[state] = [];
+            }
+            tasksByState[state].push(task);
+        });
+        // Display summary by state
+        for (const [state, tasks] of Object.entries(tasksByState)) {
+            report += `### ${this.getStatusEmoji(state)} ${state} (${tasks.length})\n`;
+            tasks.forEach((task) => {
+                report += `- **${task.task_id}**`;
+                if (task.duration) {
+                    report += ` - Duration: ${Math.round(task.duration)}s`;
+                }
+                if (task.start_date) {
+                    report += ` - Started: ${task.start_date}`;
+                }
+                report += `\n`;
+            });
+            report += `\n`;
+        }
+        report += `---\n\n`;
+        // Section 3: Task Logs Analysis
+        if (taskLogs.length > 0) {
+            report += `## 📝 Task Logs (Top ${taskLogs.length} tasks)\n\n`;
+            taskLogs.forEach((taskLog, index) => {
+                report += `### ${index + 1}. Task: ${taskLog.task_id} (${this.getStatusEmoji(taskLog.state)} ${taskLog.state})\n\n`;
+                report += `\`\`\`\n${taskLog.log}\n\`\`\`\n\n`;
+            });
+            report += `---\n\n`;
+        }
+        // Section 4: DAG Source Code
+        report += `## 💻 DAG Source Code\n\n`;
+        report += `\`\`\`python\n${dagSourceCode}\n\`\`\`\n\n`;
+        report += `---\n\n`;
+        // Section 5: Raw Data
+        report += `## 📦 Raw Data (JSON)\n\n`;
+        report += `### DAG Run\n\`\`\`json\n${JSON.stringify(dagRun, null, 2)}\n\`\`\`\n\n`;
+        report += `### Task Instances\n\`\`\`json\n${JSON.stringify(taskInstances, null, 2)}\n\`\`\`\n\n`;
+        // Section 6: Analysis Prompt
+        report += `---\n\n`;
+        report += `## 🤖 Analysis Request\n\n`;
+        report += `Please analyze the above information and provide:\n`;
+        report += `1. **Summary of Execution:** What happened during this DAG run?\n`;
+        report += `2. **Issues Identified:** What errors or problems occurred?\n`;
+        report += `3. **Root Cause Analysis:** What likely caused any failures?\n`;
+        report += `4. **Recommendations:** How can these issues be resolved?\n`;
+        report += `5. **Code Review:** Any issues in the DAG code that need attention?\n`;
+        return report;
+    }
+    /**
+     * Helper to get emoji for task/run status
+     */
+    getStatusEmoji(status) {
+        const statusMap = {
+            'success': '✅',
+            'failed': '❌',
+            'running': '▶️',
+            'queued': '⏳',
+            'upstream_failed': '⚠️',
+            'skipped': '⏭️',
+            'up_for_retry': '🔄',
+            'up_for_reschedule': '📅',
+            'removed': '🗑️',
+            'scheduled': '📆',
+            'none': '⚪',
+            'unknown': '❓'
+        };
+        return statusMap[status?.toLowerCase()] || '❓';
+    }
+}
+exports.GetDagRunDetailTool = GetDagRunDetailTool;
+
+
+/***/ }),
+/* 78 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToDagViewTool - Language Model Tool for opening the DAG View panel
+ *
+ * This tool allows users to open the DagView for a specific DAG,
+ * optionally navigating to a specific DAG run.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToDagViewTool = void 0;
+const vscode = __webpack_require__(1);
+const Session_1 = __webpack_require__(5);
+const DagView_1 = __webpack_require__(49);
+/**
+ * GoToDagViewTool - Implements vscode.LanguageModelTool for opening DAG View
+ *
+ * This tool opens the DagView panel to display information about a specific DAG.
+ * If a dagRunId is provided, it will navigate to that specific run.
+ */
+class GoToDagViewTool {
+    constructor() {
+        // No external dependencies needed - uses DagTreeView.Current directly
+    }
+    async prepareInvocation(options, token) {
+        const { dagId, dagRunId } = options.input;
+        let message = `Opening DAG View for: **${dagId}**`;
+        if (dagRunId) {
+            message += `\nDAG Run ID: **${dagRunId}**`;
+        }
+        return {
+            invocationMessage: message
+        };
+    }
+    async invoke(options, token) {
+        const { dagId, dagRunId } = options.input;
+        try {
+            // Check if API is available
+            if (!Session_1.Session.Current.Api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            // Open the DagView with the specified DAG ID and optional run ID
+            DagView_1.DagView.render(dagId, dagRunId);
+            let successMessage = `✅ Opened DAG View for: **${dagId}**`;
+            if (dagRunId) {
+                successMessage += `\n📋 Showing DAG Run: **${dagRunId}**`;
+            }
+            else {
+                successMessage += `\n📋 Showing latest DAG run`;
+            }
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(successMessage)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open DAG View for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToDagViewTool = GoToDagViewTool;
+
+
+/***/ }),
+/* 79 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToDagLogViewTool - Language Model Tool for opening the DAG Log View panel
+ *
+ * This tool allows users to open the DagLogView for a specific DAG,
+ * optionally providing dagRunId, taskId, and tryNumber.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToDagLogViewTool = void 0;
+const vscode = __webpack_require__(1);
+const Session_1 = __webpack_require__(5);
+const DagLogView_1 = __webpack_require__(52);
+/**
+ * GoToDagLogViewTool - Implements vscode.LanguageModelTool for opening DAG Log View
+ *
+ * This tool opens the DagLogView panel to display logs for tasks.
+ */
+class GoToDagLogViewTool {
+    constructor() {
+    }
+    async prepareInvocation(options, token) {
+        const { dagId, dagRunId, taskId, tryNumber } = options.input;
+        let message = `Opening DAG Log View for: **${dagId}**`;
+        if (dagRunId) {
+            message += `\nDAG Run ID: **${dagRunId}**`;
+        }
+        if (taskId) {
+            message += `\nTask ID: **${taskId}**`;
+        }
+        if (tryNumber) {
+            message += `\nTry Number: **${tryNumber}**`;
+        }
+        return {
+            invocationMessage: message
+        };
+    }
+    async invoke(options, token) {
+        const { dagId, dagRunId, taskId, tryNumber } = options.input;
+        try {
+            // Check if API is available
+            if (!Session_1.Session.Current.Api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            // Open the DagLogView with the specified parameters
+            DagLogView_1.DagLogView.render(dagId, dagRunId, taskId, tryNumber);
+            let successMessage = `✅ Opened DAG Log View for: **${dagId}**`;
+            if (dagRunId)
+                successMessage += `, Run: **${dagRunId}**`;
+            if (taskId)
+                successMessage += `, Task: **${taskId}**`;
+            if (tryNumber)
+                successMessage += `, Try: **${tryNumber}**`;
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(successMessage)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open DAG Log View for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToDagLogViewTool = GoToDagLogViewTool;
+
+
+/***/ }),
+/* 80 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToDagRunHistoryTool - Language Model Tool for opening the DAG Run History view
+ *
+ * This tool allows users to open the DagRunHistory view with optional filters
+ * for dagId, startDate, endDate, and status.
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToDagRunHistoryTool = void 0;
+const vscode = __webpack_require__(1);
+const Session_1 = __webpack_require__(5);
+const DagRunView_1 = __webpack_require__(54);
+/**
+ * GoToDagRunHistoryTool - Implements vscode.LanguageModelTool for opening DAG Run History View
+ *
+ * This tool opens the DagRunHistory panel to display run history for a specific DAG.
+ * Optional filters can be applied for date range and status.
+ */
+class GoToDagRunHistoryTool {
+    constructor() {
+        // No external dependencies needed - uses DagTreeView.Current directly
+    }
+    async prepareInvocation(options, token) {
+        const { dagId, startDate, endDate, status } = options.input;
+        let message = `Opening DAG Run History for: **${dagId}**`;
+        if (startDate) {
+            message += `\nStart Date: **${startDate}**`;
+        }
+        if (endDate) {
+            message += `\nEnd Date: **${endDate}**`;
+        }
+        if (status) {
+            message += `\nStatus Filter: **${status}**`;
+        }
+        return {
+            invocationMessage: message
+        };
+    }
+    async invoke(options, token) {
+        const { dagId, startDate, endDate, status } = options.input;
+        try {
+            // Check if API is available
+            if (!Session_1.Session.Current.Api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            // Validate date format if provided (YYYY-MM-DD)
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (startDate && !dateRegex.test(startDate)) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`❌ Invalid startDate format: "${startDate}". Expected format: YYYY-MM-DD`)
+                ]);
+            }
+            if (endDate && !dateRegex.test(endDate)) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`❌ Invalid endDate format: "${endDate}". Expected format: YYYY-MM-DD`)
+                ]);
+            }
+            // Validate status if provided
+            const validStatuses = ['success', 'failed', 'running', 'queued', 'upstream_failed', 'skipped', 'deferred'];
+            if (status && !validStatuses.includes(status.toLowerCase())) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart(`❌ Invalid status: "${status}". Valid values: ${validStatuses.join(', ')}`)
+                ]);
+            }
+            // Open the DagRunView with the specified parameters
+            DagRunView_1.DagRunView.render(dagId, startDate, endDate, status?.toLowerCase());
+            let successMessage = `✅ Opened DAG Run History for: **${dagId}**`;
+            const filters = [];
+            if (startDate) {
+                filters.push(`Start Date: ${startDate}`);
+            }
+            if (endDate) {
+                filters.push(`End Date: ${endDate}`);
+            }
+            if (status) {
+                filters.push(`Status: ${status}`);
+            }
+            if (filters.length > 0) {
+                successMessage += `\n📋 Filters applied: ${filters.join(', ')}`;
+            }
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(successMessage)
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open DAG Run History for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToDagRunHistoryTool = GoToDagRunHistoryTool;
+
+
+/***/ }),
+/* 81 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToProvidersViewTool - Language Model Tool for opening the Providers view
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToProvidersViewTool = void 0;
+const vscode = __webpack_require__(1);
+const Session_1 = __webpack_require__(5);
+const ProvidersView_1 = __webpack_require__(57);
+/**
+ * GoToProvidersViewTool - Opens the Providers panel
+ */
+class GoToProvidersViewTool {
+    constructor() { }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Opening Providers View...'
+        };
+    }
+    async invoke(options, token) {
+        try {
+            if (!Session_1.Session.Current.Api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            ProvidersView_1.ProvidersView.render();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Providers View - showing installed Airflow providers with their versions')
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Providers View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToProvidersViewTool = GoToProvidersViewTool;
+
+
+/***/ }),
+/* 82 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToConnectionsViewTool - Language Model Tool for opening the Connections view
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToConnectionsViewTool = void 0;
+const vscode = __webpack_require__(1);
+const Session_1 = __webpack_require__(5);
+const ConnectionsView_1 = __webpack_require__(55);
+/**
+ * GoToConnectionsViewTool - Opens the Connections panel
+ */
+class GoToConnectionsViewTool {
+    constructor() { }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Opening Connections View...'
+        };
+    }
+    async invoke(options, token) {
+        try {
+            if (!Session_1.Session.Current.Api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            ConnectionsView_1.ConnectionsView.render();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Connections View - showing Airflow connections (databases, APIs, cloud services, etc.)')
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Connections View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToConnectionsViewTool = GoToConnectionsViewTool;
+
+
+/***/ }),
+/* 83 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToVariablesViewTool - Language Model Tool for opening the Variables view
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToVariablesViewTool = void 0;
+const vscode = __webpack_require__(1);
+const Session_1 = __webpack_require__(5);
+const VariablesView_1 = __webpack_require__(56);
+/**
+ * GoToVariablesViewTool - Opens the Variables panel
+ */
+class GoToVariablesViewTool {
+    constructor() { }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Opening Variables View...'
+        };
+    }
+    async invoke(options, token) {
+        try {
+            if (!Session_1.Session.Current.Api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            VariablesView_1.VariablesView.render();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Variables View - showing Airflow variables (key-value configuration settings)')
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Variables View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToVariablesViewTool = GoToVariablesViewTool;
+
+
+/***/ }),
+/* 84 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToConfigsViewTool - Language Model Tool for opening the Configs view
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToConfigsViewTool = void 0;
+const vscode = __webpack_require__(1);
+const Session_1 = __webpack_require__(5);
+const ConfigsView_1 = __webpack_require__(58);
+/**
+ * GoToConfigsViewTool - Opens the Configs panel
+ */
+class GoToConfigsViewTool {
+    constructor() { }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Opening Configs View...'
+        };
+    }
+    async invoke(options, token) {
+        try {
+            if (!Session_1.Session.Current.Api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            ConfigsView_1.ConfigsView.render();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Configs View - showing Airflow configuration settings (airflow.cfg)')
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Configs View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToConfigsViewTool = GoToConfigsViewTool;
+
+
+/***/ }),
+/* 85 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToPluginsViewTool - Language Model Tool for opening the Plugins view
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToPluginsViewTool = void 0;
+const vscode = __webpack_require__(1);
+const Session_1 = __webpack_require__(5);
+const PluginsView_1 = __webpack_require__(59);
+/**
+ * GoToPluginsViewTool - Opens the Plugins panel
+ */
+class GoToPluginsViewTool {
+    constructor() { }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Opening Plugins View...'
+        };
+    }
+    async invoke(options, token) {
+        try {
+            if (!Session_1.Session.Current.Api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            PluginsView_1.PluginsView.render();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Plugins View - showing installed Airflow plugins')
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Plugins View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToPluginsViewTool = GoToPluginsViewTool;
+
+
+/***/ }),
+/* 86 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+/**
+ * GoToServerHealthViewTool - Language Model Tool for opening the Server Health view
+ */
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoToServerHealthViewTool = void 0;
+const vscode = __webpack_require__(1);
+const Session_1 = __webpack_require__(5);
+const ServerHealthView_1 = __webpack_require__(60);
+/**
+ * GoToServerHealthViewTool - Opens the Server Health panel
+ */
+class GoToServerHealthViewTool {
+    constructor() { }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Opening Server Health View...'
+        };
+    }
+    async invoke(options, token) {
+        try {
+            if (!Session_1.Session.Current.Api) {
+                return new vscode.LanguageModelToolResult([
+                    new vscode.LanguageModelTextPart('❌ Not connected to an Airflow server. Please connect to a server first.')
+                ]);
+            }
+            ServerHealthView_1.ServerHealthView.render();
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart('✅ Opened Server Health View - showing Airflow server health status, scheduler status, and metadata database status')
+            ]);
+        }
+        catch (error) {
+            return new vscode.LanguageModelToolResult([
+                new vscode.LanguageModelTextPart(`❌ Failed to open Server Health View: ${error instanceof Error ? error.message : String(error)}`)
+            ]);
+        }
+    }
+}
+exports.GoToServerHealthViewTool = GoToServerHealthViewTool;
+
+
+/***/ }),
+/* 87 */,
+/* 88 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GetTodayTool = void 0;
+const vscode = __webpack_require__(1);
+class GetTodayTool {
+    async invoke(options, token) {
+        const today = new Date();
+        // Format: YYYY-MM-DD
+        const formattedDate = today.toISOString().split('T')[0];
+        // Additional formats for user convenience
+        const dayOfWeek = today.toLocaleDateString('en-US', { weekday: 'long' });
+        const fullDate = today.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        const result = `## Today's Date
+
+**ISO Format:** ${formattedDate}
+**Full Date:** ${fullDate}
+**Day of Week:** ${dayOfWeek}
+
+*Use the ISO format (${formattedDate}) when filtering DAG runs or working with date ranges.*`;
+        return new vscode.LanguageModelToolResult([
+            new vscode.LanguageModelTextPart(result)
+        ]);
+    }
+    async prepareInvocation(options, token) {
+        return {
+            invocationMessage: 'Getting current system date...'
+        };
+    }
+}
+exports.GetTodayTool = GetTodayTool;
 
 
 /***/ })
@@ -11076,13 +16598,50 @@ exports.deactivate = deactivate;
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 const vscode = __webpack_require__(1);
-const dagTreeView_1 = __webpack_require__(2);
-const ui = __webpack_require__(4);
+const ui = __webpack_require__(2);
+const Session_1 = __webpack_require__(5);
+const DagTreeView_1 = __webpack_require__(43);
+const AdminTreeView_1 = __webpack_require__(61);
+const ReportTreeView_1 = __webpack_require__(63);
+const AirflowClientAdapter_1 = __webpack_require__(65);
+const TriggerDagRunTool_1 = __webpack_require__(66);
+const GetFailedRunsTool_1 = __webpack_require__(67);
+const ListActiveDagsTool_1 = __webpack_require__(68);
+const ListPausedDagsTool_1 = __webpack_require__(69);
+const GetRunningDagsTool_1 = __webpack_require__(70);
+const PauseDagTool_1 = __webpack_require__(71);
+const UnpauseDagTool_1 = __webpack_require__(72);
+const GetDagRunsTool_1 = __webpack_require__(73);
+const CancelDagRunTool_1 = __webpack_require__(74);
+const AnalyseDagLatestRunTool_1 = __webpack_require__(75);
+const GetDagHistoryTool_1 = __webpack_require__(76);
+const GetDagRunDetailTool_1 = __webpack_require__(77);
+const GetTodayTool_1 = __webpack_require__(88);
+const GoToDagViewTool_1 = __webpack_require__(78);
+const GoToDagLogViewTool_1 = __webpack_require__(79);
+const GoToDagRunHistoryTool_1 = __webpack_require__(80);
+const GoToProvidersViewTool_1 = __webpack_require__(81);
+const GoToConnectionsViewTool_1 = __webpack_require__(82);
+const GoToVariablesViewTool_1 = __webpack_require__(83);
+const GoToConfigsViewTool_1 = __webpack_require__(84);
+const GoToPluginsViewTool_1 = __webpack_require__(85);
+const GoToServerHealthViewTool_1 = __webpack_require__(86);
+const AIHandler_1 = __webpack_require__(51);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
     ui.logToOutput('Extension activation started');
-    let dagTreeView = new dagTreeView_1.DagTreeView(context);
+    Session_1.Session.Current = new Session_1.Session(context);
+    AIHandler_1.AIHandler.Current = new AIHandler_1.AIHandler();
+    let dagTreeView = new DagTreeView_1.DagTreeView();
+    let adminTreeView = new AdminTreeView_1.AdminTreeView();
+    let reportTreeView = new ReportTreeView_1.ReportTreeView();
+    // Register the Admin Tree View
+    vscode.window.registerTreeDataProvider('adminTreeView', adminTreeView);
+    ui.logToOutput('Admin Tree View registered');
+    // Register the Report Tree View
+    vscode.window.registerTreeDataProvider('reportTreeView', reportTreeView);
+    ui.logToOutput('Report Tree View registered');
     // register commands and keep disposables so they are cleaned up on deactivate
     const commands = [];
     commands.push(vscode.commands.registerCommand('dagTreeView.refreshServer', () => { dagTreeView.refresh(); }));
@@ -11100,6 +16659,7 @@ function activate(context) {
     commands.push(vscode.commands.registerCommand('dagTreeView.checkAllDagsRunState', () => { dagTreeView.checkAllDagsRunState(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.pauseDAG', (node) => { dagTreeView.pauseDAG(node); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.unPauseDAG', (node) => { dagTreeView.unPauseDAG(node); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.cancelDagRun', (node) => { dagTreeView.cancelDagRun(node); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.lastDAGRunLog', (node) => { dagTreeView.lastDAGRunLog(node); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.dagSourceCode', (node) => { dagTreeView.dagSourceCode(node); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.showDagInfo', (node) => { dagTreeView.showDagInfo(node); }));
@@ -11109,10 +16669,121 @@ function activate(context) {
     commands.push(vscode.commands.registerCommand('dagTreeView.viewConnections', () => { dagTreeView.viewConnections(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.viewVariables', () => { dagTreeView.viewVariables(); }));
     commands.push(vscode.commands.registerCommand('dagTreeView.viewProviders', () => { dagTreeView.viewProviders(); }));
-    commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node) => { dagTreeView.askAI(node); }));
-    const participant = vscode.chat.createChatParticipant('airflow-ext.participant', dagTreeView.aIHandler.bind(dagTreeView));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewConfigs', () => { dagTreeView.viewConfigs(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewPlugins', () => { dagTreeView.viewPlugins(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewServerHealth', () => { dagTreeView.viewServerHealth(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRuns', () => { dagTreeView.viewDagRuns(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRunHistory', () => { dagTreeView.viewDagRunHistory(); }));
+    commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node) => { AIHandler_1.AIHandler.Current.askAI(node.DagId, node.FileToken); }));
+    // Support and feedback commands
+    commands.push(vscode.commands.registerCommand('airflow-ext.donate', () => {
+        vscode.env.openExternal(vscode.Uri.parse('https://github.com/sponsors/necatiarslan'));
+    }));
+    commands.push(vscode.commands.registerCommand('airflow-ext.newFeaturesSurvey', () => {
+        vscode.env.openExternal(vscode.Uri.parse('https://bit.ly/airflow-extension-survey'));
+    }));
+    commands.push(vscode.commands.registerCommand('airflow-ext.requestFeature', () => {
+        vscode.env.openExternal(vscode.Uri.parse('https://github.com/necatiarslan/airflow-vscode-extension/issues/new?labels=feature-request&template=feature_request.md'));
+    }));
+    commands.push(vscode.commands.registerCommand('airflow-ext.reportBug', () => {
+        vscode.env.openExternal(vscode.Uri.parse('https://github.com/necatiarslan/airflow-vscode-extension/issues/new?labels=bug&template=bug_report.md'));
+    }));
+    const participant = vscode.chat.createChatParticipant('airflow-ext.participant', AIHandler_1.AIHandler.Current.aIHandler.bind(AIHandler_1.AIHandler.Current));
     participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'airflow-extension-logo.png');
     context.subscriptions.push(participant);
+    // Register Language Model Tools for AI-powered control, monitoring, and debugging
+    ui.logToOutput('Registering Language Model Tools...');
+    // Initialize the API adapter (uses DagTreeView.Current.api dynamically)
+    const airflowClient = new AirflowClientAdapter_1.AirflowClientAdapter();
+    // Register Tool 1: trigger_dag_run (Control)
+    const triggerDagRunTool = vscode.lm.registerTool('trigger_dag_run', new TriggerDagRunTool_1.TriggerDagRunTool(airflowClient));
+    context.subscriptions.push(triggerDagRunTool);
+    ui.logToOutput('Registered tool: trigger_dag_run');
+    // Register Tool 2: get_failed_runs (Monitoring)
+    const getFailedRunsTool = vscode.lm.registerTool('get_failed_runs', new GetFailedRunsTool_1.GetFailedRunsTool(airflowClient));
+    context.subscriptions.push(getFailedRunsTool);
+    ui.logToOutput('Registered tool: get_failed_runs');
+    // Register Tool 4: list_active_dags (Monitoring)
+    const listActiveDagsTool = vscode.lm.registerTool('list_active_dags', new ListActiveDagsTool_1.ListActiveDagsTool(airflowClient));
+    context.subscriptions.push(listActiveDagsTool);
+    ui.logToOutput('Registered tool: list_active_dags');
+    // Register Tool 5: list_paused_dags (Monitoring)
+    const listPausedDagsTool = vscode.lm.registerTool('list_paused_dags', new ListPausedDagsTool_1.ListPausedDagsTool(airflowClient));
+    context.subscriptions.push(listPausedDagsTool);
+    ui.logToOutput('Registered tool: list_paused_dags');
+    // Register Tool 6: get_running_dags (Monitoring)
+    const getRunningDagsTool = vscode.lm.registerTool('get_running_dags', new GetRunningDagsTool_1.GetRunningDagsTool(airflowClient));
+    context.subscriptions.push(getRunningDagsTool);
+    ui.logToOutput('Registered tool: get_running_dags');
+    // Register Tool 7: pause_dag (Control)
+    const pauseDagTool = vscode.lm.registerTool('pause_dag', new PauseDagTool_1.PauseDagTool(airflowClient));
+    context.subscriptions.push(pauseDagTool);
+    ui.logToOutput('Registered tool: pause_dag');
+    // Register Tool 8: unpause_dag (Control)
+    const unpauseDagTool = vscode.lm.registerTool('unpause_dag', new UnpauseDagTool_1.UnpauseDagTool(airflowClient));
+    context.subscriptions.push(unpauseDagTool);
+    ui.logToOutput('Registered tool: unpause_dag');
+    // Register Tool 9: get_dag_runs (Monitoring)
+    const getDagRunsTool = vscode.lm.registerTool('get_dag_runs', new GetDagRunsTool_1.GetDagRunsTool(airflowClient));
+    context.subscriptions.push(getDagRunsTool);
+    ui.logToOutput('Registered tool: get_dag_runs');
+    // Register Tool 10: cancel_dag_run (Control)
+    const cancelDagRunTool = vscode.lm.registerTool('cancel_dag_run', new CancelDagRunTool_1.CancelDagRunTool(airflowClient));
+    context.subscriptions.push(cancelDagRunTool);
+    ui.logToOutput('Registered tool: cancel_dag_run');
+    // Register Tool 11: analyse_dag_latest_run (Analysis)
+    const analyseDagLatestRunTool = vscode.lm.registerTool('analyse_dag_latest_run', new AnalyseDagLatestRunTool_1.AnalyseDagLatestRunTool(airflowClient));
+    context.subscriptions.push(analyseDagLatestRunTool);
+    ui.logToOutput('Registered tool: analyse_dag_latest_run');
+    // Register Tool 12: get_dag_history (Monitoring)
+    const getDagHistoryTool = vscode.lm.registerTool('get_dag_history', new GetDagHistoryTool_1.GetDagHistoryTool(airflowClient));
+    context.subscriptions.push(getDagHistoryTool);
+    ui.logToOutput('Registered tool: get_dag_history');
+    // Register Tool 13: get_dag_run_detail (Analysis)
+    const getDagRunDetailTool = vscode.lm.registerTool('get_dag_run_detail', new GetDagRunDetailTool_1.GetDagRunDetailTool(airflowClient));
+    context.subscriptions.push(getDagRunDetailTool);
+    ui.logToOutput('Registered tool: get_dag_run_detail');
+    // Register Tool 14: get_today (Utility)
+    const getTodayTool = vscode.lm.registerTool('get_today', new GetTodayTool_1.GetTodayTool());
+    context.subscriptions.push(getTodayTool);
+    ui.logToOutput('Registered tool: get_today');
+    // Register Tool 15: go_to_dag_view (Navigation)
+    const goToDagViewTool = vscode.lm.registerTool('go_to_dag_view', new GoToDagViewTool_1.GoToDagViewTool());
+    context.subscriptions.push(goToDagViewTool);
+    ui.logToOutput('Registered tool: go_to_dag_view');
+    // Register Tool 16: go_to_dag_log_view (Navigation)
+    const goToDagLogViewTool = vscode.lm.registerTool('go_to_dag_log_view', new GoToDagLogViewTool_1.GoToDagLogViewTool());
+    context.subscriptions.push(goToDagLogViewTool);
+    ui.logToOutput('Registered tool: go_to_dag_log_view');
+    // Register Tool 17: go_to_dag_run_history (Navigation)
+    const goToDagRunHistoryTool = vscode.lm.registerTool('go_to_dag_run_history', new GoToDagRunHistoryTool_1.GoToDagRunHistoryTool());
+    context.subscriptions.push(goToDagRunHistoryTool);
+    ui.logToOutput('Registered tool: go_to_dag_run_history');
+    // Register Tool 18: go_to_providers_view (Navigation)
+    const goToProvidersViewTool = vscode.lm.registerTool('go_to_providers_view', new GoToProvidersViewTool_1.GoToProvidersViewTool());
+    context.subscriptions.push(goToProvidersViewTool);
+    ui.logToOutput('Registered tool: go_to_providers_view');
+    // Register Tool 19: go_to_connections_view (Navigation)
+    const goToConnectionsViewTool = vscode.lm.registerTool('go_to_connections_view', new GoToConnectionsViewTool_1.GoToConnectionsViewTool());
+    context.subscriptions.push(goToConnectionsViewTool);
+    ui.logToOutput('Registered tool: go_to_connections_view');
+    // Register Tool 20: go_to_variables_view (Navigation)
+    const goToVariablesViewTool = vscode.lm.registerTool('go_to_variables_view', new GoToVariablesViewTool_1.GoToVariablesViewTool());
+    context.subscriptions.push(goToVariablesViewTool);
+    ui.logToOutput('Registered tool: go_to_variables_view');
+    // Register Tool 21: go_to_configs_view (Navigation)
+    const goToConfigsViewTool = vscode.lm.registerTool('go_to_configs_view', new GoToConfigsViewTool_1.GoToConfigsViewTool());
+    context.subscriptions.push(goToConfigsViewTool);
+    ui.logToOutput('Registered tool: go_to_configs_view');
+    // Register Tool 22: go_to_plugins_view (Navigation)
+    const goToPluginsViewTool = vscode.lm.registerTool('go_to_plugins_view', new GoToPluginsViewTool_1.GoToPluginsViewTool());
+    context.subscriptions.push(goToPluginsViewTool);
+    ui.logToOutput('Registered tool: go_to_plugins_view');
+    // Register Tool 23: go_to_server_health_view (Navigation)
+    const goToServerHealthViewTool = vscode.lm.registerTool('go_to_server_health_view', new GoToServerHealthViewTool_1.GoToServerHealthViewTool());
+    context.subscriptions.push(goToServerHealthViewTool);
+    ui.logToOutput('Registered tool: go_to_server_health_view');
+    ui.logToOutput('All Language Model Tools registered successfully');
     for (const c of commands) {
         context.subscriptions.push(c);
     }

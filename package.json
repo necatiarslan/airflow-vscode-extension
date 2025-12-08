@@ -2,7 +2,7 @@
   "name": "airflow-vscode-extension",
   "displayName": "Airflow",
   "description": "Apache Airflow Extension to List/Trigger DAGs, View Logs and much more",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "publisher": "NecatiARSLAN",
   "icon": "media/airflow-extension-logo.png",
   "repository": {
@@ -25,6 +25,549 @@
         "fullName": "Airflow Assistant",
         "description": "Analyze Airflow DAGs and Logs",
         "isSticky": true
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "trigger_dag_run",
+        "displayName": "Trigger DAG Run",
+        "modelDescription": "Triggers a specific Apache Airflow DAG run via the REST API. Use this tool when the user wants to execute or start a DAG workflow. Required inputs: dag_id (string) - the unique identifier of the DAG to trigger, config_json (string) - a JSON string containing the DAG run configuration parameters (e.g., {\"param1\": \"value1\"}). This is a state-changing operation that requires user confirmation.",
+        "icon": "$(run)",
+        "tags": [
+          "airflow",
+          "control",
+          "dag",
+          "trigger",
+          "execution"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to trigger"
+            },
+            "configJson": {
+              "type": "string",
+              "description": "JSON string containing configuration parameters OR an absolute file path to a JSON file."
+            },
+            "date": {
+              "type": "string",
+              "description": "The logical date (execution date) for the DAG run in ISO 8601 format (e.g., '2023-12-01T10:00:00Z'). Optional."
+            }
+          },
+          "required": [
+            "dagId"
+          ]
+        }
+      },
+      {
+        "name": "get_failed_runs",
+        "displayName": "Get Failed DAG Runs",
+        "modelDescription": "Retrieves a summary list of DAG runs that have failed (status: failed, upstream_failed, or skipped) within a specified time range using the Airflow batch API. Use this tool for monitoring and observability to help users identify problems. Optional inputs: time_range_hours (integer, defaults to 24) - how many hours back to search, dag_id_filter (string, optional) - filter results to a specific DAG ID. Returns a JSON array of failed run objects.",
+        "icon": "$(warning)",
+        "tags": [
+          "airflow",
+          "monitoring",
+          "failed",
+          "observability",
+          "debugging"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "timeRangeHours": {
+              "type": "integer",
+              "description": "Number of hours to look back for failed runs (default: 24)",
+              "default": 24
+            },
+            "dagIdFilter": {
+              "type": "string",
+              "description": "Optional: Filter by specific DAG ID"
+            }
+          }
+        }
+      },
+      {
+        "name": "list_active_dags",
+        "displayName": "List Active DAGs",
+        "modelDescription": "Lists all Airflow DAGs that are currently active (not paused). Use this tool when the user asks to see enabled or active DAGs. Returns a list of DAG IDs and their details.",
+        "icon": "$(play)",
+        "tags": [
+          "airflow",
+          "monitoring",
+          "dags",
+          "list",
+          "active"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "list_paused_dags",
+        "displayName": "List Paused DAGs",
+        "modelDescription": "Lists all Airflow DAGs that are currently paused. Use this tool when the user asks to see disabled or stopped DAGs. Returns a list of DAG IDs and their details.",
+        "icon": "$(debug-pause)",
+        "tags": [
+          "airflow",
+          "monitoring",
+          "dags",
+          "list",
+          "paused"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "get_running_dags",
+        "displayName": "Get Running DAGs",
+        "modelDescription": "Lists all Airflow DAGs that currently have running or queued DAG runs. Use this tool when the user asks to see which DAGs are currently executing, running or in progress. Returns a list of DAG IDs with their run states and run IDs.",
+        "icon": "$(play-circle)",
+        "tags": [
+          "airflow",
+          "monitoring",
+          "dags",
+          "running",
+          "queued",
+          "executing",
+          "status"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "pause_dag",
+        "displayName": "Pause DAG",
+        "modelDescription": "Pauses a specific Airflow DAG. This stops new runs from being scheduled. Use this tool when the user wants to stop, disable, or pause a DAG. Required input: dag_id (string). This is a state-changing operation that requires user confirmation.",
+        "icon": "$(debug-pause)",
+        "tags": [
+          "airflow",
+          "control",
+          "dag",
+          "pause",
+          "stop"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to pause"
+            }
+          },
+          "required": [
+            "dagId"
+          ]
+        }
+      },
+      {
+        "name": "unpause_dag",
+        "displayName": "Unpause DAG",
+        "modelDescription": "Unpauses (activates) a specific Airflow DAG. This allows new runs to be scheduled. Use this tool when the user wants to start, enable, or unpause a DAG. Required input: dag_id (string). This is a state-changing operation that requires user confirmation.",
+        "icon": "$(play)",
+        "tags": [
+          "airflow",
+          "control",
+          "dag",
+          "unpause",
+          "start"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to unpause"
+            }
+          },
+          "required": [
+            "dagId"
+          ]
+        }
+      },
+      {
+        "name": "get_dag_runs",
+        "displayName": "Get DAG Runs",
+        "modelDescription": "Retrieves the run history for a specific Airflow DAG. Returns run ID, start time, duration, and status (success, failed, running, etc.) for each run. Optional input: date (string in YYYY-MM-DD format, defaults to today). Use this tool when the user wants to see the execution history or status of DAG runs.",
+        "icon": "$(history)",
+        "tags": [
+          "airflow",
+          "monitoring",
+          "dag",
+          "runs",
+          "history"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to query"
+            },
+            "date": {
+              "type": "string",
+              "description": "Optional: Date to filter runs (YYYY-MM-DD format, defaults to today)"
+            }
+          },
+          "required": [
+            "dagId"
+          ]
+        }
+      },
+      {
+        "name": "cancel_dag_run",
+        "displayName": "Cancel DAG Run",
+        "modelDescription": "Cancels the currently running DAG run for a specific Airflow DAG. Use this tool when the user wants to cancel, stop, or terminate a running DAG execution. The DAG run will be marked as failed and cancelled. Required input: dag_id (string). This is a state-changing operation that requires user confirmation.",
+        "icon": "$(debug-stop)",
+        "tags": [
+          "airflow",
+          "control",
+          "dag",
+          "cancel",
+          "stop"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG whose run should be cancelled"
+            }
+          },
+          "required": [
+            "dagId"
+          ]
+        }
+      },
+      {
+        "name": "analyse_dag_latest_run",
+        "displayName": "Analyse DAG Latest Run",
+        "modelDescription": "Performs a comprehensive analysis of the latest DAG run. Retrieves and analyzes: DAG run details, all task instances with their states, DAG source code, and task logs (focusing on failed tasks). Use this tool when the user wants a complete diagnostic report of a DAG execution, understand what went wrong, or get a detailed analysis of task execution. Required input: dag_id (string). This provides the most comprehensive diagnostic information.",
+        "icon": "$(search)",
+        "tags": [
+          "airflow",
+          "analysis",
+          "debugging",
+          "dag",
+          "diagnostic",
+          "logs"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to analyze"
+            }
+          },
+          "required": [
+            "dagId"
+          ]
+        }
+      },
+      {
+        "name": "get_dag_history",
+        "displayName": "Get DAG History",
+        "modelDescription": "Retrieves the run history for a specific DAG on a given date. Returns a list of runs with their date/time, status, duration, and any notes. Optional input: date (string in YYYY-MM-DD format, defaults to today). Use this tool when the user wants to see the execution history for a specific day or review past runs.",
+        "icon": "$(history)",
+        "tags": [
+          "airflow",
+          "monitoring",
+          "dag",
+          "history",
+          "runs"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to query"
+            },
+            "date": {
+              "type": "string",
+              "description": "Optional: Date to filter runs (YYYY-MM-DD format, defaults to today)"
+            }
+          },
+          "required": [
+            "dagId"
+          ]
+        }
+      },
+      {
+        "name": "get_dag_run_detail",
+        "displayName": "Get DAG Run Detail",
+        "modelDescription": "Performs a comprehensive analysis of a specific DAG run identified by its run ID. Retrieves and analyzes: DAG run details, all task instances with their states, DAG source code, and task logs (focusing on failed tasks). Use this tool when the user wants a complete diagnostic report of a specific DAG run execution, understand what went wrong in a particular run, or get detailed analysis of a specific run. Required inputs: dag_id (string), dag_run_id (string). This provides comprehensive diagnostic information for a specific run.",
+        "icon": "$(search-details)",
+        "tags": [
+          "airflow",
+          "analysis",
+          "debugging",
+          "dag",
+          "run",
+          "diagnostic",
+          "logs"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG"
+            },
+            "dagRunId": {
+              "type": "string",
+              "description": "The unique identifier of the DAG run to analyze"
+            }
+          },
+          "required": [
+            "dagId",
+            "dagRunId"
+          ]
+        }
+      },
+      {
+        "name": "get_today",
+        "displayName": "Get Today's Date",
+        "modelDescription": "Returns the current system date in multiple formats. Use this tool when the user asks for today's date, current date, or what day it is. Helpful for date-based filtering operations. No inputs required. Returns the date in ISO format (YYYY-MM-DD), full format, and day of week.",
+        "icon": "$(calendar)",
+        "tags": [
+          "date",
+          "time",
+          "utility",
+          "today",
+          "current"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "go_to_dag_view",
+        "displayName": "Go to DAG View",
+        "modelDescription": "Opens the DAG View panel in VS Code to display information about a specific Airflow DAG. Use this tool when the user wants to see, view, or open a DAG in the visual panel. Required input: dag_id (string). Optional input: dag_run_id (string) - if provided, navigates to that specific DAG run instead of the latest run. This is a navigation tool that does not modify any state.",
+        "icon": "$(preview)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "dag",
+          "view",
+          "panel",
+          "open"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to view"
+            },
+            "dagRunId": {
+              "type": "string",
+              "description": "Optional: The DAG run ID to navigate to. If not provided, shows the latest run."
+            }
+          },
+          "required": [
+            "dagId"
+          ]
+        }
+      },
+      {
+        "name": "go_to_dag_log_view",
+        "displayName": "Go to DAG Log View",
+        "modelDescription": "Opens the DAG Log View panel in VS Code to display task logs for a specific Airflow DAG. Use this tool when the user wants to see the logs for tasks in a DAG run. Required input: dag_id (string). Optional inputs: dag_run_id (string), task_id (string), try_number (number). If task_id and try_number are provided, it focuses on that specific log. This is a navigation tool.",
+        "icon": "$(output)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "dag",
+          "log",
+          "view",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG"
+            },
+            "dagRunId": {
+              "type": "string",
+              "description": "Optional: The DAG run ID"
+            },
+            "taskId": {
+              "type": "string",
+              "description": "Optional: The Task ID to filter logs for"
+            },
+            "tryNumber": {
+              "type": "number",
+              "description": "Optional: The try number of the task instance"
+            }
+          },
+          "required": [
+            "dagId"
+          ]
+        }
+      },
+      {
+        "name": "go_to_dag_run_history",
+        "displayName": "Go to DAG Run History",
+        "modelDescription": "Opens the DAG Run History panel in VS Code to display run history for a specific Airflow DAG. Use this tool when the user wants to see run history, execution logs, or past runs for a DAG. Required input: dag_id (string). Optional inputs: start_date (string in YYYY-MM-DD format), end_date (string in YYYY-MM-DD format), status (string: success, failed, running, queued, upstream_failed). This is a navigation tool that does not modify any state.",
+        "icon": "$(history)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "dag",
+          "history",
+          "runs",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to view history for"
+            },
+            "startDate": {
+              "type": "string",
+              "description": "Optional: Start date for the filter in YYYY-MM-DD format"
+            },
+            "endDate": {
+              "type": "string",
+              "description": "Optional: End date for the filter in YYYY-MM-DD format"
+            },
+            "status": {
+              "type": "string",
+              "description": "Optional: Filter by run status (success, failed, running, queued, upstream_failed)"
+            }
+          },
+          "required": [
+            "dagId"
+          ]
+        }
+      },
+      {
+        "name": "go_to_providers_view",
+        "displayName": "Go to Providers View",
+        "modelDescription": "Opens the Providers View panel to display installed Airflow providers with their versions and descriptions. Use this tool when the user wants to see what providers are installed in Airflow. No inputs required. This is a navigation tool that does not modify any state.",
+        "icon": "$(package)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "providers",
+          "admin",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "go_to_connections_view",
+        "displayName": "Go to Connections View",
+        "modelDescription": "Opens the Connections View panel to display Airflow connections (databases, APIs, cloud services, etc.). Use this tool when the user wants to see configured connections in Airflow. No inputs required. This is a navigation tool that does not modify any state.",
+        "icon": "$(link)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "connections",
+          "admin",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "go_to_variables_view",
+        "displayName": "Go to Variables View",
+        "modelDescription": "Opens the Variables View panel to display Airflow variables (key-value configuration settings). Use this tool when the user wants to see configured variables in Airflow. No inputs required. This is a navigation tool that does not modify any state.",
+        "icon": "$(symbol-variable)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "variables",
+          "admin",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "go_to_configs_view",
+        "displayName": "Go to Configs View",
+        "modelDescription": "Opens the Configs View panel to display Airflow configuration settings (airflow.cfg). Use this tool when the user wants to see the Airflow configuration. No inputs required. This is a navigation tool that does not modify any state.",
+        "icon": "$(settings-gear)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "configs",
+          "settings",
+          "admin",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "go_to_plugins_view",
+        "displayName": "Go to Plugins View",
+        "modelDescription": "Opens the Plugins View panel to display installed Airflow plugins. Use this tool when the user wants to see what plugins are installed in Airflow. No inputs required. This is a navigation tool that does not modify any state.",
+        "icon": "$(extensions)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "plugins",
+          "admin",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
+      },
+      {
+        "name": "go_to_server_health_view",
+        "displayName": "Go to Server Health View",
+        "modelDescription": "Opens the Server Health View panel to display Airflow server health status, including scheduler status and metadata database status. Use this tool when the user wants to check the health or status of the Airflow server. No inputs required. This is a navigation tool that does not modify any state.",
+        "icon": "$(heart)",
+        "tags": [
+          "airflow",
+          "navigation",
+          "health",
+          "server",
+          "admin",
+          "status",
+          "panel"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        }
       }
     ],
     "commands": [
@@ -99,6 +642,11 @@
         "title": "UnPause DAG"
       },
       {
+        "command": "dagTreeView.cancelDagRun",
+        "title": "Cancel DAG Run",
+        "icon": "$(debug-stop)"
+      },
+      {
         "command": "dagTreeView.addToFavDAG",
         "title": "Fav DAG"
       },
@@ -108,7 +656,7 @@
       },
       {
         "command": "dagTreeView.lastDAGRunLog",
-        "title": "Run Log",
+        "title": "Logs",
         "icon": "$(output)"
       },
       {
@@ -143,6 +691,28 @@
         "command": "dagTreeView.viewProviders",
         "title": "View Providers",
         "icon": "$(package)"
+      },
+      {
+        "command": "dagTreeView.viewDagRuns",
+        "title": "View DAG Runs",
+        "icon": "$(list-selection)"
+      },
+      {
+        "command": "airflow-ext.donate",
+        "title": "Donate",
+        "icon": "$(heart)"
+      },
+      {
+        "command": "airflow-ext.newFeaturesSurvey",
+        "title": "New Features Survey"
+      },
+      {
+        "command": "airflow-ext.requestFeature",
+        "title": "Request a New Feature"
+      },
+      {
+        "command": "airflow-ext.reportBug",
+        "title": "Report a Bug"
       }
     ],
     "menus": {
@@ -188,19 +758,24 @@
           "group": "other"
         },
         {
-          "command": "dagTreeView.viewConnections",
+          "command": "airflow-ext.donate",
           "when": "view == dagTreeView",
-          "group": "other"
+          "group": "other@1"
         },
         {
-          "command": "dagTreeView.viewVariables",
+          "command": "airflow-ext.newFeaturesSurvey",
           "when": "view == dagTreeView",
-          "group": "other"
+          "group": "other@2"
         },
         {
-          "command": "dagTreeView.viewProviders",
+          "command": "airflow-ext.requestFeature",
           "when": "view == dagTreeView",
-          "group": "other"
+          "group": "other@3"
+        },
+        {
+          "command": "airflow-ext.reportBug",
+          "when": "view == dagTreeView",
+          "group": "other@4"
         }
       ],
       "view/item/context": [
@@ -211,7 +786,12 @@
         },
         {
           "command": "dagTreeView.triggerDag",
-          "when": "view == dagTreeView",
+          "when": "view == dagTreeView && viewItem =~ /#!IsRunning#/",
+          "group": "inline"
+        },
+        {
+          "command": "dagTreeView.cancelDagRun",
+          "when": "view == dagTreeView && viewItem =~ /#IsRunning#/",
           "group": "inline"
         },
         {
@@ -231,7 +811,7 @@
         },
         {
           "command": "dagTreeView.triggerDagWithConfig",
-          "when": "view == dagTreeView",
+          "when": "view == dagTreeView && viewItem =~ /#!IsRunning#/",
           "group": "trigger"
         },
         {
@@ -290,6 +870,16 @@
         {
           "id": "dagTreeView",
           "name": "Airflow",
+          "icon": "media/airflow-extension-logo.png"
+        },
+        {
+          "id": "reportTreeView",
+          "name": "Reports",
+          "icon": "media/airflow-extension-logo.png"
+        },
+        {
+          "id": "adminTreeView",
+          "name": "Admin",
           "icon": "media/airflow-extension-logo.png"
         }
       ]
