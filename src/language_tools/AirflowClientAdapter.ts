@@ -424,6 +424,34 @@ export class AirflowClientAdapter {
     }
 
     /**
+     * Retrieves the source code for a DAG (handles both v1 and v2 APIs)
+     * For v1 API, automatically fetches the file_token first
+     * 
+     * @param dagId - The DAG ID
+     * @returns Promise with the DAG source code
+     */
+    async getDagSourceCode(dagId: string): Promise<string> {
+        try {
+            // First, try to get DAG info to obtain file_token (needed for v1 API)
+            const dagInfoResult = await Session.Current.Api.getDagInfo(dagId);
+            let fileToken: string | undefined;
+            
+            if (dagInfoResult.isSuccessful && dagInfoResult.result?.file_token) {
+                fileToken = dagInfoResult.result.file_token;
+            }
+
+            // Now get the source code (fileToken is optional for v2)
+            const result = await Session.Current.Api.getSourceCode(dagId, fileToken);
+            if (!result.isSuccessful || !result.result) {
+                throw new Error(result.error?.message || 'Failed to fetch DAG source code');
+            }
+            return result.result;
+        } catch (error) {
+            throw new Error(`Failed to get DAG source code: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
+
+    /**
      * Helper to extract error message from DAG run
      */
     private extractErrorMessage(run: any): string | undefined {

@@ -2,7 +2,7 @@
   "name": "airflow-vscode-extension",
   "displayName": "Airflow",
   "description": "Apache Airflow Extension to List/Trigger DAGs, View Logs and much more",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "publisher": "NecatiARSLAN",
   "icon": "media/airflow-extension-logo.png",
   "repository": {
@@ -350,6 +350,33 @@
         "inputSchema": {
           "type": "object",
           "properties": {}
+        }
+      },
+      {
+        "name": "get_dag_source_code",
+        "displayName": "Get DAG Source Code",
+        "modelDescription": "Retrieves the Python source code for a specific Airflow DAG. Use this tool when the user wants to see, analyze, or review the DAG's implementation code. Useful for understanding DAG structure, task dependencies, configurations, and logic. Required input: dag_id (string). Returns the complete Python source code of the DAG file.",
+        "icon": "$(code)",
+        "tags": [
+          "airflow",
+          "analysis",
+          "dag",
+          "source",
+          "code",
+          "python",
+          "debugging"
+        ],
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dagId": {
+              "type": "string",
+              "description": "The unique identifier (ID) of the DAG to get source code for"
+            }
+          },
+          "required": [
+            "dagId"
+          ]
         }
       },
       {

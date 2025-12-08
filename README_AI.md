@@ -6,7 +6,7 @@ The **Airflow Assistant** is a powerful AI companion integrated directly into yo
 
 1. Open the **VS Code Chat** (usually in the Secondary Side Bar).
 2. Type `@airflow` followed by your question or command.
-3. The assistant will analyze your request and use one of its **21 specialized tools** to perform the action or fetch the requested data.
+3. The assistant will analyze your request and use one of its **24 specialized tools** to perform the action or fetch the requested data.
 
 ---
 
@@ -26,7 +26,8 @@ Debug failed runs instantly. The AI reads logs and code so you don't have to hun
 - **Diagnose Failures**: `@airflow why did <dag_id> fail?`
 - **Analyze Logs**: `@airflow analyze latest run of <dag_id>`
 - **Run Details**: `@airflow get details for run <run_id>`
-- **Tools Used**: `analyse_dag_latest_run`, `get_dag_run_detail`, `get_failed_runs`
+- **View Source Code**: `@airflow show me the source code for <dag_id>`
+- **Tools Used**: `analyse_dag_latest_run`, `get_dag_run_detail`, `get_failed_runs`, `get_dag_source_code`
 
 ### 3. 📊 Monitoring & Status
 Get a high-level overview of your Airflow cluster.

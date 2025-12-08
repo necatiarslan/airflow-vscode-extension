@@ -44,12 +44,12 @@ Trigger DAGs, pause/unpause, explore DAG runs, view logs, browse code, and moreâ
   - In the Chat, use `@airflow` to ask questions and execute commands like triggering DAGs, pausing/unpausing, checking failed runs, and more
   - AI analyzes DAG code and logs to provide insights and recommendations
   - Integrated with VS Code's native chat interface for seamless interaction
-  - 21 language model tools for intelligent DAG control and monitoring: trigger runs, pause/unpause DAGs, check failed runs, analyze latest DAG execution, view run history, stop running DAGs, navigation, and more
+  - 24 language model tools for intelligent DAG control and monitoring: trigger runs, pause/unpause DAGs, check failed runs, analyze latest DAG execution, view run history, stop running DAGs, get source code, navigation, and more
   - Use `@airflow` in the chat to access all AI-powered tools
 
 ## ðŸ¤– AI Airflow Assistant Tools & Sample Prompts
 
-The extension provides 21 language model tools that integrate with VS Code's AI chat. Use `@airflow` in the chat to access these tools.
+The extension provides 24 language model tools that integrate with VS Code's AI chat. Use `@airflow` in the chat to access these tools.
 
 ### Control Tools
 
@@ -140,6 +140,14 @@ The extension provides 21 language model tools that integrate with VS Code's AI 
 - **Sample Prompts**:
   - `@airflow analyze run <run_id> of <dag_id>`
   - `@airflow get run details for dag_id=my_dag run_id=manual__2023...`
+
+#### Get DAG Source Code
+- **Purpose**: Retrieve and view the Python source code of a DAG
+- **Sample Prompts**:
+  - `@airflow review source code for data_pipeline_dag`
+  - `@airflow show source code for data_pipeline_dag`
+  - `@airflow get code for my_etl_dag`
+  - `@airflow let me see the implementation of api_ingestion_dag`
 
 #### AI Chat Analysis
 - **Purpose**: Get AI-powered insights and recommendations using all available tools

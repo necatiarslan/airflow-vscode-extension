@@ -163,6 +163,17 @@ export class AIHandler
                 }
             },
             {
+                name: 'get_dag_source_code',
+                description: 'Retrieves the Python source code for a specific DAG. Use when the user wants to see or analyze the DAG implementation. Required: dag_id.',
+                inputSchema: {
+                    type: 'object',
+                    properties: {
+                        dagId: { type: 'string', description: 'The DAG ID to get source code for' }
+                    },
+                    required: ['dagId']
+                }
+            },
+            {
                 name: 'go_to_dag_view',
                 description: 'Opens the DAG View panel to display information about a specific DAG. Optional: provide dag_run_id to view a specific run. Required: dag_id.',
                 inputSchema: {

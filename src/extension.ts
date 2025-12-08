@@ -22,6 +22,7 @@ import { AnalyseDagLatestRunTool } from './language_tools/AnalyseDagLatestRunToo
 import { GetDagHistoryTool } from './language_tools/GetDagHistoryTool';
 import { GetDagRunDetailTool } from './language_tools/GetDagRunDetailTool';
 import { GetTodayTool } from './language_tools/GetTodayTool';
+import { GetDagSourceCodeTool } from './language_tools/GetDagSourceCodeTool';
 import { GoToDagViewTool } from './language_tools/GoToDagViewTool';
 import { GoToDagLogViewTool } from './language_tools/GoToDagLogViewTool';
 import { GoToDagRunHistoryTool } from './language_tools/GoToDagRunHistoryTool';
@@ -217,7 +218,15 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(getTodayTool);
 	ui.logToOutput('Registered tool: get_today');
 
-	// Register Tool 15: go_to_dag_view (Navigation)
+	// Register Tool 15: get_dag_source_code (Analysis)
+	const getDagSourceCodeTool = vscode.lm.registerTool(
+		'get_dag_source_code',
+		new GetDagSourceCodeTool(airflowClient)
+	);
+	context.subscriptions.push(getDagSourceCodeTool);
+	ui.logToOutput('Registered tool: get_dag_source_code');
+
+	// Register Tool 16: go_to_dag_view (Navigation)
 	const goToDagViewTool = vscode.lm.registerTool(
 		'go_to_dag_view',
 		new GoToDagViewTool()
@@ -225,7 +234,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(goToDagViewTool);
 	ui.logToOutput('Registered tool: go_to_dag_view');
 
-    // Register Tool 16: go_to_dag_log_view (Navigation)
+    // Register Tool 17: go_to_dag_log_view (Navigation)
     const goToDagLogViewTool = vscode.lm.registerTool(
         'go_to_dag_log_view',
         new GoToDagLogViewTool()
@@ -233,7 +242,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(goToDagLogViewTool);
     ui.logToOutput('Registered tool: go_to_dag_log_view');
 
-	// Register Tool 17: go_to_dag_run_history (Navigation)
+	// Register Tool 18: go_to_dag_run_history (Navigation)
 	const goToDagRunHistoryTool = vscode.lm.registerTool(
 		'go_to_dag_run_history',
 		new GoToDagRunHistoryTool()
@@ -241,7 +250,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(goToDagRunHistoryTool);
 	ui.logToOutput('Registered tool: go_to_dag_run_history');
 
-	// Register Tool 18: go_to_providers_view (Navigation)
+	// Register Tool 19: go_to_providers_view (Navigation)
 	const goToProvidersViewTool = vscode.lm.registerTool(
 		'go_to_providers_view',
 		new GoToProvidersViewTool()
@@ -249,7 +258,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(goToProvidersViewTool);
 	ui.logToOutput('Registered tool: go_to_providers_view');
 
-	// Register Tool 19: go_to_connections_view (Navigation)
+	// Register Tool 20: go_to_connections_view (Navigation)
 	const goToConnectionsViewTool = vscode.lm.registerTool(
 		'go_to_connections_view',
 		new GoToConnectionsViewTool()
@@ -257,7 +266,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(goToConnectionsViewTool);
 	ui.logToOutput('Registered tool: go_to_connections_view');
 
-	// Register Tool 20: go_to_variables_view (Navigation)
+	// Register Tool 21: go_to_variables_view (Navigation)
 	const goToVariablesViewTool = vscode.lm.registerTool(
 		'go_to_variables_view',
 		new GoToVariablesViewTool()
@@ -265,7 +274,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(goToVariablesViewTool);
 	ui.logToOutput('Registered tool: go_to_variables_view');
 
-	// Register Tool 21: go_to_configs_view (Navigation)
+	// Register Tool 22: go_to_configs_view (Navigation)
 	const goToConfigsViewTool = vscode.lm.registerTool(
 		'go_to_configs_view',
 		new GoToConfigsViewTool()
@@ -273,7 +282,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(goToConfigsViewTool);
 	ui.logToOutput('Registered tool: go_to_configs_view');
 
-	// Register Tool 22: go_to_plugins_view (Navigation)
+	// Register Tool 23: go_to_plugins_view (Navigation)
 	const goToPluginsViewTool = vscode.lm.registerTool(
 		'go_to_plugins_view',
 		new GoToPluginsViewTool()
@@ -281,7 +290,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(goToPluginsViewTool);
 	ui.logToOutput('Registered tool: go_to_plugins_view');
 
-	// Register Tool 23: go_to_server_health_view (Navigation)
+	// Register Tool 24: go_to_server_health_view (Navigation)
 	const goToServerHealthViewTool = vscode.lm.registerTool(
 		'go_to_server_health_view',
 		new GoToServerHealthViewTool()
