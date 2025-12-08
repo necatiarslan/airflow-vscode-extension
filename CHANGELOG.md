@@ -1,4 +1,13 @@
 # Change Log
+- v1.9.0 (2025-12-15)
+    - AI Airflow Assistant
+    - Smart Log View
+    - Smart Controls
+    - @airflow navigation commands
+    - New Design & Experience
+    - Reports and Admin Panels
+    - Code Restructure
+    
 - v1.8.0 (2025-12-1)
     - Ask AI
     - History Date Filter
