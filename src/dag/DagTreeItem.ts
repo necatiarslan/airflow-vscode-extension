@@ -84,20 +84,19 @@ export class DagTreeItem extends vscode.TreeItem {
     }
 
     public doesFilterMatch(filterString: string): boolean {
-        const words: string[] = filterString.split(',');
-        const matchingWords: string[] = [];
+        let words: string[] = filterString.split(',');
+        words = words.map(word => word.trim());
+        
+        this.IsFiltered = false;
         for (const word of words) {
-            if (word === 'active' && !this.IsPaused) { matchingWords.push(word); continue; }
-            if (word === 'paused' && this.IsPaused) { matchingWords.push(word); continue; }
-            if (this.DagId.includes(word)) { matchingWords.push(word); continue; }
-            if (this.Owners.includes(word)) { matchingWords.push(word); continue; }
-            if (word === 'fav' && this.IsFav) { matchingWords.push(word); continue; }
+            if (this.DagId.includes(word)) { this.IsFiltered = true; break; }
+            if (this.Owners.includes(word))  { this.IsFiltered = true; break; }
 
             for (const t of this.Tags) {
-                if (t.name.includes(word)) { matchingWords.push(word); continue; }
+                if (t.name.includes(word)) { this.IsFiltered = true; break; }
             }
         }
-        this.IsFiltered = (words.length === matchingWords.length);
+        
         return this.IsFiltered;
     }
 }
