@@ -170,9 +170,9 @@ The extension provides 21 language model tools that integrate with VS Code's AI 
 | ----------- | ----------- | ----------- |
 | ![screenshoot](./docs/dagview-info.png) | ![screenshoot](./docs/dagview-history.png) | ![screenshoot](./docs/ai-chat.png) |
 
-| Dag Run View |
-| ----------- |
-| ![screenshoot](./docs/dagrunview.png) |
+| Daily Dag Runs | Dag Run History |
+| ----------- | ----------- |
+| ![screenshoot](./docs/report-daily-dag-runs.png) | ![screenshoot](./docs/report-dag-run-history.png) |
 
 ## ⚙️ Configuration
 After installing the extension, you need to configure the extension to connect to your Airflow Server.
@@ -221,13 +221,9 @@ astro dev start     #start airflow as a docker container
 ## 📝 Roadmap
 
 ### Coming Soon
-- Airflow MCP Support
-- Hide Dags & Show Hidden Dags Filter
 - Task View
     - Instance Details
     - Rendered Template
-- Highligt DAG and Operator Keywords
-- Fix: date input width
 
 
 ## 💖 Sponsor & Feedback

@@ -88,6 +88,20 @@ export function activate(context: vscode.ExtensionContext) {
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRuns', () => { dagTreeView.viewDagRuns(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewDagRunHistory', () => { dagTreeView.viewDagRunHistory(); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node: DagTreeItem) => { AIHandler.Current.askAI(node.DagId, node.FileToken); }));
+	
+	// Support and feedback commands
+	commands.push(vscode.commands.registerCommand('airflow-ext.donate', () => { 
+		vscode.env.openExternal(vscode.Uri.parse('https://github.com/sponsors/necatiarslan')); 
+	}));
+	commands.push(vscode.commands.registerCommand('airflow-ext.newFeaturesSurvey', () => { 
+		vscode.env.openExternal(vscode.Uri.parse('https://bit.ly/airflow-extension-survey')); 
+	}));
+	commands.push(vscode.commands.registerCommand('airflow-ext.requestFeature', () => { 
+		vscode.env.openExternal(vscode.Uri.parse('https://github.com/necatiarslan/airflow-vscode-extension/issues/new?labels=feature-request&template=feature_request.md')); 
+	}));
+	commands.push(vscode.commands.registerCommand('airflow-ext.reportBug', () => { 
+		vscode.env.openExternal(vscode.Uri.parse('https://github.com/necatiarslan/airflow-vscode-extension/issues/new?labels=bug&template=bug_report.md')); 
+	}));
 
 	const participant = vscode.chat.createChatParticipant('airflow-ext.participant', AIHandler.Current.aIHandler.bind(AIHandler.Current));
 	participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'airflow-extension-logo.png');

@@ -696,6 +696,23 @@
         "command": "dagTreeView.viewDagRuns",
         "title": "View DAG Runs",
         "icon": "$(list-selection)"
+      },
+      {
+        "command": "airflow-ext.donate",
+        "title": "Donate",
+        "icon": "$(heart)"
+      },
+      {
+        "command": "airflow-ext.newFeaturesSurvey",
+        "title": "New Features Survey"
+      },
+      {
+        "command": "airflow-ext.requestFeature",
+        "title": "Request a New Feature"
+      },
+      {
+        "command": "airflow-ext.reportBug",
+        "title": "Report a Bug"
       }
     ],
     "menus": {
@@ -739,6 +756,26 @@
           "command": "dagTreeView.clearServers",
           "when": "view == dagTreeView",
           "group": "other"
+        },
+        {
+          "command": "airflow-ext.donate",
+          "when": "view == dagTreeView",
+          "group": "other@1"
+        },
+        {
+          "command": "airflow-ext.newFeaturesSurvey",
+          "when": "view == dagTreeView",
+          "group": "other@2"
+        },
+        {
+          "command": "airflow-ext.requestFeature",
+          "when": "view == dagTreeView",
+          "group": "other@3"
+        },
+        {
+          "command": "airflow-ext.reportBug",
+          "when": "view == dagTreeView",
+          "group": "other@4"
         }
       ],
       "view/item/context": [
