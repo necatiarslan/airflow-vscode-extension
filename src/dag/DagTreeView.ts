@@ -20,6 +20,7 @@ export class DagTreeView {
 	public FilterString: string = '';
 	public ShowOnlyActive: boolean = true;
 	public ShowOnlyFavorite: boolean = false;
+	public FavoriteDags: string[] = [];
 	
 	private dagStatusInterval: NodeJS.Timeout | undefined;
 	private view: vscode.TreeView<DagTreeItem>;
@@ -74,12 +75,16 @@ export class DagTreeView {
 	public async addToFavDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.addToFavDAG Started');
 		node.IsFav = true;
+		if (!this.FavoriteDags.includes(node.DagId)) {
+			this.FavoriteDags.push(node.DagId);
+		}
 		this.treeDataProvider.refresh();
 	}
 
 	public async deleteFromFavDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.deleteFromFavDAG Started');
 		node.IsFav = false;
+		this.FavoriteDags = this.FavoriteDags.filter(d => d !== node.DagId);
 		this.treeDataProvider.refresh();
 	}
 
@@ -504,9 +509,10 @@ export class DagTreeView {
 	private saveState() {
 		ui.logToOutput('DagTreeView.saveState Started');
 		try {
-			Session.Current.Context!.globalState.update('filterString', this.FilterString);
+			Session.Current.Context!.globalState.update('FilterString', this.FilterString);
 			Session.Current.Context!.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
 			Session.Current.Context!.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
+			Session.Current.Context!.globalState.update('FavoriteDags', this.FavoriteDags);
 		} catch (error) {
 			ui.logToOutput("dagTreeView.saveState Error !!!", error as Error);
 		}
@@ -525,7 +531,7 @@ export class DagTreeView {
 	private loadState() {
 		ui.logToOutput('DagTreeView.loadState Started');
 		try {
-			const filterStringTemp: string = Session.Current.Context!.globalState.get('filterString') || '';
+			const filterStringTemp: string = Session.Current.Context!.globalState.get('FilterString') || '';
 			if (filterStringTemp) {
 				this.FilterString = filterStringTemp;
 				this.setFilterMessage();
@@ -536,6 +542,9 @@ export class DagTreeView {
 
 			const ShowOnlyFavoriteTemp: boolean | undefined = Session.Current.Context!.globalState.get('ShowOnlyFavorite');
 			if (ShowOnlyFavoriteTemp !== undefined) { this.ShowOnlyFavorite = ShowOnlyFavoriteTemp; }
+
+			const FavoriteDagsTemp: string[] | undefined = Session.Current.Context!.globalState.get('FavoriteDags');
+			if (FavoriteDagsTemp !== undefined) { this.FavoriteDags = FavoriteDagsTemp; }
 
 		} catch (error) {
 			ui.logToOutput("dagTreeView.loadState Error !!!", error as Error);

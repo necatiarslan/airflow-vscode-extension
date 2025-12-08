@@ -8221,6 +8221,7 @@ class DagTreeView {
         this.FilterString = '';
         this.ShowOnlyActive = true;
         this.ShowOnlyFavorite = false;
+        this.FavoriteDags = [];
         ui.logToOutput('DagTreeView.constructor Started');
         this.treeDataProvider = new DagTreeDataProvider_1.DagTreeDataProvider();
         this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
@@ -8263,11 +8264,15 @@ class DagTreeView {
     async addToFavDAG(node) {
         ui.logToOutput('DagTreeView.addToFavDAG Started');
         node.IsFav = true;
+        if (!this.FavoriteDags.includes(node.DagId)) {
+            this.FavoriteDags.push(node.DagId);
+        }
         this.treeDataProvider.refresh();
     }
     async deleteFromFavDAG(node) {
         ui.logToOutput('DagTreeView.deleteFromFavDAG Started');
         node.IsFav = false;
+        this.FavoriteDags = this.FavoriteDags.filter(d => d !== node.DagId);
         this.treeDataProvider.refresh();
     }
     createAndOpenTempFile(content, prefix, extension) {
@@ -8671,9 +8676,10 @@ class DagTreeView {
     saveState() {
         ui.logToOutput('DagTreeView.saveState Started');
         try {
-            Session_1.Session.Current.Context.globalState.update('filterString', this.FilterString);
+            Session_1.Session.Current.Context.globalState.update('FilterString', this.FilterString);
             Session_1.Session.Current.Context.globalState.update('ShowOnlyActive', this.ShowOnlyActive);
             Session_1.Session.Current.Context.globalState.update('ShowOnlyFavorite', this.ShowOnlyFavorite);
+            Session_1.Session.Current.Context.globalState.update('FavoriteDags', this.FavoriteDags);
         }
         catch (error) {
             ui.logToOutput("dagTreeView.saveState Error !!!", error);
@@ -8690,7 +8696,7 @@ class DagTreeView {
     loadState() {
         ui.logToOutput('DagTreeView.loadState Started');
         try {
-            const filterStringTemp = Session_1.Session.Current.Context.globalState.get('filterString') || '';
+            const filterStringTemp = Session_1.Session.Current.Context.globalState.get('FilterString') || '';
             if (filterStringTemp) {
                 this.FilterString = filterStringTemp;
                 this.setFilterMessage();
@@ -8702,6 +8708,10 @@ class DagTreeView {
             const ShowOnlyFavoriteTemp = Session_1.Session.Current.Context.globalState.get('ShowOnlyFavorite');
             if (ShowOnlyFavoriteTemp !== undefined) {
                 this.ShowOnlyFavorite = ShowOnlyFavoriteTemp;
+            }
+            const FavoriteDagsTemp = Session_1.Session.Current.Context.globalState.get('FavoriteDags');
+            if (FavoriteDagsTemp !== undefined) {
+                this.FavoriteDags = FavoriteDagsTemp;
             }
         }
         catch (error) {
@@ -9701,6 +9711,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.DagTreeItem = void 0;
 /* eslint-disable @typescript-eslint/naming-convention */
 const vscode = __webpack_require__(1);
+const DagTreeView_1 = __webpack_require__(43);
 class DagTreeItem extends vscode.TreeItem {
     constructor(apiResponse) {
         super(apiResponse.dag_id);
@@ -9715,6 +9726,7 @@ class DagTreeItem extends vscode.TreeItem {
         this.Owners = apiResponse.owners;
         this.Tags = apiResponse.tags;
         this.FileToken = apiResponse.file_token;
+        this._IsFav = DagTreeView_1.DagTreeView.Current.FavoriteDags.includes(this.DagId);
         this.setContextValue();
         this.refreshUI();
     }

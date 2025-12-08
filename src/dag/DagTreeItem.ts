@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from 'vscode';
 import { AirflowDag } from '../common/Types';
+import { DagTreeView } from './DagTreeView';
 
 export class DagTreeItem extends vscode.TreeItem {
     public IsPaused: boolean;
@@ -24,6 +25,7 @@ export class DagTreeItem extends vscode.TreeItem {
         this.Owners = apiResponse.owners;
         this.Tags = apiResponse.tags;
         this.FileToken = apiResponse.file_token;
+        this._IsFav = DagTreeView.Current.FavoriteDags.includes(this.DagId);
 
         this.setContextValue();
         this.refreshUI();
