@@ -283,7 +283,7 @@ export class AIHandler
 
         // 3. Select Model and Send Request
         try {
-            const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4' });
+            const [model] = await vscode.lm.selectChatModels();
             if (!model) {
                 stream.markdown("No suitable AI model found.");
                 return;

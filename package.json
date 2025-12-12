@@ -23,7 +23,7 @@
         "id": "airflow-ext.participant",
         "name": "airflow",
         "fullName": "Airflow Assistant",
-        "description": "Analyze Airflow DAGs and Logs",
+        "description": "Your AI Airflow Assistant. I can help you manage your DAGs, view logs, and perform various operations on your Apache Airflow environment.",
         "isSticky": true
       }
     ],
