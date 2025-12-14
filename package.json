@@ -2,7 +2,7 @@
   "name": "airflow-vscode-extension",
   "displayName": "Airflow",
   "description": "Apache Airflow Extension to List/Trigger DAGs, View Logs and much more",
-  "version": "1.9.2",
+  "version": "1.9.3",
   "publisher": "NecatiARSLAN",
   "icon": "media/airflow-extension-logo.png",
   "repository": {

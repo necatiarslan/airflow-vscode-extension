@@ -296,7 +296,8 @@ export class AIHandler
 
         // 2. Construct the Initial Messages
         const messages: vscode.LanguageModelChatMessage[] = [
-            vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. You have access to tools to manage DAGs, view logs, and check status. Use them when appropriate.`)
+            vscode.LanguageModelChatMessage.User(`You are an expert in Apache Airflow. You have access to tools to manage DAGs, view logs, and check status. Use them when appropriate.`),
+            vscode.LanguageModelChatMessage.User(`Don't provide JSON responses unless specifically asked. Always format your responses in markdown.`)
         ];
 
         // Add context if available
@@ -309,6 +310,9 @@ export class AIHandler
         }
 
         messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
+
+        // Check if user is expressing appreciation
+        const usedAppreciated = request.prompt.toLowerCase().includes('thank');
 
         // 3. Select Model and Send Request
         try {
@@ -378,6 +382,14 @@ export class AIHandler
                 }
             }
 
+            // Final appreciation message
+            if (usedAppreciated) {
+                stream.markdown("\n\n\n")
+                stream.markdown("\n🙏 [Donate](https://github.com/sponsors/necatiarslan) if you found me useful!");
+                stream.markdown("\n🤔 Request a [New Feature](https://github.com/necatiarslan/airflow-vscode-extension/issues/new)");
+                stream.markdown("\n🗳️ Attend [Survey](https://bit.ly/airflow-extension-survey) to help me get better. ");
+            }
+
         } catch (err) {
             ui.logToOutput(`AIHandler.aIHandler Error: ${err instanceof Error ? err.message : String(err)}`);
             if (err instanceof Error) {
@@ -385,6 +397,8 @@ export class AIHandler
             } else {
                 stream.markdown("I'm sorry, I couldn't connect to the AI model.");
             }
+            stream.markdown("\n🤔 Please [Report Bug](https://github.com/necatiarslan/airflow-vscode-extension/issues/new)");
+
         }
     };
 
