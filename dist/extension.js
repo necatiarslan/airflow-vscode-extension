@@ -10902,6 +10902,30 @@ exports.AIHandler = void 0;
 const Session_1 = __webpack_require__(5);
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(2);
+const AirflowClientAdapter_1 = __webpack_require__(65);
+const TriggerDagRunTool_1 = __webpack_require__(66);
+const GetFailedRunsTool_1 = __webpack_require__(67);
+const ListActiveDagsTool_1 = __webpack_require__(68);
+const ListPausedDagsTool_1 = __webpack_require__(69);
+const GetRunningDagsTool_1 = __webpack_require__(70);
+const PauseDagTool_1 = __webpack_require__(71);
+const UnpauseDagTool_1 = __webpack_require__(72);
+const GetDagRunsTool_1 = __webpack_require__(73);
+const CancelDagRunTool_1 = __webpack_require__(74);
+const AnalyseDagLatestRunTool_1 = __webpack_require__(75);
+const GetDagHistoryTool_1 = __webpack_require__(76);
+const GetDagRunDetailTool_1 = __webpack_require__(77);
+const GetTodayTool_1 = __webpack_require__(78);
+const GetDagSourceCodeTool_1 = __webpack_require__(79);
+const GoToDagViewTool_1 = __webpack_require__(80);
+const GoToDagLogViewTool_1 = __webpack_require__(81);
+const GoToDagRunHistoryTool_1 = __webpack_require__(82);
+const GoToProvidersViewTool_1 = __webpack_require__(83);
+const GoToConnectionsViewTool_1 = __webpack_require__(84);
+const GoToVariablesViewTool_1 = __webpack_require__(85);
+const GoToConfigsViewTool_1 = __webpack_require__(86);
+const GoToPluginsViewTool_1 = __webpack_require__(87);
+const GoToServerHealthViewTool_1 = __webpack_require__(88);
 class AIHandler {
     constructor() {
         AIHandler.Current = this;
@@ -11291,6 +11315,111 @@ class AIHandler {
         await vscode.commands.executeCommand(commandId, {
             query: '@airflow Analyze the current logs'
         });
+    }
+    registerChatParticipant() {
+        const participant = vscode.chat.createChatParticipant('airflow-ext.participant', AIHandler.Current.aIHandler.bind(AIHandler.Current));
+        participant.iconPath = vscode.Uri.joinPath(Session_1.Session.Current.Context.extensionUri, 'media', 'ai-assistant-logo.png');
+        Session_1.Session.Current.Context.subscriptions.push(participant);
+    }
+    registerAiTools() {
+        // Register Language Model Tools for AI-powered control, monitoring, and debugging
+        ui.logToOutput('Registering Language Model Tools...');
+        // Initialize the API adapter (uses DagTreeView.Current.api dynamically)
+        const airflowClient = new AirflowClientAdapter_1.AirflowClientAdapter();
+        const context = Session_1.Session.Current.Context;
+        // Register Tool 1: trigger_dag_run (Control)
+        const triggerDagRunTool = vscode.lm.registerTool('trigger_dag_run', new TriggerDagRunTool_1.TriggerDagRunTool(airflowClient));
+        context.subscriptions.push(triggerDagRunTool);
+        ui.logToOutput('Registered tool: trigger_dag_run');
+        // Register Tool 2: get_failed_runs (Monitoring)
+        const getFailedRunsTool = vscode.lm.registerTool('get_failed_runs', new GetFailedRunsTool_1.GetFailedRunsTool(airflowClient));
+        context.subscriptions.push(getFailedRunsTool);
+        ui.logToOutput('Registered tool: get_failed_runs');
+        // Register Tool 4: list_active_dags (Monitoring)
+        const listActiveDagsTool = vscode.lm.registerTool('list_active_dags', new ListActiveDagsTool_1.ListActiveDagsTool(airflowClient));
+        context.subscriptions.push(listActiveDagsTool);
+        ui.logToOutput('Registered tool: list_active_dags');
+        // Register Tool 5: list_paused_dags (Monitoring)
+        const listPausedDagsTool = vscode.lm.registerTool('list_paused_dags', new ListPausedDagsTool_1.ListPausedDagsTool(airflowClient));
+        context.subscriptions.push(listPausedDagsTool);
+        ui.logToOutput('Registered tool: list_paused_dags');
+        // Register Tool 6: get_running_dags (Monitoring)
+        const getRunningDagsTool = vscode.lm.registerTool('get_running_dags', new GetRunningDagsTool_1.GetRunningDagsTool(airflowClient));
+        context.subscriptions.push(getRunningDagsTool);
+        ui.logToOutput('Registered tool: get_running_dags');
+        // Register Tool 7: pause_dag (Control)
+        const pauseDagTool = vscode.lm.registerTool('pause_dag', new PauseDagTool_1.PauseDagTool(airflowClient));
+        context.subscriptions.push(pauseDagTool);
+        ui.logToOutput('Registered tool: pause_dag');
+        // Register Tool 8: unpause_dag (Control)
+        const unpauseDagTool = vscode.lm.registerTool('unpause_dag', new UnpauseDagTool_1.UnpauseDagTool(airflowClient));
+        context.subscriptions.push(unpauseDagTool);
+        ui.logToOutput('Registered tool: unpause_dag');
+        // Register Tool 9: get_dag_runs (Monitoring)
+        const getDagRunsTool = vscode.lm.registerTool('get_dag_runs', new GetDagRunsTool_1.GetDagRunsTool(airflowClient));
+        context.subscriptions.push(getDagRunsTool);
+        ui.logToOutput('Registered tool: get_dag_runs');
+        // Register Tool 10: cancel_dag_run (Control)
+        const cancelDagRunTool = vscode.lm.registerTool('cancel_dag_run', new CancelDagRunTool_1.CancelDagRunTool(airflowClient));
+        context.subscriptions.push(cancelDagRunTool);
+        ui.logToOutput('Registered tool: cancel_dag_run');
+        // Register Tool 11: analyse_dag_latest_run (Analysis)
+        const analyseDagLatestRunTool = vscode.lm.registerTool('analyse_dag_latest_run', new AnalyseDagLatestRunTool_1.AnalyseDagLatestRunTool(airflowClient));
+        context.subscriptions.push(analyseDagLatestRunTool);
+        ui.logToOutput('Registered tool: analyse_dag_latest_run');
+        // Register Tool 12: get_dag_history (Monitoring)
+        const getDagHistoryTool = vscode.lm.registerTool('get_dag_history', new GetDagHistoryTool_1.GetDagHistoryTool(airflowClient));
+        context.subscriptions.push(getDagHistoryTool);
+        ui.logToOutput('Registered tool: get_dag_history');
+        // Register Tool 13: get_dag_run_detail (Analysis)
+        const getDagRunDetailTool = vscode.lm.registerTool('get_dag_run_detail', new GetDagRunDetailTool_1.GetDagRunDetailTool(airflowClient));
+        context.subscriptions.push(getDagRunDetailTool);
+        ui.logToOutput('Registered tool: get_dag_run_detail');
+        // Register Tool 14: get_today (Utility)
+        const getTodayTool = vscode.lm.registerTool('get_today', new GetTodayTool_1.GetTodayTool());
+        context.subscriptions.push(getTodayTool);
+        ui.logToOutput('Registered tool: get_today');
+        // Register Tool 15: get_dag_source_code (Analysis)
+        const getDagSourceCodeTool = vscode.lm.registerTool('get_dag_source_code', new GetDagSourceCodeTool_1.GetDagSourceCodeTool(airflowClient));
+        context.subscriptions.push(getDagSourceCodeTool);
+        ui.logToOutput('Registered tool: get_dag_source_code');
+        // Register Tool 16: go_to_dag_view (Navigation)
+        const goToDagViewTool = vscode.lm.registerTool('go_to_dag_view', new GoToDagViewTool_1.GoToDagViewTool());
+        context.subscriptions.push(goToDagViewTool);
+        ui.logToOutput('Registered tool: go_to_dag_view');
+        // Register Tool 17: go_to_dag_log_view (Navigation)
+        const goToDagLogViewTool = vscode.lm.registerTool('go_to_dag_log_view', new GoToDagLogViewTool_1.GoToDagLogViewTool());
+        context.subscriptions.push(goToDagLogViewTool);
+        ui.logToOutput('Registered tool: go_to_dag_log_view');
+        // Register Tool 18: go_to_dag_run_history (Navigation)
+        const goToDagRunHistoryTool = vscode.lm.registerTool('go_to_dag_run_history', new GoToDagRunHistoryTool_1.GoToDagRunHistoryTool());
+        context.subscriptions.push(goToDagRunHistoryTool);
+        ui.logToOutput('Registered tool: go_to_dag_run_history');
+        // Register Tool 19: go_to_providers_view (Navigation)
+        const goToProvidersViewTool = vscode.lm.registerTool('go_to_providers_view', new GoToProvidersViewTool_1.GoToProvidersViewTool());
+        context.subscriptions.push(goToProvidersViewTool);
+        ui.logToOutput('Registered tool: go_to_providers_view');
+        // Register Tool 20: go_to_connections_view (Navigation)
+        const goToConnectionsViewTool = vscode.lm.registerTool('go_to_connections_view', new GoToConnectionsViewTool_1.GoToConnectionsViewTool());
+        context.subscriptions.push(goToConnectionsViewTool);
+        ui.logToOutput('Registered tool: go_to_connections_view');
+        // Register Tool 21: go_to_variables_view (Navigation)
+        const goToVariablesViewTool = vscode.lm.registerTool('go_to_variables_view', new GoToVariablesViewTool_1.GoToVariablesViewTool());
+        context.subscriptions.push(goToVariablesViewTool);
+        ui.logToOutput('Registered tool: go_to_variables_view');
+        // Register Tool 22: go_to_configs_view (Navigation)
+        const goToConfigsViewTool = vscode.lm.registerTool('go_to_configs_view', new GoToConfigsViewTool_1.GoToConfigsViewTool());
+        context.subscriptions.push(goToConfigsViewTool);
+        ui.logToOutput('Registered tool: go_to_configs_view');
+        // Register Tool 23: go_to_plugins_view (Navigation)
+        const goToPluginsViewTool = vscode.lm.registerTool('go_to_plugins_view', new GoToPluginsViewTool_1.GoToPluginsViewTool());
+        context.subscriptions.push(goToPluginsViewTool);
+        ui.logToOutput('Registered tool: go_to_plugins_view');
+        // Register Tool 24: go_to_server_health_view (Navigation)
+        const goToServerHealthViewTool = vscode.lm.registerTool('go_to_server_health_view', new GoToServerHealthViewTool_1.GoToServerHealthViewTool());
+        context.subscriptions.push(goToServerHealthViewTool);
+        ui.logToOutput('Registered tool: go_to_server_health_view');
+        ui.logToOutput('All Language Model Tools registered successfully');
     }
 }
 exports.AIHandler = AIHandler;
@@ -16721,37 +16850,13 @@ const Session_1 = __webpack_require__(5);
 const DagTreeView_1 = __webpack_require__(43);
 const AdminTreeView_1 = __webpack_require__(61);
 const ReportTreeView_1 = __webpack_require__(63);
-const AirflowClientAdapter_1 = __webpack_require__(65);
-const TriggerDagRunTool_1 = __webpack_require__(66);
-const GetFailedRunsTool_1 = __webpack_require__(67);
-const ListActiveDagsTool_1 = __webpack_require__(68);
-const ListPausedDagsTool_1 = __webpack_require__(69);
-const GetRunningDagsTool_1 = __webpack_require__(70);
-const PauseDagTool_1 = __webpack_require__(71);
-const UnpauseDagTool_1 = __webpack_require__(72);
-const GetDagRunsTool_1 = __webpack_require__(73);
-const CancelDagRunTool_1 = __webpack_require__(74);
-const AnalyseDagLatestRunTool_1 = __webpack_require__(75);
-const GetDagHistoryTool_1 = __webpack_require__(76);
-const GetDagRunDetailTool_1 = __webpack_require__(77);
-const GetTodayTool_1 = __webpack_require__(78);
-const GetDagSourceCodeTool_1 = __webpack_require__(79);
-const GoToDagViewTool_1 = __webpack_require__(80);
-const GoToDagLogViewTool_1 = __webpack_require__(81);
-const GoToDagRunHistoryTool_1 = __webpack_require__(82);
-const GoToProvidersViewTool_1 = __webpack_require__(83);
-const GoToConnectionsViewTool_1 = __webpack_require__(84);
-const GoToVariablesViewTool_1 = __webpack_require__(85);
-const GoToConfigsViewTool_1 = __webpack_require__(86);
-const GoToPluginsViewTool_1 = __webpack_require__(87);
-const GoToServerHealthViewTool_1 = __webpack_require__(88);
 const AIHandler_1 = __webpack_require__(51);
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 function activate(context) {
     ui.logToOutput('Extension activation started');
-    Session_1.Session.Current = new Session_1.Session(context);
-    AIHandler_1.AIHandler.Current = new AIHandler_1.AIHandler();
+    new Session_1.Session(context);
+    new AIHandler_1.AIHandler();
     let dagTreeView = new DagTreeView_1.DagTreeView();
     let adminTreeView = new AdminTreeView_1.AdminTreeView();
     let reportTreeView = new ReportTreeView_1.ReportTreeView();
@@ -16799,109 +16904,11 @@ function activate(context) {
     commands.push(vscode.commands.registerCommand('airflow-ext.newFeaturesSurvey', () => { vscode.env.openExternal(vscode.Uri.parse('https://bit.ly/airflow-extension-survey')); }));
     commands.push(vscode.commands.registerCommand('airflow-ext.requestFeature', () => { vscode.env.openExternal(vscode.Uri.parse('https://github.com/necatiarslan/airflow-vscode-extension/issues/new?labels=feature-request&template=feature_request.md')); }));
     commands.push(vscode.commands.registerCommand('airflow-ext.reportBug', () => { vscode.env.openExternal(vscode.Uri.parse('https://github.com/necatiarslan/airflow-vscode-extension/issues/new?labels=bug&template=bug_report.md')); }));
-    const participant = vscode.chat.createChatParticipant('airflow-ext.participant', AIHandler_1.AIHandler.Current.aIHandler.bind(AIHandler_1.AIHandler.Current));
-    participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'media', 'airflow-extension-logo.png');
-    context.subscriptions.push(participant);
-    // Register Language Model Tools for AI-powered control, monitoring, and debugging
-    ui.logToOutput('Registering Language Model Tools...');
-    // Initialize the API adapter (uses DagTreeView.Current.api dynamically)
-    const airflowClient = new AirflowClientAdapter_1.AirflowClientAdapter();
-    // Register Tool 1: trigger_dag_run (Control)
-    const triggerDagRunTool = vscode.lm.registerTool('trigger_dag_run', new TriggerDagRunTool_1.TriggerDagRunTool(airflowClient));
-    context.subscriptions.push(triggerDagRunTool);
-    ui.logToOutput('Registered tool: trigger_dag_run');
-    // Register Tool 2: get_failed_runs (Monitoring)
-    const getFailedRunsTool = vscode.lm.registerTool('get_failed_runs', new GetFailedRunsTool_1.GetFailedRunsTool(airflowClient));
-    context.subscriptions.push(getFailedRunsTool);
-    ui.logToOutput('Registered tool: get_failed_runs');
-    // Register Tool 4: list_active_dags (Monitoring)
-    const listActiveDagsTool = vscode.lm.registerTool('list_active_dags', new ListActiveDagsTool_1.ListActiveDagsTool(airflowClient));
-    context.subscriptions.push(listActiveDagsTool);
-    ui.logToOutput('Registered tool: list_active_dags');
-    // Register Tool 5: list_paused_dags (Monitoring)
-    const listPausedDagsTool = vscode.lm.registerTool('list_paused_dags', new ListPausedDagsTool_1.ListPausedDagsTool(airflowClient));
-    context.subscriptions.push(listPausedDagsTool);
-    ui.logToOutput('Registered tool: list_paused_dags');
-    // Register Tool 6: get_running_dags (Monitoring)
-    const getRunningDagsTool = vscode.lm.registerTool('get_running_dags', new GetRunningDagsTool_1.GetRunningDagsTool(airflowClient));
-    context.subscriptions.push(getRunningDagsTool);
-    ui.logToOutput('Registered tool: get_running_dags');
-    // Register Tool 7: pause_dag (Control)
-    const pauseDagTool = vscode.lm.registerTool('pause_dag', new PauseDagTool_1.PauseDagTool(airflowClient));
-    context.subscriptions.push(pauseDagTool);
-    ui.logToOutput('Registered tool: pause_dag');
-    // Register Tool 8: unpause_dag (Control)
-    const unpauseDagTool = vscode.lm.registerTool('unpause_dag', new UnpauseDagTool_1.UnpauseDagTool(airflowClient));
-    context.subscriptions.push(unpauseDagTool);
-    ui.logToOutput('Registered tool: unpause_dag');
-    // Register Tool 9: get_dag_runs (Monitoring)
-    const getDagRunsTool = vscode.lm.registerTool('get_dag_runs', new GetDagRunsTool_1.GetDagRunsTool(airflowClient));
-    context.subscriptions.push(getDagRunsTool);
-    ui.logToOutput('Registered tool: get_dag_runs');
-    // Register Tool 10: cancel_dag_run (Control)
-    const cancelDagRunTool = vscode.lm.registerTool('cancel_dag_run', new CancelDagRunTool_1.CancelDagRunTool(airflowClient));
-    context.subscriptions.push(cancelDagRunTool);
-    ui.logToOutput('Registered tool: cancel_dag_run');
-    // Register Tool 11: analyse_dag_latest_run (Analysis)
-    const analyseDagLatestRunTool = vscode.lm.registerTool('analyse_dag_latest_run', new AnalyseDagLatestRunTool_1.AnalyseDagLatestRunTool(airflowClient));
-    context.subscriptions.push(analyseDagLatestRunTool);
-    ui.logToOutput('Registered tool: analyse_dag_latest_run');
-    // Register Tool 12: get_dag_history (Monitoring)
-    const getDagHistoryTool = vscode.lm.registerTool('get_dag_history', new GetDagHistoryTool_1.GetDagHistoryTool(airflowClient));
-    context.subscriptions.push(getDagHistoryTool);
-    ui.logToOutput('Registered tool: get_dag_history');
-    // Register Tool 13: get_dag_run_detail (Analysis)
-    const getDagRunDetailTool = vscode.lm.registerTool('get_dag_run_detail', new GetDagRunDetailTool_1.GetDagRunDetailTool(airflowClient));
-    context.subscriptions.push(getDagRunDetailTool);
-    ui.logToOutput('Registered tool: get_dag_run_detail');
-    // Register Tool 14: get_today (Utility)
-    const getTodayTool = vscode.lm.registerTool('get_today', new GetTodayTool_1.GetTodayTool());
-    context.subscriptions.push(getTodayTool);
-    ui.logToOutput('Registered tool: get_today');
-    // Register Tool 15: get_dag_source_code (Analysis)
-    const getDagSourceCodeTool = vscode.lm.registerTool('get_dag_source_code', new GetDagSourceCodeTool_1.GetDagSourceCodeTool(airflowClient));
-    context.subscriptions.push(getDagSourceCodeTool);
-    ui.logToOutput('Registered tool: get_dag_source_code');
-    // Register Tool 16: go_to_dag_view (Navigation)
-    const goToDagViewTool = vscode.lm.registerTool('go_to_dag_view', new GoToDagViewTool_1.GoToDagViewTool());
-    context.subscriptions.push(goToDagViewTool);
-    ui.logToOutput('Registered tool: go_to_dag_view');
-    // Register Tool 17: go_to_dag_log_view (Navigation)
-    const goToDagLogViewTool = vscode.lm.registerTool('go_to_dag_log_view', new GoToDagLogViewTool_1.GoToDagLogViewTool());
-    context.subscriptions.push(goToDagLogViewTool);
-    ui.logToOutput('Registered tool: go_to_dag_log_view');
-    // Register Tool 18: go_to_dag_run_history (Navigation)
-    const goToDagRunHistoryTool = vscode.lm.registerTool('go_to_dag_run_history', new GoToDagRunHistoryTool_1.GoToDagRunHistoryTool());
-    context.subscriptions.push(goToDagRunHistoryTool);
-    ui.logToOutput('Registered tool: go_to_dag_run_history');
-    // Register Tool 19: go_to_providers_view (Navigation)
-    const goToProvidersViewTool = vscode.lm.registerTool('go_to_providers_view', new GoToProvidersViewTool_1.GoToProvidersViewTool());
-    context.subscriptions.push(goToProvidersViewTool);
-    ui.logToOutput('Registered tool: go_to_providers_view');
-    // Register Tool 20: go_to_connections_view (Navigation)
-    const goToConnectionsViewTool = vscode.lm.registerTool('go_to_connections_view', new GoToConnectionsViewTool_1.GoToConnectionsViewTool());
-    context.subscriptions.push(goToConnectionsViewTool);
-    ui.logToOutput('Registered tool: go_to_connections_view');
-    // Register Tool 21: go_to_variables_view (Navigation)
-    const goToVariablesViewTool = vscode.lm.registerTool('go_to_variables_view', new GoToVariablesViewTool_1.GoToVariablesViewTool());
-    context.subscriptions.push(goToVariablesViewTool);
-    ui.logToOutput('Registered tool: go_to_variables_view');
-    // Register Tool 22: go_to_configs_view (Navigation)
-    const goToConfigsViewTool = vscode.lm.registerTool('go_to_configs_view', new GoToConfigsViewTool_1.GoToConfigsViewTool());
-    context.subscriptions.push(goToConfigsViewTool);
-    ui.logToOutput('Registered tool: go_to_configs_view');
-    // Register Tool 23: go_to_plugins_view (Navigation)
-    const goToPluginsViewTool = vscode.lm.registerTool('go_to_plugins_view', new GoToPluginsViewTool_1.GoToPluginsViewTool());
-    context.subscriptions.push(goToPluginsViewTool);
-    ui.logToOutput('Registered tool: go_to_plugins_view');
-    // Register Tool 24: go_to_server_health_view (Navigation)
-    const goToServerHealthViewTool = vscode.lm.registerTool('go_to_server_health_view', new GoToServerHealthViewTool_1.GoToServerHealthViewTool());
-    context.subscriptions.push(goToServerHealthViewTool);
-    ui.logToOutput('Registered tool: go_to_server_health_view');
-    ui.logToOutput('All Language Model Tools registered successfully');
     for (const c of commands) {
         context.subscriptions.push(c);
     }
+    AIHandler_1.AIHandler.Current.registerChatParticipant();
+    AIHandler_1.AIHandler.Current.registerAiTools();
     ui.logToOutput('Extension activation completed');
 }
 // this method is called when your extension is deactivated
