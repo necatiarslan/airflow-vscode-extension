@@ -8,6 +8,7 @@
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import * as ui from '../common/UI';
+import { AIHandler } from './AIHandler';
 
 /**
  * Input parameters for querying DAG runs
@@ -50,7 +51,8 @@ export class GetDagRunsTool implements vscode.LanguageModelTool<IGetDagRunsParam
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId, date } = options.input;
-
+        AIHandler.Current.currentDagId = dagId;
+        
         try {
             // Get DAG run history from the API
             const result = await this.client.getDagRunHistory(dagId);

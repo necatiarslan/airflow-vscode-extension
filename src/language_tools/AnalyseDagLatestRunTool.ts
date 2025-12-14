@@ -12,6 +12,7 @@
 
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
+import { AIHandler } from './AIHandler';
 
 /**
  * Input parameters for analyzing latest DAG run
@@ -52,7 +53,7 @@ export class AnalyseDagLatestRunTool implements vscode.LanguageModelTool<IAnalys
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId } = options.input;
-
+        AIHandler.Current.currentDagId = dagId;
         try {
             // Step 1: Get the latest DAG run
             const dagRun = await this.client.getLatestDagRun(dagId);

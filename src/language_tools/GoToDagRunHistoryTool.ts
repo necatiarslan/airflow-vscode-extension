@@ -8,6 +8,7 @@
 import * as vscode from 'vscode';
 import { Session } from '../common/Session';
 import { DagRunView } from '../report/DagRunView';
+import { AIHandler } from './AIHandler';
 
 export interface IGoToDagRunHistoryParams {
     dagId: string;
@@ -55,7 +56,8 @@ export class GoToDagRunHistoryTool implements vscode.LanguageModelTool<IGoToDagR
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId, startDate, endDate, status } = options.input;
-
+        AIHandler.Current.currentDagId = dagId;
+        
         try {
             // Check if API is available
             if (!Session.Current.Api) {

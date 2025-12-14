@@ -4,6 +4,7 @@
 
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
+import { AIHandler } from './AIHandler';
 
 export interface IPauseDagParams {
     dagId: string;
@@ -44,7 +45,8 @@ export class PauseDagTool implements vscode.LanguageModelTool<IPauseDagParams> {
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId } = options.input;
-
+        AIHandler.Current.currentDagId = dagId;
+        
         try {
             await this.client.pauseDag(dagId, true); // true = pause
 

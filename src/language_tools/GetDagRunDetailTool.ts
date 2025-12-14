@@ -12,7 +12,7 @@
 
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
-
+import { AIHandler } from './AIHandler';
 /**
  * Input parameters for analyzing a specific DAG run
  */
@@ -53,7 +53,7 @@ export class GetDagRunDetailTool implements vscode.LanguageModelTool<IGetDagRunD
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId, dagRunId } = options.input;
-
+        AIHandler.Current.currentDagId = dagId;
         try {
             // Step 1: Get task instances for this run
             const taskInstances = await this.client.getTaskInstances(dagId, dagRunId);

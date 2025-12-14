@@ -8,6 +8,7 @@
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import * as ui from '../common/UI';
+import { AIHandler } from './AIHandler';
 
 /**
  * Input parameters for querying DAG history
@@ -50,7 +51,7 @@ export class GetDagHistoryTool implements vscode.LanguageModelTool<IGetDagHistor
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId, date } = options.input;
-        
+        AIHandler.Current.currentDagId = dagId;
         // Use today's date if not provided
         const queryDate = date ||  ui.toISODateString(new Date());
 

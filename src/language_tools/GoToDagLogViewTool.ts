@@ -8,7 +8,11 @@
 import * as vscode from 'vscode';
 import { Session } from '../common/Session';
 import { DagLogView } from '../report/DagLogView';
+import { AIHandler } from './AIHandler';
 
+/**
+ * Input parameters for opening DAG Log View
+ */
 export interface IGoToDagLogViewParams {
     dagId: string;
     dagRunId?: string;
@@ -53,7 +57,8 @@ export class GoToDagLogViewTool implements vscode.LanguageModelTool<IGoToDagLogV
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId, dagRunId, taskId, tryNumber } = options.input;
-
+        AIHandler.Current.currentDagId = dagId;
+        
         try {
 
             // Check if API is available

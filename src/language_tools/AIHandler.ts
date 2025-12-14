@@ -9,6 +9,7 @@ export class AIHandler
     public static Current: AIHandler;
 
     public askAIContext: AskAIContext | undefined;
+    public currentDagId: string | undefined;
 
     constructor() {
         AIHandler.Current = this;
@@ -279,11 +280,16 @@ export class AIHandler
             messages.push(vscode.LanguageModelChatMessage.User(`Context:\nDAG: ${aiContext.dag || 'N/A'}\nLogs: ${aiContext.logs || 'N/A'}\nCode: ${aiContext.code || 'N/A'}`));
         }
 
+        if (this.currentDagId) {
+            messages.push(vscode.LanguageModelChatMessage.User(`Current DAG ID in focus: ${this.currentDagId}`));
+        }
+
         messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
 
         // 3. Select Model and Send Request
         try {
             const [model] = await vscode.lm.selectChatModels();
+            ui.logToOutput(`Selected AI Family: ${model?.family || 'None'}, Name: ${model?.name || 'None'}`);
             if (!model) {
                 stream.markdown("No suitable AI model found.");
                 return;
@@ -316,7 +322,8 @@ export class AIHandler
                     messages.push(vscode.LanguageModelChatMessage.Assistant(toolCalls));
 
                     for (const toolCall of toolCalls) {
-                        stream.progress(`Running tool: ${toolCall.name}...`);
+                        stream.progress(`Calling: ${toolCall.name}`);
+                        ui.logToOutput(`AI requested tool: ${toolCall.name} with input: ${JSON.stringify(toolCall.input)}`);
                         
                         try {
                             // Invoke the tool using VS Code LM API
@@ -348,6 +355,7 @@ export class AIHandler
             }
 
         } catch (err) {
+            ui.logToOutput(`AIHandler.aIHandler Error: ${err instanceof Error ? err.message : String(err)}`);
             if (err instanceof Error) {
                 stream.markdown(`I'm sorry, I couldn't connect to the AI model: ${err.message}`);
             } else {

@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
+import { AIHandler } from './AIHandler';
 
 export interface IGetDagSourceCodeParams {
     dagId: string;
@@ -13,7 +14,7 @@ export class GetDagSourceCodeTool implements vscode.LanguageModelTool<IGetDagSou
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId } = options.input;
-
+        AIHandler.Current.currentDagId = dagId;
         try {
             const sourceCode = await this.airflowClient.getDagSourceCode(dagId);
 

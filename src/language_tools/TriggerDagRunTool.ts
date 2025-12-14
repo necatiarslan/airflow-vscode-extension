@@ -9,6 +9,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
+import { AIHandler } from './AIHandler';
 
 /**
  * Input parameters for triggering a DAG run
@@ -105,6 +106,7 @@ export class TriggerDagRunTool implements vscode.LanguageModelTool<ITriggerParam
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId, configJson, date } = options.input;
+        AIHandler.Current.currentDagId = dagId;
 
         try {
             // Re-process config for invoke (same logic as prepare)
