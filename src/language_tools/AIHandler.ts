@@ -300,6 +300,26 @@ export class AIHandler
             vscode.LanguageModelChatMessage.User(`Don't provide JSON responses unless specifically asked. Always format your responses in markdown.`)
         ];
 
+        // Loop through the latest 6 entries from context.history (only previous @aws interactions)
+        const recentHistory = context.history.slice(-6);
+        for (const turn of recentHistory) {
+            if (turn instanceof vscode.ChatRequestTurn) {
+                messages.push(vscode.LanguageModelChatMessage.User(turn.prompt));
+                continue;
+            }
+
+            if (turn instanceof vscode.ChatResponseTurn) {
+                const responseContent = turn.response
+                .filter((part): part is vscode.ChatResponseMarkdownPart => part instanceof vscode.ChatResponseMarkdownPart)
+                .map((part: vscode.ChatResponseMarkdownPart) => part.value.value)
+                .join('\n');
+
+                if (responseContent) {
+                messages.push(vscode.LanguageModelChatMessage.Assistant(responseContent));
+                }
+            }
+        }
+
         // Add context if available
         if (aiContext) {
             messages.push(vscode.LanguageModelChatMessage.User(`Context:\nDAG: ${aiContext.dag || 'N/A'}\nLogs: ${aiContext.logs || 'N/A'}\nCode: ${aiContext.code || 'N/A'}`));
