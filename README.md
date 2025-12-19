@@ -2,6 +2,8 @@
 ✅ Now works with Airflow 3.0
 
 ![screenshoot](./docs/readme/video1.gif)
+
+## 🤖 Chat with Airflow
 ![screenshoot](./docs/readme/video2.gif)
 
 
