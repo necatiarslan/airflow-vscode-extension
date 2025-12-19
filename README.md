@@ -1,7 +1,8 @@
 # Airflow Extension for Visual Studio Code
 ✅ Now works with Airflow 3.0
 
-![screenshoot](./docs/airflow-extension.png)
+![screenshoot](./docs/readme/video1.gif)
+![screenshoot](./docs/readme/video2.gif)
 
 
 
@@ -171,17 +172,16 @@ The extension provides 24 language model tools that integrate with VS Code's AI 
 
 | Dag Tree | Runs | Tasks |
 | ----------- | ----------- | ----------- |
-| ![screenshoot](./docs/dagview-dagtree.png) | ![screenshoot](./docs/dagview-run.png) | ![screenshoot](./docs/dagview-tasks.png) |
+| ![screenshoot](./docs/readme/dagview-dagtree.png) | ![screenshoot](./docs/readme/dagview-run.png) | ![screenshoot](./docs/readme/dagview-tasks.png) |
 
 
 | Info | Run History | AI |
 | ----------- | ----------- | ----------- |
-| ![screenshoot](./docs/dagview-info.png) | ![screenshoot](./docs/dagview-history.png) | ![screenshoot](./docs/ai-chat.png) |
+| ![screenshoot](./docs/readme/dagview-info.png) | ![screenshoot](./docs/readme/dagview-history.png) | ![screenshoot](./docs/readme/ai-chat.png) |
 
 | Daily Dag Runs | Dag Run History |
 | ----------- | ----------- |
-| ![screenshoot](./docs/report-daily-dag-runs.png) | ![screenshoot](./docs/report-dag-run-history.png) |
-
+| ![screenshoot](./docs/readme/report-daily-dag-runs.png) | ![screenshoot](./docs/readme/report-dag-run-history.png) |
 ## ⚙️ Configuration
 After installing the extension, you need to configure the extension to connect to your Airflow Server.
 - Click 🔌 Connect to Airflow Server at the top of the extension sidebar.

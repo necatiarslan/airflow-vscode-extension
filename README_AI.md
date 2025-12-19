@@ -2,6 +2,8 @@
 
 The **Airflow Assistant** is a powerful AI companion integrated directly into your VS Code environment. Powered by the VS Code Chat API, it understands your Airflow environment context—DAGs, logs, and configurations—to help you monitor, control, and troubleshoot your workflows using natural language.
 
+![screenshoot](./docs/readme/video2.gif)
+
 ## ⚡ Getting Started
 
 1. Open the **VS Code Chat** (usually in the Secondary Side Bar).

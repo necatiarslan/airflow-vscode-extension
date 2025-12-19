@@ -397,7 +397,7 @@ export class AIHandler
             } else {
                 stream.markdown("I'm sorry, I couldn't connect to the AI model.");
             }
-            stream.markdown("\n🤔 Please [Report Bug](https://github.com/necatiarslan/airflow-vscode-extension/issues/new)");
+            stream.markdown("\n🪲 Please [Report Bug](https://github.com/necatiarslan/airflow-vscode-extension/issues/new)");
 
         }
     };
