@@ -234,6 +234,8 @@ astro dev start     #start airflow as a docker container
 - Task View
     - Instance Details
     - Rendered Template
+- Test Connection language model tool
+- Telemetry & Usage Analytics (Optional)
 
 
 ## 💖 Sponsor & Feedback
