@@ -337,7 +337,22 @@ export class AIHandler
         // 3. Select Model and Send Request
         try {
             //TODO: Make model configurable
-            const [model] = await vscode.lm.selectChatModels( {id: "claude-sonnet-4.5"} );
+            // const [model] = await vscode.lm.selectChatModels( {id: "claude-sonnet-4.5"} );
+            let model = request.model;
+            if (request.model.id.includes('auto')) {
+                const models = await vscode.lm.selectChatModels({ vendor: model.vendor, family: model.family });
+                if (models.length > 0)
+                {
+                    model = models[0];
+                    ui.logToOutput(`Auto-selected model: ${model.name} (${model.id})`);
+                }
+                else
+                {
+                    ui.logToOutput(`No models found for vendor: ${model.vendor}, family: ${model.family}`);
+                    model = undefined;
+                }
+            }
+
             ui.logToOutput(`Selected AI Family: ${model?.family || 'None'}, Name: ${model?.name || 'None'}`);
             if (!model) {
                 stream.markdown("No suitable AI model found.");

@@ -1,4 +1,8 @@
 # Change Log
+- v1.9.6 (2026-01-18)
+    - Bug Fixes and Performance Improvements
+    - support chat window model selection
+
 - v1.9.0 (2025-12-15)
     - AI Airflow Assistant
     - Smart Log View
