@@ -336,6 +336,7 @@ export class AIHandler
 
         // 3. Select Model and Send Request
         try {
+            //TODO: Make model configurable
             const [model] = await vscode.lm.selectChatModels( {id: "claude-sonnet-4.5"} );
             ui.logToOutput(`Selected AI Family: ${model?.family || 'None'}, Name: ${model?.name || 'None'}`);
             if (!model) {
