@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import { AIHandler } from './AIHandler';
+import { Telemetry } from '../common/Telemetry';
 
 export interface IGetDagSourceCodeParams {
     dagId: string;
@@ -15,6 +16,10 @@ export class GetDagSourceCodeTool implements vscode.LanguageModelTool<IGetDagSou
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId } = options.input;
         AIHandler.Current.currentDagId = dagId;
+        
+        // Track tool invocation
+        Telemetry.Current.send('GetDagSourceCodeTool.invoke');
+        
         try {
             const sourceCode = await this.airflowClient.getDagSourceCode(dagId);
 
@@ -39,6 +44,10 @@ The source code has been retrieved successfully. You can analyze it for:
             ]);
         } catch (error) {
             const errorMessage = `Failed to retrieve source code for DAG '${dagId}': ${error instanceof Error ? error.message : String(error)}`;
+            
+            // Track invocation error
+            Telemetry.Current.sendError('GetDagSourceCodeTool.invocationError', error instanceof Error ? error : new Error(String(error)));
+            
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(errorMessage)
             ]);

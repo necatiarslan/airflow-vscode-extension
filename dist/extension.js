@@ -35639,6 +35639,7 @@ exports.TriggerDagRunTool = void 0;
 const vscode = __webpack_require__(1);
 const fs = __webpack_require__(3);
 const AIHandler_1 = __webpack_require__(160);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * TriggerDagRunTool - Implements vscode.LanguageModelTool for DAG triggering
  */
@@ -35713,6 +35714,8 @@ class TriggerDagRunTool {
     async invoke(options, token) {
         const { dagId, configJson, date } = options.input;
         AIHandler_1.AIHandler.Current.currentDagId = dagId;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('TriggerDagRunTool.invoke');
         try {
             // Re-process config for invoke (same logic as prepare)
             let finalConfig = configJson || '{}';
@@ -35742,6 +35745,8 @@ class TriggerDagRunTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('TriggerDagRunTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to trigger DAG ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -35767,6 +35772,7 @@ exports.TriggerDagRunTool = TriggerDagRunTool;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetFailedRunsTool = void 0;
 const vscode = __webpack_require__(1);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GetFailedRunsTool - Implements vscode.LanguageModelTool for monitoring
  */
@@ -35804,6 +35810,8 @@ class GetFailedRunsTool {
     async invoke(options, token) {
         const timeRange = options.input.timeRangeHours || 24;
         const dagFilter = options.input.dagIdFilter;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GetFailedRunsTool.invoke');
         try {
             // Call the mock API client to get failed runs
             const failedRuns = await this.client.queryFailedRuns(timeRange, dagFilter);
@@ -35861,6 +35869,8 @@ Please check:
 - You have the necessary permissions
 - The time range and filters are valid
             `.trim();
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GetFailedRunsTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(errorMessage)
             ]);
@@ -35882,6 +35892,7 @@ exports.GetFailedRunsTool = GetFailedRunsTool;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ListActiveDagsTool = void 0;
 const vscode = __webpack_require__(1);
+const Telemetry_1 = __webpack_require__(9);
 class ListActiveDagsTool {
     constructor(client) {
         this.client = client;
@@ -35892,6 +35903,8 @@ class ListActiveDagsTool {
         };
     }
     async invoke(options, token) {
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('ListActiveDagsTool.invoke');
         try {
             const dags = await this.client.getDags(false); // false = active (not paused)
             if (dags.length === 0) {
@@ -35913,6 +35926,8 @@ class ListActiveDagsTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('ListActiveDagsTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to list active DAGs: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -35934,6 +35949,7 @@ exports.ListActiveDagsTool = ListActiveDagsTool;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ListPausedDagsTool = void 0;
 const vscode = __webpack_require__(1);
+const Telemetry_1 = __webpack_require__(9);
 class ListPausedDagsTool {
     constructor(client) {
         this.client = client;
@@ -35944,6 +35960,8 @@ class ListPausedDagsTool {
         };
     }
     async invoke(options, token) {
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('ListPausedDagsTool.invoke');
         try {
             const dags = await this.client.getDags(true); // true = paused
             if (dags.length === 0) {
@@ -35965,6 +35983,8 @@ class ListPausedDagsTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('ListPausedDagsTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to list paused DAGs: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -35986,6 +36006,7 @@ exports.ListPausedDagsTool = ListPausedDagsTool;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetRunningDagsTool = void 0;
 const vscode = __webpack_require__(1);
+const Telemetry_1 = __webpack_require__(9);
 class GetRunningDagsTool {
     constructor(client) {
         this.client = client;
@@ -35996,6 +36017,8 @@ class GetRunningDagsTool {
         };
     }
     async invoke(options, token) {
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GetRunningDagsTool.invoke');
         try {
             const runningDags = await this.client.getRunningDags();
             if (runningDags.length === 0) {
@@ -36021,6 +36044,8 @@ class GetRunningDagsTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GetRunningDagsTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to get running DAGs: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -36043,6 +36068,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PauseDagTool = void 0;
 const vscode = __webpack_require__(1);
 const AIHandler_1 = __webpack_require__(160);
+const Telemetry_1 = __webpack_require__(9);
 class PauseDagTool {
     constructor(client) {
         this.client = client;
@@ -36067,6 +36093,8 @@ class PauseDagTool {
     async invoke(options, token) {
         const { dagId } = options.input;
         AIHandler_1.AIHandler.Current.currentDagId = dagId;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('PauseDagTool.invoke');
         try {
             await this.client.pauseDag(dagId, true); // true = pause
             return new vscode.LanguageModelToolResult([
@@ -36074,6 +36102,8 @@ class PauseDagTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('PauseDagTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to pause DAG ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -36096,6 +36126,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UnpauseDagTool = void 0;
 const vscode = __webpack_require__(1);
 const AIHandler_1 = __webpack_require__(160);
+const Telemetry_1 = __webpack_require__(9);
 class UnpauseDagTool {
     constructor(client) {
         this.client = client;
@@ -36120,6 +36151,8 @@ class UnpauseDagTool {
     async invoke(options, token) {
         const { dagId } = options.input;
         AIHandler_1.AIHandler.Current.currentDagId = dagId;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('UnpauseDagTool.invoke');
         try {
             await this.client.pauseDag(dagId, false); // false = unpause
             return new vscode.LanguageModelToolResult([
@@ -36127,6 +36160,8 @@ class UnpauseDagTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('UnpauseDagTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to unpause DAG ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -36153,6 +36188,7 @@ exports.GetDagRunsTool = void 0;
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(2);
 const AIHandler_1 = __webpack_require__(160);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GetDagRunsTool - Implements vscode.LanguageModelTool for retrieving DAG runs
  */
@@ -36176,6 +36212,8 @@ class GetDagRunsTool {
     async invoke(options, token) {
         const { dagId, date } = options.input;
         AIHandler_1.AIHandler.Current.currentDagId = dagId;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GetDagRunsTool.invoke');
         try {
             // Get DAG run history from the API
             const result = await this.client.getDagRunHistory(dagId);
@@ -36252,6 +36290,8 @@ Please check:
 - The Airflow server is accessible
 - You have the necessary permissions
             `.trim();
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GetDagRunsTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(errorMessage)
             ]);
@@ -36295,6 +36335,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.CancelDagRunTool = void 0;
 const vscode = __webpack_require__(1);
 const AIHandler_1 = __webpack_require__(160);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * CancelDagRunTool - Implements vscode.LanguageModelTool for cancelling DAG runs
  */
@@ -36342,6 +36383,8 @@ class CancelDagRunTool {
     async invoke(options, token) {
         const { dagId } = options.input;
         AIHandler_1.AIHandler.Current.currentDagId = dagId;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('CancelDagRunTool.invoke');
         try {
             // First, get the latest DAG run to find the running one
             const latestRun = await this.client.getLatestDagRun(dagId);
@@ -36372,6 +36415,7 @@ class CancelDagRunTool {
             ]);
         }
         catch (error) {
+            Telemetry_1.Telemetry.Current.sendError('CancelDagRunTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to cancel DAG run for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -36402,6 +36446,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AnalyseDagLatestRunTool = void 0;
 const vscode = __webpack_require__(1);
 const AIHandler_1 = __webpack_require__(160);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * AnalyseDagLatestRunTool - Implements vscode.LanguageModelTool for comprehensive DAG analysis
  */
@@ -36424,6 +36469,8 @@ class AnalyseDagLatestRunTool {
     async invoke(options, token) {
         const { dagId } = options.input;
         AIHandler_1.AIHandler.Current.currentDagId = dagId;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('AnalyseDagLatestRunTool.invoke');
         try {
             // Step 1: Get the latest DAG run
             const dagRun = await this.client.getLatestDagRun(dagId);
@@ -36491,6 +36538,8 @@ Please check:
 - The Airflow server is accessible
 - You have the necessary permissions
             `.trim();
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('AnalyseDagLatestRunTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(errorMessage)
             ]);
@@ -36620,6 +36669,7 @@ exports.GetDagHistoryTool = void 0;
 const vscode = __webpack_require__(1);
 const ui = __webpack_require__(2);
 const AIHandler_1 = __webpack_require__(160);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GetDagHistoryTool - Implements vscode.LanguageModelTool for retrieving DAG history
  */
@@ -36643,6 +36693,8 @@ class GetDagHistoryTool {
     async invoke(options, token) {
         const { dagId, date } = options.input;
         AIHandler_1.AIHandler.Current.currentDagId = dagId;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GetDagHistoryTool.invoke');
         // Use today's date if not provided
         const queryDate = date || ui.toISODateString(new Date());
         try {
@@ -36729,6 +36781,8 @@ Please check:
 - The Airflow server is accessible
 - You have the necessary permissions
             `.trim();
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GetDagHistoryTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(errorMessage)
             ]);
@@ -36777,6 +36831,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetDagRunDetailTool = void 0;
 const vscode = __webpack_require__(1);
 const AIHandler_1 = __webpack_require__(160);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GetDagRunDetailTool - Implements vscode.LanguageModelTool for comprehensive DAG run analysis
  */
@@ -36799,6 +36854,8 @@ class GetDagRunDetailTool {
     async invoke(options, token) {
         const { dagId, dagRunId } = options.input;
         AIHandler_1.AIHandler.Current.currentDagId = dagId;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GetDagRunDetailTool.invoke');
         try {
             // Step 1: Get task instances for this run
             const taskInstances = await this.client.getTaskInstances(dagId, dagRunId);
@@ -36875,6 +36932,8 @@ Please check:
 - The Airflow server is accessible
 - You have the necessary permissions
             `.trim();
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GetDagRunDetailTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(errorMessage)
             ]);
@@ -37034,8 +37093,11 @@ exports.GetDagRunDetailTool = GetDagRunDetailTool;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetTodayTool = void 0;
 const vscode = __webpack_require__(1);
+const Telemetry_1 = __webpack_require__(9);
 class GetTodayTool {
     async invoke(options, token) {
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GetTodayTool.invoke');
         const today = new Date();
         // Format: YYYY-MM-DD
         const formattedDate = today.toISOString().split('T')[0];
@@ -37077,6 +37139,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GetDagSourceCodeTool = void 0;
 const vscode = __webpack_require__(1);
 const AIHandler_1 = __webpack_require__(160);
+const Telemetry_1 = __webpack_require__(9);
 class GetDagSourceCodeTool {
     constructor(airflowClient) {
         this.airflowClient = airflowClient;
@@ -37084,6 +37147,8 @@ class GetDagSourceCodeTool {
     async invoke(options, token) {
         const { dagId } = options.input;
         AIHandler_1.AIHandler.Current.currentDagId = dagId;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GetDagSourceCodeTool.invoke');
         try {
             const sourceCode = await this.airflowClient.getDagSourceCode(dagId);
             const result = `## DAG Source Code: ${dagId}
@@ -37107,6 +37172,8 @@ The source code has been retrieved successfully. You can analyze it for:
         }
         catch (error) {
             const errorMessage = `Failed to retrieve source code for DAG '${dagId}': ${error instanceof Error ? error.message : String(error)}`;
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GetDagSourceCodeTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(errorMessage)
             ]);
@@ -37139,6 +37206,7 @@ const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
 const DagView_1 = __webpack_require__(158);
 const AIHandler_1 = __webpack_require__(160);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GoToDagViewTool - Implements vscode.LanguageModelTool for opening DAG View
  *
@@ -37162,6 +37230,8 @@ class GoToDagViewTool {
     async invoke(options, token) {
         const { dagId, dagRunId } = options.input;
         AIHandler_1.AIHandler.Current.currentDagId = dagId;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GoToDagViewTool.invoke');
         try {
             // Check if API is available
             if (!Session_1.Session.Current.Api) {
@@ -37183,6 +37253,8 @@ class GoToDagViewTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GoToDagViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open DAG View for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -37210,6 +37282,7 @@ const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
 const DagLogView_1 = __webpack_require__(178);
 const AIHandler_1 = __webpack_require__(160);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GoToDagLogViewTool - Implements vscode.LanguageModelTool for opening DAG Log View
  *
@@ -37237,6 +37310,8 @@ class GoToDagLogViewTool {
     async invoke(options, token) {
         const { dagId, dagRunId, taskId, tryNumber } = options.input;
         AIHandler_1.AIHandler.Current.currentDagId = dagId;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GoToDagLogViewTool.invoke');
         try {
             // Check if API is available
             if (!Session_1.Session.Current.Api) {
@@ -37258,6 +37333,8 @@ class GoToDagLogViewTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GoToDagLogViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open DAG Log View for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -37702,6 +37779,7 @@ const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
 const DagRunView_1 = __webpack_require__(180);
 const AIHandler_1 = __webpack_require__(160);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GoToDagRunHistoryTool - Implements vscode.LanguageModelTool for opening DAG Run History View
  *
@@ -37731,6 +37809,8 @@ class GoToDagRunHistoryTool {
     async invoke(options, token) {
         const { dagId, startDate, endDate, status } = options.input;
         AIHandler_1.AIHandler.Current.currentDagId = dagId;
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GoToDagRunHistoryTool.invoke');
         try {
             // Check if API is available
             if (!Session_1.Session.Current.Api) {
@@ -37778,6 +37858,8 @@ class GoToDagRunHistoryTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GoToDagRunHistoryTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open DAG Run History for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -38287,6 +38369,7 @@ exports.GoToProvidersViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
 const ProvidersView_1 = __webpack_require__(182);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GoToProvidersViewTool - Opens the Providers panel
  */
@@ -38298,6 +38381,8 @@ class GoToProvidersViewTool {
         };
     }
     async invoke(options, token) {
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GoToProvidersViewTool.invoke');
         try {
             if (!Session_1.Session.Current.Api) {
                 return new vscode.LanguageModelToolResult([
@@ -38310,6 +38395,8 @@ class GoToProvidersViewTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GoToProvidersViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open Providers View: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -38550,6 +38637,7 @@ exports.GoToConnectionsViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
 const ConnectionsView_1 = __webpack_require__(184);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GoToConnectionsViewTool - Opens the Connections panel
  */
@@ -38561,6 +38649,8 @@ class GoToConnectionsViewTool {
         };
     }
     async invoke(options, token) {
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GoToConnectionsViewTool.invoke');
         try {
             if (!Session_1.Session.Current.Api) {
                 return new vscode.LanguageModelToolResult([
@@ -38573,6 +38663,8 @@ class GoToConnectionsViewTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GoToConnectionsViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open Connections View: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -38833,6 +38925,7 @@ exports.GoToVariablesViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
 const VariablesView_1 = __webpack_require__(186);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GoToVariablesViewTool - Opens the Variables panel
  */
@@ -38844,6 +38937,8 @@ class GoToVariablesViewTool {
         };
     }
     async invoke(options, token) {
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GoToVariablesViewTool.invoke');
         try {
             if (!Session_1.Session.Current.Api) {
                 return new vscode.LanguageModelToolResult([
@@ -38856,6 +38951,8 @@ class GoToVariablesViewTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GoToVariablesViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open Variables View: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -39108,6 +39205,7 @@ exports.GoToConfigsViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
 const ConfigsView_1 = __webpack_require__(188);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GoToConfigsViewTool - Opens the Configs panel
  */
@@ -39119,6 +39217,8 @@ class GoToConfigsViewTool {
         };
     }
     async invoke(options, token) {
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GoToConfigsViewTool.invoke');
         try {
             if (!Session_1.Session.Current.Api) {
                 return new vscode.LanguageModelToolResult([
@@ -39131,6 +39231,8 @@ class GoToConfigsViewTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GoToConfigsViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open Configs View: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -39384,6 +39486,7 @@ exports.GoToPluginsViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
 const PluginsView_1 = __webpack_require__(190);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GoToPluginsViewTool - Opens the Plugins panel
  */
@@ -39395,6 +39498,8 @@ class GoToPluginsViewTool {
         };
     }
     async invoke(options, token) {
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GoToPluginsViewTool.invoke');
         try {
             if (!Session_1.Session.Current.Api) {
                 return new vscode.LanguageModelToolResult([
@@ -39407,6 +39512,8 @@ class GoToPluginsViewTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GoToPluginsViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open Plugins View: ${error instanceof Error ? error.message : String(error)}`)
             ]);
@@ -39650,6 +39757,7 @@ exports.GoToServerHealthViewTool = void 0;
 const vscode = __webpack_require__(1);
 const Session_1 = __webpack_require__(5);
 const ServerHealthView_1 = __webpack_require__(192);
+const Telemetry_1 = __webpack_require__(9);
 /**
  * GoToServerHealthViewTool - Opens the Server Health panel
  */
@@ -39661,6 +39769,8 @@ class GoToServerHealthViewTool {
         };
     }
     async invoke(options, token) {
+        // Track tool invocation
+        Telemetry_1.Telemetry.Current.send('GoToServerHealthViewTool.invoke');
         try {
             if (!Session_1.Session.Current.Api) {
                 return new vscode.LanguageModelToolResult([
@@ -39673,6 +39783,8 @@ class GoToServerHealthViewTool {
             ]);
         }
         catch (error) {
+            // Track invocation error
+            Telemetry_1.Telemetry.Current.sendError('GoToServerHealthViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open Server Health View: ${error instanceof Error ? error.message : String(error)}`)
             ]);

@@ -5,6 +5,7 @@
 import * as vscode from 'vscode';
 import { Session } from '../common/Session';
 import { ServerHealthView } from '../admin/ServerHealthView';
+import { Telemetry } from '../common/Telemetry';
 
 /**
  * GoToServerHealthViewTool - Opens the Server Health panel
@@ -26,6 +27,9 @@ export class GoToServerHealthViewTool implements vscode.LanguageModelTool<void> 
         options: vscode.LanguageModelToolInvocationOptions<void>,
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
+        // Track tool invocation
+        Telemetry.Current.send('GoToServerHealthViewTool.invoke');
+        
         try {
             if (!Session.Current.Api) {
                 return new vscode.LanguageModelToolResult([
@@ -40,6 +44,9 @@ export class GoToServerHealthViewTool implements vscode.LanguageModelTool<void> 
             ]);
 
         } catch (error) {
+            // Track invocation error
+            Telemetry.Current.sendError('GoToServerHealthViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
+            
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open Server Health View: ${error instanceof Error ? error.message : String(error)}`)
             ]);

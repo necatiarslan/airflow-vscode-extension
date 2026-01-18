@@ -5,6 +5,7 @@
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import { AIHandler } from './AIHandler';
+import { Telemetry } from '../common/Telemetry';
 
 export interface IUnpauseDagParams {
     dagId: string;
@@ -46,6 +47,9 @@ export class UnpauseDagTool implements vscode.LanguageModelTool<IUnpauseDagParam
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId } = options.input;
         AIHandler.Current.currentDagId = dagId;
+        
+        // Track tool invocation
+        Telemetry.Current.send('UnpauseDagTool.invoke');
 
         try {
             await this.client.pauseDag(dagId, false); // false = unpause
@@ -55,6 +59,9 @@ export class UnpauseDagTool implements vscode.LanguageModelTool<IUnpauseDagParam
             ]);
 
         } catch (error) {
+            // Track invocation error
+            Telemetry.Current.sendError('UnpauseDagTool.invocationError', error instanceof Error ? error : new Error(String(error)));
+            
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to unpause DAG ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);

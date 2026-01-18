@@ -4,6 +4,7 @@
 
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
+import { Telemetry } from '../common/Telemetry';
 
 export class ListActiveDagsTool implements vscode.LanguageModelTool<void> {
     private client: AirflowClientAdapter;
@@ -25,6 +26,9 @@ export class ListActiveDagsTool implements vscode.LanguageModelTool<void> {
         options: vscode.LanguageModelToolInvocationOptions<void>,
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
+        // Track tool invocation
+        Telemetry.Current.send('ListActiveDagsTool.invoke');
+        
         try {
             const dags = await this.client.getDags(false); // false = active (not paused)
 
@@ -50,6 +54,9 @@ export class ListActiveDagsTool implements vscode.LanguageModelTool<void> {
             ]);
 
         } catch (error) {
+            // Track invocation error
+            Telemetry.Current.sendError('ListActiveDagsTool.invocationError', error instanceof Error ? error : new Error(String(error)));
+            
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to list active DAGs: ${error instanceof Error ? error.message : String(error)}`)
             ]);

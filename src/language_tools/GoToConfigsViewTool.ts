@@ -5,6 +5,7 @@
 import * as vscode from 'vscode';
 import { Session } from '../common/Session';
 import { ConfigsView } from '../admin/ConfigsView';
+import { Telemetry } from '../common/Telemetry';
 
 /**
  * GoToConfigsViewTool - Opens the Configs panel
@@ -26,6 +27,9 @@ export class GoToConfigsViewTool implements vscode.LanguageModelTool<void> {
         options: vscode.LanguageModelToolInvocationOptions<void>,
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
+        // Track tool invocation
+        Telemetry.Current.send('GoToConfigsViewTool.invoke');
+        
         try {
 
             if (!Session.Current.Api) {
@@ -41,6 +45,9 @@ export class GoToConfigsViewTool implements vscode.LanguageModelTool<void> {
             ]);
 
         } catch (error) {
+            // Track invocation error
+            Telemetry.Current.sendError('GoToConfigsViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
+            
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open Configs View: ${error instanceof Error ? error.message : String(error)}`)
             ]);

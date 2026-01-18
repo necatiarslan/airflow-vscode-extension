@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 import { Session } from '../common/Session';
 import { DagRunView } from '../report/DagRunView';
 import { AIHandler } from './AIHandler';
+import { Telemetry } from '../common/Telemetry';
 
 export interface IGoToDagRunHistoryParams {
     dagId: string;
@@ -57,6 +58,9 @@ export class GoToDagRunHistoryTool implements vscode.LanguageModelTool<IGoToDagR
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId, startDate, endDate, status } = options.input;
         AIHandler.Current.currentDagId = dagId;
+        
+        // Track tool invocation
+        Telemetry.Current.send('GoToDagRunHistoryTool.invoke');
         
         try {
             // Check if API is available
@@ -110,6 +114,9 @@ export class GoToDagRunHistoryTool implements vscode.LanguageModelTool<IGoToDagR
             ]);
 
         } catch (error) {
+            // Track invocation error
+            Telemetry.Current.sendError('GoToDagRunHistoryTool.invocationError', error instanceof Error ? error : new Error(String(error)));
+            
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open DAG Run History for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);

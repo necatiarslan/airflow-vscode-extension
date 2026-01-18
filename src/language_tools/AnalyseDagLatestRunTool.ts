@@ -13,6 +13,7 @@
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import { AIHandler } from './AIHandler';
+import { Telemetry } from '../common/Telemetry';
 
 /**
  * Input parameters for analyzing latest DAG run
@@ -54,6 +55,10 @@ export class AnalyseDagLatestRunTool implements vscode.LanguageModelTool<IAnalys
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId } = options.input;
         AIHandler.Current.currentDagId = dagId;
+        
+        // Track tool invocation
+        Telemetry.Current.send('AnalyseDagLatestRunTool.invoke');
+        
         try {
             // Step 1: Get the latest DAG run
             const dagRun = await this.client.getLatestDagRun(dagId);
@@ -131,6 +136,9 @@ Please check:
 - The Airflow server is accessible
 - You have the necessary permissions
             `.trim();
+
+            // Track invocation error
+            Telemetry.Current.sendError('AnalyseDagLatestRunTool.invocationError', error instanceof Error ? error : new Error(String(error)));
 
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(errorMessage)

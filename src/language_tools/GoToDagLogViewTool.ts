@@ -9,6 +9,7 @@ import * as vscode from 'vscode';
 import { Session } from '../common/Session';
 import { DagLogView } from '../report/DagLogView';
 import { AIHandler } from './AIHandler';
+import { Telemetry } from '../common/Telemetry';
 
 /**
  * Input parameters for opening DAG Log View
@@ -59,6 +60,9 @@ export class GoToDagLogViewTool implements vscode.LanguageModelTool<IGoToDagLogV
         const { dagId, dagRunId, taskId, tryNumber } = options.input;
         AIHandler.Current.currentDagId = dagId;
         
+        // Track tool invocation
+        Telemetry.Current.send('GoToDagLogViewTool.invoke');
+        
         try {
 
             // Check if API is available
@@ -81,6 +85,9 @@ export class GoToDagLogViewTool implements vscode.LanguageModelTool<IGoToDagLogV
             ]);
 
         } catch (error) {
+            // Track invocation error
+            Telemetry.Current.sendError('GoToDagLogViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
+            
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open DAG Log View for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);

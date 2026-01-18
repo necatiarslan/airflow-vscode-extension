@@ -5,6 +5,7 @@
 import * as vscode from 'vscode';
 import { Session } from '../common/Session';
 import { ConnectionsView } from '../admin/ConnectionsView';
+import { Telemetry } from '../common/Telemetry';
 
 /**
  * GoToConnectionsViewTool - Opens the Connections panel
@@ -26,6 +27,9 @@ export class GoToConnectionsViewTool implements vscode.LanguageModelTool<void> {
         options: vscode.LanguageModelToolInvocationOptions<void>,
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
+        // Track tool invocation
+        Telemetry.Current.send('GoToConnectionsViewTool.invoke');
+        
         try {
             if (!Session.Current.Api) {
                 return new vscode.LanguageModelToolResult([
@@ -40,6 +44,9 @@ export class GoToConnectionsViewTool implements vscode.LanguageModelTool<void> {
             ]);
 
         } catch (error) {
+            // Track invocation error
+            Telemetry.Current.sendError('GoToConnectionsViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
+            
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open Connections View: ${error instanceof Error ? error.message : String(error)}`)
             ]);

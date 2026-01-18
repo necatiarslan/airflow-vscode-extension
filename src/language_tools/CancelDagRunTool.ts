@@ -8,6 +8,7 @@
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import { AIHandler } from './AIHandler';
+import { Telemetry } from '../common/Telemetry';
 
 /**
  * Input parameters for cancelling a DAG run
@@ -75,6 +76,10 @@ export class CancelDagRunTool implements vscode.LanguageModelTool<ICancelDagRunP
     ): Promise<vscode.LanguageModelToolResult> {
         const { dagId } = options.input;
         AIHandler.Current.currentDagId = dagId;
+        
+        // Track tool invocation
+        Telemetry.Current.send('CancelDagRunTool.invoke');
+        
         try {
             // First, get the latest DAG run to find the running one
             const latestRun = await this.client.getLatestDagRun(dagId);
@@ -110,6 +115,7 @@ export class CancelDagRunTool implements vscode.LanguageModelTool<ICancelDagRunP
             ]);
 
         } catch (error) {
+            Telemetry.Current.sendError('CancelDagRunTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to cancel DAG run for ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);

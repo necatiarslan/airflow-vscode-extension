@@ -8,6 +8,7 @@
 
 import * as vscode from 'vscode';
 import { AirflowClientAdapter, IFailedRunSummary } from './AirflowClientAdapter';
+import { Telemetry } from '../common/Telemetry';
 
 /**
  * Input parameters for querying failed runs
@@ -66,6 +67,9 @@ export class GetFailedRunsTool implements vscode.LanguageModelTool<IQueryRunsPar
     ): Promise<vscode.LanguageModelToolResult> {
         const timeRange = options.input.timeRangeHours || 24;
         const dagFilter = options.input.dagIdFilter;
+        
+        // Track tool invocation
+        Telemetry.Current.send('GetFailedRunsTool.invoke');
 
         try {
             // Call the mock API client to get failed runs
@@ -130,6 +134,9 @@ Please check:
 - You have the necessary permissions
 - The time range and filters are valid
             `.trim();
+
+            // Track invocation error
+            Telemetry.Current.sendError('GetFailedRunsTool.invocationError', error instanceof Error ? error : new Error(String(error)));
 
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(errorMessage)

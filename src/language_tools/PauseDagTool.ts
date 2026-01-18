@@ -5,6 +5,7 @@
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import { AIHandler } from './AIHandler';
+import { Telemetry } from '../common/Telemetry';
 
 export interface IPauseDagParams {
     dagId: string;
@@ -47,6 +48,9 @@ export class PauseDagTool implements vscode.LanguageModelTool<IPauseDagParams> {
         const { dagId } = options.input;
         AIHandler.Current.currentDagId = dagId;
         
+        // Track tool invocation
+        Telemetry.Current.send('PauseDagTool.invoke');
+        
         try {
             await this.client.pauseDag(dagId, true); // true = pause
 
@@ -55,6 +59,9 @@ export class PauseDagTool implements vscode.LanguageModelTool<IPauseDagParams> {
             ]);
 
         } catch (error) {
+            // Track invocation error
+            Telemetry.Current.sendError('PauseDagTool.invocationError', error instanceof Error ? error : new Error(String(error)));
+            
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to pause DAG ${dagId}: ${error instanceof Error ? error.message : String(error)}`)
             ]);
