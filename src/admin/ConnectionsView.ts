@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
 import { Session } from '../common/Session';
+import { Telemetry } from '../common/Telemetry';
 
 export class ConnectionsView {
     public static Current: ConnectionsView;
@@ -11,6 +12,8 @@ export class ConnectionsView {
 
     private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('ConnectionsView.constructor Started');
+        Telemetry.Current.send('ConnectionsView.constructor.called');
+
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -20,6 +23,7 @@ export class ConnectionsView {
 
     public async loadData() {
         ui.logToOutput('ConnectionsView.loadData Started');
+        Telemetry.Current.send('ConnectionsView.loadData.called');
 
         const result = await Session.Current.Api.getConnections();
         if (result.isSuccessful) {
@@ -30,12 +34,16 @@ export class ConnectionsView {
 
     public async renderHtml() {
         ui.logToOutput('ConnectionsView.renderHtml Started');
+        Telemetry.Current.send('ConnectionsView.renderHtml.called');
+
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('ConnectionsView.renderHtml Completed');
     }
 
     public static render() {
         ui.logToOutput('ConnectionsView.render Started');
+        Telemetry.Current.send('ConnectionsView.render.called');
+
         if (ConnectionsView.Current) {
             ConnectionsView.Current._panel.reveal(vscode.ViewColumn.One);
             ConnectionsView.Current.loadData();
@@ -50,6 +58,8 @@ export class ConnectionsView {
 
     public dispose() {
         ui.logToOutput('ConnectionsView.dispose Started');
+        Telemetry.Current.send('ConnectionsView.dispose.called');
+
         ConnectionsView.Current = undefined;
 
         this._panel.dispose();
@@ -64,6 +74,7 @@ export class ConnectionsView {
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
         ui.logToOutput('ConnectionsView._getWebviewContent Started');
+        Telemetry.Current.send('ConnectionsView._getWebviewContent.called');
 
         const toolkitUri = ui.getUri(webview, extensionUri, [
             "node_modules",
@@ -225,6 +236,8 @@ export class ConnectionsView {
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
         ui.logToOutput('ConnectionsView._setWebviewMessageListener Started');
+        Telemetry.Current.send('ConnectionsView._setWebviewMessageListener.called');
+        
         webview.onDidReceiveMessage(
             (message: any) => {
                 ui.logToOutput('ConnectionsView._setWebviewMessageListener Message Received ' + message.command);

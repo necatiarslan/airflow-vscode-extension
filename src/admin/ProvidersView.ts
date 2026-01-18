@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
 import { Session } from '../common/Session';
+import { Telemetry } from '../common/Telemetry';
 
 export class ProvidersView {
     public static Current: ProvidersView;
@@ -12,6 +13,8 @@ export class ProvidersView {
 
     private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('ProvidersView.constructor Started');
+        Telemetry.Current.send('ProvidersView.constructor.called');
+
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -21,6 +24,7 @@ export class ProvidersView {
 
     public async loadData() {
         ui.logToOutput('ProvidersView.loadData Started');
+        Telemetry.Current.send('ProvidersView.loadData.called');
 
         const result = await Session.Current.Api.getProviders();
         if (result.isSuccessful) {
@@ -31,12 +35,16 @@ export class ProvidersView {
 
     public async renderHtml() {
         ui.logToOutput('ProvidersView.renderHtml Started');
+        Telemetry.Current.send('ProvidersView.renderHtml.called');
+
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('ProvidersView.renderHtml Completed');
     }
 
     public static render() {
         ui.logToOutput('ProvidersView.render Started');
+        Telemetry.Current.send('ProvidersView.render.called');
+
         if (ProvidersView.Current) {
             ProvidersView.Current._panel.reveal(vscode.ViewColumn.One);
             ProvidersView.Current.loadData();
@@ -51,6 +59,8 @@ export class ProvidersView {
 
     public dispose() {
         ui.logToOutput('ProvidersView.dispose Started');
+        Telemetry.Current.send('ProvidersView.dispose.called');
+
         ProvidersView.Current = undefined;
 
         this._panel.dispose();
@@ -65,6 +75,7 @@ export class ProvidersView {
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
         ui.logToOutput('ProvidersView._getWebviewContent Started');
+        Telemetry.Current.send('ProvidersView._getWebviewContent.called');
 
         const elementsUri = ui.getUri(webview, extensionUri, [
             "node_modules",
@@ -207,6 +218,8 @@ export class ProvidersView {
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
         ui.logToOutput('ProvidersView._setWebviewMessageListener Started');
+        Telemetry.Current.send('ProvidersView._setWebviewMessageListener.called');
+        
         webview.onDidReceiveMessage(
             (message: any) => {
                 ui.logToOutput('ProvidersView._setWebviewMessageListener Message Received ' + message.command);

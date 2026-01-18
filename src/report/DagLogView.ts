@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
 import { Session } from '../common/Session';
+import { Telemetry } from '../common/Telemetry';
 
 export class DagLogView {
     public static Current: DagLogView | undefined;
@@ -19,6 +20,8 @@ export class DagLogView {
 
     private constructor(panel: vscode.WebviewPanel, dagId: string, dagRunId?: string, taskId?: string, tryNumber?: number) {
         ui.logToOutput('DagLogView.constructor Started');
+        Telemetry.Current.send('DagLogView.constructor.called');
+
         this._panel = panel;
         this.dagId = dagId;
         this.dagRunId = dagRunId;
@@ -33,6 +36,7 @@ export class DagLogView {
 
     public static render(dagId: string, dagRunId?: string, taskId?: string, tryNumber?: number) {
         ui.logToOutput('DagLogView.render Started');
+        Telemetry.Current.send('DagLogView.render.called');
         if (DagLogView.Current) {
             DagLogView.Current.dagId = dagId;
             DagLogView.Current.dagRunId = dagRunId;
@@ -52,6 +56,7 @@ export class DagLogView {
 
     public async loadData() {
         ui.logToOutput('DagLogView.loadData Started');
+        Telemetry.Current.send('DagLogView.loadData.called');
         if (!Session.Current.Api) { return; }
 
         // 1. Resolve dagRunId if missing
@@ -155,6 +160,8 @@ export class DagLogView {
     }
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
+        ui.logToOutput('DagLogView._getWebviewContent Started');
+        Telemetry.Current.send('DagLogView._getWebviewContent.called');
         const elementsUri = ui.getUri(webview, extensionUri, [
             "node_modules",
             "@vscode-elements",
@@ -417,6 +424,8 @@ export class DagLogView {
     }
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
+        ui.logToOutput('DagLogView._setWebviewMessageListener Started');
+        Telemetry.Current.send('DagLogView._setWebviewMessageListener.called');
         webview.onDidReceiveMessage(
             async (message: any) => {
                 // No messages expected for now

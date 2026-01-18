@@ -1,4 +1,6 @@
 # Change Log
+- v1.9.7 (2026-01-18)
+    - Telemetry
 - v1.9.6 (2026-01-18)
     - Bug Fixes and Performance Improvements
     - support chat window model selection

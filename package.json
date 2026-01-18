@@ -2,9 +2,10 @@
   "name": "airflow-vscode-extension",
   "displayName": "Airflow",
   "description": "Apache Airflow Extension to List/Trigger DAGs, View Logs and much more",
-  "version": "1.9.6",
+  "version": "1.9.7",
   "publisher": "NecatiARSLAN",
   "icon": "media/airflow-extension-logo.png",
+  "privacy": "https://github.com/necatiarslan/airflow-vscode-extension#-telemetry--privacy",
   "repository": {
     "type": "git",
     "url": "https://github.com/necatiarslan/airflow-vscode-extension"
@@ -949,6 +950,7 @@
   "dependencies": {
     "@vscode-elements/elements": "^2.3.1",
     "@vscode/codicons": "^0.0.43",
+    "@vscode/extension-telemetry": "^1.2.0",
     "ajv": "^8.17.1",
     "base-64": "^1.0.0",
     "node-fetch": "^3.3.2",

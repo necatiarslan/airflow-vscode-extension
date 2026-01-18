@@ -8,13 +8,15 @@ import { DagTreeItem } from './dag/DagTreeItem';
 import { AdminTreeView } from './admin/AdminTreeView';
 import { ReportTreeView } from './report/ReportTreeView';
 import { AIHandler } from './language_tools/AIHandler';
+import { Telemetry } from './common/Telemetry';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 	ui.logToOutput('Extension activation started');
 
-
+	new Telemetry(context);
+	
 	new Session(context);
 	new AIHandler();
 
@@ -77,6 +79,7 @@ export function activate(context: vscode.ExtensionContext) {
 	AIHandler.Current.registerChatParticipant();
 	AIHandler.Current.registerAiTools();
 
+	Telemetry.Current?.send('extension.activated');
 	ui.logToOutput('Extension activation completed');
 }
 

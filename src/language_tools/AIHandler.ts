@@ -1,5 +1,4 @@
-import { AskAIContext, ServerConfig } from '../common/Types';
-import { DagTreeView } from '../dag/DagTreeView';
+import { AskAIContext } from '../common/Types';
 import { Session } from '../common/Session';
 import * as vscode from 'vscode';
 import * as ui from '../common/UI';
@@ -27,6 +26,7 @@ import { GoToVariablesViewTool } from './GoToVariablesViewTool';
 import { GoToConfigsViewTool } from './GoToConfigsViewTool';
 import { GoToPluginsViewTool } from './GoToPluginsViewTool';
 import { GoToServerHealthViewTool } from './GoToServerHealthViewTool';
+import { Telemetry } from '../common/Telemetry';
 
 export class AIHandler 
 {
@@ -37,10 +37,14 @@ export class AIHandler
 
     constructor() {
         AIHandler.Current = this;
+        Telemetry.Current.send('AIHandler.Initialized');
     }
 
     public async aIHandler (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream, token: vscode.CancellationToken) : Promise<void>
     {
+        ui.logToOutput('AIHandler.aIHandler Started');
+        Telemetry.Current.send('AIHandler.aIHandler.Started');
+
         const aiContext = AIHandler.Current?.askAIContext;
         
         // 1. Define the tools we want to expose to the model
@@ -354,6 +358,7 @@ export class AIHandler
             }
 
             ui.logToOutput(`Selected AI Family: ${model?.family || 'None'}, Name: ${model?.name || 'None'}`);
+            Telemetry.Current.send('AIHandler.aIHandler.ModelSelected', { modelId: model?.id || 'None' });
             if (!model) {
                 stream.markdown("No suitable AI model found.");
                 return;
@@ -388,6 +393,7 @@ export class AIHandler
                     for (const toolCall of toolCalls) {
                         stream.progress(`Calling: ${toolCall.name}`);
                         ui.logToOutput(`AI requested tool: ${toolCall.name} with input: ${JSON.stringify(toolCall.input)}`);
+                        Telemetry.Current.send('AIHandler.aIHandler.ToolCalled', { toolName: toolCall.name, toolInput: JSON.stringify(toolCall.input) });
                         
                         try {
                             // Invoke the tool using VS Code LM API
@@ -409,6 +415,7 @@ export class AIHandler
                             ]));
 
                         } catch (err) {
+                            Telemetry.Current.send('AIHandler.aIHandler.ToolCallFailed', { toolName: toolCall.name, error: err instanceof Error ? err.message : String(err) });
                             const errorMessage = `Tool execution failed: ${err instanceof Error ? err.message : String(err)}`;
                             messages.push(vscode.LanguageModelChatMessage.User([
                                 new vscode.LanguageModelToolResultPart(toolCall.callId, [new vscode.LanguageModelTextPart(errorMessage)])
@@ -428,6 +435,7 @@ export class AIHandler
 
         } catch (err) {
             ui.logToOutput(`AIHandler.aIHandler Error: ${err instanceof Error ? err.message : String(err)}`);
+            Telemetry.Current.send('AIHandler.aIHandler.Error', { error: err instanceof Error ? err.message : String(err) });
             if (err instanceof Error) {
                 stream.markdown(`I'm sorry, I couldn't connect to the AI model: ${err.message}`);
             } else {
@@ -444,7 +452,8 @@ export class AIHandler
     }
 
     public async askAI(dagId: string, fileToken: string) {
-        ui.logToOutput('DagTreeView.askAI Started');
+        ui.logToOutput('AIHandler.askAI Started');
+        Telemetry.Current.send('AIHandler.askAI.Started');
         if (!Session.Current.Api) { return; }
         if (!await this.isChatCommandAvailable()) {
             ui.showErrorMessage('Chat command is not available. Please ensure you have access to VS Code AI features.');

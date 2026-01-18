@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
 import { Session } from '../common/Session';
+import { Telemetry } from '../common/Telemetry';
 
 export class ServerHealthView {
     public static Current: ServerHealthView;
@@ -11,6 +12,8 @@ export class ServerHealthView {
 
     private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('ServerHealthView.constructor Started');
+        Telemetry.Current.send('ServerHealthView.constructor.called');
+
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -20,6 +23,8 @@ export class ServerHealthView {
 
     public async loadData() {
         ui.logToOutput('ServerHealthView.loadData Started');
+        Telemetry.Current.send('ServerHealthView.loadData.called');
+
         if (!Session.Current.Api) { return; }
         
         const result = await Session.Current.Api.getHealth();
@@ -31,12 +36,16 @@ export class ServerHealthView {
 
     public async renderHtml() {
         ui.logToOutput('ServerHealthView.renderHtml Started');
+        Telemetry.Current.send('ServerHealthView.renderHtml.called');
+
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('ServerHealthView.renderHtml Completed');
     }
 
     public static render() {
         ui.logToOutput('ServerHealthView.render Started');
+        Telemetry.Current.send('ServerHealthView.render.called');
+
         if (ServerHealthView.Current) {
             ServerHealthView.Current._panel.reveal(vscode.ViewColumn.One);
             ServerHealthView.Current.loadData();
@@ -51,6 +60,8 @@ export class ServerHealthView {
 
     public dispose() {
         ui.logToOutput('ServerHealthView.dispose Started');
+        Telemetry.Current.send('ServerHealthView.dispose.called');
+
         ServerHealthView.Current = undefined;
 
         this._panel.dispose();
@@ -65,6 +76,7 @@ export class ServerHealthView {
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
         ui.logToOutput('ServerHealthView._getWebviewContent Started');
+        Telemetry.Current.send('ServerHealthView._getWebviewContent.called');
 
         const elementsUri = ui.getUri(webview, extensionUri, [
             "node_modules",
@@ -289,6 +301,8 @@ export class ServerHealthView {
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
         ui.logToOutput('ServerHealthView._setWebviewMessageListener Started');
+        Telemetry.Current.send('ServerHealthView._setWebviewMessageListener.called');
+        
         webview.onDidReceiveMessage(
             (message: any) => {
                 ui.logToOutput('ServerHealthView._setWebviewMessageListener Message Received ' + message.command);

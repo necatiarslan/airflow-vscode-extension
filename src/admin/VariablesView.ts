@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
 import { Session } from '../common/Session';
+import { Telemetry } from '../common/Telemetry';
 
 export class VariablesView {
     public static Current: VariablesView;
@@ -11,6 +12,8 @@ export class VariablesView {
 
     private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('VariablesView.constructor Started');
+        Telemetry.Current.send('VariablesView.constructor.called');
+
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -20,6 +23,8 @@ export class VariablesView {
 
     public async loadData() {
         ui.logToOutput('VariablesView.loadData Started');
+        Telemetry.Current.send('VariablesView.loadData.called');
+
         if (!Session.Current.Api) { return; }
         
         const result = await Session.Current.Api.getVariables();
@@ -31,12 +36,16 @@ export class VariablesView {
 
     public async renderHtml() {
         ui.logToOutput('VariablesView.renderHtml Started');
+        Telemetry.Current.send('VariablesView.renderHtml.called');
+
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('VariablesView.renderHtml Completed');
     }
 
     public static render() {
         ui.logToOutput('VariablesView.render Started');
+        Telemetry.Current.send('VariablesView.render.called');
+
         if (VariablesView.Current) {
             VariablesView.Current._panel.reveal(vscode.ViewColumn.One);
             VariablesView.Current.loadData();
@@ -51,6 +60,8 @@ export class VariablesView {
 
     public dispose() {
         ui.logToOutput('VariablesView.dispose Started');
+        Telemetry.Current.send('VariablesView.dispose.called');
+
         VariablesView.Current = undefined;
 
         this._panel.dispose();
@@ -65,6 +76,7 @@ export class VariablesView {
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
         ui.logToOutput('VariablesView._getWebviewContent Started');
+        Telemetry.Current.send('VariablesView._getWebviewContent.called');
 
         const elementsUri = ui.getUri(webview, extensionUri, [
             "node_modules",
@@ -216,6 +228,8 @@ export class VariablesView {
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
         ui.logToOutput('VariablesView._setWebviewMessageListener Started');
+        Telemetry.Current.send('VariablesView._setWebviewMessageListener.called');
+        
         webview.onDidReceiveMessage(
             (message: any) => {
                 ui.logToOutput('VariablesView._setWebviewMessageListener Message Received ' + message.command);

@@ -1,0 +1,704 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vscode-extension-telemetry/main/schema/telemetry.schema.json",
+    "events": {
+        "extension.activated": {
+            "description": "Sent when the extension is successfully activated."
+        },
+        "extension.activationFailed": {
+            "description": "Sent when the extension fails to activate."
+        },
+        "AdminTreeViewInitialized": {
+            "description": "Sent when the Admin Tree View is initialized."
+        },
+        "ReportTreeView.constructor.called": {
+            "description": "Sent when ReportTreeView constructor is called."
+        },
+        "ReportTreeView.refresh.called": {
+            "description": "Sent when ReportTreeView refresh is called."
+        },
+        "VariablesView.constructor.called": {
+            "description": "Sent when VariablesView constructor is called."
+        },
+        "VariablesView.loadData.called": {
+            "description": "Sent when VariablesView loadData is called."
+        },
+        "VariablesView.renderHtml.called": {
+            "description": "Sent when VariablesView renderHtml is called."
+        },
+        "VariablesView.render.called": {
+            "description": "Sent when VariablesView render is called."
+        },
+        "VariablesView.dispose.called": {
+            "description": "Sent when VariablesView dispose is called."
+        },
+        "VariablesView._getWebviewContent.called": {
+            "description": "Sent when VariablesView _getWebviewContent is called."
+        },
+        "VariablesView._setWebviewMessageListener.called": {
+            "description": "Sent when VariablesView _setWebviewMessageListener is called."
+        },
+        "ServerHealthView.constructor.called": {
+            "description": "Sent when ServerHealthView constructor is called."
+        },
+        "ServerHealthView.loadData.called": {
+            "description": "Sent when ServerHealthView loadData is called."
+        },
+        "ServerHealthView.renderHtml.called": {
+            "description": "Sent when ServerHealthView renderHtml is called."
+        },
+        "ServerHealthView.render.called": {
+            "description": "Sent when ServerHealthView render is called."
+        },
+        "ServerHealthView.dispose.called": {
+            "description": "Sent when ServerHealthView dispose is called."
+        },
+        "ServerHealthView._getWebviewContent.called": {
+            "description": "Sent when ServerHealthView _getWebviewContent is called."
+        },
+        "ServerHealthView._setWebviewMessageListener.called": {
+            "description": "Sent when ServerHealthView _setWebviewMessageListener is called."
+        },
+        "PluginsView.constructor.called": {
+            "description": "Sent when PluginsView constructor is called."
+        },
+        "PluginsView.loadData.called": {
+            "description": "Sent when PluginsView loadData is called."
+        },
+        "PluginsView.renderHtml.called": {
+            "description": "Sent when PluginsView renderHtml is called."
+        },
+        "PluginsView.render.called": {
+            "description": "Sent when PluginsView render is called."
+        },
+        "PluginsView.dispose.called": {
+            "description": "Sent when PluginsView dispose is called."
+        },
+        "PluginsView._getWebviewContent.called": {
+            "description": "Sent when PluginsView _getWebviewContent is called."
+        },
+        "PluginsView._setWebviewMessageListener.called": {
+            "description": "Sent when PluginsView _setWebviewMessageListener is called."
+        },
+        "ProvidersView.constructor.called": {
+            "description": "Sent when ProvidersView constructor is called."
+        },
+        "ProvidersView.loadData.called": {
+            "description": "Sent when ProvidersView loadData is called."
+        },
+        "ProvidersView.renderHtml.called": {
+            "description": "Sent when ProvidersView renderHtml is called."
+        },
+        "ProvidersView.render.called": {
+            "description": "Sent when ProvidersView render is called."
+        },
+        "ProvidersView.dispose.called": {
+            "description": "Sent when ProvidersView dispose is called."
+        },
+        "ProvidersView._getWebviewContent.called": {
+            "description": "Sent when ProvidersView _getWebviewContent is called."
+        },
+        "ProvidersView._setWebviewMessageListener.called": {
+            "description": "Sent when ProvidersView _setWebviewMessageListener is called."
+        },
+        "ConfigsView.constructor.called": {
+            "description": "Sent when ConfigsView constructor is called."
+        },
+        "ConfigsView.loadData.called": {
+            "description": "Sent when ConfigsView loadData is called."
+        },
+        "ConfigsView.renderHtml.called": {
+            "description": "Sent when ConfigsView renderHtml is called."
+        },
+        "ConfigsView.render.called": {
+            "description": "Sent when ConfigsView render is called."
+        },
+        "ConfigsView.dispose.called": {
+            "description": "Sent when ConfigsView dispose is called."
+        },
+        "ConfigsView._getWebviewContent.called": {
+            "description": "Sent when ConfigsView _getWebviewContent is called."
+        },
+        "ConfigsView._setWebviewMessageListener.called": {
+            "description": "Sent when ConfigsView _setWebviewMessageListener is called."
+        },
+        "ConnectionsView.constructor.called": {
+            "description": "Sent when ConnectionsView constructor is called."
+        },
+        "ConnectionsView.loadData.called": {
+            "description": "Sent when ConnectionsView loadData is called."
+        },
+        "ConnectionsView.renderHtml.called": {
+            "description": "Sent when ConnectionsView renderHtml is called."
+        },
+        "ConnectionsView.render.called": {
+            "description": "Sent when ConnectionsView render is called."
+        },
+        "ConnectionsView.dispose.called": {
+            "description": "Sent when ConnectionsView dispose is called."
+        },
+        "ConnectionsView._getWebviewContent.called": {
+            "description": "Sent when ConnectionsView _getWebviewContent is called."
+        },
+        "ConnectionsView._setWebviewMessageListener.called": {
+            "description": "Sent when ConnectionsView _setWebviewMessageListener is called."
+        },
+        "DagRunView.constructor.called": {
+            "description": "Sent when DagRunView constructor is called."
+        },
+        "DagRunView.loadData.called": {
+            "description": "Sent when DagRunView loadData is called."
+        },
+        "DagRunView.renderHtml.called": {
+            "description": "Sent when DagRunView renderHtml is called."
+        },
+        "DagRunView.render.called": {
+            "description": "Sent when DagRunView render is called."
+        },
+        "DagRunView.dispose.called": {
+            "description": "Sent when DagRunView dispose is called."
+        },
+        "DagRunView._getWebviewContent.called": {
+            "description": "Sent when DagRunView _getWebviewContent is called."
+        },
+        "DagRunView._setWebviewMessageListener.called": {
+            "description": "Sent when DagRunView _setWebviewMessageListener is called."
+        },
+        "DailyDagRunView.constructor.called": {
+            "description": "Sent when DailyDagRunView constructor is called."
+        },
+        "DailyDagRunView.loadData.called": {
+            "description": "Sent when DailyDagRunView loadData is called."
+        },
+        "DailyDagRunView.renderHtml.called": {
+            "description": "Sent when DailyDagRunView renderHtml is called."
+        },
+        "DailyDagRunView.render.called": {
+            "description": "Sent when DailyDagRunView render is called."
+        },
+        "DailyDagRunView.dispose.called": {
+            "description": "Sent when DailyDagRunView dispose is called."
+        },
+        "DailyDagRunView._getWebviewContent.called": {
+            "description": "Sent when DailyDagRunView _getWebviewContent is called."
+        },
+        "DailyDagRunView._setWebviewMessageListener.called": {
+            "description": "Sent when DailyDagRunView _setWebviewMessageListener is called."
+        },
+        "DagLogView.constructor.called": {
+            "description": "Sent when DagLogView constructor is called."
+        },
+        "DagLogView.render.called": {
+            "description": "Sent when DagLogView render is called."
+        },
+        "DagLogView.loadData.called": {
+            "description": "Sent when DagLogView loadData is called."
+        },
+        "DagLogView._getWebviewContent.called": {
+            "description": "Sent when DagLogView _getWebviewContent is called."
+        },
+        "DagLogView._setWebviewMessageListener.called": {
+            "description": "Sent when DagLogView _setWebviewMessageListener is called."
+        },
+        "AIHandler.Initialized": {
+            "description": "Sent when AIHandler is initialized.",
+            "properties": {
+                "modelId": {
+                    "description": "The model ID selected by the user.",
+                    "type": "string"
+                }
+            }
+        },
+        "AIHandler.aIHandler.Started": {
+            "description": "Sent when AI handler processing is started."
+        },
+        "AIHandler.aIHandler.ModelSelected": {
+            "description": "Sent when a model is selected.",
+            "properties": {
+                "modelId": {
+                    "description": "The model ID selected.",
+                    "type": "string"
+                }
+            }
+        },
+        "AIHandler.aIHandler.ToolCalled": {
+            "description": "Sent when an AI tool is called.",
+            "properties": {
+                "toolName": {
+                    "description": "The name of the tool that was called.",
+                    "type": "string"
+                },
+                "toolInput": {
+                    "description": "The input parameters passed to the tool.",
+                    "type": "string"
+                }
+            }
+        },
+        "AIHandler.aIHandler.ToolCallFailed": {
+            "description": "Sent when an AI tool call fails.",
+            "properties": {
+                "toolName": {
+                    "description": "The name of the tool that failed.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AIHandler.aIHandler.Error": {
+            "description": "Sent when an error occurs in AI handler.",
+            "properties": {
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AIHandler.askAI.Started": {
+            "description": "Sent when askAI is initiated."
+        },
+        "dagView.constructor.called": {
+            "description": "Sent when DagView constructor is called."
+        },
+        "dagView.loadAllDagData.called": {
+            "description": "Sent when DagView loadAllDagData is called."
+        },
+        "dagView.loadDagInfoOnly.called": {
+            "description": "Sent when DagView loadDagInfoOnly is called."
+        },
+        "dagView.renderHmtl.called": {
+            "description": "Sent when DagView renderHtml is called."
+        },
+        "dagView.render.called": {
+            "description": "Sent when DagView render is called."
+        },
+        "dagView.getLastRun.called": {
+            "description": "Sent when DagView getLastRun is called."
+        },
+        "dagView.getDagRun.called": {
+            "description": "Sent when DagView getDagRun is called."
+        },
+        "dagView.getRunHistory.called": {
+            "description": "Sent when DagView getRunHistory is called."
+        },
+        "dagView.getTaskInstances.called": {
+            "description": "Sent when DagView getTaskInstances is called."
+        },
+        "dagView.getDagInfo.called": {
+            "description": "Sent when DagView getDagInfo is called."
+        },
+        "dagView.getDagTasks.called": {
+            "description": "Sent when DagView getDagTasks is called."
+        },
+        "dagView.dispose.called": {
+            "description": "Sent when DagView dispose is called."
+        },
+        "dagView.getWebviewContent.called": {
+            "description": "Sent when DagView getWebviewContent is called."
+        },
+        "dagView.setWebviewMessageListener.called": {
+            "description": "Sent when DagView setWebviewMessageListener is called."
+        },
+        "dagView.cancelDagRun.called": {
+            "description": "Sent when DagView cancelDagRun is called."
+        },
+        "dagView.updateDagRunNote.called": {
+            "description": "Sent when DagView updateDagRunNote is called."
+        },
+        "dagView.pauseDAG.called": {
+            "description": "Sent when DagView pauseDAG is called."
+        },
+        "dagView.askAI.called": {
+            "description": "Sent when DagView askAI is called."
+        },
+        "dagView.showSourceCode.called": {
+            "description": "Sent when DagView showSourceCode is called."
+        },
+        "dagView.getRunHistoryAndRenderHtml.called": {
+            "description": "Sent when DagView getRunHistoryAndRenderHtml is called."
+        },
+        "dagView.showDAGRunLog.called": {
+            "description": "Sent when DagView showDAGRunLog is called."
+        },
+        "dagView.showTaskInstanceLog.called": {
+            "description": "Sent when DagView showTaskInstanceLog is called."
+        },
+        "dagView.showTaskXComs.called": {
+            "description": "Sent when DagView showTaskXComs is called."
+        },
+        "dagView.triggerDagWConfig.called": {
+            "description": "Sent when DagView triggerDagWConfig is called."
+        },
+        "dagView.startCheckingDagRunStatus.called": {
+            "description": "Sent when DagView startCheckingDagRunStatus is called."
+        },
+        "dagView.stopCheckingDagRunStatus.called": {
+            "description": "Sent when DagView stopCheckingDagRunStatus is called."
+        },
+        "dagView.refreshRunningDagState.called": {
+            "description": "Sent when DagView refreshRunningDagState is called."
+        },
+        "dagView.buildTaskDependencyTree.called": {
+            "description": "Sent when DagView buildTaskDependencyTree is called."
+        },
+        "dagTreeView.constructor.called": {
+            "description": "Sent when DagTreeView constructor is called."
+        },
+        "dagTreeView.refresh.called": {
+            "description": "Sent when DagTreeView refresh is called."
+        },
+        "dagTreeView.viewDagView.called": {
+            "description": "Sent when DagTreeView viewDagView is called."
+        },
+        "dagTreeView.addToFavDAG.called": {
+            "description": "Sent when DagTreeView addToFavDAG is called."
+        },
+        "dagTreeView.deleteFromFavDAG.called": {
+            "description": "Sent when DagTreeView deleteFromFavDAG is called."
+        },
+        "dagTreeView.triggerDag.called": {
+            "description": "Sent when DagTreeView triggerDag is called."
+        },
+        "dagTreeView.triggerDagWConfig.called": {
+            "description": "Sent when DagTreeView triggerDagWConfig is called."
+        },
+        "dagTreeView.checkAllDagsRunState.called": {
+            "description": "Sent when DagTreeView checkAllDagsRunState is called."
+        },
+        "dagTreeView.notifyDagStateWithDagId.called": {
+            "description": "Sent when DagTreeView notifyDagStateWithDagId is called."
+        },
+        "dagTreeView.checkDagRunState.called": {
+            "description": "Sent when DagTreeView checkDagRunState is called."
+        },
+        "dagTreeView.pauseDAG.called": {
+            "description": "Sent when DagTreeView pauseDAG is called."
+        },
+        "dagTreeView.unPauseDAG.called": {
+            "description": "Sent when DagTreeView unPauseDAG is called."
+        },
+        "dagTreeView.cancelDagRun.called": {
+            "description": "Sent when DagTreeView cancelDagRun is called."
+        },
+        "dagTreeView.lastDAGRunLog.called": {
+            "description": "Sent when DagTreeView lastDAGRunLog is called."
+        },
+        "dagTreeView.dagSourceCode.called": {
+            "description": "Sent when DagTreeView dagSourceCode is called."
+        },
+        "dagTreeView.showDagInfo.called": {
+            "description": "Sent when DagTreeView showDagInfo is called."
+        },
+        "dagTreeView.filter.called": {
+            "description": "Sent when DagTreeView filter is called."
+        },
+        "dagTreeView.showOnlyActive.called": {
+            "description": "Sent when DagTreeView showOnlyActive is called."
+        },
+        "dagTreeView.showOnlyFavorite.called": {
+            "description": "Sent when DagTreeView showOnlyFavorite is called."
+        },
+        "dagTreeView.addServer.called": {
+            "description": "Sent when DagTreeView addServer is called."
+        },
+        "dagTreeView.removeServer.called": {
+            "description": "Sent when DagTreeView removeServer is called."
+        },
+        "dagTreeView.connectServer.called": {
+            "description": "Sent when DagTreeView connectServer is called."
+        },
+        "dagTreeView.clearServers.called": {
+            "description": "Sent when DagTreeView clearServers is called."
+        },
+        "dagTreeView.loadDags.called": {
+            "description": "Sent when DagTreeView loadDags is called."
+        },
+        "dagTreeView.loadLatestRunStatusForAllDags.called": {
+            "description": "Sent when DagTreeView loadLatestRunStatusForAllDags is called."
+        },
+        "dagTreeView.saveState.called": {
+            "description": "Sent when DagTreeView saveState is called."
+        },
+        "dagTreeView.loadState.called": {
+            "description": "Sent when DagTreeView loadState is called."
+        },
+        "dagTreeView.viewConnections.called": {
+            "description": "Sent when DagTreeView viewConnections is called."
+        },
+        "dagTreeView.viewVariables.called": {
+            "description": "Sent when DagTreeView viewVariables is called."
+        },
+        "dagTreeView.viewProviders.called": {
+            "description": "Sent when DagTreeView viewProviders is called."
+        },
+        "dagTreeView.viewConfigs.called": {
+            "description": "Sent when DagTreeView viewConfigs is called."
+        },
+        "dagTreeView.viewPlugins.called": {
+            "description": "Sent when DagTreeView viewPlugins is called."
+        },
+        "dagTreeView.viewDagRuns.called": {
+            "description": "Sent when DagTreeView viewDagRuns is called."
+        },
+        "dagTreeView.viewDagRunHistory.called": {
+            "description": "Sent when DagTreeView viewDagRunHistory is called."
+        },
+        "dagTreeView.viewServerHealth.called": {
+            "description": "Sent when DagTreeView viewServerHealth is called."
+        },
+        "AirflowApi.getJwtToken.error": {
+            "description": "Sent when an error occurs while getting JWT token.",
+            "properties": {
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.checkConnection.error": {
+            "description": "Sent when an error occurs while checking connection.",
+            "properties": {
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.getDagList.error": {
+            "description": "Sent when an error occurs while getting DAG list.",
+            "properties": {
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.triggerDag.error": {
+            "description": "Sent when an error occurs while triggering a DAG.",
+            "properties": {
+                "dagId": {
+                    "description": "The DAG ID.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.getDagRun.error": {
+            "description": "Sent when an error occurs while getting DAG run.",
+            "properties": {
+                "dagId": {
+                    "description": "The DAG ID.",
+                    "type": "string"
+                },
+                "dagRunId": {
+                    "description": "The DAG run ID.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.getDagRunHistory.error": {
+            "description": "Sent when an error occurs while getting DAG run history.",
+            "properties": {
+                "dagId": {
+                    "description": "The DAG ID.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.pauseDag.error": {
+            "description": "Sent when an error occurs while pausing a DAG.",
+            "properties": {
+                "dagId": {
+                    "description": "The DAG ID.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.getSourceCode.error": {
+            "description": "Sent when an error occurs while getting source code.",
+            "properties": {
+                "dagId": {
+                    "description": "The DAG ID.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.getImportErrors.error": {
+            "description": "Sent when an error occurs while getting import errors.",
+            "properties": {
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.getTaskInstanceLog.error": {
+            "description": "Sent when an error occurs while getting task instance log.",
+            "properties": {
+                "dagId": {
+                    "description": "The DAG ID.",
+                    "type": "string"
+                },
+                "dagRunId": {
+                    "description": "The DAG run ID.",
+                    "type": "string"
+                },
+                "taskId": {
+                    "description": "The task ID.",
+                    "type": "string"
+                },
+                "tryNumber": {
+                    "description": "The try number.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.getTaskInstanceLogText.error": {
+            "description": "Sent when an error occurs while getting task instance log text.",
+            "properties": {
+                "dagId": {
+                    "description": "The DAG ID.",
+                    "type": "string"
+                },
+                "dagRunId": {
+                    "description": "The DAG run ID.",
+                    "type": "string"
+                },
+                "taskId": {
+                    "description": "The task ID.",
+                    "type": "string"
+                },
+                "tryNumber": {
+                    "description": "The try number.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.getLastDagRunLogText.error": {
+            "description": "Sent when an error occurs while getting last DAG run log text.",
+            "properties": {
+                "dagId": {
+                    "description": "The DAG ID.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.getDagRunLogText.error": {
+            "description": "Sent when an error occurs while getting DAG run log text.",
+            "properties": {
+                "dagId": {
+                    "description": "The DAG ID.",
+                    "type": "string"
+                },
+                "dagRunId": {
+                    "description": "The DAG run ID.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.cancelDagRun.error": {
+            "description": "Sent when an error occurs while canceling a DAG run.",
+            "properties": {
+                "dagId": {
+                    "description": "The DAG ID.",
+                    "type": "string"
+                },
+                "dagRunId": {
+                    "description": "The DAG run ID.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.getTaskXComs.error": {
+            "description": "Sent when an error occurs while getting task XComs.",
+            "properties": {
+                "dagId": {
+                    "description": "The DAG ID.",
+                    "type": "string"
+                },
+                "dagRunId": {
+                    "description": "The DAG run ID.",
+                    "type": "string"
+                },
+                "taskId": {
+                    "description": "The task ID.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.updateDagRunNote.error": {
+            "description": "Sent when an error occurs while updating DAG run note.",
+            "properties": {
+                "dagId": {
+                    "description": "The DAG ID.",
+                    "type": "string"
+                },
+                "dagRunId": {
+                    "description": "The DAG run ID.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        },
+        "AirflowApi.genericGet.error": {
+            "description": "Sent when an error occurs during a generic GET request.",
+            "properties": {
+                "endpoint": {
+                    "description": "The API endpoint.",
+                    "type": "string"
+                },
+                "error": {
+                    "description": "The error message.",
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

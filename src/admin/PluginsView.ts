@@ -2,6 +2,7 @@
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
 import { Session } from '../common/Session';
+import { Telemetry } from '../common/Telemetry';
 
 export class PluginsView {
     public static Current: PluginsView;
@@ -11,6 +12,8 @@ export class PluginsView {
 
     private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('PluginsView.constructor Started');
+        Telemetry.Current.send('PluginsView.constructor.called');
+
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -20,6 +23,7 @@ export class PluginsView {
 
     public async loadData() {
         ui.logToOutput('PluginsView.loadData Started');
+        Telemetry.Current.send('PluginsView.loadData.called');
 
         const result = await Session.Current.Api.getPlugins();
         if (result.isSuccessful) {
@@ -30,12 +34,16 @@ export class PluginsView {
 
     public async renderHtml() {
         ui.logToOutput('PluginsView.renderHtml Started');
+        Telemetry.Current.send('PluginsView.renderHtml.called');
+
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('PluginsView.renderHtml Completed');
     }
 
     public static render() {
         ui.logToOutput('PluginsView.render Started');
+        Telemetry.Current.send('PluginsView.render.called');
+
         if (PluginsView.Current) {
             PluginsView.Current._panel.reveal(vscode.ViewColumn.One);
             PluginsView.Current.loadData();
@@ -50,6 +58,8 @@ export class PluginsView {
 
     public dispose() {
         ui.logToOutput('PluginsView.dispose Started');
+        Telemetry.Current.send('PluginsView.dispose.called');
+
         PluginsView.Current = undefined;
 
         this._panel.dispose();
@@ -64,6 +74,7 @@ export class PluginsView {
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
         ui.logToOutput('PluginsView._getWebviewContent Started');
+        Telemetry.Current.send('PluginsView._getWebviewContent.called');
 
         const elementsUri = ui.getUri(webview, extensionUri, [
             "node_modules",
@@ -210,6 +221,8 @@ export class PluginsView {
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
         ui.logToOutput('PluginsView._setWebviewMessageListener Started');
+        Telemetry.Current.send('PluginsView._setWebviewMessageListener.called');
+        
         webview.onDidReceiveMessage(
             (message: any) => {
                 ui.logToOutput('PluginsView._setWebviewMessageListener Message Received ' + message.command);
