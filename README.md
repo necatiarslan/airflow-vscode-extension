@@ -232,17 +232,6 @@ astro dev start     #start airflow as a docker container
 
 This extension collects **anonymous usage telemetry** to help improve reliability and features.
 
-### What is collected
-- Extension activation
-- Command usage (e.g. S3 upload, download)
-- Success and failure signals
-
-### What is NOT collected
-- AWS credentials
-- Bucket names or object keys
-- File paths or file contents
-- Personal or identifiable information
-
 ### Telemetry control
 Telemetry is collected **only if VS Code telemetry is enabled**.
 You can disable telemetry via: Settings → Telemetry → Telemetry Level  

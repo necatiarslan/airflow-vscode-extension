@@ -889,7 +889,7 @@
         {
           "id": "airflow-explorer",
           "title": "Airflow",
-          "icon": "media/airflow-extension-logo.png"
+          "icon": "media/airflow-extension-activity-bar.png"
         }
       ]
     },

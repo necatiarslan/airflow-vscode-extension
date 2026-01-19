@@ -699,6 +699,141 @@
                     "type": "string"
                 }
             }
+        },
+        "AnalyseDagLatestRunTool.invoke": {
+            "description": "Sent when AnalyseDagLatestRunTool is invoked."
+        },
+        "AnalyseDagLatestRunTool.invocationError": {
+            "description": "Sent when AnalyseDagLatestRunTool encounters an error during invocation."
+        },
+        "CancelDagRunTool.invoke": {
+            "description": "Sent when CancelDagRunTool is invoked."
+        },
+        "CancelDagRunTool.invocationError": {
+            "description": "Sent when CancelDagRunTool encounters an error during invocation."
+        },
+        "GetDagHistoryTool.invoke": {
+            "description": "Sent when GetDagHistoryTool is invoked."
+        },
+        "GetDagHistoryTool.invocationError": {
+            "description": "Sent when GetDagHistoryTool encounters an error during invocation."
+        },
+        "GetDagRunDetailTool.invoke": {
+            "description": "Sent when GetDagRunDetailTool is invoked."
+        },
+        "GetDagRunDetailTool.invocationError": {
+            "description": "Sent when GetDagRunDetailTool encounters an error during invocation."
+        },
+        "GetDagRunsTool.invoke": {
+            "description": "Sent when GetDagRunsTool is invoked."
+        },
+        "GetDagRunsTool.invocationError": {
+            "description": "Sent when GetDagRunsTool encounters an error during invocation."
+        },
+        "GetDagSourceCodeTool.invoke": {
+            "description": "Sent when GetDagSourceCodeTool is invoked."
+        },
+        "GetDagSourceCodeTool.invocationError": {
+            "description": "Sent when GetDagSourceCodeTool encounters an error during invocation."
+        },
+        "GetFailedRunsTool.invoke": {
+            "description": "Sent when GetFailedRunsTool is invoked."
+        },
+        "GetFailedRunsTool.invocationError": {
+            "description": "Sent when GetFailedRunsTool encounters an error during invocation."
+        },
+        "GetRunningDagsTool.invoke": {
+            "description": "Sent when GetRunningDagsTool is invoked."
+        },
+        "GetRunningDagsTool.invocationError": {
+            "description": "Sent when GetRunningDagsTool encounters an error during invocation."
+        },
+        "GetTodayTool.invoke": {
+            "description": "Sent when GetTodayTool is invoked."
+        },
+        "GoToConfigsViewTool.invoke": {
+            "description": "Sent when GoToConfigsViewTool is invoked."
+        },
+        "GoToConfigsViewTool.invocationError": {
+            "description": "Sent when GoToConfigsViewTool encounters an error during invocation."
+        },
+        "GoToConnectionsViewTool.invoke": {
+            "description": "Sent when GoToConnectionsViewTool is invoked."
+        },
+        "GoToConnectionsViewTool.invocationError": {
+            "description": "Sent when GoToConnectionsViewTool encounters an error during invocation."
+        },
+        "GoToDagLogViewTool.invoke": {
+            "description": "Sent when GoToDagLogViewTool is invoked."
+        },
+        "GoToDagLogViewTool.invocationError": {
+            "description": "Sent when GoToDagLogViewTool encounters an error during invocation."
+        },
+        "GoToDagRunHistoryTool.invoke": {
+            "description": "Sent when GoToDagRunHistoryTool is invoked."
+        },
+        "GoToDagRunHistoryTool.invocationError": {
+            "description": "Sent when GoToDagRunHistoryTool encounters an error during invocation."
+        },
+        "GoToDagViewTool.invoke": {
+            "description": "Sent when GoToDagViewTool is invoked."
+        },
+        "GoToDagViewTool.invocationError": {
+            "description": "Sent when GoToDagViewTool encounters an error during invocation."
+        },
+        "GoToPluginsViewTool.invoke": {
+            "description": "Sent when GoToPluginsViewTool is invoked."
+        },
+        "GoToPluginsViewTool.invocationError": {
+            "description": "Sent when GoToPluginsViewTool encounters an error during invocation."
+        },
+        "GoToProvidersViewTool.invoke": {
+            "description": "Sent when GoToProvidersViewTool is invoked."
+        },
+        "GoToProvidersViewTool.invocationError": {
+            "description": "Sent when GoToProvidersViewTool encounters an error during invocation."
+        },
+        "GoToServerHealthViewTool.invoke": {
+            "description": "Sent when GoToServerHealthViewTool is invoked."
+        },
+        "GoToServerHealthViewTool.invocationError": {
+            "description": "Sent when GoToServerHealthViewTool encounters an error during invocation."
+        },
+        "GoToVariablesViewTool.invoke": {
+            "description": "Sent when GoToVariablesViewTool is invoked."
+        },
+        "GoToVariablesViewTool.invocationError": {
+            "description": "Sent when GoToVariablesViewTool encounters an error during invocation."
+        },
+        "ListActiveDagsTool.invoke": {
+            "description": "Sent when ListActiveDagsTool is invoked."
+        },
+        "ListActiveDagsTool.invocationError": {
+            "description": "Sent when ListActiveDagsTool encounters an error during invocation."
+        },
+        "ListPausedDagsTool.invoke": {
+            "description": "Sent when ListPausedDagsTool is invoked."
+        },
+        "ListPausedDagsTool.invocationError": {
+            "description": "Sent when ListPausedDagsTool encounters an error during invocation."
+        },
+        "PauseDagTool.invoke": {
+            "description": "Sent when PauseDagTool is invoked."
+        },
+        "PauseDagTool.invocationError": {
+            "description": "Sent when PauseDagTool encounters an error during invocation."
+        },
+        "TriggerDagRunTool.invoke": {
+            "description": "Sent when TriggerDagRunTool is invoked."
+        },
+        "TriggerDagRunTool.invocationError": {
+            "description": "Sent when TriggerDagRunTool encounters an error during invocation."
+        },
+        "UnpauseDagTool.invoke": {
+            "description": "Sent when UnpauseDagTool is invoked."
+        },
+        "UnpauseDagTool.invocationError": {
+            "description": "Sent when UnpauseDagTool encounters an error during invocation."
         }
     }
 }
