@@ -1,4 +1,7 @@
 # Change Log
+- v1.9.8 (2026-01-18)
+    - Telemetry (Envvironment)
+
 - v1.9.7 (2026-01-18)
     - Telemetry
     

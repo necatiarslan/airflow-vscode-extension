@@ -9,6 +9,7 @@ import { AdminTreeView } from './admin/AdminTreeView';
 import { ReportTreeView } from './report/ReportTreeView';
 import { AIHandler } from './language_tools/AIHandler';
 import { Telemetry } from './common/Telemetry';
+import { version } from 'os';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
@@ -16,7 +17,17 @@ export function activate(context: vscode.ExtensionContext) {
 	ui.logToOutput('Extension activation started');
 
 	new Telemetry(context);
-	
+	const properties = {
+		extensionVersion: context.extension.packageJSON.version, 
+		vscodeVersion: vscode.version, 
+		osVersion: version(), 
+		platform: process.platform, 
+		appName: vscode.env.appName, 
+		appHost: vscode.env.appHost,
+		language: vscode.env.language
+	};
+	Telemetry.Current.send('extension.activate.called', properties);
+
 	new Session(context);
 	new AIHandler();
 
