@@ -726,6 +726,11 @@
         "icon": "$(list-selection)"
       },
       {
+        "command": "airflow-ext.installAirflowSkills",
+        "title": "Install Airflow Skills",
+        "icon": "$(cloud-download)"
+      },
+      {
         "command": "airflow-ext.donate",
         "title": "Donate",
         "icon": "$(heart)"
@@ -804,6 +809,11 @@
           "command": "airflow-ext.reportBug",
           "when": "view == dagTreeView",
           "group": "other@4"
+        },
+        {
+          "command": "airflow-ext.installAirflowSkills",
+          "when": "view == dagTreeView",
+          "group": "other@5"
         }
       ],
       "view/item/context": [

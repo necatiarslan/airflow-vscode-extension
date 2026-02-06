@@ -243,8 +243,12 @@ You can disable telemetry via: Settings → Telemetry → Telemetry Level
     - Instance Details
     - Rendered Template
 - Test Connection language model tool
-- Telemetry & Usage Analytics (Optional)
-
+- MCP for other Vscode Forks
+- Integrate new Tree View API
+- Add folders and notes to dags
+- Add trigger config files
+- Add Astronomer agents skills download feature
+  - https://github.com/astronomer/agents/tree/main/skills
 
 ## 💖 Sponsor & Feedback
 

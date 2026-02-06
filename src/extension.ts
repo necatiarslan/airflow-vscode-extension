@@ -79,6 +79,18 @@ export function activate(context: vscode.ExtensionContext) {
 	commands.push(vscode.commands.registerCommand('dagTreeView.AskAI', (node: DagTreeItem) => { AIHandler.Current.askAI(node.DagId, node.FileToken); }));
 	
 	// Support and feedback commands
+	commands.push(vscode.commands.registerCommand('airflow-ext.installAirflowSkills', () => {
+		const terminal = vscode.window.createTerminal({ name: 'Airflow Skills' });
+		terminal.show(false);
+
+
+
+		terminal.sendText('echo Installing Airflow Skills...', true);
+		// wait for the terminal to be ready before sending the command
+		setTimeout(() => {
+			terminal.sendText('npx skills add necatiarslan/airflow-vscode-extension --skill "*" -a github-copilot', true);
+		}, 5000);
+	}));
 	commands.push(vscode.commands.registerCommand('airflow-ext.donate', () => { vscode.env.openExternal(vscode.Uri.parse('https://github.com/sponsors/necatiarslan')); }));
 	commands.push(vscode.commands.registerCommand('airflow-ext.newFeaturesSurvey', () => { vscode.env.openExternal(vscode.Uri.parse('https://bit.ly/airflow-extension-survey')); }));
 	commands.push(vscode.commands.registerCommand('airflow-ext.requestFeature', () => { vscode.env.openExternal(vscode.Uri.parse('https://github.com/necatiarslan/airflow-vscode-extension/issues/new?labels=feature-request&template=feature_request.md')); }));
