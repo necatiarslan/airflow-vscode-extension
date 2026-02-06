@@ -1,6 +1,9 @@
 # Change Log
+- v1.9.9 (2026-02-06)
+    - Airflow Skills
+
 - v1.9.8 (2026-01-18)
-    - Telemetry (Envvironment)
+    - Telemetry (Environment)
 
 - v1.9.7 (2026-01-18)
     - Telemetry

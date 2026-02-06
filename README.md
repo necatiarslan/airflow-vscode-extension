@@ -49,6 +49,7 @@ Trigger DAGs, pause/unpause, explore DAG runs, view logs, browse code, and more�
   - Integrated with VS Code's native chat interface for seamless interaction
   - 24 language model tools for intelligent DAG control and monitoring: trigger runs, pause/unpause DAGs, check failed runs, analyze latest DAG execution, view run history, stop running DAGs, get source code, navigation, and more
   - Use `@airflow` in the chat to access all AI-powered tools
+  - Airflow Skills are available as a bundled set to help the assistant respond with consistent, task-focused guidance. Installing them improves accuracy and keeps responses aligned with Airflow best practices and this extension's workflows. You will see a prompt to install skills when you ask an AI question if you haven't installed them yet.
 
 ## 🤖 AI Airflow Assistant Tools & Sample Prompts
 
@@ -247,8 +248,6 @@ You can disable telemetry via: Settings → Telemetry → Telemetry Level
 - Integrate new Tree View API
 - Add folders and notes to dags
 - Add trigger config files
-- Add Astronomer agents skills download feature
-  - https://github.com/astronomer/agents/tree/main/skills
 
 ## 💖 Sponsor & Feedback
 

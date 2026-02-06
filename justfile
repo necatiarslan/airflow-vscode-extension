@@ -44,3 +44,12 @@ npm_rebuild:
     npm install
 
 # http://localhost:8080/api/v2
+
+skills_add:
+    npx skills add necatiarslan/airflow-vscode-extension --skill "*" -a github-copilot
+
+skills_list:
+    npx skills list
+
+skills_find:
+    npx skills list necatiarslan/airflow-vscode-extension

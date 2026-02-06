@@ -63,3 +63,6 @@ Quickly jump to specific views in the extension using voice-like commands.
 ## 🔒 Security & Context
 - The AI only performs "State Changing" actions (like Trigger or Pause) after you confirm them in the Chat UI.
 - It respects the permissions of the user credentials configured in the extension.
+
+## 🧩 Skills
+Airflow Skills are available as a bundled set to help the assistant respond with consistent, task-focused guidance. Installing them improves accuracy and keeps responses aligned with Airflow best practices and this extension's workflows.

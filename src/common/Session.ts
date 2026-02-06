@@ -87,6 +87,23 @@ export class Session {
         return this.ServerList.find((server) => server.apiUrl === apiUrl && server.apiUserName === apiUserName);
     }
 
+    public GetWorkspaceFolders(): vscode.WorkspaceFolder[] {
+        return [...(vscode.workspace.workspaceFolders || [])];
+    }
+
+    public GetWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
+        const folders = this.GetWorkspaceFolders();
+        if (folders.length > 0) {
+            return folders[0];
+        }
+        return undefined;
+    }
+
+    public get HasWorkspaceFolder(): boolean {
+        const folders = this.GetWorkspaceFolders();
+        return folders.length > 0;
+    }
+
 	public dispose() {
 		Session.Current = undefined;
 	}

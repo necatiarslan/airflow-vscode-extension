@@ -27,6 +27,7 @@ import { GoToConfigsViewTool } from './GoToConfigsViewTool';
 import { GoToPluginsViewTool } from './GoToPluginsViewTool';
 import { GoToServerHealthViewTool } from './GoToServerHealthViewTool';
 import { Telemetry } from '../common/Telemetry';
+import * as skills from '../common/Skills';
 
 export class AIHandler 
 {
@@ -423,6 +424,17 @@ export class AIHandler
                         }
                     }
                 }
+            }
+
+            if(Session.Current?.HasWorkspaceFolder && !skills.AreSkillsInstalled()) {
+                stream.markdown("\n\n\n");
+                const vscodeMarkdownLink = new vscode.MarkdownString(
+                    `🤖 [Install Airflow Skills](command:airflow-ext.installAirflowSkills) for the best experience`
+                );
+                vscodeMarkdownLink.isTrusted = {
+                    enabledCommands: ['airflow-ext.installAirflowSkills']
+                };
+                stream.markdown(vscodeMarkdownLink);
             }
 
             // Final appreciation message
