@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { Telemetry } from '../common/Telemetry';
 
 export class GetTodayTool implements vscode.LanguageModelTool<void> {
     async invoke(
@@ -7,7 +6,6 @@ export class GetTodayTool implements vscode.LanguageModelTool<void> {
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         // Track tool invocation
-        Telemetry.Current.send('GetTodayTool.invoke');
         
         const today = new Date();
         

@@ -4,7 +4,6 @@
 
 import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
-import { Telemetry } from '../common/Telemetry';
 
 export class GetRunningDagsTool implements vscode.LanguageModelTool<void> {
     private client: AirflowClientAdapter;
@@ -27,7 +26,6 @@ export class GetRunningDagsTool implements vscode.LanguageModelTool<void> {
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         // Track tool invocation
-        Telemetry.Current.send('GetRunningDagsTool.invoke');
         
         try {
             const runningDags = await this.client.getRunningDags();
@@ -59,7 +57,6 @@ export class GetRunningDagsTool implements vscode.LanguageModelTool<void> {
 
         } catch (error) {
             // Track invocation error
-            Telemetry.Current.sendError('GetRunningDagsTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to get running DAGs: ${error instanceof Error ? error.message : String(error)}`)

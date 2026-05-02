@@ -9,7 +9,6 @@ import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import * as ui from '../common/UI';
 import { AIHandler } from './AIHandler';
-import { Telemetry } from '../common/Telemetry';
 
 /**
  * Input parameters for querying DAG history
@@ -55,7 +54,6 @@ export class GetDagHistoryTool implements vscode.LanguageModelTool<IGetDagHistor
         AIHandler.Current.currentDagId = dagId;
         
         // Track tool invocation
-        Telemetry.Current.send('GetDagHistoryTool.invoke');
         
         // Use today's date if not provided
         const queryDate = date ||  ui.toISODateString(new Date());
@@ -163,7 +161,6 @@ Please check:
             `.trim();
 
             // Track invocation error
-            Telemetry.Current.sendError('GetDagHistoryTool.invocationError', error instanceof Error ? error : new Error(String(error)));
 
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(errorMessage)

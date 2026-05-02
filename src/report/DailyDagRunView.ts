@@ -4,7 +4,6 @@ import * as ui from '../common/UI';
 import { DagView } from '../dag/DagView';
 import { Session } from '../common/Session';
 import { DagLogView } from './DagLogView';
-import { Telemetry } from "../common/Telemetry";
 
 export class DailyDagRunView {
     public static Current: DailyDagRunView;
@@ -21,7 +20,6 @@ export class DailyDagRunView {
 
     private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('DailyDagRunView.constructor Started');
-        Telemetry.Current.send('DailyDagRunView.constructor.called');
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -31,7 +29,6 @@ export class DailyDagRunView {
 
     public async loadData() {
         ui.logToOutput('DailyDagRunView.loadData Started');
-        Telemetry.Current.send('DailyDagRunView.loadData.called');
 		if (!Session.Current.Api) { return; }
         // Fetch all DAGs to populate dag_id filter
         const dagsResult = await Session.Current.Api!.getDagList();
@@ -63,14 +60,12 @@ export class DailyDagRunView {
 
     public async renderHtml() {
         ui.logToOutput('DailyDagRunView.renderHtml Started');
-        Telemetry.Current.send('DailyDagRunView.renderHtml.called');
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('DailyDagRunView.renderHtml Completed');
     }
 
     public static render() {
         ui.logToOutput('DailyDagRunView.render Started');
-        Telemetry.Current.send('DailyDagRunView.render.called');
         if (DailyDagRunView.Current) {
             DailyDagRunView.Current._panel.reveal(vscode.ViewColumn.One);
             DailyDagRunView.Current.loadData();
@@ -85,7 +80,6 @@ export class DailyDagRunView {
 
     public dispose() {
         ui.logToOutput('DailyDagRunView.dispose Started');
-        Telemetry.Current.send('DailyDagRunView.dispose.called');
         DailyDagRunView.Current = undefined as unknown as DailyDagRunView;
 
         this._panel.dispose();
@@ -100,7 +94,6 @@ export class DailyDagRunView {
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
         ui.logToOutput('DailyDagRunView._getWebviewContent Started');
-        Telemetry.Current.send('DailyDagRunView._getWebviewContent.called');
 
         const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
 
@@ -412,7 +405,6 @@ export class DailyDagRunView {
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
         ui.logToOutput('DailyDagRunView._setWebviewMessageListener Started');
-        Telemetry.Current.send('DailyDagRunView._setWebviewMessageListener.called');
         webview.onDidReceiveMessage(
             (message: any) => {
                 ui.logToOutput('DailyDagRunView._setWebviewMessageListener Message Received ' + message.command);

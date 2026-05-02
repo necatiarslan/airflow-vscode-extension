@@ -4,7 +4,6 @@ import * as ui from '../common/UI';
 import { DagView } from '../dag/DagView';
 import { Session } from '../common/Session';
 import { DagLogView } from './DagLogView';
-import { Telemetry } from '../common/Telemetry';
 
 export class DagRunView {
     public static Current: DagRunView;
@@ -22,7 +21,6 @@ export class DagRunView {
 
     private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('DagRunView.constructor Started');
-        Telemetry.Current.send('DagRunView.constructor.called');
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._setWebviewMessageListener(this._panel.webview);
@@ -32,7 +30,6 @@ export class DagRunView {
 
     public async loadData() {
         ui.logToOutput('DagRunView.loadData Started');
-        Telemetry.Current.send('DagRunView.loadData.called');
 		if (!Session.Current.Api) { return; }
         // Fetch all DAGs to populate dag_id filter
         const dagsResult = await Session.Current.Api!.getDagList();
@@ -70,14 +67,12 @@ export class DagRunView {
 
     public async renderHtml() {
         ui.logToOutput('DagRunView.renderHtml Started');
-        Telemetry.Current.send('DagRunView.renderHtml.called');
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('DagRunView.renderHtml Completed');
     }
 
     public static render(dagId?: string, startDate?: string, endDate?: string, status?: string) {
         ui.logToOutput('DagRunView.render Started');
-        Telemetry.Current.send('DagRunView.render.called');
         if (DagRunView.Current) {
             // Apply optional filter parameters
             if (dagId) { DagRunView.Current.selectedDagId = dagId; }
@@ -106,7 +101,6 @@ export class DagRunView {
 
     public dispose() {
         ui.logToOutput('DagRunView.dispose Started');
-        Telemetry.Current.send('DagRunView.dispose.called');
         DagRunView.Current = undefined as unknown as DagRunView;
 
         this._panel.dispose();
@@ -121,7 +115,6 @@ export class DagRunView {
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
         ui.logToOutput('DagRunView._getWebviewContent Started');
-        Telemetry.Current.send('DagRunView._getWebviewContent.called');
 
         const styleUri = ui.getUri(webview, extensionUri, ["media", "style.css"]);
 
@@ -446,7 +439,6 @@ export class DagRunView {
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
         ui.logToOutput('DagRunView._setWebviewMessageListener Started');
-        Telemetry.Current.send('DagRunView._setWebviewMessageListener.called');
         webview.onDidReceiveMessage(
             (message: any) => {
                 ui.logToOutput('DagRunView._setWebviewMessageListener Message Received ' + message.command);

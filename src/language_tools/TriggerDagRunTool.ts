@@ -10,7 +10,6 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import { AIHandler } from './AIHandler';
-import { Telemetry } from '../common/Telemetry';
 
 /**
  * Input parameters for triggering a DAG run
@@ -110,7 +109,6 @@ export class TriggerDagRunTool implements vscode.LanguageModelTool<ITriggerParam
         AIHandler.Current.currentDagId = dagId;
         
         // Track tool invocation
-        Telemetry.Current.send('TriggerDagRunTool.invoke');
 
         try {
             // Re-process config for invoke (same logic as prepare)
@@ -144,7 +142,6 @@ export class TriggerDagRunTool implements vscode.LanguageModelTool<ITriggerParam
 
         } catch (error) {
             // Track invocation error
-            Telemetry.Current.sendError('TriggerDagRunTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to trigger DAG ${dagId}: ${error instanceof Error ? error.message : String(error)}`)

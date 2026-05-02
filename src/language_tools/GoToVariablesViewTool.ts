@@ -5,7 +5,6 @@
 import * as vscode from 'vscode';
 import { Session } from '../common/Session';
 import { VariablesView } from '../admin/VariablesView';
-import { Telemetry } from '../common/Telemetry';
 
 /**
  * GoToVariablesViewTool - Opens the Variables panel
@@ -28,7 +27,6 @@ export class GoToVariablesViewTool implements vscode.LanguageModelTool<void> {
         token: vscode.CancellationToken
     ): Promise<vscode.LanguageModelToolResult> {
         // Track tool invocation
-        Telemetry.Current.send('GoToVariablesViewTool.invoke');
         
         try {
             if (!Session.Current.Api) {
@@ -45,7 +43,6 @@ export class GoToVariablesViewTool implements vscode.LanguageModelTool<void> {
 
         } catch (error) {
             // Track invocation error
-            Telemetry.Current.sendError('GoToVariablesViewTool.invocationError', error instanceof Error ? error : new Error(String(error)));
             
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(`❌ Failed to open Variables View: ${error instanceof Error ? error.message : String(error)}`)

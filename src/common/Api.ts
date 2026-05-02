@@ -3,7 +3,6 @@ import { encode } from 'base-64';
 import * as ui from './UI';
 import { MethodResult } from './MethodResult';
 import { ServerConfig } from './Types';
-import { Telemetry } from './Telemetry';
 
 // Wrapper for fetch to handle ESM node-fetch in CommonJS
 const fetch = async (url: string, init?: any) => {
@@ -42,7 +41,6 @@ export class AirflowApi {
             }
         } catch (error) {
             ui.logToOutput("getJwtToken Error", error as Error);
-            Telemetry.Current.send('AirflowApi.getJwtToken.error', { error: (error as Error).message });
         }
         return undefined;
     }
@@ -71,7 +69,6 @@ export class AirflowApi {
             const response = await fetch(`${this.config.apiUrl}/dags?limit=1`, { method: 'GET', headers });
             return response.status === 200;
         } catch (e) {
-            Telemetry.Current.send('AirflowApi.checkConnection.error', { error: (e as Error).message });
             return false;
         }
     }
@@ -104,7 +101,6 @@ export class AirflowApi {
             result.isSuccessful = true;
         } catch (error) {
             ui.showErrorMessage('Cannot connect to Airflow.', error as Error);
-            Telemetry.Current.send('AirflowApi.getDagList.error', { error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -140,7 +136,6 @@ export class AirflowApi {
             }
         } catch (error) {
             ui.showErrorMessage(`${dagId} Trigger Error`, error as Error);
-            Telemetry.Current.send('AirflowApi.triggerDag.error', { dagId, error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -161,7 +156,6 @@ export class AirflowApi {
                 result.isSuccessful = false;
             }
         } catch (error) {
-            Telemetry.Current.send('AirflowApi.getDagRun.error', { dagId, dagRunId, error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -201,7 +195,6 @@ export class AirflowApi {
                 result.isSuccessful = false;
             }
         } catch (error) {
-            Telemetry.Current.send('AirflowApi.getDagRunHistory.error', { dagId, error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -229,7 +222,6 @@ export class AirflowApi {
             }
         } catch (error) {
             ui.showErrorMessage(`${dagId} Pause Error`, error as Error);
-            Telemetry.Current.send('AirflowApi.pauseDag.error', { dagId, error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -266,7 +258,6 @@ export class AirflowApi {
             }
         } catch (error) {
             ui.showErrorMessage(`${dagId} Source Code Error`, error as Error);
-            Telemetry.Current.send('AirflowApi.getSourceCode.error', { dagId, error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -287,7 +278,6 @@ export class AirflowApi {
                 result.isSuccessful = false;
             }
         } catch (error) {
-            Telemetry.Current.send('AirflowApi.getImportErrors.error', { error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -307,7 +297,6 @@ export class AirflowApi {
             result.isSuccessful = true;
         } catch (error) {
             ui.showErrorMessage(`${dagId} Log Error`, error as Error);
-            Telemetry.Current.send('AirflowApi.getTaskInstanceLog.error', { dagId, dagRunId, taskId, tryNumber: tryNumber.toString(), error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -358,7 +347,6 @@ export class AirflowApi {
             result.isSuccessful = true;
         } catch (error) {
             ui.showErrorMessage(`${dagId} Log Error`, error as Error);
-            Telemetry.Current.send('AirflowApi.getTaskInstanceLogText.error', { dagId, dagRunId, taskId, tryNumber: tryNumber?.toString() || 'undefined', error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -385,7 +373,6 @@ export class AirflowApi {
             result.isSuccessful = true;
         } catch (error) {
             ui.showErrorMessage(`${dagId} Log Error`, error as Error);
-            Telemetry.Current.send('AirflowApi.getLastDagRunLogText.error', { dagId, error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -421,7 +408,6 @@ export class AirflowApi {
             return result
         } catch (error) {
             ui.showErrorMessage(`${dagId} Log Error`, error as Error);
-            Telemetry.Current.send('AirflowApi.getDagRunLogText.error', { dagId, dagRunId, error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -460,7 +446,6 @@ export class AirflowApi {
             }
         } catch (error) {
             ui.showErrorMessage(`${dagId} Cancel Error`, error as Error);
-            Telemetry.Current.send('AirflowApi.cancelDagRun.error', { dagId, dagRunId, error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -484,7 +469,6 @@ export class AirflowApi {
             }
         } catch (error) {
             ui.showErrorMessage(`XCom fetch error for ${taskId}`, error as Error);
-            Telemetry.Current.send('AirflowApi.getTaskXComs.error', { dagId, dagRunId, taskId, error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -512,7 +496,6 @@ export class AirflowApi {
             }
         } catch (error) {
             ui.showErrorMessage(`Failed to update note`, error as Error);
-            Telemetry.Current.send('AirflowApi.updateDagRunNote.error', { dagId, dagRunId, error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }
@@ -559,7 +542,6 @@ export class AirflowApi {
             }
         } catch (error) {
             ui.showErrorMessage(`Error fetching ${endpoint}`, error as Error);
-            Telemetry.Current.send('AirflowApi.genericGet.error', { endpoint, error: (error as Error).message });
             result.isSuccessful = false;
             result.error = error as Error;
         }

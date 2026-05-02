@@ -8,7 +8,6 @@ import * as MessageHub from '../common/MessageHub';
 import { Session } from '../common/Session';
 import { AIHandler } from '../language_tools/AIHandler';
 import { DagLogView } from '../report/DagLogView';
-import { Telemetry } from '../common/Telemetry';
 
 export class DagView {
     public static Current: DagView;
@@ -32,7 +31,6 @@ export class DagView {
 
     private constructor(panel: vscode.WebviewPanel, dagId: string, dagRunId?: string) {
         ui.logToOutput('DagView.constructor Started');
-        Telemetry.Current.send('dagView.constructor.called');
 
         this.dagId = dagId;
         this.dagRunId = dagRunId;
@@ -55,7 +53,6 @@ export class DagView {
 
     private async loadAllDagData() {
         ui.logToOutput('DagView.loadAllDagData Started');
-        Telemetry.Current.send('dagView.loadAllDagData.called');
 
         await this.getDagInfo();
         if (this.dagRunId) {
@@ -71,7 +68,6 @@ export class DagView {
 
     public async loadDagInfoOnly() {
         ui.logToOutput('DagView.loadDagInfoOnly Started');
-        Telemetry.Current.send('dagView.loadDagInfoOnly.called');
 
         await this.getDagInfo();
         await this.renderHmtl();
@@ -79,7 +75,6 @@ export class DagView {
 
     private async renderHmtl() {
         ui.logToOutput('DagView.renderHmtl Started');
-        Telemetry.Current.send('dagView.renderHmtl.called');
 
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         //ui.showOutputMessage(this._panel.webview.html);
@@ -88,7 +83,6 @@ export class DagView {
 
     public static render(dagId: string, dagRunId?: string) {
         ui.logToOutput('DagView.render Started');
-        Telemetry.Current.send('dagView.render.called');
 
         if (DagView.Current) {
             DagView.Current.dagId = dagId;
@@ -117,7 +111,6 @@ export class DagView {
 
     private async getLastRun() {
         ui.logToOutput('DagView.getLastRun Started');
-        Telemetry.Current.send('dagView.getLastRun.called');
 
 		if (!Session.Current.Api) { return; }
 
@@ -148,7 +141,6 @@ export class DagView {
     }
     private async getDagRun() {
         ui.logToOutput('DagView.getDagRun Started');
-        Telemetry.Current.send('dagView.getDagRun.called');
 
 		if (!Session.Current.Api) { return; }
         
@@ -163,7 +155,6 @@ export class DagView {
 
     private async getRunHistory(date?: string) {
         ui.logToOutput('DagView.getRunHistory Started');
-        Telemetry.Current.send('dagView.getRunHistory.called');
 
 		if (!Session.Current.Api) { return; }
 
@@ -176,7 +167,6 @@ export class DagView {
 
     private async getTaskInstances() {
         ui.logToOutput('DagView.getTaskInstances Started');
-        Telemetry.Current.send('dagView.getTaskInstances.called');
 
         if (!Session.Current.Api) { return; }
 
@@ -190,7 +180,6 @@ export class DagView {
 
     private async getDagInfo() {
         ui.logToOutput('DagView.getDagInfo Started');
-        Telemetry.Current.send('dagView.getDagInfo.called');
 
         if (!Session.Current.Api) { return; }
 
@@ -202,7 +191,6 @@ export class DagView {
 
     private async getDagTasks() {
         ui.logToOutput('DagView.getDagTasks Started');
-        Telemetry.Current.send('dagView.getDagTasks.called');
 
         if (!Session.Current.Api) { return; }
 
@@ -214,7 +202,6 @@ export class DagView {
 
     private dispose() {
         ui.logToOutput('DagView.dispose Started');
-        Telemetry.Current.send('dagView.dispose.called');
 
         DagView.Current = undefined as unknown as DagView;
 
@@ -233,7 +220,6 @@ export class DagView {
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
         ui.logToOutput('DagView._getWebviewContent Started');
-        Telemetry.Current.send('dagView.getWebviewContent.called');
 
         //file URIs
         const toolkitUri = ui.getUri(webview, extensionUri, [
@@ -770,7 +756,6 @@ export class DagView {
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
         ui.logToOutput('DagView._setWebviewMessageListener Started');
-        Telemetry.Current.send('dagView.setWebviewMessageListener.called');
 
         webview.onDidReceiveMessage(
             (message: any) => {
@@ -882,7 +867,6 @@ export class DagView {
 
     private async cancelDagRun(){
         ui.logToOutput('DagView.cancelDagRun Started');
-        Telemetry.Current.send('dagView.cancelDagRun.called');
 
         if (!Session.Current.Api) { return; }
 
@@ -897,7 +881,6 @@ export class DagView {
 
     private async updateDagRunNote() {
         ui.logToOutput('DagView.updateDagRunNote Started');
-        Telemetry.Current.send('dagView.updateDagRunNote.called');
         
         if (!Session.Current.Api || !this.dagRunJson) { return; }
         
@@ -922,7 +905,6 @@ export class DagView {
 
     private async pauseDAG(is_paused: boolean) {
         ui.logToOutput('DagView.pauseDAG Started');
-        Telemetry.Current.send('dagView.pauseDAG.called');
 
 		if (!Session.Current.Api) { return; }
 
@@ -939,7 +921,6 @@ export class DagView {
 
     private async askAI() {
         ui.logToOutput('DagView.askAI Started');
-        Telemetry.Current.send('dagView.askAI.called');
 
         if (!Session.Current.Api) { return; }
 
@@ -971,7 +952,6 @@ export class DagView {
 
     private async showSourceCode() {
         ui.logToOutput('DagView.showSourceCode Started');
-        Telemetry.Current.send('dagView.showSourceCode.called');
 
         if (!Session.Current.Api) { return; }
 
@@ -989,7 +969,6 @@ export class DagView {
 
     private async getRunHistoryAndRenderHtml(date?: string) {
         ui.logToOutput('DagView.getRunHistoryAndRenderHtml Started');
-        Telemetry.Current.send('dagView.getRunHistoryAndRenderHtml.called');
 
         this.dagHistorySelectedDate = date;
         await this.getRunHistory(date);
@@ -998,7 +977,6 @@ export class DagView {
 
     private async showDAGRunLog() {
         ui.logToOutput('DagView.showDAGRunLog Started');
-        Telemetry.Current.send('dagView.showDAGRunLog.called');
 
         if (!Session.Current.Api) { return; }
 
@@ -1011,7 +989,6 @@ export class DagView {
 
     private async showTaskInstanceLog(dagId: string, dagRunId:string, taskId:string) {
         ui.logToOutput('DagView.showTaskInstanceLog Started');
-        Telemetry.Current.send('dagView.showTaskInstanceLog.called');
 
         if (!Session.Current.Api) { return; }
 
@@ -1024,7 +1001,6 @@ export class DagView {
 
     private async showTaskXComs(dagId: string, dagRunId:string, taskId:string) {
         ui.logToOutput('DagView.showTaskXComs Started');
-        Telemetry.Current.send('dagView.showTaskXComs.called');
 
 		if (!Session.Current.Api) { return; }
 
@@ -1038,7 +1014,6 @@ export class DagView {
 
     private async triggerDagWConfig(config: string = "", date: string = "") {
         ui.logToOutput('DagView.triggerDagWConfig Started');
-        Telemetry.Current.send('dagView.triggerDagWConfig.called');
 
         if (!Session.Current.Api) { return; }
 
@@ -1071,7 +1046,6 @@ export class DagView {
 
     private async startCheckingDagRunStatus() {
         ui.logToOutput('DagView.startCheckingDagRunStatus Started');
-        Telemetry.Current.send('dagView.startCheckingDagRunStatus.called');
 
         await this.refreshRunningDagState(this);
         if (this.dagStatusInterval) {
@@ -1084,7 +1058,6 @@ export class DagView {
 
     private async stopCheckingDagRunStatus() {
         ui.logToOutput('DagView.stopCheckingDagRunStatus Started');
-        Telemetry.Current.send('dagView.stopCheckingDagRunStatus.called');
 
         if (this.dagStatusInterval) {
             clearInterval(this.dagStatusInterval);//stop prev checking
@@ -1093,7 +1066,6 @@ export class DagView {
 
     private async refreshRunningDagState(dagView: DagView) {
         ui.logToOutput('DagView.refreshRunningDagState Started');
-        Telemetry.Current.send('dagView.refreshRunningDagState.called');
 
         if (!Session.Current.Api) { return; }
         
@@ -1132,7 +1104,6 @@ export class DagView {
 
     private buildTaskDependencyTree(tasks: any[]): string {
         ui.logToOutput('DagView.buildTaskDependencyTree Started');
-        Telemetry.Current.send('dagView.buildTaskDependencyTree.called');
         
         // Create a map for quick task lookup
         const taskMap = new Map<string, any>();

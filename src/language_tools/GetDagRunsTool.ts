@@ -9,7 +9,6 @@ import * as vscode from 'vscode';
 import { AirflowClientAdapter } from './AirflowClientAdapter';
 import * as ui from '../common/UI';
 import { AIHandler } from './AIHandler';
-import { Telemetry } from '../common/Telemetry';
 
 /**
  * Input parameters for querying DAG runs
@@ -55,7 +54,6 @@ export class GetDagRunsTool implements vscode.LanguageModelTool<IGetDagRunsParam
         AIHandler.Current.currentDagId = dagId;
         
         // Track tool invocation
-        Telemetry.Current.send('GetDagRunsTool.invoke');
         
         try {
             // Get DAG run history from the API
@@ -145,7 +143,6 @@ Please check:
             `.trim();
 
             // Track invocation error
-            Telemetry.Current.sendError('GetDagRunsTool.invocationError', error instanceof Error ? error : new Error(String(error)));
 
             return new vscode.LanguageModelToolResult([
                 new vscode.LanguageModelTextPart(errorMessage)

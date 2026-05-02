@@ -12,7 +12,6 @@ import { ServerConfig } from '../common/Types';
 import * as MessageHub from '../common/MessageHub';
 import { Session } from '../common/Session';
 import { DagLogView } from '../report/DagLogView';
-import { Telemetry } from '../common/Telemetry';
 
 
 export class DagTreeView {
@@ -30,7 +29,6 @@ export class DagTreeView {
 
 	public constructor() {
 		ui.logToOutput('DagTreeView.constructor Started');
-		Telemetry.Current.send('dagTreeView.constructor.called');
 		
 		this.treeDataProvider = new DagTreeDataProvider();
 		this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
@@ -52,7 +50,6 @@ export class DagTreeView {
 
 	public async refresh(): Promise<void> {
 		ui.logToOutput('DagTreeView.refresh Started');
-		Telemetry.Current.send('dagTreeView.refresh.called');
 
 		if (!Session.Current.Api) {
 			this.treeDataProvider.dagList = [];
@@ -73,7 +70,6 @@ export class DagTreeView {
 
 	public viewDagView(node: DagTreeItem): void {
 		ui.logToOutput('DagTreeView.viewDagView Started');
-		Telemetry.Current.send('dagTreeView.viewDagView.called');
 
 		if (!Session.Current.Api) { return; }
 
@@ -82,7 +78,6 @@ export class DagTreeView {
 
 	public async addToFavDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.addToFavDAG Started');
-		Telemetry.Current.send('dagTreeView.addToFavDAG.called');
 
 		node.IsFav = true;
 		if (!this.FavoriteDags.includes(node.DagId)) {
@@ -93,7 +88,6 @@ export class DagTreeView {
 
 	public async deleteFromFavDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.deleteFromFavDAG Started');
-		Telemetry.Current.send('dagTreeView.deleteFromFavDAG.called');
 
 		node.IsFav = false;
 		this.FavoriteDags = this.FavoriteDags.filter(d => d !== node.DagId);
@@ -125,7 +119,6 @@ export class DagTreeView {
 
 	public async triggerDag(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.triggerDag Started');
-		Telemetry.Current.send('dagTreeView.triggerDag.called');
 
 		if (!Session.Current.Api) { return; }
 
@@ -177,7 +170,6 @@ export class DagTreeView {
 
 	public async triggerDagWConfig(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.triggerDagWConfig Started');
-		Telemetry.Current.send('dagTreeView.triggerDagWConfig.called');
 
 		if (!Session.Current.Api) { return; }
 
@@ -198,7 +190,6 @@ export class DagTreeView {
 
 	public async checkAllDagsRunState() {
 		ui.logToOutput('DagTreeView.checkAllDagsRunState Started');
-		Telemetry.Current.send('dagTreeView.checkAllDagsRunState.called');
 
 		if (!this.treeDataProvider) { return; }
 		for (const node of this.treeDataProvider.visibleDagList) {
@@ -210,7 +201,6 @@ export class DagTreeView {
 
 	public async notifyDagStateWithDagId(dagId: string, dagRunId?: string, dagState?: string) {
 		ui.logToOutput('DagTreeView.notifyDagStateWithDagId Started');
-		Telemetry.Current.send('dagTreeView.notifyDagStateWithDagId.called');
 
 		if (!this.treeDataProvider) { return; }
 		for (const node of this.treeDataProvider.visibleDagList) {
@@ -230,7 +220,6 @@ export class DagTreeView {
 
 	public async checkDagRunState(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.checkDagRunState Started');
-		Telemetry.Current.send('dagTreeView.checkDagRunState.called');
 
 		if (!Session.Current.Api) { return; }
 		if (!node) { return; }
@@ -251,7 +240,6 @@ export class DagTreeView {
 
 	public async pauseDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.pauseDAG Started');
-		Telemetry.Current.send('dagTreeView.pauseDAG.called');
 
 		if (!Session.Current.Api) { return; }
 		if (node.IsPaused) { ui.showWarningMessage(node.DagId + 'Dag is already PAUSED'); return; }
@@ -277,7 +265,6 @@ export class DagTreeView {
 
 	public async unPauseDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.unPauseDAG Started');
-		Telemetry.Current.send('dagTreeView.unPauseDAG.called');
 
 		if (!Session.Current.Api) { return; }
 		if (!node.IsPaused) { ui.showInfoMessage(node.DagId + 'Dag is already UNPAUSED'); return; }
@@ -293,7 +280,6 @@ export class DagTreeView {
 
 	public async cancelDagRun(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.cancelDagRun Started');
-		Telemetry.Current.send('dagTreeView.cancelDagRun.called');
 
 		if (!Session.Current.Api) { return; }
 		
@@ -320,7 +306,6 @@ export class DagTreeView {
 
 	public async lastDAGRunLog(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.lastDAGRunLog Started');
-		Telemetry.Current.send('dagTreeView.lastDAGRunLog.called');
 
 		if (!Session.Current.Api) { return; }
 
@@ -334,7 +319,6 @@ export class DagTreeView {
 
 	public async dagSourceCode(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.dagSourceCode Started');
-		Telemetry.Current.send('dagTreeView.dagSourceCode.called');
 
 		if (!Session.Current.Api) { return; }
 
@@ -350,7 +334,6 @@ export class DagTreeView {
 
 	public async showDagInfo(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.showDagInfo Started');
-		Telemetry.Current.send('dagTreeView.showDagInfo.called');
 
 		if (!Session.Current.Api) { return; }
 
@@ -366,7 +349,6 @@ export class DagTreeView {
 
 	public async filter() {
 		ui.logToOutput('DagTreeView.filter Started');
-		Telemetry.Current.send('dagTreeView.filter.called');
 
 		const filterStringTemp = await vscode.window.showInputBox({ value: this.FilterString, placeHolder: 'Enter your filters seperated by comma' });
 
@@ -380,7 +362,6 @@ export class DagTreeView {
 
 	public async showOnlyActive() {
 		ui.logToOutput('DagTreeView.showOnlyActive Started');
-		Telemetry.Current.send('dagTreeView.showOnlyActive.called');
 
 		this.ShowOnlyActive = !this.ShowOnlyActive;
 		this.treeDataProvider.refresh();
@@ -390,7 +371,6 @@ export class DagTreeView {
 
 	public async showOnlyFavorite() {
 		ui.logToOutput('DagTreeView.showOnlyFavorite Started');
-		Telemetry.Current.send('dagTreeView.showOnlyFavorite.called');
 
 		this.ShowOnlyFavorite = !this.ShowOnlyFavorite;
 		this.treeDataProvider.refresh();
@@ -400,7 +380,6 @@ export class DagTreeView {
 
 	public async addServer() {
 		ui.logToOutput('DagTreeView.addServer Started');
-		Telemetry.Current.send('dagTreeView.addServer.called');
 
 
 		const apiUrlTemp = await vscode.window.showInputBox({ value: 'http://localhost:8080/api/v2', placeHolder: 'API Full URL (Exp:http://localhost:8080/api/v2)' });
@@ -428,7 +407,6 @@ export class DagTreeView {
 
 	public async removeServer() {
 		ui.logToOutput('DagTreeView.removeServer Started');
-		Telemetry.Current.send('dagTreeView.removeServer.called');
 
 		if (Session.Current.ServerList.length === 0) { return; }
 
@@ -447,7 +425,6 @@ export class DagTreeView {
 
 	public async connectServer() {
 		ui.logToOutput('DagTreeView.connectServer Started');
-		Telemetry.Current.send('dagTreeView.connectServer.called');
 
 		if (Session.Current.ServerList.length === 0) {
 			this.addServer();
@@ -483,7 +460,6 @@ export class DagTreeView {
 
 	public async clearServers() {
 		ui.logToOutput('DagTreeView.clearServers Started');
-		Telemetry.Current.send('dagTreeView.clearServers.called');
 
 		Session.Current.ClearServers();
 		this.treeDataProvider.dagList = undefined;
@@ -493,7 +469,6 @@ export class DagTreeView {
 
 	public async loadDags() {
 		ui.logToOutput('DagTreeView.loadDags Started');
-		Telemetry.Current.send('dagTreeView.loadDags.called');
 
 		if (!Session.Current.Api) { return; }
 
@@ -510,7 +485,6 @@ export class DagTreeView {
 
 	public async loadLatestRunStatusForAllDags() {
 		ui.logToOutput('DagTreeView.loadLatestRunStatusForAllDags Started');
-		Telemetry.Current.send('dagTreeView.loadLatestRunStatusForAllDags.called');
 
 		if (!Session.Current.Api) { return; }
 
@@ -559,7 +533,6 @@ export class DagTreeView {
 
 	private saveState() {
 		ui.logToOutput('DagTreeView.saveState Started');
-		Telemetry.Current.send('dagTreeView.saveState.called');
 
 		try {
 			Session.Current.Context!.globalState.update('FilterString', this.FilterString);
@@ -583,7 +556,6 @@ export class DagTreeView {
 
 	private loadState() {
 		ui.logToOutput('DagTreeView.loadState Started');
-		Telemetry.Current.send('dagTreeView.loadState.called');
 
 		try {
 			const filterStringTemp: string = Session.Current.Context!.globalState.get('FilterString') || '';
@@ -608,7 +580,6 @@ export class DagTreeView {
 
 	public async viewConnections() {
 		ui.logToOutput('DagTreeView.viewConnections Started');
-		Telemetry.Current.send('dagTreeView.viewConnections.called');
 
 		if (Session.Current.Api) {
 			const { ConnectionsView } = await import('../admin/ConnectionsView');
@@ -618,7 +589,6 @@ export class DagTreeView {
 
 	public async viewVariables() {
 		ui.logToOutput('DagTreeView.viewVariables Started');
-		Telemetry.Current.send('dagTreeView.viewVariables.called');
 
 		if (Session.Current.Api) {
 			const { VariablesView } = await import('../admin/VariablesView');
@@ -628,7 +598,6 @@ export class DagTreeView {
 
 	public async viewProviders() {
 		ui.logToOutput('DagTreeView.viewProviders Started');
-		Telemetry.Current.send('dagTreeView.viewProviders.called');
 
 		if (Session.Current.Api) {
 			const { ProvidersView } = await import('../admin/ProvidersView');
@@ -638,7 +607,6 @@ export class DagTreeView {
 
 	public async viewConfigs() {
 		ui.logToOutput('DagTreeView.viewConfigs Started');
-		Telemetry.Current.send('dagTreeView.viewConfigs.called');
 
 		if (Session.Current.Api) {
 			const { ConfigsView } = await import('../admin/ConfigsView');
@@ -648,7 +616,6 @@ export class DagTreeView {
 
 	public async viewPlugins() {
 		ui.logToOutput('DagTreeView.viewPlugins Started');
-		Telemetry.Current.send('dagTreeView.viewPlugins.called');
 
 		if (Session.Current.Api) {
 			const { PluginsView } = await import('../admin/PluginsView');
@@ -658,7 +625,6 @@ export class DagTreeView {
 
 	public async viewDagRuns() {
 		ui.logToOutput('DagTreeView.viewDagRuns Started');
-		Telemetry.Current.send('dagTreeView.viewDagRuns.called');
 
 		if (Session.Current.Api) {
 			DailyDagRunView.render();
@@ -667,7 +633,6 @@ export class DagTreeView {
 
 	public async viewDagRunHistory() {
 		ui.logToOutput('DagTreeView.viewDagRunHistory Started');
-		Telemetry.Current.send('dagTreeView.viewDagRunHistory.called');
 
 		if (Session.Current.Api) {
 			DagRunView.render();
@@ -676,7 +641,6 @@ export class DagTreeView {
 
 	public async viewServerHealth() {
 		ui.logToOutput('DagTreeView.viewServerHealth Started');
-		Telemetry.Current.send('dagTreeView.viewServerHealth.called');
 
 		if (Session.Current.Api) {
 			const { ServerHealthView } = await import('../admin/ServerHealthView');

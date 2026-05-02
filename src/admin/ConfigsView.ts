@@ -2,7 +2,6 @@
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
 import { Session } from '../common/Session';
-import { Telemetry } from '../common/Telemetry';
 
 export class ConfigsView {
     public static Current: ConfigsView;
@@ -12,7 +11,6 @@ export class ConfigsView {
 
     private constructor(panel: vscode.WebviewPanel) {
         ui.logToOutput('ConfigsView.constructor Started');
-        Telemetry.Current.send('ConfigsView.constructor.called');
 
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
@@ -23,7 +21,6 @@ export class ConfigsView {
 
     public async loadData() {
         ui.logToOutput('ConfigsView.loadData Started');
-        Telemetry.Current.send('ConfigsView.loadData.called');
 
         const result = await Session.Current.Api!.getConfig();
         if (result.isSuccessful) {
@@ -34,7 +31,6 @@ export class ConfigsView {
 
     public async renderHtml() {
         ui.logToOutput('ConfigsView.renderHtml Started');
-        Telemetry.Current.send('ConfigsView.renderHtml.called');
 
         this._panel.webview.html = this._getWebviewContent(this._panel.webview, Session.Current.ExtensionUri!);
         ui.logToOutput('ConfigsView.renderHtml Completed');
@@ -42,7 +38,6 @@ export class ConfigsView {
 
     public static render() {
         ui.logToOutput('ConfigsView.render Started');
-        Telemetry.Current.send('ConfigsView.render.called');
 
         if (ConfigsView.Current) {
             ConfigsView.Current._panel.reveal(vscode.ViewColumn.One);
@@ -58,7 +53,6 @@ export class ConfigsView {
 
     public dispose() {
         ui.logToOutput('ConfigsView.dispose Started');
-        Telemetry.Current.send('ConfigsView.dispose.called');
 
         ConfigsView.Current = undefined as unknown as ConfigsView;
 
@@ -74,7 +68,6 @@ export class ConfigsView {
 
     private _getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri) {
         ui.logToOutput('ConfigsView._getWebviewContent Started');
-        Telemetry.Current.send('ConfigsView._getWebviewContent.called');
 
         const elementsUri = ui.getUri(webview, extensionUri, [
             "node_modules",
@@ -232,7 +225,6 @@ export class ConfigsView {
 
     private _setWebviewMessageListener(webview: vscode.Webview) {
         ui.logToOutput('ConfigsView._setWebviewMessageListener Started');
-        Telemetry.Current.send('ConfigsView._setWebviewMessageListener.called');
         
         webview.onDidReceiveMessage(
             (message: any) => {
