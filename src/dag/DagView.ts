@@ -121,7 +121,7 @@ export class DagView {
 
 		if (!Session.Current.Api) { return; }
 
-        const result = await Session.Current.Api.getLastDagRun(this.dagId);
+        const result = await Session.Current.Api!.getLastDagRun(this.dagId);
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
             this.dagRunId = this.dagRunJson.dag_run_id;
@@ -152,7 +152,7 @@ export class DagView {
 
 		if (!Session.Current.Api) { return; }
         
-        const result = await Session.Current.Api.getDagRun(this.dagId, this.dagRunId);
+        const result = await Session.Current.Api!.getDagRun(this.dagId, this.dagRunId!);
         if (result.isSuccessful) {
             this.dagRunJson = result.result;
             this.dagRunId = this.dagRunJson.dag_run_id;
@@ -167,7 +167,7 @@ export class DagView {
 
 		if (!Session.Current.Api) { return; }
 
-        const result = await Session.Current.Api.getDagRunHistory(this.dagId, date);
+        const result = await Session.Current.Api!.getDagRunHistory(this.dagId, date);
         if (result.isSuccessful) {
             this.dagRunHistoryJson = result.result;
         }
@@ -180,7 +180,7 @@ export class DagView {
 
         if (!Session.Current.Api) { return; }
 
-        const result = await Session.Current.Api.getTaskInstances(this.dagId, this.dagRunId);
+        const result = await Session.Current.Api!.getTaskInstances(this.dagId, this.dagRunId!);
 
         if (result.isSuccessful) {
             this.dagTaskInstancesJson = result.result;
@@ -194,7 +194,7 @@ export class DagView {
 
         if (!Session.Current.Api) { return; }
 
-        const result = await Session.Current.Api.getDagInfo(this.dagId);
+        const result = await Session.Current.Api!.getDagInfo(this.dagId);
         if (result.isSuccessful) {
             this.dagJson = result.result;
         }
@@ -206,7 +206,7 @@ export class DagView {
 
         if (!Session.Current.Api) { return; }
 
-        const result = await Session.Current.Api.getDagTasks(this.dagId);
+        const result = await Session.Current.Api!.getDagTasks(this.dagId);
         if (result.isSuccessful) {
             this.dagTasksJson = result.result;
         }
@@ -216,7 +216,7 @@ export class DagView {
         ui.logToOutput('DagView.dispose Started');
         Telemetry.Current.send('dagView.dispose.called');
 
-        DagView.Current = undefined;
+        DagView.Current = undefined as unknown as DagView;
 
         // stop any running interval checks
         this.stopCheckingDagRunStatus();
@@ -850,13 +850,13 @@ export class DagView {
                     case "task-log-link":
                         let taskId:string = message.id;
                         taskId = taskId.replace("task-log-link-", "");
-                        this.showTaskInstanceLog(this.dagId, this.dagRunId, taskId);
+                        this.showTaskInstanceLog(this.dagId, this.dagRunId!, taskId);
                         return;
 
                     case "task-xcom-link":
                         let xcomTaskId:string = message.id;
                         xcomTaskId = xcomTaskId.replace("task-xcom-link-", "");
-                        this.showTaskXComs(this.dagId, this.dagRunId, xcomTaskId);
+                        this.showTaskXComs(this.dagId, this.dagRunId!, xcomTaskId);
                         return;
 
                     case "tasks-refresh":
@@ -886,12 +886,12 @@ export class DagView {
 
         if (!Session.Current.Api) { return; }
 
-        const result = await Session.Current.Api.cancelDagRun(this.dagId, this.dagRunId);
+        const result = await Session.Current.Api!.cancelDagRun(this.dagId, this.dagRunId!);
         if (result.isSuccessful) {
             //ui.showInfoMessage(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
             ui.logToOutput(`Dag ${this.dagId} Run ${this.dagRunId} cancelled successfully.`);
             await this.getDagRun();
-            MessageHub.DagRunCancelled(this, this.dagId, this.dagRunId);
+            MessageHub.DagRunCancelled(this, this.dagId, this.dagRunId!);
         }
     }
 
@@ -913,7 +913,7 @@ export class DagView {
             return;
         }
         
-        const result = await Session.Current.Api.updateDagRunNote(this.dagId, this.dagRunId, newNote);
+        const result = await Session.Current.Api!.updateDagRunNote(this.dagId, this.dagRunId!, newNote);
         if (result.isSuccessful) {
             // Refresh the DAG run to get the updated note
             await this.getDagRun();
@@ -929,7 +929,7 @@ export class DagView {
         if (is_paused && this.dagJson.is_paused) { ui.showWarningMessage(this.dagId + 'Dag is already PAUSED'); return; }
         if (!is_paused && !this.dagJson.is_paused) { ui.showWarningMessage(this.dagId + 'Dag is already ACTIVE'); return; }
 
-        const result = await Session.Current.Api.pauseDag(this.dagId, is_paused);
+        const result = await Session.Current.Api!.pauseDag(this.dagId, is_paused);
         if (result.isSuccessful) {
             this.loadDagInfoOnly();
             is_paused ? MessageHub.DagPaused(this, this.dagId) : MessageHub.DagUnPaused(this, this.dagId);
@@ -953,13 +953,13 @@ export class DagView {
             return;
         }
         
-        const code = await Session.Current.Api.getSourceCode(this.dagId, this.dagJson.file_token);
+        const code = await Session.Current.Api!.getSourceCode(this.dagId, this.dagJson.file_token);
         if (!code.isSuccessful) {
             ui.showErrorMessage('Failed to retrieve DAG source code for AI context');
             return;
         }
 
-        const logs = await Session.Current.Api.getDagRunLogText(this.dagId, this.dagRunId);
+        const logs = await Session.Current.Api!.getDagRunLogText(this.dagId, this.dagRunId!);
         if (!logs.isSuccessful) {
             ui.showErrorMessage('Failed to retrieve DAG logs for AI context');
             return;
@@ -975,7 +975,7 @@ export class DagView {
 
         if (!Session.Current.Api) { return; }
 
-        const result = await Session.Current.Api.getSourceCode(this.dagId, this.dagJson.file_token);
+        const result = await Session.Current.Api!.getSourceCode(this.dagId, this.dagJson.file_token);
 
         if (result.isSuccessful) {
             this.createAndOpenTempFile(result.result, this.dagId, '.py');
@@ -1002,7 +1002,7 @@ export class DagView {
 
         if (!Session.Current.Api) { return; }
 
-        // const result = await Session.Current.Api.getDagRunLogText(this.dagId, this.dagRunId);
+        // const result = await Session.Current.Api!.getDagRunLogText(this.dagId, this.dagRunId);
         // if (result.isSuccessful) {
         //     this.createAndOpenTempFile(result.result, this.dagId, '.log');
         // }
@@ -1015,7 +1015,7 @@ export class DagView {
 
         if (!Session.Current.Api) { return; }
 
-        // const result = await Session.Current.Api.getTaskInstanceLogText(dagId, dagRunId, taskId);
+        // const result = await Session.Current.Api!.getTaskInstanceLogText(dagId, dagRunId, taskId);
         // if (result.isSuccessful) {
         //     this.createAndOpenTempFile(result.result, dagId + '-' + taskId, '.log');
         // }
@@ -1028,7 +1028,7 @@ export class DagView {
 
 		if (!Session.Current.Api) { return; }
 
-        const result = await Session.Current.Api.getTaskXComs(dagId, dagRunId, taskId);
+        const result = await Session.Current.Api!.getTaskXComs(dagId, dagRunId, taskId);
         if (result.isSuccessful) {
             this.createAndOpenTempFile(JSON.stringify(result.result, null, 2), dagId + '-' + taskId + '_xcom', '.json');
         } else {
@@ -1059,12 +1059,12 @@ export class DagView {
 
         if (config !== undefined) {
 
-            const result = await Session.Current.Api.triggerDag(this.dagId, config, date);
+            const result = await Session.Current.Api!.triggerDag(this.dagId, config, date);
 
             if (result.isSuccessful) {
                 this.dagRunId = result.result["dag_run_id"];
                 this.startCheckingDagRunStatus();
-                MessageHub.DagTriggered(this, this.dagId, this.dagRunId);
+                MessageHub.DagTriggered(this, this.dagId, this.dagRunId!);
             }
         }
     }
@@ -1103,11 +1103,11 @@ export class DagView {
             return;
         }
 
-        const result = await Session.Current.Api.getDagRun(dagView.dagId, dagView.dagRunId);
+        const result = await Session.Current.Api!.getDagRun(dagView.dagId, dagView.dagRunId);
         if (result.isSuccessful) {
             dagView.dagRunJson = result.result;
 
-            const resultTasks = await Session.Current.Api.getTaskInstances(dagView.dagId, dagView.dagRunId);
+            const resultTasks = await Session.Current.Api!.getTaskInstances(dagView.dagId, dagView.dagRunId);
             if (resultTasks.isSuccessful) {
                 dagView.dagTaskInstancesJson = resultTasks.result;
             }

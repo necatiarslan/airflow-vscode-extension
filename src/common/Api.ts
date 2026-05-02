@@ -335,6 +335,9 @@ export class AirflowApi {
             }
             
 
+            if (tryNumber === undefined) {
+                throw new Error(`Try number not found for taskId: ${taskId}`);
+            }
             const logJsonResult = await this.getTaskInstanceLog(dagId, dagRunId, taskId, tryNumber);
             if (!logJsonResult.isSuccessful) {
                 result.isSuccessful = false;
@@ -422,6 +425,7 @@ export class AirflowApi {
             result.isSuccessful = false;
             result.error = error as Error;
         }
+        return result;
 
     }
 

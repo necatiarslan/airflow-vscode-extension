@@ -35,7 +35,7 @@ export class DagRunView {
         Telemetry.Current.send('DagRunView.loadData.called');
 		if (!Session.Current.Api) { return; }
         // Fetch all DAGs to populate dag_id filter
-        const dagsResult = await Session.Current.Api.getDagList();
+        const dagsResult = await Session.Current.Api!.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
             this.allDagIds = dagsResult.result.map((dag: any) => dag.dag_id).sort();
             
@@ -47,7 +47,7 @@ export class DagRunView {
 
         // Fetch DAG runs for the selected DAG and date range
         if (this.selectedDagId) {
-            const result = await Session.Current.Api.getDagRunHistory(this.selectedDagId);
+            const result = await Session.Current.Api!.getDagRunHistory(this.selectedDagId);
             if (result.isSuccessful && result.result && result.result.dag_runs) {
                 // Filter runs by date range on the client side
                 const startDateTime = new Date(this.selectedStartDate + 'T00:00:00Z').getTime();
@@ -107,7 +107,7 @@ export class DagRunView {
     public dispose() {
         ui.logToOutput('DagRunView.dispose Started');
         Telemetry.Current.send('DagRunView.dispose.called');
-        DagRunView.Current = undefined;
+        DagRunView.Current = undefined as unknown as DagRunView;
 
         this._panel.dispose();
 

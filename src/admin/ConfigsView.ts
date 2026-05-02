@@ -25,7 +25,7 @@ export class ConfigsView {
         ui.logToOutput('ConfigsView.loadData Started');
         Telemetry.Current.send('ConfigsView.loadData.called');
 
-        const result = await Session.Current.Api.getConfig();
+        const result = await Session.Current.Api!.getConfig();
         if (result.isSuccessful) {
             this.configJson = result.result;
         }
@@ -60,7 +60,7 @@ export class ConfigsView {
         ui.logToOutput('ConfigsView.dispose Started');
         Telemetry.Current.send('ConfigsView.dispose.called');
 
-        ConfigsView.Current = undefined;
+        ConfigsView.Current = undefined as unknown as ConfigsView;
 
         this._panel.dispose();
 

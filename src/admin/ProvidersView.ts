@@ -26,7 +26,7 @@ export class ProvidersView {
         ui.logToOutput('ProvidersView.loadData Started');
         Telemetry.Current.send('ProvidersView.loadData.called');
 
-        const result = await Session.Current.Api.getProviders();
+        const result = await Session.Current.Api!.getProviders();
         if (result.isSuccessful) {
             this.providersJson = result.result;
         }
@@ -61,7 +61,7 @@ export class ProvidersView {
         ui.logToOutput('ProvidersView.dispose Started');
         Telemetry.Current.send('ProvidersView.dispose.called');
 
-        ProvidersView.Current = undefined;
+        ProvidersView.Current = undefined as unknown as ProvidersView;
 
         this._panel.dispose();
 

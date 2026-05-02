@@ -27,7 +27,7 @@ export class VariablesView {
 
         if (!Session.Current.Api) { return; }
         
-        const result = await Session.Current.Api.getVariables();
+        const result = await Session.Current.Api!.getVariables();
         if (result.isSuccessful) {
             this.variablesJson = result.result;
         }
@@ -62,7 +62,7 @@ export class VariablesView {
         ui.logToOutput('VariablesView.dispose Started');
         Telemetry.Current.send('VariablesView.dispose.called');
 
-        VariablesView.Current = undefined;
+        VariablesView.Current = undefined as unknown as VariablesView;
 
         this._panel.dispose();
 

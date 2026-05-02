@@ -25,7 +25,7 @@ export class PluginsView {
         ui.logToOutput('PluginsView.loadData Started');
         Telemetry.Current.send('PluginsView.loadData.called');
 
-        const result = await Session.Current.Api.getPlugins();
+        const result = await Session.Current.Api!.getPlugins();
         if (result.isSuccessful) {
             this.pluginsJson = result.result;
         }
@@ -60,7 +60,7 @@ export class PluginsView {
         ui.logToOutput('PluginsView.dispose Started');
         Telemetry.Current.send('PluginsView.dispose.called');
 
-        PluginsView.Current = undefined;
+        PluginsView.Current = undefined as unknown as PluginsView;
 
         this._panel.dispose();
 

@@ -343,7 +343,7 @@ export class AIHandler
         try {
             //TODO: Make model configurable
             // const [model] = await vscode.lm.selectChatModels( {id: "claude-sonnet-4.5"} );
-            let model = request.model;
+            let model: vscode.LanguageModelChat | undefined = request.model;
             if (request.model.id.includes('auto')) {
                 const models = await vscode.lm.selectChatModels({ vendor: model.vendor, family: model.family });
                 if (models.length > 0)
@@ -476,7 +476,7 @@ export class AIHandler
         let latestDagLogs = '';
 
         // Fetch DAG Source Code
-        const sourceResult = await Session.Current.Api.getSourceCode(dagId, fileToken);
+        const sourceResult = await Session.Current.Api!.getSourceCode(dagId, fileToken);
         if (sourceResult.isSuccessful) {
             dagSourceCode = sourceResult.result;
         } else {
@@ -485,7 +485,7 @@ export class AIHandler
         }
 
         // Fetch Latest DAG Run Logs
-        const logResult = await Session.Current.Api.getLastDagRunLogText(dagId);
+        const logResult = await Session.Current.Api!.getLastDagRunLogText(dagId);
         if (logResult.isSuccessful) {
             latestDagLogs = logResult.result;
         } else {

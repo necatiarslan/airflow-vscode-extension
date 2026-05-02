@@ -945,6 +945,7 @@
     "@types/glob": "^9.0.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "25.x",
+    "@types/tmp": "^0.2.6",
     "@types/vscode": "^1.104.0",
     "@typescript-eslint/eslint-plugin": "^8.59.1",
     "@typescript-eslint/parser": "^8.59.1",
@@ -953,7 +954,7 @@
     "glob": "^13.0.6",
     "mocha": "^11.7.5",
     "ts-loader": "^9.5.7",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "webpack": "^5.106.2",
     "webpack-cli": "^7.0.2"
   },

@@ -105,6 +105,6 @@ export class Session {
     }
 
 	public dispose() {
-		Session.Current = undefined;
+        Session.Current = undefined as unknown as Session;
 	}
 }

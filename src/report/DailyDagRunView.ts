@@ -34,7 +34,7 @@ export class DailyDagRunView {
         Telemetry.Current.send('DailyDagRunView.loadData.called');
 		if (!Session.Current.Api) { return; }
         // Fetch all DAGs to populate dag_id filter
-        const dagsResult = await Session.Current.Api.getDagList();
+        const dagsResult = await Session.Current.Api!.getDagList();
         if (dagsResult.isSuccessful && Array.isArray(dagsResult.result)) {
             this.allDagIds = dagsResult.result.map((dag: any) => dag.dag_id).sort();
         }
@@ -42,7 +42,7 @@ export class DailyDagRunView {
         // Fetch DAG runs for the selected date
         // If a specific DAG is selected, query that DAG, otherwise query all
         if (this.selectedDagId) {
-            const result = await Session.Current.Api.getDagRunHistory(this.selectedDagId, this.selectedDate);
+            const result = await Session.Current.Api!.getDagRunHistory(this.selectedDagId, this.selectedDate);
             if (result.isSuccessful && result.result && result.result.dag_runs) {
                 this.dagRunsJson = result.result.dag_runs;
             }
@@ -50,7 +50,7 @@ export class DailyDagRunView {
             // Query all DAGs for runs on the selected date
             const allRuns: any[] = [];
             for (const dagId of this.allDagIds) {
-                const result = await Session.Current.Api.getDagRunHistory(dagId, this.selectedDate);
+                const result = await Session.Current.Api!.getDagRunHistory(dagId, this.selectedDate);
                 if (result.isSuccessful && result.result && result.result.dag_runs) {
                     allRuns.push(...result.result.dag_runs);
                 }
@@ -86,7 +86,7 @@ export class DailyDagRunView {
     public dispose() {
         ui.logToOutput('DailyDagRunView.dispose Started');
         Telemetry.Current.send('DailyDagRunView.dispose.called');
-        DailyDagRunView.Current = undefined;
+        DailyDagRunView.Current = undefined as unknown as DailyDagRunView;
 
         this._panel.dispose();
 

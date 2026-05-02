@@ -27,7 +27,7 @@ export class ServerHealthView {
 
         if (!Session.Current.Api) { return; }
         
-        const result = await Session.Current.Api.getHealth();
+        const result = await Session.Current.Api!.getHealth();
         if (result.isSuccessful) {
             this.healthJson = result.result;
         }
@@ -62,7 +62,7 @@ export class ServerHealthView {
         ui.logToOutput('ServerHealthView.dispose Started');
         Telemetry.Current.send('ServerHealthView.dispose.called');
 
-        ServerHealthView.Current = undefined;
+        ServerHealthView.Current = undefined as unknown as ServerHealthView;
 
         this._panel.dispose();
 

@@ -25,7 +25,7 @@ export class ConnectionsView {
         ui.logToOutput('ConnectionsView.loadData Started');
         Telemetry.Current.send('ConnectionsView.loadData.called');
 
-        const result = await Session.Current.Api.getConnections();
+        const result = await Session.Current.Api!.getConnections();
         if (result.isSuccessful) {
             this.connectionsJson = result.result;
         }
@@ -60,7 +60,7 @@ export class ConnectionsView {
         ui.logToOutput('ConnectionsView.dispose Started');
         Telemetry.Current.send('ConnectionsView.dispose.called');
 
-        ConnectionsView.Current = undefined;
+        ConnectionsView.Current = undefined as unknown as ConnectionsView;
 
         this._panel.dispose();
 

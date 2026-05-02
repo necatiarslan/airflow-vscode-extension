@@ -61,7 +61,7 @@ export class DagLogView {
 
         // 1. Resolve dagRunId if missing
         if (!this.dagRunId) {
-            const lastRunResult = await Session.Current.Api.getLastDagRun(this.dagId);
+            const lastRunResult = await Session.Current.Api!.getLastDagRun(this.dagId);
             if (lastRunResult.isSuccessful && lastRunResult.result) {
                 this.dagRunJson = lastRunResult.result;
                 this.dagRunId = this.dagRunJson.dag_run_id;
@@ -71,7 +71,7 @@ export class DagLogView {
             }
         } else {
             // Fetch specific dag run details
-            const runResult = await Session.Current.Api.getDagRun(this.dagId, this.dagRunId);
+            const runResult = await Session.Current.Api!.getDagRun(this.dagId, this.dagRunId);
             if (runResult.isSuccessful) {
                 this.dagRunJson = runResult.result;
             }
@@ -79,7 +79,7 @@ export class DagLogView {
 
         // 2. Fetch Task Instances
         if (this.dagRunId) {
-            const tasksResult = await Session.Current.Api.getTaskInstances(this.dagId, this.dagRunId);
+            const tasksResult = await Session.Current.Api!.getTaskInstances(this.dagId, this.dagRunId);
             if (tasksResult.isSuccessful && tasksResult.result) {
                 this.taskInstancesJson = tasksResult.result;
             }
