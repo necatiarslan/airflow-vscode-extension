@@ -9,6 +9,8 @@ import { AdminTreeView } from './admin/AdminTreeView';
 import { ReportTreeView } from './report/ReportTreeView';
 import { AIHandler } from './language_tools/AIHandler';
 import * as skills from './common/Skills';
+import { McpManager } from './mcp/McpManager';
+import { McpManageView } from './mcp/McpManageView';
 
 
 // this method is called when your extension is activated
@@ -18,6 +20,31 @@ export function activate(context: vscode.ExtensionContext) {
 
 	new Session(context);
 	new AIHandler();
+
+	const mcpManager = new McpManager(context);
+	context.subscriptions.push(mcpManager);
+
+	// Register MCP server definition provider for external MCP clients
+	const serverPath = vscode.Uri.joinPath(context.extensionUri, 'out', 'mcp', 'server.js').fsPath;
+	const mcpState = mcpManager.getSettingsSnapshot();
+	if (typeof (vscode.lm as any)?.registerMcpServerDefinitionProvider === 'function') {
+		context.subscriptions.push(
+			(vscode.lm as any).registerMcpServerDefinitionProvider('airflow-ext.mcpProvider', {
+				provideMcpServerDefinitions: () => [
+					new (vscode as any).McpStdioServerDefinition({
+						label: 'Airflow Tools',
+						command: 'node',
+						args: [serverPath],
+						env: {
+							AIRFLOW_MCP_PORT: String(mcpState.port || 37115),
+							AIRFLOW_MCP_HOST: mcpState.host || '127.0.0.1'
+						}
+					})
+				]
+			})
+		);
+		ui.logToOutput('Registered MCP server definition provider');
+	}
 
 	let dagTreeView:DagTreeView = new DagTreeView();
 	let adminTreeView:AdminTreeView = new AdminTreeView();
@@ -70,7 +97,11 @@ export function activate(context: vscode.ExtensionContext) {
 	commands.push(vscode.commands.registerCommand('airflow-ext.newFeaturesSurvey', () => { vscode.env.openExternal(vscode.Uri.parse('https://bit.ly/airflow-extension-survey')); }));
 	commands.push(vscode.commands.registerCommand('airflow-ext.requestFeature', () => { vscode.env.openExternal(vscode.Uri.parse('https://github.com/necatiarslan/airflow-vscode-extension/issues/new?labels=feature-request&template=feature_request.md')); }));
 	commands.push(vscode.commands.registerCommand('airflow-ext.reportBug', () => { vscode.env.openExternal(vscode.Uri.parse('https://github.com/necatiarslan/airflow-vscode-extension/issues/new?labels=bug&template=bug_report.md')); }));
-	
+
+	commands.push(vscode.commands.registerCommand('airflow-ext.StartMcpServer', async () => { await mcpManager.startSession(); }));
+	commands.push(vscode.commands.registerCommand('airflow-ext.StopMcpServers', () => { mcpManager.stopAll(); ui.showInfoMessage('All MCP sessions stopped.'); }));
+	commands.push(vscode.commands.registerCommand('airflow-ext.OpenMcpManageView', () => { McpManageView.Render(context.extensionUri, mcpManager); }));
+
 	for (const c of commands) { context.subscriptions.push(c); }
 
 

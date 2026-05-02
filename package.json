@@ -17,7 +17,17 @@
   ],
   "activationEvents": [],
   "main": "./out/extension.js",
+  "bin": {
+    "airflow-mcp": "./out/mcp/cli.js",
+    "airflow-mcp-server": "./out/mcp/server.js"
+  },
   "contributes": {
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "airflow-ext.mcpProvider",
+        "label": "Airflow Tools"
+      }
+    ],
     "chatParticipants": [
       {
         "id": "airflow-ext.participant",
@@ -595,6 +605,54 @@
           "properties": {},
           "required": []
         }
+      },
+      {
+        "name": "AirflowTool",
+        "toolReferenceName": "AirflowTool",
+        "displayName": "Airflow Tool",
+        "modelDescription": "Manages Apache Airflow DAGs via REST API. Supports listing, triggering, pausing, unpausing, cancelling DAG runs, retrieving run history, task details and logs, and source code. Use commands: list_active_dags, list_paused_dags, get_running_dags, pause_dag, unpause_dag, trigger_dag_run, get_failed_runs, get_dag_runs, cancel_dag_run, get_dag_run_detail, analyse_dag_latest_run, get_dag_history, get_dag_source_code, get_today.",
+        "userDescription": "Manage Apache Airflow DAGs: list, trigger, pause, cancel runs, view logs and source code",
+        "tags": ["airflow", "dag", "pipeline", "orchestration"],
+        "icon": "$(workflow)",
+        "canBeReferencedInPrompt": true,
+        "inputSchema": {
+          "type": "object",
+          "required": ["command", "params"],
+          "properties": {
+            "command": {
+              "type": "string",
+              "enum": [
+                "list_active_dags",
+                "list_paused_dags",
+                "get_running_dags",
+                "pause_dag",
+                "unpause_dag",
+                "trigger_dag_run",
+                "get_failed_runs",
+                "get_dag_runs",
+                "cancel_dag_run",
+                "get_dag_run_detail",
+                "analyse_dag_latest_run",
+                "get_dag_history",
+                "get_dag_source_code",
+                "get_today"
+              ],
+              "description": "The Airflow operation to perform"
+            },
+            "params": {
+              "type": "object",
+              "description": "Operation parameters",
+              "properties": {
+                "dagId": { "type": "string", "description": "The DAG ID" },
+                "dagRunId": { "type": "string", "description": "The DAG run ID" },
+                "configJson": { "type": "string", "description": "JSON configuration string for triggering a DAG run" },
+                "date": { "type": "string", "description": "Date filter (YYYY-MM-DD)" },
+                "timeRangeHours": { "type": "number", "description": "Number of hours to look back for failed runs" },
+                "dagIdFilter": { "type": "string", "description": "DAG ID filter for failed runs query" }
+              }
+            }
+          }
+        }
       }
     ],
     "commands": [
@@ -745,6 +803,21 @@
       {
         "command": "airflow-ext.reportBug",
         "title": "Report a Bug"
+      },
+      {
+        "command": "airflow-ext.StartMcpServer",
+        "title": "Airflow: Start MCP Server",
+        "icon": "$(play)"
+      },
+      {
+        "command": "airflow-ext.StopMcpServers",
+        "title": "Airflow: Stop MCP Servers",
+        "icon": "$(stop)"
+      },
+      {
+        "command": "airflow-ext.OpenMcpManageView",
+        "title": "Airflow: MCP Server Manager",
+        "icon": "$(server)"
       }
     ],
     "menus": {
@@ -926,7 +999,40 @@
         "view": "dagTreeView",
         "contents": "To connect to Airflow Click Below \n [Connect to Airflow](command:dagTreeView.addServer)\n\n You should enable REST Api in the Airflow to connect.\n For now, only basic authentication (username/password) supported.\n [Learn More](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md) \n\n Click [here](https://www.youtube.com/watch?v=ZeWDVPNDXZg) on how to run Airflow in your local machine in 5 mins."
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Airflow MCP",
+      "properties": {
+        "airflow-ext.mcp.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable the Airflow MCP bridge server"
+        },
+        "airflow-ext.mcp.host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Host for the Airflow MCP bridge server"
+        },
+        "airflow-ext.mcp.port": {
+          "type": "number",
+          "default": 37115,
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "Port for the Airflow MCP bridge server"
+        },
+        "airflow-ext.mcp.sessionCap": {
+          "type": "number",
+          "default": 20,
+          "description": "Maximum number of concurrent MCP sessions"
+        },
+        "airflow-ext.mcp.disabledTools": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "List of MCP tool names to disable"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
