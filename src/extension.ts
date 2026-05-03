@@ -11,6 +11,7 @@ import { AIHandler } from './language_tools/AIHandler';
 import * as skills from './common/Skills';
 import { McpManager } from './mcp/McpManager';
 import { McpManageView } from './mcp/McpManageView';
+import { McpTreeView } from './mcp/McpTreeView';
 
 
 // this method is called when your extension is activated
@@ -49,6 +50,7 @@ export function activate(context: vscode.ExtensionContext) {
 	let dagTreeView:DagTreeView = new DagTreeView();
 	let adminTreeView:AdminTreeView = new AdminTreeView();
 	let reportTreeView:ReportTreeView = new ReportTreeView();
+	let mcpTreeView:McpTreeView = new McpTreeView();
 
 	// Register the Admin Tree View
 	vscode.window.registerTreeDataProvider('adminTreeView', adminTreeView);
@@ -57,6 +59,10 @@ export function activate(context: vscode.ExtensionContext) {
 	// Register the Report Tree View
 	vscode.window.registerTreeDataProvider('reportTreeView', reportTreeView);
 	ui.logToOutput('Report Tree View registered');
+
+	// Register the MCP Tree View
+	vscode.window.registerTreeDataProvider('mcpTreeView', mcpTreeView);
+	ui.logToOutput('MCP Tree View registered');
 
 	// register commands and keep disposables so they are cleaned up on deactivate
 	const commands: vscode.Disposable[] = [];
@@ -101,6 +107,11 @@ export function activate(context: vscode.ExtensionContext) {
 	commands.push(vscode.commands.registerCommand('airflow-ext.StartMcpServer', async () => { await mcpManager.startSession(); }));
 	commands.push(vscode.commands.registerCommand('airflow-ext.StopMcpServers', () => { mcpManager.stopAll(); ui.showInfoMessage('All MCP sessions stopped.'); }));
 	commands.push(vscode.commands.registerCommand('airflow-ext.OpenMcpManageView', () => { McpManageView.Render(context.extensionUri, mcpManager); }));
+	commands.push(vscode.commands.registerCommand('airflow-ext.McpStatus', async () => {
+		const status = await mcpManager.checkStatus();
+		const msg = `MCP Bridge: ${status.running ? 'Running' : 'Stopped'} | Reachable: ${status.reachable ? 'Yes' : 'No'} | Sessions: ${status.activeSessions}/${status.sessionCap} | ${status.host}:${status.port}${status.message ? ' | ' + status.message : ''}`;
+		ui.showInfoMessage(msg);
+	}));
 
 	for (const c of commands) { context.subscriptions.push(c); }
 

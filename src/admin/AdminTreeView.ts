@@ -79,6 +79,16 @@ export class AdminTreeView implements vscode.TreeDataProvider<AdminTreeItem> {
             arguments: []
           },
           new vscode.ThemeIcon('pulse')
+        ),
+        new AdminTreeItem(
+          'MCP Manager',
+          vscode.TreeItemCollapsibleState.None,
+          {
+            command: 'airflow-ext.OpenMcpManageView',
+            title: 'Open MCP Manager',
+            arguments: []
+          },
+          new vscode.ThemeIcon('server')
         )
       ]);
     }

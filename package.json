@@ -991,6 +991,11 @@
           "id": "adminTreeView",
           "name": "Admin",
           "icon": "media/airflow-extension-logo.png"
+        },
+        {
+          "id": "mcpTreeView",
+          "name": "MCP",
+          "icon": "media/airflow-extension-logo.png"
         }
       ]
     },
