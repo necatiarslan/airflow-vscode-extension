@@ -16,7 +16,7 @@ module.exports = [
       "@typescript-eslint": tsPlugin,
     },
     rules: {
-      "@typescript-eslint/naming-convention": "warn",
+      "@typescript-eslint/naming-convention": "off",
       curly: "warn",
       eqeqeq: "warn",
       "no-throw-literal": "warn",

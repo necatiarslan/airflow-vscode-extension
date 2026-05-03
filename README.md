@@ -51,6 +51,13 @@ Trigger DAGs, pause/unpause, explore DAG runs, view logs, browse code, and more�
   - Use `@airflow` in the chat to access all AI-powered tools
   - Airflow Skills are available as a bundled set to help the assistant respond with consistent, task-focused guidance. Installing them improves accuracy and keeps responses aligned with Airflow best practices and this extension's workflows. You will see a prompt to install skills when you ask an AI question if you haven't installed them yet.
 
+- **MCP Server (Model Context Protocol)**  
+  - Expose all Airflow tools to any external MCP-compatible AI client (Cursor, Windsurf, Antigravity, Claude Desktop, Continue, etc.)
+  - Built-in MCP bridge server runs on `127.0.0.1:37115` by default
+  - Start, stop, and manage the MCP server directly from the sidebar
+  - Configure host, port, session capacity, and enabled tools via the MCP Manager view
+  - Generates a ready-to-paste JSON config snippet for connecting external clients
+
 ## 🤖 AI Airflow Assistant Tools & Sample Prompts
 
 The extension provides 24 language model tools that integrate with VS Code's AI chat. Use `@airflow` in the chat to access these tools.
@@ -171,7 +178,59 @@ The extension provides 24 language model tools that integrate with VS Code's AI 
   - `@airflow open provider list`
   - `@airflow show server health`
 
-## 📷 Screenshots
+## � MCP Server (Model Context Protocol)
+
+The extension includes a built-in **MCP bridge server** that exposes all Airflow tools to any external AI agent or client that supports the [Model Context Protocol](https://modelcontextprotocol.io/) (e.g., Cursor, Windsurf, Antigravity, Claude Desktop, Continue, and other MCP-compatible tools).
+
+### How It Works
+
+1. The MCP bridge listens on `127.0.0.1:37115` (configurable).
+2. An external MCP client connects and discovers all available Airflow tools.
+3. The client can call any tool (trigger DAG, get logs, analyze runs, etc.) just as `@airflow` does in VS Code Chat.
+
+### Getting Started with MCP
+
+1. Open the **Airflow** sidebar and expand the **MCP** section.
+2. Click **Start** to launch the bridge server.
+3. Click **Manage** to open the MCP Manager and copy the generated config snippet.
+4. Paste the config snippet into your MCP client's configuration file.
+
+### MCP Manager
+
+Open the MCP Manager via the sidebar (**MCP → Manage**) to:
+- View the current server **host** and **port**.
+- Copy the ready-to-paste **JSON config** for your MCP client.
+- Start or stop the bridge server.
+
+### Example Config (Cursor / Windsurf / Antigravity / Claude Desktop)
+
+```json
+{
+  "mcpServers": {
+    "airflow": {
+      "command": "node",
+      "args": ["/path/to/extension/out/mcp/cli.js"],
+      "env": {
+        "AIRFLOW_MCP_HOST": "127.0.0.1",
+        "AIRFLOW_MCP_PORT": "37115"
+      }
+    }
+  }
+}
+```
+
+> **Tip**: The MCP Manager generates the exact `args` path for your machine — just copy and paste it.
+
+### MCP Sidebar Actions
+
+| Action | Description |
+| ------ | ----------- |
+| **Status** | Show current server state (running / stopped) and active session count |
+| **Start** | Start the MCP bridge server |
+| **Stop** | Stop all active MCP sessions and the bridge server |
+| **Manage** | Open the MCP Manager view with config snippet and settings |
+
+## �📷 Screenshots
 
 | Dag Tree | Runs | Tasks |
 | ----------- | ----------- | ----------- |

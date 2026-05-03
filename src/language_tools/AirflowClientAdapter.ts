@@ -1,4 +1,3 @@
-
 import { Session } from '../common/Session';
 import * as MessageHub from '../common/MessageHub';
 

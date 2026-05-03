@@ -66,3 +66,62 @@ Quickly jump to specific views in the extension using voice-like commands.
 
 ## 🧩 Skills
 Airflow Skills are available as a bundled set to help the assistant respond with consistent, task-focused guidance. Installing them improves accuracy and keeps responses aligned with Airflow best practices and this extension's workflows.
+
+---
+
+## 🔌 MCP Server — Use Airflow Tools from Any AI Client
+
+In addition to the VS Code Chat integration, the extension runs a built-in **MCP (Model Context Protocol) bridge server** so that any external MCP-compatible AI client can call the same Airflow tools.
+
+### Supported Clients
+Cursor, Windsurf, Antigravity, Claude Desktop, Continue, and any other tool that supports the [Model Context Protocol](https://modelcontextprotocol.io/).
+
+### How to Enable
+
+1. Open the **Airflow** sidebar and expand the **MCP** section.
+2. Click **Start** to launch the bridge server (default: `127.0.0.1:37115`).
+3. Click **Manage** to open the MCP Manager view.
+4. Copy the generated JSON config snippet and paste it into your client's configuration file.
+
+### MCP Manager View
+
+The **Manage** action opens a webview that shows:
+- Current **host** and **port** settings.
+- A ready-to-paste **JSON config snippet** with the correct `node` path for your machine.
+- Controls to start, stop, or reconfigure the server.
+
+### Example Config Snippet
+
+```json
+{
+  "mcpServers": {
+    "airflow": {
+      "command": "node",
+      "args": ["/path/to/extension/out/mcp/cli.js"],
+      "env": {
+        "AIRFLOW_MCP_HOST": "127.0.0.1",
+        "AIRFLOW_MCP_PORT": "37115"
+      }
+    }
+  }
+}
+```
+
+> The MCP Manager generates the exact `args` path for your installation — no manual path editing required.
+
+### Available MCP Tools
+
+All 24 tools available via `@airflow` in VS Code Chat are also exposed over MCP:
+
+| Category | Tools |
+| -------- | ----- |
+| Control | `trigger_dag_run`, `pause_dag`, `unpause_dag`, `cancel_dag_run` |
+| Monitoring | `list_active_dags`, `list_paused_dags`, `get_running_dags`, `get_dag_runs`, `get_dag_history`, `get_failed_runs` |
+| Analysis | `analyse_dag_latest_run`, `get_dag_run_detail`, `get_dag_source_code`, `get_today` |
+| Navigation | `go_to_dag_view`, `go_to_dag_log_view`, `go_to_dag_run_history`, `go_to_connections_view`, `go_to_variables_view`, `go_to_configs_view`, `go_to_plugins_view`, `go_to_providers_view`, `go_to_server_health_view` |
+
+### Session Management
+
+- The MCP server supports multiple concurrent sessions (default cap: **20**).
+- Requests beyond the cap are queued and processed as sessions free up.
+- Adjust the session cap in the MCP Manager.

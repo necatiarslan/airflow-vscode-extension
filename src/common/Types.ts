@@ -84,6 +84,7 @@ export interface ServerConfig {
 }
 
 export interface AskAIContext {
+    dagId: string;
     code: string;
     logs: string;
     dag: string|null;

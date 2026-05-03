@@ -459,10 +459,10 @@ export class AIHandler
     public async askAI(dagId: string, fileToken: string) {
         ui.logToOutput('AIHandler.askAI Started');
         if (!Session.Current.Api) { return; }
-        if (!await this.isChatCommandAvailable()) {
-            ui.showErrorMessage('Chat command is not available. Please ensure you have access to VS Code AI features.');
-            return;
-        }
+        // if (!await this.isChatCommandAvailable()) {
+        //     ui.showInfoMessage('Pls setup Airflow MCP to use AI features. Go to MCP view and click "Manage" to get started.');
+        //     return;
+        // }
 
         let dagSourceCode = '';
         let latestDagLogs = '';
@@ -485,31 +485,45 @@ export class AIHandler
             return;
         }
 
-        await this.askAIWithContext({ code: dagSourceCode, logs: latestDagLogs, dag: dagId, dagRun: null, tasks: null, taskInstances: null });
+        await this.askAIWithContext({dagId: dagId, code: dagSourceCode, logs: latestDagLogs, dag: dagId, dagRun: null, tasks: null, taskInstances: null });
     }
 
     public async askAIWithContext(askAIContext: AskAIContext) {
         this.askAIContext = askAIContext;
 
         const appName = vscode.env.appName;
+        let dagId = askAIContext.dagId || 'unknown_dag';
         let commandId = '';
+        let query = '@airflow Analyze the current logs';
         if (appName.includes('Antigravity')) {
-            // Antigravity replaces the Chat with an Agent workflow.
-            // We must use the Agent Manager command instead.
-            // **REPLACE WITH THE ACTUAL ANTIGRAVITY AGENT COMMAND ID**
-            commandId = 'antigravity.startAgentTask';
-
-        } else if (appName.includes('Code - OSS') || appName.includes('Visual Studio Code')) {
+            commandId = 'antigravity.openAgent';
+            query = `Analyze the ${dagId} Airflow DAG logs`;
+            ui.logToOutput(`AIHandler.askAIWithContext: Antigravity detected, using commandId=${commandId} and query=${query}`);
+        } 
+        else if (appName.includes('Windsurf')) {
+            commandId = 'workbench.action.toggleAuxiliaryBar';
+            query = `Analyze the ${dagId} Airflow DAG logs`;
+            ui.logToOutput(`AIHandler.askAIWithContext: Windsurf detected, using commandId=${commandId} and query=${query}`);
+        }
+        else if (appName.includes('Cursor')) {
+            commandId = 'composer.newAgentChat';
+            query = `Analyze the ${dagId} Airflow DAG logs`;
+            ui.logToOutput(`AIHandler.askAIWithContext: Cursor detected, using commandId=${commandId} and query=${query}`);
+        }
+        else if (appName.includes('Code - OSS') || appName.includes('Visual Studio Code')) {
             // This is standard VS Code or VSCodium. Check for the legacy Chat command.
             commandId = 'workbench.action.chat.open';
-
-        } else {
-            // Unknown environment, default to checking if the command exists at all.
-            commandId = 'workbench.action.chat.open';
+            query = `@airflow Analyze the ${dagId} Airflow DAG logs`;
+            ui.logToOutput(`AIHandler.askAIWithContext: VS Code detected, using commandId=${commandId} and query=${query}`);
+        } 
+        else {
+            ui.showWarningMessage(`Your IDE can not be automatically detected. Please open the chat panel manually and ask "Analyze the ${dagId} Airflow DAG logs" there.`);
+            ui.logToOutput(`AIHandler.askAIWithContext: Unknown IDE (${appName}), prompting user to open chat manually with query: ${query}`);
+            return;
         }
 
         await vscode.commands.executeCommand(commandId, {
-            query: '@airflow Analyze the current logs'
+            query: query
         });
     }
 

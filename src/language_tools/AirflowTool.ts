@@ -1,4 +1,3 @@
-import * as vscode from 'vscode';
 import { BaseTool, BaseToolInput } from '../common/BaseTool';
 import { Session } from '../common/Session';
 import { AirflowClientAdapter } from './AirflowClientAdapter';

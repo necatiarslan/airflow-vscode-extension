@@ -947,7 +947,7 @@ export class DagView {
         }
 
         // Call the askAI function from DagTreeView
-        await AIHandler.Current.askAIWithContext({ code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
+        await AIHandler.Current.askAIWithContext({dagId: this.dagId, code: code.result, logs: logs.result, dag: this.dagJson, dagRun: this.dagRunJson, tasks: this.dagTasksJson, taskInstances: this.dagTaskInstancesJson });
     }
 
     private async showSourceCode() {
