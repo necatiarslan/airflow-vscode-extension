@@ -303,11 +303,6 @@ You can disable telemetry via: Settings → Telemetry → Telemetry Level
     - Instance Details
     - Rendered Template
 - Test Connection language model tool
-- MCP for other Vscode Forks
-- MCP view, Nodes: Start, Stop, Manage, 
-
-- Integrate new Tree View API
-- Add folders and notes to dags
 - Add trigger config files
 
 ## 💖 Sponsor & Feedback
