@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Airflow VS Code Extension</title>
+    <meta
+      name="description"
+      content="Manage Airflow DAGs directly inside VS Code with AI assistance, reports, admin insights, and multi-server support."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <header class="site-header">
+      <div class="shell nav-wrap">
+        <a class="brand" href="#top" aria-label="Airflow extension home">
+          <span class="brand-mark" aria-hidden="true">A</span>
+          <span>Airflow VS Code Extension</span>
+        </a>
+
+        <nav class="main-nav" aria-label="Primary navigation">
+          <a href="#features">Features</a>
+          <a href="#demos">Demos</a>
+          <a href="#install">Install</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <section id="top" class="hero">
+        <div class="hero-pattern" aria-hidden="true"></div>
+        <div class="shell hero-grid">
+          <div class="hero-copy">
+            <p class="kicker">Airflow 3.0 Ready</p>
+            <h1>Control your Airflow world without leaving your editor.</h1>
+            <p class="lede">
+              Trigger runs, pause DAGs, inspect logs, and navigate source code from a single VS Code workspace.
+              Bring an AI assistant into your daily Airflow workflow with <strong>@airflow</strong> tools.
+            </p>
+            <div class="cta-row">
+              <a class="btn btn-primary" href="#demos">See It In Action</a>
+              <a
+                class="btn btn-ghost"
+                href="https://github.com/necatiarslan/airflow-vscode-extension"
+                target="_blank"
+                rel="noreferrer"
+              >
+                View Repository
+              </a>
+            </div>
+            <ul class="pill-row" aria-label="Core capabilities">
+              <li>DAG Control</li>
+              <li>AI Assistant</li>
+              <li>Admin Views</li>
+              <li>Daily Reports</li>
+            </ul>
+          </div>
+          <div class="hero-panel" role="img" aria-label="Airflow extension highlights">
+            <h2>Built for Operators and Data Engineers</h2>
+            <p>One extension. Multiple Airflow servers. Real-time context.</p>
+            <div class="stat-grid">
+              <article>
+                <span class="stat">24</span>
+                <span class="label">AI tools</span>
+              </article>
+              <article>
+                <span class="stat">5+</span>
+                <span class="label">Admin views</span>
+              </article>
+              <article>
+                <span class="stat">1</span>
+                <span class="label">Editor workflow</span>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="section features">
+        <div class="shell">
+          <p class="kicker">Feature Highlights</p>
+          <h2 class="section-title">Everything you need for day-to-day Airflow operations</h2>
+          <div class="feature-grid">
+            <article class="feature-card">
+              <h3>DAG Management</h3>
+              <p>Browse, filter, trigger, pause, and unpause DAGs across multiple Airflow servers.</p>
+            </article>
+            <article class="feature-card">
+              <h3>AI Airflow Assistant</h3>
+              <p>Ask natural language questions and execute operational actions through @airflow commands.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Run & Log Insights</h3>
+              <p>Inspect DAG run histories, task outcomes, and logs directly in your editor panels.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Admin Explorer</h3>
+              <p>Review connections, variables, providers, plugins, configs, and server health in read-only mode.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Daily Reporting</h3>
+              <p>Track daily DAG execution states with focused views for quick triage and status checks.</p>
+            </article>
+            <article class="feature-card">
+              <h3>MCP Ready</h3>
+              <p>Expose Airflow capabilities to external AI clients through the extension's MCP server support.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="demos" class="section demos">
+        <div class="shell">
+          <p class="kicker">Live Demos</p>
+          <h2 class="section-title">Watch real extension workflows</h2>
+          <div class="demo-grid">
+            <figure class="demo-card">
+              <img src="../docs/readme/video1.gif" alt="Managing Airflow DAGs in VS Code" loading="lazy" />
+              <figcaption>
+                <h3>Operate DAGs From the Sidebar</h3>
+                <p>Trigger, pause/unpause, and inspect DAG activity without switching to a browser tab.</p>
+              </figcaption>
+            </figure>
+            <figure class="demo-card">
+              <img src="../docs/readme/video2.gif" alt="Using Airflow AI assistant in VS Code" loading="lazy" />
+              <figcaption>
+                <h3>Use AI to Troubleshoot Faster</h3>
+                <p>Query run history, fetch details, and navigate views with conversational @airflow commands.</p>
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <section id="install" class="section install">
+        <div class="shell install-box">
+          <div>
+            <p class="kicker">Ready to Try?</p>
+            <h2>Install and run Airflow workflows from your IDE.</h2>
+            <p>
+              Use this extension to keep operational context close to your code and reduce context switching.
+            </p>
+          </div>
+          <div class="cta-row">
+            <a
+              class="btn btn-primary"
+              href="https://marketplace.visualstudio.com/search?term=airflow%20extension&target=VSCode&category=All%20categories&sortBy=Relevance"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open Marketplace
+            </a>
+            <a
+              class="btn btn-ghost"
+              href="https://github.com/necatiarslan/airflow-vscode-extension"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Read Docs on GitHub
+            </a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="shell footer-wrap">
+        <p>Airflow VS Code Extension</p>
+        <a href="https://github.com/necatiarslan/airflow-vscode-extension" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+    </footer>
+  </body>
+</html>
