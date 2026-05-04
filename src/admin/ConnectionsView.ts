@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
 import { Session } from '../common/Session';
@@ -216,7 +215,7 @@ export class ConnectionsView {
     }
 
     private _escapeHtml(text: string): string {
-        if (!text) return '';
+        if (!text) { return ''; }
         const map: { [key: string]: string } = {
             '&': '&amp;',
             '<': '&lt;',

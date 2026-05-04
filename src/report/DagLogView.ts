@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import * as ui from '../common/UI';
 import { Session } from '../common/Session';
@@ -184,8 +183,8 @@ export class DagLogView {
             const isSuccess = t.state === 'success';
             const isError = ['failed', 'upstream_failed', 'shutdown', 'restart'].includes(t.state);
             let statusClass = 'status-other';
-            if (isSuccess) statusClass = 'status-success';
-            if (isError) statusClass = 'status-error';
+            if (isSuccess) { statusClass = 'status-success'; }
+            if (isError) { statusClass = 'status-error'; }
 
             let displayTry = t.try_number;
             if (this.taskId && t.task_id === this.taskId && this.tryNumber !== undefined) {
@@ -407,7 +406,7 @@ export class DagLogView {
     }
 
     private _escapeHtml(text: string): string {
-        if (!text) return '';
+        if (!text) { return ''; }
         const map: { [key: string]: string } = {
             '&': '&amp;',
             '<': '&lt;',

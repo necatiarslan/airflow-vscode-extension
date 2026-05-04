@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 export interface AirflowDag {
     dag_id: string;
     is_paused: boolean;

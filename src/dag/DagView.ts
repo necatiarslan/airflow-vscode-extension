@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import * as vscode from "vscode";
 import * as tmp from 'tmp';
 import * as fs from 'fs';

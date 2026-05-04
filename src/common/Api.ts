@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { encode } from 'base-64';
 import * as ui from './UI';
 import { MethodResult } from './MethodResult';
