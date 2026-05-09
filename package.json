@@ -824,144 +824,144 @@
       "view/title": [
         {
           "command": "dagTreeView.refreshServer",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "navigation@7"
         },
         {
           "command": "dagTreeView.connectServer",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "navigation@6"
         },
         {
           "command": "dagTreeView.addServer",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "navigation@5"
         },
         {
           "command": "dagTreeView.removeServer",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "navigation@4"
         },
         {
           "command": "dagTreeView.filter",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "navigation@3"
         },
         {
           "command": "dagTreeView.showOnlyActive",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "navigation@2"
         },
         {
           "command": "dagTreeView.showOnlyFavorite",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "navigation@1"
         },
         {
           "command": "dagTreeView.clearServers",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "other"
         },
         {
           "command": "airflow-ext.donate",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "other@1"
         },
         {
           "command": "airflow-ext.newFeaturesSurvey",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "other@2"
         },
         {
           "command": "airflow-ext.requestFeature",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "other@3"
         },
         {
           "command": "airflow-ext.reportBug",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "other@4"
         },
         {
           "command": "airflow-ext.installAirflowSkills",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "other@5"
         }
       ],
       "view/item/context": [
         {
           "command": "dagTreeView.viewDagView",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "inline"
         },
         {
           "command": "dagTreeView.triggerDag",
-          "when": "view == dagTreeView && viewItem =~ /#!IsRunning#/",
+          "when": "view == airflow-ext.dagTreeView && viewItem =~ /#!IsRunning#/",
           "group": "inline"
         },
         {
           "command": "dagTreeView.cancelDagRun",
-          "when": "view == dagTreeView && viewItem =~ /#IsRunning#/",
+          "when": "view == airflow-ext.dagTreeView && viewItem =~ /#IsRunning#/",
           "group": "inline"
         },
         {
           "command": "dagTreeView.lastDAGRunLog",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "inline"
         },
         {
           "command": "dagTreeView.showDagInfo",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "inline"
         },
         {
           "command": "dagTreeView.AskAI",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "inline"
         },
         {
           "command": "dagTreeView.triggerDagWithConfig",
-          "when": "view == dagTreeView && viewItem =~ /#!IsRunning#/",
+          "when": "view == airflow-ext.dagTreeView && viewItem =~ /#!IsRunning#/",
           "group": "trigger"
         },
         {
           "command": "dagTreeView.checkDagRunState",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "trigger"
         },
         {
           "command": "dagTreeView.checkAllDagsRunState",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "trigger"
         },
         {
           "command": "dagTreeView.pauseDAG",
-          "when": "view == dagTreeView && viewItem =~ /#!IsPaused#/",
+          "when": "view == airflow-ext.dagTreeView && viewItem =~ /#!IsPaused#/",
           "group": "pause"
         },
         {
           "command": "dagTreeView.unPauseDAG",
-          "when": "view == dagTreeView && viewItem =~ /#IsPaused#/",
+          "when": "view == airflow-ext.dagTreeView && viewItem =~ /#IsPaused#/",
           "group": "pause"
         },
         {
           "command": "dagTreeView.addToFavDAG",
-          "when": "view == dagTreeView && viewItem =~ /#!IsFav#/",
+          "when": "view == airflow-ext.dagTreeView && viewItem =~ /#!IsFav#/",
           "group": "fav"
         },
         {
           "command": "dagTreeView.deleteFromFavDAG",
-          "when": "view == dagTreeView && viewItem =~ /#IsFav#/",
+          "when": "view == airflow-ext.dagTreeView && viewItem =~ /#IsFav#/",
           "group": "fav"
         },
         {
           "command": "dagTreeView.dagSourceCode",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "other"
         },
         {
           "command": "dagTreeView.showDagView",
-          "when": "view == dagTreeView",
+          "when": "view == airflow-ext.dagTreeView",
           "group": "other"
         }
       ]
@@ -978,22 +978,22 @@
     "views": {
       "airflow-explorer": [
         {
-          "id": "dagTreeView",
+          "id": "airflow-ext.dagTreeView",
           "name": "Airflow",
           "icon": "media/airflow-extension-logo.png"
         },
         {
-          "id": "reportTreeView",
+          "id": "airflow-ext.reportTreeView",
           "name": "Reports",
           "icon": "media/airflow-extension-logo.png"
         },
         {
-          "id": "adminTreeView",
+          "id": "airflow-ext.adminTreeView",
           "name": "Admin",
           "icon": "media/airflow-extension-logo.png"
         },
         {
-          "id": "mcpTreeView",
+          "id": "airflow-ext.mcpTreeView",
           "name": "MCP",
           "icon": "media/airflow-extension-logo.png"
         }
@@ -1001,7 +1001,7 @@
     },
     "viewsWelcome": [
       {
-        "view": "dagTreeView",
+        "view": "airflow-ext.dagTreeView",
         "contents": "To connect to Airflow Click Below \n [Connect to Airflow](command:dagTreeView.addServer)\n\n You should enable REST Api in the Airflow to connect.\n For now, only basic authentication (username/password) supported.\n [Learn More](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md) \n\n Click [here](https://www.youtube.com/watch?v=ZeWDVPNDXZg) on how to run Airflow in your local machine in 5 mins."
       }
     ],

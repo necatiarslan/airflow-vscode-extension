@@ -30,7 +30,7 @@ export class DagTreeView {
 		ui.logToOutput('DagTreeView.constructor Started');
 		
 		this.treeDataProvider = new DagTreeDataProvider();
-		this.view = vscode.window.createTreeView('dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
+		this.view = vscode.window.createTreeView('airflow-ext.dagTreeView', { treeDataProvider: this.treeDataProvider, showCollapseAll: true });
 		this.loadState();
 		
 		Session.Current.Context!.subscriptions.push(this.view);

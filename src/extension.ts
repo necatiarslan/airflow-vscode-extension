@@ -53,15 +53,15 @@ export function activate(context: vscode.ExtensionContext) {
 	let mcpTreeView:McpTreeView = new McpTreeView();
 
 	// Register the Admin Tree View
-	vscode.window.registerTreeDataProvider('adminTreeView', adminTreeView);
+	vscode.window.registerTreeDataProvider('airflow-ext.adminTreeView', adminTreeView);
 	ui.logToOutput('Admin Tree View registered');
 
 	// Register the Report Tree View
-	vscode.window.registerTreeDataProvider('reportTreeView', reportTreeView);
+	vscode.window.registerTreeDataProvider('airflow-ext.reportTreeView', reportTreeView);
 	ui.logToOutput('Report Tree View registered');
 
 	// Register the MCP Tree View
-	vscode.window.registerTreeDataProvider('mcpTreeView', mcpTreeView);
+	vscode.window.registerTreeDataProvider('airflow-ext.mcpTreeView', mcpTreeView);
 	ui.logToOutput('MCP Tree View registered');
 
 	// register commands and keep disposables so they are cleaned up on deactivate
