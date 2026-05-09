@@ -45,14 +45,10 @@ class MockSecretStorage implements vscode.SecretStorage {
 		return Promise.resolve([...this.secretMap.keys()]);
 	}
 
-	public storeSecret(key: string, value: string): Thenable<void> {
+	public store(key: string, value: string): Thenable<void> {
 		this.secretMap.set(key, value);
 		this.emitter.fire({ key });
 		return Promise.resolve();
-	}
-
-	public store(key: string, value: string): Thenable<void> {
-		return this.storeSecret(key, value);
 	}
 
 	public delete(key: string): Thenable<void> {
@@ -91,11 +87,9 @@ suite('Extension Test Suite', () => {
 		const context = createMockContext();
 		const session = await Session.Create(context);
 
-		const server = { apiUrl: 'http://localhost:8080/api/v2', apiUserName: 'admin', apiPassword: 'secret123' };
-		session.AddServer(server);
-		session.SetServer(server);
-
-		await Promise.resolve();
+		const server = { apiUrl: 'http://localhost:8080/api/v2', apiUserName: 'test-user', apiPassword: 'test-password' };
+		await session.AddServer(server);
+		await session.SetServer(server);
 
 		const storedServerList = context.globalState.get<{ apiUrl: string; apiUserName: string; apiPassword?: string }[]>('serverList') || [];
 		assert.strictEqual(storedServerList.length, 1);
@@ -103,8 +97,8 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(context.globalState.get('apiPassword'), undefined);
 
 		const reloadedSession = await Session.Create(context);
-		assert.strictEqual(reloadedSession.Server?.apiPassword, 'secret123');
-		assert.strictEqual(reloadedSession.GetServer('http://localhost:8080/api/v2', 'admin')?.apiPassword, 'secret123');
+		assert.strictEqual(reloadedSession.Server?.apiPassword, 'test-password');
+		assert.strictEqual(reloadedSession.GetServer('http://localhost:8080/api/v2', 'test-user')?.apiPassword, 'test-password');
 
 		reloadedSession.dispose();
 		session.dispose();
@@ -126,6 +120,27 @@ suite('Extension Test Suite', () => {
 
 		const storedServerList = context.globalState.get<{ apiUrl: string; apiUserName: string; apiPassword?: string }[]>('serverList') || [];
 		assert.strictEqual(storedServerList[0].apiPassword, undefined);
+
+		session.dispose();
+	});
+
+	test('Session removes stored secrets when server is removed or cleared', async () => {
+		const context = createMockContext();
+		const session = await Session.Create(context);
+
+		const firstServer = { apiUrl: 'http://localhost:8080/api/v1', apiUserName: 'test-user-1', apiPassword: 'test-password-1' };
+		const secondServer = { apiUrl: 'http://localhost:8080/api/v2', apiUserName: 'test-user-2', apiPassword: 'test-password-2' };
+
+		await session.AddServer(firstServer);
+		await session.AddServer(secondServer);
+		await session.SetServer(firstServer);
+		assert.strictEqual((await context.secrets.keys()).length, 2);
+
+		await session.RemoveServer(firstServer.apiUrl, firstServer.apiUserName);
+		assert.strictEqual((await context.secrets.keys()).length, 1);
+
+		await session.ClearServers();
+		assert.strictEqual((await context.secrets.keys()).length, 0);
 
 		session.dispose();
 	});
