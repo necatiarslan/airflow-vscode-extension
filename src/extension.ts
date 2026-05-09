@@ -16,10 +16,10 @@ import { McpTreeView } from './mcp/McpTreeView';
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 	ui.logToOutput('Extension activation started');
 
-	new Session(context);
+	await Session.Create(context);
 	new AIHandler();
 
 	const mcpManager = new McpManager(context);
