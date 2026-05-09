@@ -1,6 +1,6 @@
 ---
 name: tracing-downstream-lineage
-description: Trace downstream data lineage and impact analysis. Use when the user asks what depends on this data, what breaks if something changes, downstream dependencies, or needs to assess change risk before modifying a table or DAG.
+description: Map downstream lineage and blast radius for Airflow data assets. Use when the user needs to know which DAGs, tables, dashboards, or models depend on a dataset and what could break after a change.
 ---
 
 # Downstream Lineage: Impacts
