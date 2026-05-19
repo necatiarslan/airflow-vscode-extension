@@ -303,6 +303,52 @@ export class DagTreeView {
 		}
 	}
 
+	public async clearDagRun(node: DagTreeItem) {
+		ui.logToOutput('DagTreeView.clearDagRun Started');
+
+		if (!Session.Current.Api) { return; }
+
+		// Pick a DAG run to clear — prefer latest known run, or let user pick
+		let dagRunId = node.LatestDagRunId;
+		if (!dagRunId) {
+			const history = await Session.Current.Api!.getDagRunHistory(node.DagId);
+			if (!history.isSuccessful || !history.result?.dag_runs?.length) {
+				ui.showWarningMessage('No DAG runs found to clear.');
+				return;
+			}
+			const picks: vscode.QuickPickItem[] = history.result.dag_runs.slice(0, 10).map((r: any) => ({
+				label: r.dag_run_id,
+				description: `State: ${r.state} | Start: ${r.start_date ?? 'N/A'}`,
+			}));
+			const selected = await vscode.window.showQuickPick(picks, { placeHolder: 'Select a DAG Run to clear & retry', title: `Clear DAG Run: ${node.DagId}` });
+			if (!selected) { return; }
+			dagRunId = selected.label;
+		}
+
+		// Dry-run first to preview affected task instances
+		const preview = await Session.Current.Api!.clearDagRun(node.DagId, dagRunId, true);
+		if (!preview.isSuccessful) { return; }
+
+		const taskInstances: any[] = preview.result?.task_instances ?? [];
+		const taskList = taskInstances.map((ti: any) => ti.task_id).join(', ') || 'none';
+		const confirmMsg = taskInstances.length > 0
+			? `Clear & retry ${taskInstances.length} task(s) in run "${dagRunId}"?\n\nTasks: ${taskList}`
+			: `No failed tasks found in run "${dagRunId}". Clear anyway?`;
+
+		const confirm = await vscode.window.showWarningMessage(confirmMsg, { modal: true }, 'Clear & Retry');
+		if (confirm !== 'Clear & Retry') { return; }
+
+		const result = await Session.Current.Api!.clearDagRun(node.DagId, dagRunId, false);
+		if (result.isSuccessful) {
+			node.LatestDagRunId = dagRunId;
+			node.LatestDagState = 'queued';
+			node.refreshUI();
+			this.treeDataProvider.refresh();
+			ui.showInfoMessage(`DAG run "${dagRunId}" cleared and queued for retry.`);
+			this.startDagStatusInterval();
+		}
+	}
+
 	public async lastDAGRunLog(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.lastDAGRunLog Started');
 

@@ -2,7 +2,7 @@
   "name": "airflow-vscode-extension",
   "displayName": "Airflow",
   "description": "Apache Airflow Extension to List/Trigger DAGs, View Logs and much more",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "publisher": "NecatiARSLAN",
   "icon": "media/airflow-extension-logo.png",
   "repository": {
@@ -612,12 +612,20 @@
         "displayName": "Airflow Tool",
         "modelDescription": "Manages Apache Airflow DAGs via REST API. Supports listing, triggering, pausing, unpausing, cancelling DAG runs, retrieving run history, task details and logs, and source code. Use commands: list_active_dags, list_paused_dags, get_running_dags, pause_dag, unpause_dag, trigger_dag_run, get_failed_runs, get_dag_runs, cancel_dag_run, get_dag_run_detail, analyse_dag_latest_run, get_dag_history, get_dag_source_code, get_today.",
         "userDescription": "Manage Apache Airflow DAGs: list, trigger, pause, cancel runs, view logs and source code",
-        "tags": ["airflow", "dag", "pipeline", "orchestration"],
+        "tags": [
+          "airflow",
+          "dag",
+          "pipeline",
+          "orchestration"
+        ],
         "icon": "$(workflow)",
         "canBeReferencedInPrompt": true,
         "inputSchema": {
           "type": "object",
-          "required": ["command", "params"],
+          "required": [
+            "command",
+            "params"
+          ],
           "properties": {
             "command": {
               "type": "string",
@@ -643,12 +651,30 @@
               "type": "object",
               "description": "Operation parameters",
               "properties": {
-                "dagId": { "type": "string", "description": "The DAG ID" },
-                "dagRunId": { "type": "string", "description": "The DAG run ID" },
-                "configJson": { "type": "string", "description": "JSON configuration string for triggering a DAG run" },
-                "date": { "type": "string", "description": "Date filter (YYYY-MM-DD)" },
-                "timeRangeHours": { "type": "number", "description": "Number of hours to look back for failed runs" },
-                "dagIdFilter": { "type": "string", "description": "DAG ID filter for failed runs query" }
+                "dagId": {
+                  "type": "string",
+                  "description": "The DAG ID"
+                },
+                "dagRunId": {
+                  "type": "string",
+                  "description": "The DAG run ID"
+                },
+                "configJson": {
+                  "type": "string",
+                  "description": "JSON configuration string for triggering a DAG run"
+                },
+                "date": {
+                  "type": "string",
+                  "description": "Date filter (YYYY-MM-DD)"
+                },
+                "timeRangeHours": {
+                  "type": "number",
+                  "description": "Number of hours to look back for failed runs"
+                },
+                "dagIdFilter": {
+                  "type": "string",
+                  "description": "DAG ID filter for failed runs query"
+                }
               }
             }
           }
@@ -818,6 +844,11 @@
         "command": "airflow-ext.OpenMcpManageView",
         "title": "Airflow: MCP Server Manager",
         "icon": "$(server)"
+      },
+      {
+        "command": "dagTreeView.clearDagRun",
+        "title": "Clear & Retry DAG Run",
+        "icon": "$(debug-restart)"
       }
     ],
     "menus": {
@@ -903,6 +934,11 @@
           "command": "dagTreeView.cancelDagRun",
           "when": "view == airflow-ext.dagTreeView && viewItem =~ /#IsRunning#/",
           "group": "inline"
+        },
+        {
+          "command": "dagTreeView.clearDagRun",
+          "when": "view == airflow-ext.dagTreeView",
+          "group": "trigger"
         },
         {
           "command": "dagTreeView.lastDAGRunLog",
@@ -1032,7 +1068,9 @@
         },
         "airflow-ext.mcp.disabledTools": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "List of MCP tool names to disable"
         }

@@ -501,14 +501,221 @@ export class AirflowApi {
         return result;
     }
 
-    // Add other methods as needed (getConnections, getVariables, getProviders)
+    // ─── Variables CRUD ───────────────────────────────────────────────────────
+
     public async getConnections(): Promise<MethodResult<any>> {
         return this.genericGet('/connections');
     }
 
+    public async createConnection(body: { conn_id: string; conn_type: string; host?: string; port?: number; schema?: string; login?: string; password?: string; extra?: string; description?: string }): Promise<MethodResult<any>> {
+        const result = new MethodResult<any>();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/connections`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(body),
+            });
+            const data = await response.json();
+            if (response.status === 201 || response.status === 200) {
+                result.result = data;
+                result.isSuccessful = true;
+            } else {
+                ui.showApiErrorMessage('Create Connection Error', data);
+                result.isSuccessful = false;
+            }
+        } catch (error) {
+            ui.showErrorMessage('Create Connection Error', error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
+    public async updateConnection(connId: string, body: { conn_id?: string; conn_type?: string; host?: string; port?: number; schema?: string; login?: string; password?: string; extra?: string; description?: string }): Promise<MethodResult<any>> {
+        const result = new MethodResult<any>();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/connections/${encodeURIComponent(connId)}`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify(body),
+            });
+            const data = await response.json();
+            if (response.status === 200) {
+                result.result = data;
+                result.isSuccessful = true;
+            } else {
+                ui.showApiErrorMessage(`Update Connection Error (${connId})`, data);
+                result.isSuccessful = false;
+            }
+        } catch (error) {
+            ui.showErrorMessage(`Update Connection Error (${connId})`, error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
+    public async deleteConnection(connId: string): Promise<MethodResult<any>> {
+        const result = new MethodResult<any>();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/connections/${encodeURIComponent(connId)}`, {
+                method: 'DELETE',
+                headers,
+            });
+            if (response.status === 204) {
+                result.isSuccessful = true;
+            } else {
+                const data = await response.json();
+                ui.showApiErrorMessage(`Delete Connection Error (${connId})`, data);
+                result.isSuccessful = false;
+            }
+        } catch (error) {
+            ui.showErrorMessage(`Delete Connection Error (${connId})`, error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
+    public async testConnection(body: { conn_id: string; conn_type: string; host?: string; port?: number; schema?: string; login?: string; password?: string; extra?: string }): Promise<MethodResult<any>> {
+        const result = new MethodResult<any>();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/connections/test`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(body),
+            });
+            const data = await response.json();
+            if (response.status === 200) {
+                result.result = data;
+                result.isSuccessful = true;
+            } else {
+                ui.showApiErrorMessage('Test Connection Error', data);
+                result.isSuccessful = false;
+            }
+        } catch (error) {
+            ui.showErrorMessage('Test Connection Error', error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
+    // ─── Connections CRUD ─────────────────────────────────────────────────────
+
     public async getVariables(): Promise<MethodResult<any>> {
         return this.genericGet('/variables');
     }
+
+    public async createVariable(key: string, value: string, description?: string): Promise<MethodResult<any>> {
+        const result = new MethodResult<any>();
+        try {
+            const headers = await this.getHeaders();
+            const body: any = { key, value };
+            if (description !== undefined) { body.description = description; }
+            const response = await fetch(`${this.config.apiUrl}/variables`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(body),
+            });
+            const data = await response.json();
+            if (response.status === 201 || response.status === 200) {
+                result.result = data;
+                result.isSuccessful = true;
+            } else {
+                ui.showApiErrorMessage('Create Variable Error', data);
+                result.isSuccessful = false;
+            }
+        } catch (error) {
+            ui.showErrorMessage('Create Variable Error', error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
+    public async updateVariable(key: string, value: string, description?: string): Promise<MethodResult<any>> {
+        const result = new MethodResult<any>();
+        try {
+            const headers = await this.getHeaders();
+            const body: any = { key, value };
+            if (description !== undefined) { body.description = description; }
+            const response = await fetch(`${this.config.apiUrl}/variables/${encodeURIComponent(key)}`, {
+                method: 'PATCH',
+                headers,
+                body: JSON.stringify(body),
+            });
+            const data = await response.json();
+            if (response.status === 200) {
+                result.result = data;
+                result.isSuccessful = true;
+            } else {
+                ui.showApiErrorMessage(`Update Variable Error (${key})`, data);
+                result.isSuccessful = false;
+            }
+        } catch (error) {
+            ui.showErrorMessage(`Update Variable Error (${key})`, error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
+    public async deleteVariable(key: string): Promise<MethodResult<any>> {
+        const result = new MethodResult<any>();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/variables/${encodeURIComponent(key)}`, {
+                method: 'DELETE',
+                headers,
+            });
+            if (response.status === 204) {
+                result.isSuccessful = true;
+            } else {
+                const data = await response.json();
+                ui.showApiErrorMessage(`Delete Variable Error (${key})`, data);
+                result.isSuccessful = false;
+            }
+        } catch (error) {
+            ui.showErrorMessage(`Delete Variable Error (${key})`, error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
+    // ─── DAG Run: Clear & Retry ───────────────────────────────────────────────
+
+    public async clearDagRun(dagId: string, dagRunId: string, dryRun: boolean = false): Promise<MethodResult<any>> {
+        const result = new MethodResult<any>();
+        try {
+            const headers = await this.getHeaders();
+            const response = await fetch(`${this.config.apiUrl}/dags/${dagId}/dagRuns/${dagRunId}/clear`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ dry_run: dryRun }),
+            });
+            const data = await response.json();
+            if (response.status === 200) {
+                result.result = data;
+                result.isSuccessful = true;
+            } else {
+                ui.showApiErrorMessage(`Clear DAG Run Error (${dagId})`, data);
+                result.isSuccessful = false;
+            }
+        } catch (error) {
+            ui.showErrorMessage(`Clear DAG Run Error (${dagId})`, error as Error);
+            result.isSuccessful = false;
+            result.error = error as Error;
+        }
+        return result;
+    }
+
+    // ─── Other read-only endpoints ────────────────────────────────────────────
 
     public async getProviders(): Promise<MethodResult<any>> {
         return this.genericGet('/providers');
