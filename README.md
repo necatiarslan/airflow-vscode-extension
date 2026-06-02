@@ -304,6 +304,11 @@ You can disable telemetry via: Settings → Telemetry → Telemetry Level
     - Rendered Template
 - Test Connection language model tool
 - Add trigger config files
+- Workbench View
+  - Integrate new tree node api
+  - Organize folders, dags, notes, batch scripts, batch files in a single view
+  - Show hide nodes based on workspace and connected server
+
 
 ## 💖 Sponsor & Feedback
 
