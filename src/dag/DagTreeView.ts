@@ -444,8 +444,8 @@ export class DagTreeView {
 			return;
 		}
 
-		Session.Current.AddServer(newServer);
-		Session.Current.SetServer(newServer);
+		await Session.Current.AddServer(newServer);
+		await Session.Current.SetServer(newServer);
 
 		this.refresh();
 	}
@@ -462,7 +462,7 @@ export class DagTreeView {
 
 		const selectedItems = selected.split(' - ');
 		if (selectedItems[0]) {
-			Session.Current.RemoveServer(selectedItems[0], selectedItems[1]);
+			await Session.Current.RemoveServer(selectedItems[0], selectedItems[1]);
 			
 			ui.showInfoMessage("Server removed.");
 		}
@@ -492,7 +492,7 @@ export class DagTreeView {
 				let result = await Session.Current.TestServer(server);
 				if (result) 
 				{
-					Session.Current.SetServer(server);
+					await Session.Current.SetServer(server);
 					this.refresh();
 				}
 				else 
@@ -506,7 +506,7 @@ export class DagTreeView {
 	public async clearServers() {
 		ui.logToOutput('DagTreeView.clearServers Started');
 
-		Session.Current.ClearServers();
+		await Session.Current.ClearServers();
 		this.treeDataProvider.dagList = undefined;
 		this.treeDataProvider.refresh();
 		ui.showInfoMessage("Server List Cleared");

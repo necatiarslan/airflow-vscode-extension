@@ -252,6 +252,7 @@ After installing the extension, you need to configure the extension to connect t
     - Exp Airflow 3: http://localhost:8080/api/v2
 - Enter your Airflow username
 - Enter your Airflow password
+  - Passwords are stored using VS Code Secret Storage (OS credential/keychain-backed when available).
 
 You can also add multiple Airflow Servers to connect to.
 - Use [+] button to add a new Airflow Server
@@ -325,4 +326,3 @@ If you find this extension useful, please consider:
 - Marketplace: https://marketplace.visualstudio.com/items?itemName=NecatiARSLAN.airflow-vscode-extension
 
 Enjoy! 🚀
-

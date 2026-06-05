@@ -3,6 +3,18 @@ import { ServerConfig } from '../common/Types';
 import * as ui from '../common/UI';
 import * as vscode from 'vscode';
 
+interface StoredServerConfig {
+    apiUrl: string;
+    apiUserName: string;
+    apiPassword?: string;
+}
+
+const API_URL_KEY = 'apiUrl';
+const API_USERNAME_KEY = 'apiUserName';
+const API_PASSWORD_KEY = 'apiPassword';
+const SERVER_LIST_KEY = 'serverList';
+const SERVER_PASSWORD_SECRET_PREFIX = 'airflow-ext.server-password';
+
 export class Session {
 	public static Current: Session;
 
@@ -16,57 +28,124 @@ export class Session {
 		Session.Current = this;
         this.Context = context;
         this.ExtensionUri = context.extensionUri;
-        this.LoadState();
 	}
 
-    public SaveState() {
-        ui.logToOutput('Saving state...');
-        
-        this.Context.globalState.update('apiUrl', this.Server?.apiUrl);
-        this.Context.globalState.update('apiUserName', this.Server?.apiUserName);
-        this.Context.globalState.update('apiPassword', this.Server?.apiPassword);
-        this.Context.globalState.update('serverList', this.ServerList);
+    public static async Create(context: vscode.ExtensionContext): Promise<Session> {
+        const session = new Session(context);
+        await session.LoadState();
+        return session;
     }
 
-    public LoadState() {
+    private getServerPasswordSecretKey(apiUrl: string, apiUserName: string): string {
+        return `${SERVER_PASSWORD_SECRET_PREFIX}:${encodeURIComponent(apiUrl)}:${encodeURIComponent(apiUserName)}`;
+    }
+
+    private getServerIdentity(server: ServerConfig): Omit<ServerConfig, 'apiPassword'> {
+        return { apiUrl: server.apiUrl, apiUserName: server.apiUserName };
+    }
+
+    public async SaveState(): Promise<void> {
+        ui.logToOutput('Saving state...');
+
+        await this.Context.globalState.update(API_URL_KEY, this.Server?.apiUrl);
+        await this.Context.globalState.update(API_USERNAME_KEY, this.Server?.apiUserName);
+        await this.Context.globalState.update(API_PASSWORD_KEY, undefined);
+        await this.Context.globalState.update(SERVER_LIST_KEY, this.ServerList.map((server) => this.getServerIdentity(server)));
+
+        if (this.Server) {
+            const selectedServerSecretKey = this.getServerPasswordSecretKey(this.Server.apiUrl, this.Server.apiUserName);
+            await this.Context.secrets.store(selectedServerSecretKey, this.Server.apiPassword);
+        }
+
+        for (const server of this.ServerList) {
+            const serverSecretKey = this.getServerPasswordSecretKey(server.apiUrl, server.apiUserName);
+            await this.Context.secrets.store(serverSecretKey, server.apiPassword);
+        }
+    }
+
+    public async LoadState() {
         ui.logToOutput('Loading state...');
 
-        const apiUrlTemp: string = this.Context.globalState.get('apiUrl') || '';
-        const apiUserNameTemp: string = this.Context.globalState.get('apiUserName') || '';
-        const apiPasswordTemp: string = this.Context.globalState.get('apiPassword') || '';
+        const apiUrlTemp: string = this.Context.globalState.get(API_URL_KEY) || '';
+        const apiUserNameTemp: string = this.Context.globalState.get(API_USERNAME_KEY) || '';
+        const legacyApiPasswordTemp: string = this.Context.globalState.get(API_PASSWORD_KEY) || '';
+
+        const serverListTemp: StoredServerConfig[] = this.Context.globalState.get(SERVER_LIST_KEY) || [];
+        const loadedServers: ServerConfig[] = [];
+        let selectedServerFromList: ServerConfig | undefined;
+        let hasLegacyServerListPasswords = false;
+        for (const server of serverListTemp) {
+            const serverSecretKey = this.getServerPasswordSecretKey(server.apiUrl, server.apiUserName);
+            const secretPassword = await this.Context.secrets.get(serverSecretKey);
+            const resolvedPassword = secretPassword !== undefined ? secretPassword : (server.apiPassword || '');
+
+            if (!secretPassword && server.apiPassword) {
+                await this.Context.secrets.store(serverSecretKey, server.apiPassword);
+            }
+
+            if (server.apiPassword) {
+                hasLegacyServerListPasswords = true;
+            }
+
+            const loadedServer = {
+                apiUrl: server.apiUrl,
+                apiUserName: server.apiUserName,
+                apiPassword: resolvedPassword
+            };
+            loadedServers.push(loadedServer);
+
+            if (loadedServer.apiUrl === apiUrlTemp && loadedServer.apiUserName === apiUserNameTemp) {
+                selectedServerFromList = loadedServer;
+            }
+        }
+        this.ServerList = loadedServers;
+
+        const selectedServerSecretKey = this.getServerPasswordSecretKey(apiUrlTemp, apiUserNameTemp);
+        let selectedServerPassword = (apiUrlTemp && apiUserNameTemp) ? await this.Context.secrets.get(selectedServerSecretKey) : undefined;
+        if (!selectedServerPassword && legacyApiPasswordTemp && apiUrlTemp && apiUserNameTemp) {
+            selectedServerPassword = legacyApiPasswordTemp;
+            await this.Context.secrets.store(selectedServerSecretKey, legacyApiPasswordTemp);
+        }
 
         if (apiUrlTemp && apiUserNameTemp) {
-            this.Server = { apiUrl: apiUrlTemp, apiUserName: apiUserNameTemp, apiPassword: apiPasswordTemp };
+            if (!selectedServerPassword) {
+                selectedServerPassword = selectedServerFromList?.apiPassword || '';
+            }
+            this.Server = { apiUrl: apiUrlTemp, apiUserName: apiUserNameTemp, apiPassword: selectedServerPassword || '' };
             this.Api = new AirflowApi(this.Server);
         }
 
-        this.ServerList = this.Context.globalState.get('serverList') || [];
+        if (legacyApiPasswordTemp || hasLegacyServerListPasswords) {
+            await this.Context.globalState.update(API_PASSWORD_KEY, undefined);
+            await this.Context.globalState.update(SERVER_LIST_KEY, this.ServerList.map((server) => this.getServerIdentity(server)));
+        }
     }
 
-    public SetServer(server: ServerConfig) {
+    public async SetServer(server: ServerConfig) {
         this.Server = server;
         this.Api = new AirflowApi(this.Server);
-        this.SaveState();
+        await this.SaveState();
     }
 
-    public ChangeServer(apiUrl: string, apiUserName: string) {
+    public async ChangeServer(apiUrl: string, apiUserName: string) {
         this.Server = this.ServerList.find((server) => server.apiUrl === apiUrl && server.apiUserName === apiUserName);   
         if (this.Server) {
             this.Api = new AirflowApi(this.Server);
-            this.SaveState();
+            await this.SaveState();
         }
     }
 
-    public RemoveServer(apiUrl: string, apiUserName: string) {
+    public async RemoveServer(apiUrl: string, apiUserName: string) {
         this.ServerList = this.ServerList.filter((server) => !(server.apiUrl === apiUrl && server.apiUserName === apiUserName));   
-        this.SaveState();
+        await this.Context.secrets.delete(this.getServerPasswordSecretKey(apiUrl, apiUserName));
+        await this.SaveState();
     }
 
-    public AddServer(server: ServerConfig) {
+    public async AddServer(server: ServerConfig) {
         const exists = this.ServerList.some((s) => s.apiUrl === server.apiUrl && s.apiUserName === server.apiUserName);
         if (!exists) {
             this.ServerList.push(server);
-            this.SaveState();
+            await this.SaveState();
         }
     }
 
@@ -76,11 +155,14 @@ export class Session {
         return result;
     }
 
-    public ClearServers() {
+    public async ClearServers() {
+        for (const server of this.ServerList) {
+            await this.Context.secrets.delete(this.getServerPasswordSecretKey(server.apiUrl, server.apiUserName));
+        }
         this.ServerList = [];
         this.Server = undefined;
         this.Api = undefined;
-        this.SaveState();
+        await this.SaveState();
     }
 
     public GetServer(apiUrl: string, apiUserName: string) {
