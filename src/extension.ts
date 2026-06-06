@@ -12,6 +12,8 @@ import * as skills from './common/Skills';
 import { McpManager } from './mcp/McpManager';
 import { McpManageView } from './mcp/McpManageView';
 import { McpTreeView } from './mcp/McpTreeView';
+import { WorkbenchTreeView } from './workbench/WorkbenchTreeView';
+import { WorkbenchNodeBase } from './workbench/WorkbenchNodeBase';
 
 
 // this method is called when your extension is activated
@@ -51,6 +53,7 @@ export function activate(context: vscode.ExtensionContext) {
 	let adminTreeView:AdminTreeView = new AdminTreeView();
 	let reportTreeView:ReportTreeView = new ReportTreeView();
 	let mcpTreeView:McpTreeView = new McpTreeView();
+	let workbenchTreeView: WorkbenchTreeView = new WorkbenchTreeView(dagTreeView);
 
 	// Register the Admin Tree View
 	vscode.window.registerTreeDataProvider('airflow-ext.adminTreeView', adminTreeView);
@@ -88,6 +91,7 @@ export function activate(context: vscode.ExtensionContext) {
 	commands.push(vscode.commands.registerCommand('dagTreeView.dagSourceCode', (node: DagTreeItem) => { dagTreeView.dagSourceCode(node); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.showDagInfo', (node: DagTreeItem) => { dagTreeView.showDagInfo(node); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.addToFavDAG', (node: DagTreeItem) => { dagTreeView.addToFavDAG(node); }));
+	commands.push(vscode.commands.registerCommand('dagTreeView.addToWorkbench', (node?: DagTreeItem) => { void dagTreeView.addToWorkbench(node); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.deleteFromFavDAG', (node: DagTreeItem) => { dagTreeView.deleteFromFavDAG(node); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.showDagView', (node: DagTreeItem) => { dagTreeView.viewDagView(node); }));
 	commands.push(vscode.commands.registerCommand('dagTreeView.viewConnections', () => { dagTreeView.viewConnections(); }));
@@ -113,6 +117,34 @@ export function activate(context: vscode.ExtensionContext) {
 		const msg = `MCP Bridge: ${status.running ? 'Running' : 'Stopped'} | Reachable: ${status.reachable ? 'Yes' : 'No'} | Sessions: ${status.activeSessions}/${status.sessionCap} | ${status.host}:${status.port}${status.message ? ' | ' + status.message : ''}`;
 		ui.showInfoMessage(msg);
 	}));
+
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.refresh', () => { workbenchTreeView.refresh(); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.connectServer', () => { void workbenchTreeView.connectServer(); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.filter', () => { void workbenchTreeView.filter(); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.showOnlyActive', () => { workbenchTreeView.showOnlyActive(); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.showOnlyFavorite', () => { workbenchTreeView.showOnlyFavorite(); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.addAirflowDag', (dagId: string) => { void workbenchTreeView.addAirflowDag(dagId); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.addRootNode', () => { void workbenchTreeView.addRootNode(); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.addChildNode', (node: WorkbenchNodeBase) => { void workbenchTreeView.addChildNode(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.renameNode', (node: WorkbenchNodeBase) => { void workbenchTreeView.renameNode(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.deleteNode', (node: WorkbenchNodeBase) => { void workbenchTreeView.deleteNode(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.moveUp', (node: WorkbenchNodeBase) => { workbenchTreeView.moveUp(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.moveDown', (node: WorkbenchNodeBase) => { workbenchTreeView.moveDown(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.moveToFolder', (node: WorkbenchNodeBase) => { void workbenchTreeView.moveToFolder(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.openNode', (node: WorkbenchNodeBase) => { void workbenchTreeView.openNode(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.editNote', (node: WorkbenchNodeBase) => { void workbenchTreeView.editNote(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.showOnlyInThisWorkspace', (node: WorkbenchNodeBase) => { workbenchTreeView.showOnlyInThisWorkspace(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.showInAnyWorkspace', (node: WorkbenchNodeBase) => { workbenchTreeView.showInAnyWorkspace(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.setColor', (node: WorkbenchNodeBase) => { void workbenchTreeView.setColor(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.setTooltip', (node: WorkbenchNodeBase) => { void workbenchTreeView.setTooltip(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.addFav', (node: WorkbenchNodeBase) => { workbenchTreeView.addFav(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.removeFav', (node: WorkbenchNodeBase) => { workbenchTreeView.removeFav(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.hideNode', (node: WorkbenchNodeBase) => { workbenchTreeView.hideNode(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.unHideNode', (node: WorkbenchNodeBase) => { workbenchTreeView.unHideNode(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.triggerDag', (node: WorkbenchNodeBase) => { void workbenchTreeView.triggerDag(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.lastDAGRunLog', (node: WorkbenchNodeBase) => { void workbenchTreeView.lastDAGRunLog(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.askAI', (node: WorkbenchNodeBase) => { void workbenchTreeView.askAI(node); }));
+	commands.push(vscode.commands.registerCommand('workbenchTreeView.showDagInfo', (node: WorkbenchNodeBase) => { void workbenchTreeView.showDagInfo(node); }));
 
 	for (const c of commands) { context.subscriptions.push(c); }
 

@@ -85,6 +85,35 @@ export class DagTreeView {
 		this.treeDataProvider.refresh();
 	}
 
+	public async addToWorkbench(node?: DagTreeItem): Promise<void> {
+		ui.logToOutput('DagTreeView.addToWorkbench Started');
+
+		let dagId = node?.DagId;
+		if (!dagId) {
+			const sourceList = this.treeDataProvider.visibleDagList.length > 0
+				? this.treeDataProvider.visibleDagList
+				: this.treeDataProvider.dagTreeItemList;
+
+			if (sourceList.length === 0) {
+				ui.showWarningMessage('No DAGs available to add. Refresh DAG list first.');
+				return;
+			}
+
+			const selected = await vscode.window.showQuickPick(
+				sourceList.map(item => ({ label: item.DagId })),
+				{ placeHolder: 'Select DAG to add to Workbench' }
+			);
+
+			if (!selected) {
+				return;
+			}
+
+			dagId = selected.label;
+		}
+
+		await vscode.commands.executeCommand('workbenchTreeView.addAirflowDag', dagId);
+	}
+
 	public async deleteFromFavDAG(node: DagTreeItem) {
 		ui.logToOutput('DagTreeView.deleteFromFavDAG Started');
 
@@ -691,5 +720,22 @@ export class DagTreeView {
 			const { ServerHealthView } = await import('../admin/ServerHealthView');
 			ServerHealthView.render();
 		}
+	}
+
+	public getAvailableDagIds(): string[] {
+		const dagIds = this.treeDataProvider.dagTreeItemList
+			.map(item => item.DagId)
+			.filter((dagId): dagId is string => Boolean(dagId));
+
+		return [...new Set(dagIds)].sort((a, b) => a.localeCompare(b));
+	}
+
+	public getDagIsPaused(dagId: string): boolean | undefined {
+		const dag = this.treeDataProvider.dagTreeItemList.find(item => item.DagId === dagId);
+		if (!dag) {
+			return undefined;
+		}
+
+		return dag.IsPaused;
 	}
 }

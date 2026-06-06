@@ -759,7 +759,12 @@
       },
       {
         "command": "dagTreeView.addToFavDAG",
-        "title": "Fav DAG"
+        "title": "Fav"
+      },
+      {
+        "command": "dagTreeView.addToWorkbench",
+        "title": "Add To Workbench",
+        "icon": "$(add)"
       },
       {
         "command": "dagTreeView.deleteFromFavDAG",
@@ -849,6 +854,136 @@
         "command": "dagTreeView.clearDagRun",
         "title": "Clear & Retry DAG Run",
         "icon": "$(debug-restart)"
+      },
+      {
+        "command": "workbenchTreeView.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "workbenchTreeView.connectServer",
+        "title": "Connect to Airflow Server",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "workbenchTreeView.filter",
+        "title": "Filter",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "workbenchTreeView.showOnlyActive",
+        "title": "Active Only",
+        "icon": "$(circle-large-filled)"
+      },
+      {
+        "command": "workbenchTreeView.showOnlyFavorite",
+        "title": "Favorites Only",
+        "icon": "$(bookmark)"
+      },
+      {
+        "command": "workbenchTreeView.addRootNode",
+        "title": "Add Node",
+        "icon": "$(add)"
+      },
+      {
+        "command": "workbenchTreeView.addChildNode",
+        "title": "Add Child Node",
+        "icon": "$(add)"
+      },
+      {
+        "command": "workbenchTreeView.renameNode",
+        "title": "Rename Node",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "workbenchTreeView.deleteNode",
+        "title": "Delete Node",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "workbenchTreeView.moveUp",
+        "title": "Move Up",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "workbenchTreeView.moveDown",
+        "title": "Move Down",
+        "icon": "$(arrow-down)"
+      },
+      {
+        "command": "workbenchTreeView.moveToFolder",
+        "title": "Move To Folder",
+        "icon": "$(folder-active)"
+      },
+      {
+        "command": "workbenchTreeView.openNode",
+        "title": "Open",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "workbenchTreeView.editNote",
+        "title": "Edit Note",
+        "icon": "$(note)"
+      },
+      {
+        "command": "workbenchTreeView.showOnlyInThisWorkspace",
+        "title": "Show Only In This Workspace",
+        "icon": "$(project)"
+      },
+      {
+        "command": "workbenchTreeView.showInAnyWorkspace",
+        "title": "Show In Any Workspace",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "workbenchTreeView.setColor",
+        "title": "Set Color",
+        "icon": "$(symbol-color)"
+      },
+      {
+        "command": "workbenchTreeView.setTooltip",
+        "title": "Set Tooltip",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "workbenchTreeView.addFav",
+        "title": "Fav",
+        "icon": "$(bookmark)"
+      },
+      {
+        "command": "workbenchTreeView.removeFav",
+        "title": "UnFav",
+        "icon": "$(bookmark-slash)"
+      },
+      {
+        "command": "workbenchTreeView.hideNode",
+        "title": "Hide",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "workbenchTreeView.unHideNode",
+        "title": "UnHide",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "workbenchTreeView.triggerDag",
+        "title": "Trigger",
+        "icon": "$(run)"
+      },
+      {
+        "command": "workbenchTreeView.lastDAGRunLog",
+        "title": "Logs",
+        "icon": "$(output)"
+      },
+      {
+        "command": "workbenchTreeView.askAI",
+        "title": "Ask AI",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "workbenchTreeView.showDagInfo",
+        "title": "DAG Info",
+        "icon": "$(info)"
       }
     ],
     "menus": {
@@ -917,6 +1052,36 @@
           "command": "airflow-ext.installAirflowSkills",
           "when": "view == airflow-ext.dagTreeView",
           "group": "other@5"
+        },
+        {
+          "command": "workbenchTreeView.refresh",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "navigation@6"
+        },
+        {
+          "command": "workbenchTreeView.connectServer",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "navigation@5"
+        },
+        {
+          "command": "workbenchTreeView.filter",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "navigation@4"
+        },
+        {
+          "command": "workbenchTreeView.showOnlyActive",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "navigation@3"
+        },
+        {
+          "command": "workbenchTreeView.showOnlyFavorite",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "navigation@2"
+        },
+        {
+          "command": "workbenchTreeView.addRootNode",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
@@ -991,6 +1156,11 @@
           "group": "fav"
         },
         {
+          "command": "dagTreeView.addToWorkbench",
+          "when": "view == airflow-ext.dagTreeView",
+          "group": "other"
+        },
+        {
           "command": "dagTreeView.dagSourceCode",
           "when": "view == airflow-ext.dagTreeView",
           "group": "other"
@@ -999,6 +1169,106 @@
           "command": "dagTreeView.showDagView",
           "when": "view == airflow-ext.dagTreeView",
           "group": "other"
+        },
+        {
+          "command": "workbenchTreeView.openNode",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#Type(AirflowDag|File|BatchFile|Note)#/",
+          "group": "inline"
+        },
+        {
+          "command": "workbenchTreeView.triggerDag",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#TypeAirflowDag#/",
+          "group": "inline"
+        },
+        {
+          "command": "workbenchTreeView.lastDAGRunLog",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#TypeAirflowDag#/",
+          "group": "inline"
+        },
+        {
+          "command": "workbenchTreeView.askAI",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#TypeAirflowDag#/",
+          "group": "inline"
+        },
+        {
+          "command": "workbenchTreeView.showDagInfo",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#TypeAirflowDag#/",
+          "group": "inline"
+        },
+        {
+          "command": "workbenchTreeView.addChildNode",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#IsContainer#/",
+          "group": "modify@1"
+        },
+        {
+          "command": "workbenchTreeView.renameNode",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "modify@2"
+        },
+        {
+          "command": "workbenchTreeView.editNote",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#TypeNote#/",
+          "group": "modify@3"
+        },
+        {
+          "command": "workbenchTreeView.moveUp",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "order@1"
+        },
+        {
+          "command": "workbenchTreeView.moveDown",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "order@2"
+        },
+        {
+          "command": "workbenchTreeView.moveToFolder",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "order@3"
+        },
+        {
+          "command": "workbenchTreeView.deleteNode",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "remove"
+        },
+        {
+          "command": "workbenchTreeView.showOnlyInThisWorkspace",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#ShowOnlyInThisWorkspace#/",
+          "group": "scope@1"
+        },
+        {
+          "command": "workbenchTreeView.showInAnyWorkspace",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#ShowInAnyWorkspace#/",
+          "group": "scope@2"
+        },
+        {
+          "command": "workbenchTreeView.setColor",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "style"
+        },
+        {
+          "command": "workbenchTreeView.setTooltip",
+          "when": "view == airflow-ext.workbenchTreeView",
+          "group": "style"
+        },
+        {
+          "command": "workbenchTreeView.addFav",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#AddFav#/",
+          "group": "style"
+        },
+        {
+          "command": "workbenchTreeView.removeFav",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#RemoveFav#/",
+          "group": "style"
+        },
+        {
+          "command": "workbenchTreeView.hideNode",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#Hide#/",
+          "group": "style"
+        },
+        {
+          "command": "workbenchTreeView.unHideNode",
+          "when": "view == airflow-ext.workbenchTreeView && viewItem =~ /#UnHide#/",
+          "group": "style"
         }
       ]
     },
@@ -1016,6 +1286,11 @@
         {
           "id": "airflow-ext.dagTreeView",
           "name": "Airflow",
+          "icon": "media/airflow-extension-logo.png"
+        },
+        {
+          "id": "airflow-ext.workbenchTreeView",
+          "name": "Workbench",
           "icon": "media/airflow-extension-logo.png"
         },
         {
@@ -1039,6 +1314,10 @@
       {
         "view": "airflow-ext.dagTreeView",
         "contents": "To connect to Airflow Click Below \n [Connect to Airflow](command:dagTreeView.addServer)\n\n You should enable REST Api in the Airflow to connect.\n For now, only basic authentication (username/password) supported.\n [Learn More](https://github.com/necatiarslan/airflow-vscode-extension/blob/main/README.md) \n\n Click [here](https://www.youtube.com/watch?v=ZeWDVPNDXZg) on how to run Airflow in your local machine in 5 mins."
+      },
+      {
+        "view": "airflow-ext.workbenchTreeView",
+        "contents": "Build your custom runbook tree here.\n\n[Add a Workbench Node](command:workbenchTreeView.addRootNode)"
       }
     ],
     "configuration": {
