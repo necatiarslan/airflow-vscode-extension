@@ -436,7 +436,7 @@ export class AIHandler
                 stream.markdown("\n\n\n")
                 stream.markdown("\n🙏 [Donate](https://github.com/sponsors/necatiarslan) if you found me useful!");
                 stream.markdown("\n🤔 Request a [New Feature](https://github.com/necatiarslan/airflow-vscode-extension/issues/new)");
-                stream.markdown("\n🗳️ Attend [Survey](https://bit.ly/airflow-extension-survey) to help me get better. ");
+                stream.markdown("\n🗳️ Attend [Survey](https://forms.gle/r9tbBmHR7zFhoAnw8) to help me get better. ");
             }
 
         } catch (err) {

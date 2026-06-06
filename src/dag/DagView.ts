@@ -654,7 +654,7 @@ export class DagView {
                     
                     <div style="opacity: 0.7; font-size: 12px; margin-top: 40px; border-top: 1px solid var(--vscode-widget-border); padding-top: 20px;">
                         <div style="margin-bottom: 8px;"><a href="https://github.com/necatiarslan/airflow-vscode-extension/issues/new">Report Bug / Request Feature</a></div>
-                        <div style="margin-bottom: 8px;"><a href="https://bit.ly/airflow-extension-survey">New Feature Survey</a></div>
+                        <div style="margin-bottom: 8px;"><a href="https://forms.gle/r9tbBmHR7zFhoAnw8">New Feature Survey</a></div>
                         <div><a href="https://github.com/sponsors/necatiarslan">Support this extension</a></div>
                     </div>
                 </section>

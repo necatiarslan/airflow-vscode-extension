@@ -509,9 +509,19 @@ export class DagTreeView {
 		for (const s of Session.Current.ServerList) {
 			items.push(s.apiUrl + " - " + s.apiUserName);
 		}
+		items.push('Add New Server');
+		items.push('Remove Server');
 
 		const selected = await vscode.window.showQuickPick(items, { canPickMany: false, placeHolder: 'Select To Connect' });
 		if (!selected) { return; }
+		if (selected === 'Add New Server') {
+			await vscode.commands.executeCommand('dagTreeView.addServer');
+			return;
+		}
+		if (selected === 'Remove Server') {
+			await vscode.commands.executeCommand('dagTreeView.removeServer');
+			return;
+		}
 
 		const selectedItems = selected.split(' - ');
 
@@ -585,11 +595,11 @@ export class DagTreeView {
 	}
 
 	public async setViewTitle() {
-		if (Session.Current.Server) {
-			this.view.title = Session.Current.Server.apiUrl + " - " + Session.Current.Server.apiUserName;
-		} else {
-			this.view.title = "Airflow";
-		}
+		// if (Session.Current.Server) {
+		// 	this.view.title = Session.Current.Server.apiUrl + " - " + Session.Current.Server.apiUserName;
+		// } else {
+		// 	this.view.title = "Airflow";
+		// }
 	}
 
 	public async getImportErrors() {

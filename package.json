@@ -999,16 +999,6 @@
           "group": "navigation@6"
         },
         {
-          "command": "dagTreeView.addServer",
-          "when": "view == airflow-ext.dagTreeView",
-          "group": "navigation@5"
-        },
-        {
-          "command": "dagTreeView.removeServer",
-          "when": "view == airflow-ext.dagTreeView",
-          "group": "navigation@4"
-        },
-        {
           "command": "dagTreeView.filter",
           "when": "view == airflow-ext.dagTreeView",
           "group": "navigation@3"
@@ -1052,6 +1042,16 @@
           "command": "airflow-ext.installAirflowSkills",
           "when": "view == airflow-ext.dagTreeView",
           "group": "other@5"
+        },
+        {
+          "command": "dagTreeView.addServer",
+          "when": "view == airflow-ext.dagTreeView",
+          "group": "other@6"
+        },
+        {
+          "command": "dagTreeView.removeServer",
+          "when": "view == airflow-ext.dagTreeView",
+          "group": "other@7"
         },
         {
           "command": "workbenchTreeView.refresh",
@@ -1285,7 +1285,7 @@
       "airflow-explorer": [
         {
           "id": "airflow-ext.dagTreeView",
-          "name": "Airflow",
+          "name": "Dags",
           "icon": "media/airflow-extension-logo.png"
         },
         {
