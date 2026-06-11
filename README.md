@@ -308,6 +308,8 @@ You can disable telemetry via: Settings → Telemetry → Telemetry Level
   - Integrate new tree node api
   - Organize folders, dags, notes, batch scripts, batch files in a single view
   - Show hide nodes based on workspace and connected server
+- Custom API support with an extension
+- Aws Airflow API Support
 
 
 ## 💖 Sponsor & Feedback
